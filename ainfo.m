@@ -1,0 +1,7 @@
+fprintf('\nAllocated 2D data, 3D data, and algorithms objects:\n')
+astra_mex_data2d('info')
+%fprintf('Allocated 3D data:\n')
+astra_mex_data3d('info')
+%fprintf('Allocated algorithm objects:\n')
+astra_mex_algorithm('info')
+fprintf('\n')

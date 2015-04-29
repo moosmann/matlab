@@ -1,0 +1,196 @@
+// mexVolRead.cc
+// DESCRIPTION: reading of (sub)volumes out of binary volume files
+// AUTHOR: Daniel Haenschke, ISS, KIT Karlsruhe, Germany
+// 29/06/2009: release version
+//
+// note: compile with "mex mexVolRead.cc -lz"
+//        (elsewise zlib is not linked correctly)
+//
+
+#include "mex.h"
+#include <string>
+#include <zlib.h>
+
+struct DataTypeTableStruct {
+    std::string key;
+    int value;
+    short dataLen;
+};
+
+enum DataTypes {
+    UINT8, FLOAT32
+};
+
+static const struct DataTypeTableStruct DataTypeTable [] =
+{
+    { "uint8",	UINT8,  1 },
+    { "float32",FLOAT32,  4 },
+    { "endOfStruct", -1, -1 }
+};
+
+int lookup_DataTypeTable (const struct DataTypeTableStruct *tbl, std::string& search_str)
+{
+    int k = -1;
+    while (!(tbl[++k].key.compare("endOfStruct")==0)) {
+	if (tbl[k].key.compare(search_str)==0)
+	    return k;
+    }
+    return -1; 
+}
+
+inline mwSize getPos3D(mwSize xPos, mwSize yPos, mwSize zPos, const mwSize *volDims)
+{
+ return(zPos*volDims[1]*volDims[0]+yPos*volDims[0]+xPos);
+}
+
+void printUsage()
+{
+ mexPrintf("\nSyntax:\nout = mexVolRead(filename,size,datatype (optional: ,subvolpos,subvolsize) )\n\n");
+ return;
+}
+
+void mexFunction(
+    int nlhs, mxArray *plhs[],
+    int nrhs, const mxArray *prhs[])
+{
+  if ( (nrhs != 3) && (nrhs != 5) ) {
+	printUsage();
+	mexErrMsgTxt("3 or (optional) 5 input arguments required:\n - filename (string)\n - size (3dim vector, unsigned integer)\n - data type (string: 'float32' or 'uint8')\n - (optional) sub-volume position [xmin ymin zmin] (integer > 0)\n - (optional) sub-volume size [xsub ysub zsub]");
+  }
+  if (nlhs > 1) {
+	printUsage(); 
+	mexErrMsgTxt("Too many output arguments.\n One argument, the read-in volume, is given back.");
+  }
+
+  if (!(mxIsChar(prhs[0]))){
+	printUsage();
+        mexErrMsgTxt("First input argument must be of type string.");
+    }
+  char *strIn;
+  strIn = mxArrayToString(prhs[0]);
+  std::string filename(strIn);
+  mxFree(strIn);
+
+  if (!(mxIsChar(prhs[2]))){
+	printUsage();
+        mexErrMsgTxt("Third input argument must be of type string.");
+    }
+  char *strIn2;
+  strIn2 = mxArrayToString(prhs[2]);
+  std::string datatype(strIn2);
+  mxFree(strIn2);
+
+  mwSize inND = mxGetNumberOfDimensions(prhs[1]);
+  const mwSize *inDim = mxGetDimensions(prhs[1]);
+  if (!mxIsDouble(prhs[1]) || mxIsComplex(prhs[1]) || inND!=2 || inDim[0]!=1 || inDim[1]!=3 ) { 
+	printUsage();
+	mexErrMsgTxt("Second argument has to be a real 3dim vector [x y z].");
+  } 
+  double *dimsDoub;
+  dimsDoub=(double *)mxGetPr(prhs[1]);
+  if ( (double)((int)dimsDoub[0])!=(double)dimsDoub[0] || !(dimsDoub[0]>0) || (double)((int)dimsDoub[1])!=(double)dimsDoub[1] || !(dimsDoub[1]>0) || (double)((int)dimsDoub[2])!=(double)dimsDoub[2] || !(dimsDoub[2]>0) ){ 
+	printUsage();
+	mexErrMsgTxt("Second argument has to be a real 3dim vector of integers > 0.");
+  } 
+  int dims[3]={(int)dimsDoub[0],(int)dimsDoub[1],(int)dimsDoub[2]};
+  mexPrintf("Reading %d x %d x %d %s from file%s\n",dims[0],dims[1],dims[2],datatype.c_str(),filename.c_str());
+
+  int posSV[3]={0,0,0};
+  int dimSV[3]={dims[0],dims[1],dims[2]};
+
+  if (nrhs == 5) {
+      dimsDoub=(double *)mxGetPr(prhs[3]);
+      if ( (double)((int)dimsDoub[0])!=(double)dimsDoub[0] || !(dimsDoub[0]>0) || (double)((int)dimsDoub[1])!=(double)dimsDoub[1] || !(dimsDoub[1]>0) || (double)((int)dimsDoub[2])!=(double)dimsDoub[2] || !(dimsDoub[2]>0) || ((int)dimsDoub[0])>dims[0] || ((int)dimsDoub[1])>dims[1] || ((int)dimsDoub[2])>dims[2]){ 
+	  printUsage();
+	  mexErrMsgTxt("Fourth argument has to be a real 3dim vector of integers > 0\nand smaller than the corresponding size.");
+      } 
+      posSV[0]=(int)dimsDoub[0]-1;
+      posSV[1]=(int)dimsDoub[1]-1;
+      posSV[2]=(int)dimsDoub[2]-1;
+
+      dimsDoub=(double *)mxGetPr(prhs[4]);
+      if ( (double)((int)dimsDoub[0])!=(double)dimsDoub[0] || !(dimsDoub[0]>0) || (double)((int)dimsDoub[1])!=(double)dimsDoub[1] || !(dimsDoub[1]>0) || (double)((int)dimsDoub[2])!=(double)dimsDoub[2] || !(dimsDoub[2]>0) || (((int)dimsDoub[0])+posSV[0])>dims[0] || (((int)dimsDoub[1])+posSV[1])>dims[1] || (((int)dimsDoub[2])+posSV[2])>dims[2]){ 
+	  printUsage();
+	  mexErrMsgTxt("Fifth argument has to be a real 3dim vector of integers > 0\nand [xmin-1 ymin-1 zmin-1] + sub-vol-size <= size.");
+      } 
+      dimSV[0]=(int)dimsDoub[0];
+      dimSV[1]=(int)dimsDoub[1];
+      dimSV[2]=(int)dimsDoub[2];
+
+      mexPrintf("sub-vol-pos: [%d %d %d]\nsub-vol-dims: [%d %d %d]\n",posSV[0],posSV[1],posSV[2],dimSV[0],dimSV[1],dimSV[2]);
+  }
+
+  int k = lookup_DataTypeTable(DataTypeTable,datatype);
+  if (k<0) {
+    printUsage();
+	mexErrMsgTxt("\nerror!\nthe third argument must be a one of the following strings:\n - uint8\n - float32");
+  }
+  short dataLen = DataTypeTable[k].dataLen;
+  int dataType = DataTypeTable[k].value;
+
+  gzFile inp;
+  inp = gzopen(filename.c_str(), "rb");
+  if (!inp) {
+	char errmsg[256];
+	printUsage();
+	sprintf(errmsg,"\ncannot open input file \"%s\"", filename.c_str());
+	mexErrMsgTxt(errmsg);
+  }
+
+  int dataSize=dimSV[0]*dataLen;
+
+  char *vol = new char [dataSize];
+  if (!vol) {
+    	printUsage();
+	mexErrMsgTxt("\nnot enough free memory for reading of given volume file.");
+  }
+
+  z_off_t position = (dims[0]*dims[1]*posSV[2]+dims[0]*posSV[1]+posSV[0])*dataLen;
+
+  char *p = vol;
+
+  mxArray *vol_array = NULL;
+  char *pr = NULL;
+  //float *pr_fl = NULL;
+
+  switch (dataType) {
+	case UINT8:	vol_array = mxCreateNumericArray(3,dimSV,mxUINT8_CLASS,mxREAL);
+			pr=(char*)mxGetPr(vol_array);
+			break;
+	case FLOAT32:	vol_array = mxCreateNumericArray(3,dimSV,mxSINGLE_CLASS,mxREAL);
+			pr=(char*)mxGetPr(vol_array);
+			break;
+	default: break;
+  }
+
+  mwSize x,y,z;
+  for (z = 0; z < dimSV[2]; z++) {
+    for (y = 0; y < dimSV[1]; y++) {
+	
+	if (position != gzseek (inp, position, SEEK_SET)) {
+		mxFree(vol);
+		mexErrMsgTxt("\nthe sub volume cannot be located inside the volume of input file.");
+	}
+	if (dataSize != gzread(inp, &vol[0], dataSize)) {
+		mxFree(vol);
+		mexErrMsgTxt("\nthe volume file cannot be read completely.");
+	}
+	p = vol;
+	for (x = 0; x < dimSV[0]; x++) {
+	    switch (dataType) {
+		case UINT8:	((unsigned char*)pr)[getPos3D(x,y,z,dimSV)]=*(unsigned char*)p; break;
+		case FLOAT32:	((float*)pr)[getPos3D(x,y,z,dimSV)]=*(float*)p; break;
+		default: break;
+	    }
+	p+= dataLen;
+	}
+    position += dims[0]*dataLen;
+    }
+  position += (dims[1]*dims[0]-dimSV[1]*dims[0])*dataLen;
+  }
+  gzclose(inp); 
+  //delete [] vol;
+  mxFree(vol);
+  plhs[0] = vol_array;
+  return;
+}

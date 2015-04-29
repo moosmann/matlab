@@ -1,0 +1,1 @@
+lena = double( imread( [ getenv( 'HOME' ) '/data/lena/lena.tif' ] ) ) ;

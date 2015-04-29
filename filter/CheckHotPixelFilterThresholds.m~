@@ -1,0 +1,38 @@
+function filtered = CheckHotPixelFilterThresholds(dataFileNamePrefix,filterThresholds_DarkRefData)
+% Read dark field image, first and 
+
+if nargin < 1
+    dataFileNamePrefix = 'Xenopus';
+end
+if nargin < 2
+    filterThresholds_DarkRefData = [1.015 1.01 1.025];
+end
+
+% Filter thresholds
+filtThresDark   = filterThresholds_DarkRefData(1);
+filtThresRef    = filterThresholds_DarkRefData(2);
+filtThresSample = filterThresholds_DarkRefData(3);
+% Get name struct with corresponding file names.
+dataFileNameStruct = dir([dataFileNamePrefix '*.edf']);
+darkFileNameStruct = dir('dark*.edf');
+refFileNameStruct  = dir('refHST*.edf');
+% Read dark and first and last reference images.
+dark     = pmedfread(darkFileNameStruct.name)/15;
+refFirst = pmedfread(refFileNameStruct(1).name);
+refLast  = pmedfread(refFileNameStruct(end).name);
+datFirst = pmedfread(dataFileNameStruct(1).name);
+datLast  = pmedfread(dataFileNameStruct(end).name);
+% Apply hot-pixel filter.
+% Dark field image.
+fprintf(1,'DARK:\n');
+filtered.dark    = filter_im(dark,filtThresDark);
+% Median filtered flat field images.
+fprintf(1,'First refHST:\n');
+filtered.refFirst = filter_im(refFirst,filtThresRef);
+fprintf(1,'Last refHST:\n');
+filtered.refLast = filter_im(refLast,filtThresRef);
+% Sample projections.
+fprintf(1,'First projection:\n');
+filtered.projFirst = filter_im(datFirst,filtThresSample);
+fprintf(1,'Last projection:\n');
+filtered.projLast = filter_im(datLast,filtThresSample);

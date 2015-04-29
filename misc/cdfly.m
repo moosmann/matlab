@@ -1,0 +1,1 @@
+cd :/media/tomoraid/rolo/IHR_2008_08/IAEA_Fast_Radios/glossina_swynnertoni/cop_04/part_01_5min_250fps_bg_cor
