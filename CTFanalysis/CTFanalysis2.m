@@ -4,11 +4,11 @@ function [out, afintr, afintc, afint, int, phase] = CTFanalysis2(distanceList_m,
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 if nargin < 1
-    %distanceList_m = 1.75;
-    distanceList_m = 0.25:0.25:5;
+    distanceList_m = 1;
+    %distanceList_m = 0.25:0.25:5;
 end
 if nargin < 2
-    VariableSineArg = 1;
+    VariableSineArg = 0;
 end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -20,17 +20,33 @@ for dd = numel( distanceList_m ):-1:1
 
 %% Parameters.
 doFits = 1;
-padding = 'padsym'; 'padzeros';
 filestring = [ getenv('HOME'), '/data/test_pattern/lena/lena.tif' ];
 blurring = [8 8 1];
 energy_keV = 20;
 pixelsize_m = 1e-6;
-dimX = 1024;
+padding = 'padzeros';'padsym';'none'; 
+% Read image, padding
+switch lower(padding)
+    case {'none',0}
+        phase0 = normat( double( imread( filestring ) ) );
+    case 'padzeros'
+        dimX = 1024;
+        phase0 = zeros(dimX,dimX);
+        phase0(dimX/2+(-255:256),dimX/2+(-255:256)) = normat(double(imread(filestring)));        
+    case 'padsym'
+        dimX = 1024;
+        phase0 = normat( double( imread( filestring ) ) );
+        padSize = (dimX -size( phase0, 1) ) / 2 ;
+        phase0 = padarray( phase0, [padSize padSize], 'symmetric', 'both' );        
+end
+dimX = size(phase0,1);
 lambda = EnergyConverter(energy_keV);
 SineArgPreFac = pi * lambda * distance_m / pixelsize_m^2; % normalised frequencies ranging from -1/2 to 1/2
 pixPosZeroCross = @(n) round( dimX * sqrt(n* pi / SineArgPreFac ) );
 % Maximum phase shifts
-rescalVec = 1:10:801;
+%rescalVec = [1, 10:10:501];
+rescalVec = 1:500;
+out(dd).S = rescalVec;
 MaxPhaseShift = 0.01*rescalVec;
 numMaxPhaseShift = numel( MaxPhaseShift );
 out(dd).MaxPhaseShift = MaxPhaseShift;
@@ -47,16 +63,6 @@ OutputPath = regexprep(OutputPath,'\.','p');
 CheckAndMakePath(OutputPath);
 out(dd).OutputPath = OutputPath;
 
-%% Read image, padding
-switch padding
-    case 'padzeros'
-        phase0 = zeros(dimX,dimX);
-        phase0(dimX/2+(-255:256),dimX/2+(-255:256)) = normat(double(imread(filestring)));        
-    case 'padsym'
-        phase0 = normat( double( imread( filestring ) ) );
-        padSize = (dimX -size( phase0, 1) ) / 2 ;
-        phase0 = padarray( phase0, [padSize padSize], 'symmetric', 'both' );        
-end
 
 %% Blur image.
 if blurring(1) > 0
@@ -99,7 +105,7 @@ fprintf('\nFOURIER TRANSFORM.\n Time elapsed: %g s',toc)
 %% Angular integration
 fprintf('\nANGULAR INTEGRATION.')
 radiusStepSize = 1;
-numThetaSteps = round( pi * dimX /2 );
+numThetaSteps = round( pi * dimX /1 );
 thetaoffset = pi * 5 /180;
 thetastep = (pi/2 - 2 * thetaoffset) / (numThetaSteps/4);
 theta = thetaoffset : thetastep : pi/2-thetaoffset;
@@ -132,12 +138,14 @@ fprintf('\n Time elapsed: %g s',toc)
 
 %% Fit integrated line.
 if doFits    
-    x = pixPosZeroCross(0.25) /radiusStepSize : pixPosZeroCross(1.75) /radiusStepSize;
-    xMinSearch = pixPosZeroCross(0.5) /radiusStepSize : pixPosZeroCross(1.5) /radiusStepSize;
+    x = pixPosZeroCross(0.4) /radiusStepSize : pixPosZeroCross(1.75) /radiusStepSize;
+    xMinSearch = pixPosZeroCross(0.5) /radiusStepSize : pixPosZeroCross(1.4) /radiusStepSize;
     out(dd).x = x;
     xn = SineArgPreFac * ( radiusStepSize * x / dimX ) .^2 / pi;
     xn = xn(:);
     out(dd).xn = xn;
+    out(dd).pixelPosToSinArg = @(x) SineArgPreFac * ( radiusStepSize * x/ dimX ) .^2 / pi;
+    out(dd).pixelPosToSinArgROI = @(x) SineArgPreFac * ( radiusStepSize * (x + xMinSearch(1)-1)/ dimX ) .^2 / pi;
     xnMinSearch = SineArgPreFac * ( radiusStepSize * xMinSearch / dimX ) .^2 / pi;    
     fprintf('\nFIT INTEGRATED LINE')
     fprintf('\n Support of fit: pixel position [%u .. %u], argument [%g ..%g]',x(1),x(end),xn(1),xn(end))
@@ -160,9 +168,9 @@ fprintf('\n')
 
 for kk = 1:numMaxPhaseShift
     plot( xn, afintr(x,kk) ,'.', xn, cf{kk}(xn) ),
-    axis tight,
-    %pause(0.2)    
-    saveas(gcf,sprintf('%s/plot_%03u.png', OutputPath, kk),'png')
+    axis tight equal,
+    pause(0.1)    
+    %saveas(gcf,sprintf('%s/plot_%03u.png', OutputPath, kk),'png')
 end
 
 plot(out(dd).MaxPhaseShift,out(dd).cfMinPos,'.-')
@@ -173,6 +181,38 @@ plot( out(dd).MaxPhaseShift, normat( out(dd).cfMinPos ), '.-' )
 saveas( gcf, sprintf( '%s/MinPos_vs_MaxPhaseShift_z%03.0fcm.png', OutputPath, distance_m * 100 ),'png')
 
 end
+
+%% Figure 1b
+figure('Name','Figure 1b: data and fits')
+ss = [1,100,370,500];
+for nn = numel(ss):-1:1
+    [~, Spos(nn)] = max(out.S == ss(nn));
+    Y(:,nn) = out.cf{Spos(nn)}(out.xn);
+end
+h = plot(out.xn,afintr(out.x,Spos),'.',out.xn,Y,'-');
+axis equal tight
+h(1).Color='r';
+h(2).Color='b';
+h(3).Color='m';
+h(4).Color='g';
+h(5).Color='r';
+h(6).Color='b';
+h(7).Color='m';
+h(8).Color='g';
+%set(0, 'defaultTextInterpreter', 'tex');
+xlabel('\lambda z {\bf \xi }^2')
+legend(h,'data: S = 1','data: S = 100','data: S = 370','data: S = 500','fit: S = 1','fit: S = 100','fit: S = 370','fit: S = 500')
+OutputPath = '/home/jmoosmann/data/QP/figures';
+saveas( gcf, sprintf( '%s/Fig-1b.png', OutputPath),'png')
+
+%% Figure 1c
+figure('Name','Figure 1c: minima position')
+plot(out.S,out.pixelPosToSinArgROI(out.cfMinPos),'.-');
+xlabel('S')
+ylabel('\lambda z |{\bf\xi}|_{1,min}^2')
+saveas( gcf, sprintf( '%s/Fig-1c.png', OutputPath),'png')
+
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 

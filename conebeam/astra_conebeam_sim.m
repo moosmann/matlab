@@ -1,7 +1,7 @@
 function [rec, proj_data, proj_geom_vec] = astra_conebeam_sim(AlgType_str,NumIterations,num_proj,num_pixel_0)
 
 if nargin < 1
-    AlgType_str = 'FDK';
+    AlgType_str = 'SIRT3D';'FDK';
 end
 if nargin < 2
     NumIterations = 20;
@@ -10,17 +10,14 @@ if nargin < 3
     num_proj = 360;
 end
 if nargin < 4
-    num_pixel_0 = 200;
+    num_pixel_0 = 100;
 end
-
-
 
 %% Parameters
 % Physical
 num_pixel = 2 * round( sqrt(2) / 2 * num_pixel_0);
 num_voxel = 1 * num_pixel_0;
 %num_voxel = num_pixel;
-
 
 num_voxel_vec = [num_voxel, num_voxel, num_voxel];
 fullAngle_rad = 2 * pi;
@@ -80,10 +77,17 @@ fprintf('\nTime to create projection data: %g s', toc)
 % < A*data, proj_data > = < proj_data, Aad*proj_data >
 [~, rec] = astra_create_backprojection3d_cuda( proj_data, proj_geom, vol_geom);
 lnorm = @(data) sqrt( sum( data(:).^2 ) );
-projScaleFac = lnorm( data ) / lnorm( rec );
-fprintf('\nScale Factor: |x| / |A*Ax|: %g', projScaleFac*num_proj*num_pixel)
-projScaleFac2 = lnorm( proj_data ) / sqrt( sum( data(:).*rec(:) )  );
-fprintf('\nScale Factor: |y| / <x,A*x>^(1/2): %g', projScaleFac2)
+
+fprintf('\nL2-norm(data): %g', lnorm(data) );
+fprintf('\nL2-norm(rec): %g', lnorm(rec) );
+
+lnorm_proj_data = lnorm( proj_data );
+fprintf('\nL2-norm(proj_data): %g', lnorm(proj_data) );
+
+xAdy_sqr = sqrt( sum( data(:).*rec(:) )  );
+fprintf('\n<x,A*x>^(1/2): %g', xAdy_sqr)
+projScaleFac = lnorm_proj_data / xAdy_sqr;
+fprintf('\nScale Factor: |y| / <x,A*x>^(1/2): %g', projScaleFac)
 
 % proj_data_0 = proj_data;
 % x = 36;
@@ -93,7 +97,6 @@ fprintf('\nScale Factor: |y| / <x,A*x>^(1/2): %g', projScaleFac2)
 
 %astra_mex_data3d( 'set', proj_id, exp(-proj_data)/10000 );
 %fprintf('\n');domain(proj_data(:)) 
-
 
 % Display a single projection image
 %figure, imshow(squeeze(proj_data(:,20,:))',[])
@@ -120,9 +123,7 @@ alg_id = astra_mex_algorithm('create', cfg);
 
 % Run algorithm
 fprintf('\nAlgorithm: %s \n',cfg.type)
-x = 0.05;
-x = round( 1 + (num_voxel-1) * [x 1-x] );
-x = x(1):x(2);
+%x = 0.05;x = round( 1 + (num_voxel-1) * [x 1-x] );x = x(1):x(2);
 if isequal(cfg.type(1:3),'FDK')
     tic;
     astra_mex_algorithm('iterate', alg_id, 1);   
@@ -134,6 +135,7 @@ else
     fprintf('Iteration: \n')    
     tic;
     res = zeros(1,num_iterations);
+    rec2 = rec;
     for nn = 1:num_iterations
         %fprintf(' %u',nn)
         PrintNum(nn,20,' %u')

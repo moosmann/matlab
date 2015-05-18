@@ -26,7 +26,7 @@ padding.size_hor = PadHor_PadVer(1);
 padding.size_ver = PadHor_PadVer(2);
 padding.valueOrMethod = 'replicate';
 cfg = astra_struct( [ upper(AlgType_str) '_CUDA' ] );
-cfg.option.GPUindex = 0;
+cfg.option.GPUindex = 1;
 
 num_iterations = NumIterations;
 %x = 0.1;
@@ -314,7 +314,7 @@ else
         end
     end   
 end
-fprintf('\n%s reconstruction. Elapsed time: %g s',cfg.type,toc)
+fprintf('\nElapsed time: %g s', toc)
 
 fprintf('\nVolume size: %u x %u x %u', size(rec))
 fprintf('\nMin/Max of volume: [%g, %g]', min( rec(:) ), max( rec(:) ) )

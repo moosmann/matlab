@@ -1,7 +1,7 @@
 function [rec, sino] = astra_conebeam_reco(DataSetNum,NumIterations,PadHor_PadVer,scaleFactor,lambda)
 
 if nargin < 1
-    DataSetNum = 10;
+    DataSetNum = 9;
 end
 if nargin < 2
     NumIterations = 6;
@@ -284,7 +284,6 @@ fprintf('\n')
 % Clean up. Note that GPU memory is tied up in the algorithm object,
 % and main RAM in the data objects.
 astra_clear
-
 
 function imsc(im)
 % imagesc using gray colormap.

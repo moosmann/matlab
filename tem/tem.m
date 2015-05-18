@@ -9,7 +9,7 @@ imSize = [N N];
 
 %lambda    = 6.62606896e-34*299792458/(Energy*1.60217733e-16);
 prefacSta = pi * lambda_m * deltaz_m / pixelsize_m^2;
-prefacSpheAbb = pi * cSpherAbb_m * lambda_m^3 / 2 / pixelsize_m^4;
+prefacSpheAbb = 0* pi * cSpherAbb_m * lambda_m^3 / 2 / pixelsize_m^4;
 
 %% Fourier coordinates
 % 1D
@@ -20,6 +20,7 @@ eta = FrequencyVector(imSize(1),outputPrecision,1);
 [xi, eta]   = meshgrid(xi,eta);
 % Function on 2D
 xi = (xi.^2 + eta.^2);
+xi = fftshift( xi );
 arg = prefacSta * xi - prefacSpheAbb * xi.^2;
 
 fprintf('\nPrefactor 1: %g',prefacSta)
@@ -27,5 +28,5 @@ fprintf('\nPrefactor 1: %g\n',prefacSpheAbb)
 fprintf('\nMax argument: %g\n', max( arg(:) ) )
 fprintf('\nMax argumen: %g\n', max( arg(:) ) )
 
-imagesc(fftshift(sin(arg)))
+imagesc( sin(arg) )
 colormap(gray)
