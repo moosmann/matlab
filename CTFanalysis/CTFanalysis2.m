@@ -1,4 +1,4 @@
-function [out, afintr, afintc, afint, int, phase] = CTFanalysis2(distanceList_m,VariableSineArg)
+function [out, afintr, afintc, afint, int, phase] = CTFanalysis2(distanceList_m,VariableSineArg,rescalVec,numThetaStepFac)
 %Analysis of the CTF model for increasing values of the absolute phase
 %shift.
 
@@ -9,6 +9,13 @@ if nargin < 1
 end
 if nargin < 2
     VariableSineArg = 0;
+end
+if nargin < 3
+    %rescalVec = [1, 10:10:501];
+    rescalVec = 1:500;
+end
+if nargin < 4
+    numThetaStepsFac = 1;
 end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -44,14 +51,12 @@ lambda = EnergyConverter(energy_keV);
 SineArgPreFac = pi * lambda * distance_m / pixelsize_m^2; % normalised frequencies ranging from -1/2 to 1/2
 pixPosZeroCross = @(n) round( dimX * sqrt(n* pi / SineArgPreFac ) );
 % Maximum phase shifts
-%rescalVec = [1, 10:10:501];
-rescalVec = 1:500;
 out(dd).S = rescalVec;
 MaxPhaseShift = 0.01*rescalVec;
 numMaxPhaseShift = numel( MaxPhaseShift );
 out(dd).MaxPhaseShift = MaxPhaseShift;
 % Save path
-OutputPath = '/home/jmoosmann/data/QP';
+OutputPath = '~/data/QP';
 switch VariableSineArg
     case 0
         coefStr = '_SinArgCoefFix';
@@ -105,7 +110,7 @@ fprintf('\nFOURIER TRANSFORM.\n Time elapsed: %g s',toc)
 %% Angular integration
 fprintf('\nANGULAR INTEGRATION.')
 radiusStepSize = 1;
-numThetaSteps = round( pi * dimX /1 );
+numThetaSteps = round( pi * dimX / numThetaStepsFac );
 thetaoffset = pi * 5 /180;
 thetastep = (pi/2 - 2 * thetaoffset) / (numThetaSteps/4);
 theta = thetaoffset : thetastep : pi/2-thetaoffset;
@@ -175,7 +180,7 @@ end
 
 plot(out(dd).MaxPhaseShift,out(dd).cfMinPos,'.-')
 saveas( gcf, sprintf( '%s/MinPos_vs_MaxPhaseShift.png', OutputPath), 'png' )
-OutputPath = '/home/jmoosmann/data/QP/NormalisedMinPos_vs_MaxPhaseShift';
+OutputPath = '~/data/QP/NormalisedMinPos_vs_MaxPhaseShift';
 CheckAndMakePath( OutputPath )
 plot( out(dd).MaxPhaseShift, normat( out(dd).cfMinPos ), '.-' )
 saveas( gcf, sprintf( '%s/MinPos_vs_MaxPhaseShift_z%03.0fcm.png', OutputPath, distance_m * 100 ),'png')
