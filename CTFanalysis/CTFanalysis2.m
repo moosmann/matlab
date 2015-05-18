@@ -192,9 +192,12 @@ figure('Name','Figure 1b: data and fits')
 ss = [1,100,370,500];
 for nn = numel(ss):-1:1
     [~, Spos(nn)] = max(out.S == ss(nn));
-    Y(:,nn) = out.cf{Spos(nn)}(out.xn);
+    YFits(:,nn) = out.cf{Spos(nn)}(out.xn);
 end
-h = plot(out.xn,afintr(out.x,Spos),'.',out.xn,Y,'-');
+X = out.xn;
+YData = afintr(out.x,Spos);
+%h = plot(out.xn,afintr(out.x,Spos),'.',out.xn,YFits,'-');
+h = plot(X, YData, '.', X, YFits, '-');
 axis equal tight
 h(1).Color='r';
 h(2).Color='b';
@@ -209,13 +212,18 @@ xlabel('\lambda z {\bf \xi }^2')
 legend(h,'data: S = 1','data: S = 100','data: S = 370','data: S = 500','fit: S = 1','fit: S = 100','fit: S = 370','fit: S = 500')
 OutputPath = '/home/jmoosmann/data/QP/figures';
 saveas( gcf, sprintf( '%s/Fig-1b.png', OutputPath),'png')
+save(sprintf( '%s/Fig-1b_data.mat', OutputPath),'X','YData','YFits')
 
 %% Figure 1c
 figure('Name','Figure 1c: minima position')
-plot(out.S,out.pixelPosToSinArgROI(out.cfMinPos),'.-');
+%plot(out.S,out.pixelPosToSinArgROI(out.cfMinPos),'.-');
+X = out.S;
+Y = out.pixelPosToSinArgROI(out.cfMinPos);
+plot(X, Y, '.-');
 xlabel('S')
 ylabel('\lambda z |{\bf\xi}|_{1,min}^2')
 saveas( gcf, sprintf( '%s/Fig-1c.png', OutputPath),'png')
+save(sprintf( '%s/Fig-1c_data.mat', OutputPath),'X','Y')
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
