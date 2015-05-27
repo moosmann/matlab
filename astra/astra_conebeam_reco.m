@@ -1,20 +1,21 @@
 function [rec, sino] = astra_conebeam_reco(DataSetNum,NumIterations,PadHor_PadVer,scaleFactor,lambda)
 
 if nargin < 1
-    DataSetNum = 9;
+    DataSetNum = 11;
 end
 if nargin < 2
-    NumIterations = 6;
+    NumIterations = 100;
 end
 if nargin < 3
-    PadHor_PadVer = [0 0];
+    PadHor_PadVer = [560 0];
 end
 if nargin < 4
     scaleFactor = 1;
 end
 if nargin < 5
-    lambda = 1;
+    lambda = 5;
 end
+doInteract = 0;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 astra_clear
@@ -133,6 +134,16 @@ data(nn).source_origin_mm = 190;
 data(nn).origin_det_mm = 110;
 data(nn).detector_width_mm = 100;
 
+nn = 11;
+data(nn).dir = [ getenv('HOME') '/data/gate/'];
+data(nn).filename = '20150525_CBCT_skull';
+data(nn).fieldname = 'detector_astra';
+data(nn).permuteOrder = [3 2 1];
+data(nn).fullAngle_rad = -2 * pi;
+data(nn).source_origin_mm = 1085.6 - 490.6; 
+data(nn).origin_det_mm = 490.6;
+data(nn).detector_width_mm = 500;
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 scale_fac = scaleFactor(1);
@@ -149,6 +160,13 @@ num_pixel_hor_0 = size(sino,1);
 num_pixel_ver_0 = size(sino,3);
 
 fprintf('\nData set: %s', data.filename )
+% Remove Infs
+fprintf('\nMedian filtering: #INFs, #NANs =  %u, %u', sum( isinf( sino(:) ) ), sum( isnan( sino(:) ) ) ) 
+%sino(isinf(sino)) = 0;
+for nn=size(sino, 2):-1:1
+    sino(:, nn, :) = FilterPixel(squeeze(sino(:, nn, :)));
+end
+fprintf(' (before) %u, %u (after)', sum( isinf( sino(:) ) ), sum( isnan( sino(:) ) ) ) 
 fprintf('\nRaw projections: [Min, Max] = [%g, %g]', min( sino(:) ), max( sino(:) ) )
 
 % Normalise
@@ -157,6 +175,7 @@ if DataSetNum ~= 10
     sino =  1 - log( (sino) / max( sino(:)) ) ;
     sino = 1 * normat( sino );
 end
+sino = SubtractMean(sino);
 fprintf('\nProjections: [Min, Max] = [%g, %g]', min( sino(:) ), max( sino(:) ) )
 
 % Padding
@@ -175,11 +194,8 @@ num_pixel_ver  = size(sino,3);
 fprintf( '\nDetector pixels [h x v]: %4u x %4u (original), %4u %4u (padded)', num_pixel_hor_0, num_pixel_ver_0, num_pixel_hor, num_pixel_ver )
 fprintf( '\nNumber of projection: %4u', num_proj)
 
-
 num_voxel_hor = scale_fac * num_pixel_hor_0 ;
 num_voxel_ver = scale_fac * num_pixel_ver_0 ;
-%x = round( 1 + (num_voxel_hor-1) * [x 1-x] );x = x(1):x(2);
-
 
 %% Parameters in physical units
 % length in mm 
@@ -232,7 +248,7 @@ lnorm = @(data) sqrt( sum( data(:).^2 ) );
 lnorm_rec = zeros(1,NumIterations);
 lnorm_res = zeros(1,NumIterations-1);
 lnorm_upd = zeros(1,NumIterations-1);
-lnorm_rec(1) = lnorm(rec);
+lnorm_rec(:) = lnorm(rec);
 
 % Print and dispaly
 fprintf('\n L2 norms:\n %14s%14s%14s','Solution','Residual','Update')
@@ -255,29 +271,42 @@ for nn = 1:(NumIterations-1)
     % UPDATE
     rec = rec + recu;
     
+    lnorm_rec(nn+1:end) = lnorm( rec );
+    lnorm_res(nn:end) = lnorm( res );   
+    lnorm_upd(nn:end) = lnorm( recu );
+    
     % Dipslay and print
     subplot(2,2,1)
     imsc( rec(:,:,zz) )
-    title('solution')
-    lnorm_rec(nn+1) = lnorm( rec );
-    lnorm_res(nn) = lnorm( res );   
-    lnorm_upd(nn) = lnorm( recu );
-    fprintf('%14g%14g\n %14g', lnorm_res(nn), lnorm_upd(nn), lnorm_rec(nn+1) )
+    title(sprintf('reconstruction dim3 = %g',zz))
+
     % solution
     subplot(2,2,2)    
     plot(lnorm_rec)    
     axis square tight;
     title('l2-norm: solution')
+    
     % residual
     subplot(2,2,3) 
     axis square tight;
     plot(lnorm_res)
     title('l2-norm: residual')
+    
     % update
     subplot(2,2,4)     
     axis square tight;
     plot(lnorm_upd)
     title('l2-norm: update')
+    
+    fprintf('%14g%14g\n', lnorm_res(nn), lnorm_upd(nn) )
+    if nn~=1 && doInteract
+        nlv = input(sprintf('Set lambda (default lambda = %g): ' ,lambda));
+        if ~isempty(nlv)
+            lambda = nlv;
+        end
+    end
+    
+    fprintf(' %14g',lnorm_rec(nn+1) )
 end
 
 fprintf('\n')

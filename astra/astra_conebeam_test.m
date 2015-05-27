@@ -1,10 +1,10 @@
 function [rec, sino] = astra_conebeam_test(DataSetNum,AlgType_str,NumIterations,PadHor_PadVer,scaleFactor,VolInit)
 
 if nargin < 1
-    DataSetNum = 10;
+    DataSetNum = 11;
 end
 if nargin < 2
-    AlgType_str = 'sirt3d';'FDK';
+    AlgType_str = 'sirt3d';
 end
 if nargin < 3
     NumIterations = 10;
@@ -26,7 +26,7 @@ padding.size_hor = PadHor_PadVer(1);
 padding.size_ver = PadHor_PadVer(2);
 padding.valueOrMethod = 'replicate';
 cfg = astra_struct( [ upper(AlgType_str) '_CUDA' ] );
-cfg.option.GPUindex = 1;
+cfg.option.GPUindex = 0;
 
 num_iterations = NumIterations;
 %x = 0.1;
@@ -140,6 +140,15 @@ data(nn).source_origin_mm = 190;
 data(nn).origin_det_mm = 110;
 data(nn).detector_width_mm = 100;
 
+nn = 11;
+data(nn).dir = [ getenv('HOME') '/data/gate/'];
+data(nn).filename = '20150525_CBCT_skull';
+data(nn).fieldname = 'detector_astra';
+data(nn).permuteOrder = [3 2 1];
+data(nn).fullAngle_rad = -2 * pi;
+data(nn).source_origin_mm = 1085.6 - 490.6; 
+data(nn).origin_det_mm = 490.6;
+data(nn).detector_width_mm = 500;
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 scale_fac = scaleFactor(1);
@@ -151,11 +160,21 @@ sino = load( [data.dir data.filename '.mat'] );
 sino = single (sino.(data.fieldname) );
 sino = permute( sino, data.permuteOrder );
 
+fprintf('\nData set: %s', data.filename )
+
+% Remove Infs
+fprintf('\nMedian filtering: #INFs, #NANs =  %u, %u', sum( isinf( sino(:) ) ), sum( isnan( sino(:) ) ) ) 
+%sino(isinf(sino)) = 0;
+for nn=size(sino, 2):-1:1
+    sino(:, nn, :) = FilterPixel(squeeze(sino(:, nn, :)));
+end
+fprintf(' (before) %u, %u (after)', sum( isinf( sino(:) ) ), sum( isnan( sino(:) ) ) ) 
+
 num_proj = size(sino,2);
 num_pixel_hor_0 = size(sino,1);
 num_pixel_ver_0 = size(sino,3);
 
-fprintf('\nData set: %s', data.filename )
+
 fprintf('\nMin/Max of raw projections: [%g, %g]', min( sino(:) ), max( sino(:) ) )
 
 % Normalise
@@ -177,15 +196,17 @@ if padding.size_ver < 0
 end
 sino = padarray(sino,[padding.size_hor 0 padding.size_ver],padding.valueOrMethod,'both');
 
+sino = SubtractMean(sino);
+
 %num_proj = size(sino,2);
 num_pixel_hor  = size(sino,1);
 num_pixel_ver  = size(sino,3);
 
-fprintf( '\nDetector pixels before/after padding [h x v]: %4u x %4u (before),  %4u %4u (after)', num_pixel_hor_0, num_pixel_ver_0, num_pixel_hor, num_pixel_ver )
+fprintf( '\nDetector pixels (padding) [h x v]: %4u x %4u (before),  %4u %4u (after)', num_pixel_hor_0, num_pixel_ver_0, num_pixel_hor, num_pixel_ver )
 fprintf( '\nNumber of projection: %4u', num_proj)
 
-num_voxel_hor = scale_fac * num_pixel_hor_0 ;
-num_voxel_ver = scale_fac * num_pixel_ver_0 ;
+num_voxel_hor = round(scale_fac * num_pixel_hor_0 );
+num_voxel_ver = round(scale_fac * num_pixel_ver_0 );
 %x = round( 1 + (num_voxel_hor-1) * [x 1-x] );x = x(1):x(2);
 
 %% Parameters in physical units
@@ -254,11 +275,10 @@ if strcmpi( AlgType_str(1:3), 'sir') || strcmpi( AlgType_str(1:3), 'cgl')
     cfg.option.MinConstraint = 0;
     %cfg.option.MaxConstraint = 0.1;
 % Super sampling
-    if numel( scaleFactor ) >= 2
-        cfg.option.DetectorSuperSampling = round( scaleFactor(2) );
-        fprintf('\nDetector super sampling: %g', cfg.option.DetectorSuperSampling)
-    end     
-
+  %  if numel( scaleFactor ) >= 2
+   %     cfg.option.DetectorSuperSampling = round( scaleFactor(2) );
+    %    fprintf('\nDetector super sampling: %g', cfg.option.DetectorSuperSampling)
+    %end     
 end
 
 % Create the algorithm object from the configuration structure
@@ -272,17 +292,29 @@ if isequal(cfg.type(1:3),'FDK')
     % Fetch data from ASTRA memory
     rec = astra_mex_data3d('get_single', rec_id);
     if showFigs
+        
         subplot(2,2,1)
-        imsc( rec(:,:,ceil(num_voxel_ver/2)) )
+        z = ceil(num_voxel_ver/2);                        
+        imsc( rec( :, :, z ) );
+        title(sprintf('slice dim3 = %u', z))
+        
         subplot(2,2,2)
-        imsc( rec(:,:,ceil(num_voxel_ver/2.5)) )
+        y = ceil(num_voxel_ver/2);        
+        imsc( squeeze( rec( :, y, : ) ) );
+        title(sprintf('slice dim2 = %u', y))
+        
         subplot(2,2,3)
-        imsc( squeeze( rec(ceil(num_voxel_hor/2),:,:) ) )
+        x = ceil(num_voxel_ver/2);
+        imsc( squeeze( rec( x, :, : ) ) );
+        title(sprintf('slice dim1 = %u', x))
+        
         subplot(2,2,4)
-        imsc( squeeze( rec(:,ceil(num_voxel_hor/2),:) ) )
+        y = ceil(num_voxel_ver/3);        
+        imsc( squeeze( rec( :, y, : ) ) );        
+        title(sprintf('slice dim2 = %u', y))
     end
 else
-    fprintf('Iteration: \n')    
+    fprintf('Iteration: \n')
     tic;
     res = zeros(1,num_iterations);
     for nn = 1:num_iterations
@@ -291,28 +323,38 @@ else
         % Fetch data from ASTRA memory
         rec = astra_mex_data3d('get_single', rec_id);
         if showFigs
-        %2-norm of the difference between the projection data and the
-        %projection of the reconstruction. (The square root of the sum of
-        %squares of differences 
-        res(nn) = astra_mex_algorithm('get_res_norm', alg_id);
-        % Plotting
-        subplot(2,2,1)
-        imsc( rec( :, :, ceil(num_voxel_ver/2) ) );
-        axis equal tight;
-        subplot(2,2,2)
-        imsc( squeeze( rec( :, ceil(num_voxel_ver/3), : ) ) );
-        axis equal tight;
-        subplot(2,2,3)
-        axis equal tight;
-        imsc( squeeze( rec( ceil(num_voxel_hor/3), :, : ) ) );
-        axis equal tight;
-        subplot(2,2,4)
-        plot(res)
-        axis square tight;        
-        pause(0.05);
-        %imsc( rec( x, x, ceil(num_voxel_ver/2) ) );            axis equal tight off;             pause(0.05);
+            %2-norm of the difference between the projection data and the
+            %projection of the reconstruction. (The square root of the sum of
+            %squares of differences
+            res(nn) = astra_mex_algorithm('get_res_norm', alg_id);
+            % Plotting
+            
+            subplot(2,2,1)
+            z = ceil(num_voxel_ver/2);
+            imsc( rec( :, :, z ) );
+            title(sprintf('slice dim3 = %u', z))
+            axis equal tight;
+            
+            subplot(2,2,2)
+            y = ceil(num_voxel_ver/3);
+            imsc( squeeze( rec( :, y, : ) ) );
+            title(sprintf('slice dim2 = %u', y))
+            axis equal tight;
+            
+            subplot(2,2,3)
+            x = ceil(num_voxel_hor/3);
+            imsc( squeeze( rec( x, :, : ) ) );
+            title(sprintf('slice dim1 = %u', x))
+            axis equal tight;
+            
+            subplot(2,2,4)
+            plot(res)
+            title(sprintf('residual'))
+            axis square tight;
+            pause(0.05);
+            
         end
-    end   
+    end
 end
 fprintf('\nElapsed time: %g s', toc)
 
@@ -325,7 +367,8 @@ fprintf('\n')
 % and main RAM in the data objects.
 aclear
 
-function imsc(im)
+function ax = imsc(im)
 % imagesc using gray colormap.
-imagesc(im)
+ax = imagesc(im);
 colormap(gray)
+axis equal tight

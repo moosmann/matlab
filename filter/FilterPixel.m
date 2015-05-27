@@ -1,4 +1,4 @@
-function [im,HotPixPercent,DeadPixPercent,DarkPixPercent] = FilterPixel(im,FiltThreshHot_FiltThreshDark,printInfo,medianFilterRadius,filterDeadPixel)
+function [im,HotPixPercent,DeadPixPercent,DarkPixPercent] = FilterPixel(im,FiltThreshHot_FiltThreshDark,printInfo,medianFilterRadius,filterDeadPixel,filterInfsAndNans)
 %Filter hot, dark, and dead pixels.
 %Substitute hot (and dead) pixels by median values. Hot and dark pixels are
 %found using a ratio of the image and the median filtered images which has
@@ -22,7 +22,7 @@ function [im,HotPixPercent,DeadPixPercent,DarkPixPercent] = FilterPixel(im,FiltT
 %Printing information about the unfiltered and filtered image also produces
 %unnecessary workload.
 %
-% Written by Julian Moosmann, first version 2011-Jul, last mod 2013-10-09
+% Written by Julian Moosmann, first version 2011-Jul, last mod 2015-05-27
 %
 %[im,HotPixPercent,DeadPixPercent,DarkPixPercent] = FilterPixel(im,FiltThreshHot_FiltThreshDark,printInfo,medianFilterRadius,filterDeadPixel)
 
@@ -39,6 +39,9 @@ if nargin < 4
 end
 if nargin < 5
     filterDeadPixel = 1;
+end
+if nargin < 6
+    filterInfsAndNans = [1, 1];
 end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Check threshold argument
@@ -61,16 +64,29 @@ NumPix = numel(im);
 NumDead = 0;
 NumHot  = 0;
 NumDark = 0;
+NumNan = 0;
+NumInf = 0;
 if printInfo
     imMin  = min(im(:));
     imMax  = max(im(:));
     imMean = mean(im(:));
     imStd  = std(im(:));
 end
+mask = zeros(size(im));
+% INFs
+if filterInfsAndNans(1)
+    mask = mask | isinf(im);
+    NumInf = sum(mask(:));
+end
+% NANs
+if filterInfsAndNans(2)
+    mask = mask | isnan(im);
+    NumNan = sum(mask(:)) - NumInf;
+end
 %% Dead pixel mask
 if filterDeadPixel > 0
-    mask = im <= 0;
-    NumDead = sum(mask(:));
+    mask = mask | im <= 0;
+    NumDead = sum(mask(:)) - NumInf -NumNan;
     if HotThresh == 0 && DarkThresh == 0 && NumDead == 0
         return
     end
@@ -88,7 +104,7 @@ if HotThresh > 0
         % Set FiltThreshHot_FiltThreshDark to filter 'theshold' % of all pixels
         HotThresh = Rsorted(floor(NumPix*(1-HotThresh)));
     end
-    % Add hot pixel mask to dead pixel mask
+    % Add hot pixel mask
     if exist('mask','var')
         mask = mask | R > HotThresh;
     else
@@ -124,6 +140,12 @@ if printInfo
     if DarkThresh > 0
         fprintf('Number of dark pixels: %9u (%3.2f%%), threshold: %9g\n',NumDark,100*NumDark/NumPix,DarkThresh);
     end
+    if NumInf > 0
+        fprintf('Number of INFs: %9u (%3.2f%%)\n',NumInf,100*NumInf/NumPix);
+    end
+    if NumNan > 0
+        fprintf('Number of NANs: %9u (%3.2f%%)\n',NumNan,100*NumNan/NumPix);
+    end 
     fprintf('Before: [Min Max Mean Std] = [%9g %9g %9g %9g]\n',imMin,imMax,imMean,imStd);
     fprintf('After : [Min Max Mean Std] = [%9g %9g %9g %9g]\n',imFiltMin,imFiltMax,imFiltMean,imFiltStd);
 end

@@ -7,7 +7,7 @@ close all hidden
 %% Parameters.
 printPlots(1) = 1;
 printPlots(2) = 0;
-filestring = [ getenv('HOME'), '/data/lena/lena.tif' ];
+filestring = [ getenv('HOME'), '/data/test_pattern/lena/lena.tif' ];
 blurring = [8 8 1];
 energy = 10;
 distance = 0.5;
