@@ -16,7 +16,7 @@ PhotonCountsForPoissonNoise = 0;
 %% Read image and pad it with zeros.
 paddim = 1/1*1024;
 SineArgPreFac = pi*EnergyConverter(energy)*distance/(paddim*pixelsize)^2;
-rescalVec = 1:10:500;
+rescalVec = 1:1:600;
 MaxPhaseShift = 0.01*rescalVec;
 phase0 = zeros(paddim,paddim);
 phase0(paddim/2+(-255:256),paddim/2+(-255:256)) = normat(double(imread(filestring)));
@@ -60,7 +60,7 @@ for kk = length(MaxPhaseShift):-1:1
         thetaoffset = offsetFac*0.05;
         thetastep = pi/paddim;
         theta = thetaoffset:thetastep:pi/2-thetaoffset;
-        theta = cat(1,theta,theta+pi/2,theta+pi,theta+3*pi/2);
+        theta = cat(2,theta,theta+pi/2,theta+pi,theta+3*pi/2);
         % Loop over points along radial direction.
         for rr = paddim/2:-1:1
             for ii = length(theta):-1:1

@@ -91,7 +91,7 @@ if InputFolderPrefix == 0
 else
     InputFolderNames = dir([IntParentPath '/' InputFolderPrefix '*']);
 end
-[ParentPath DataSetName] = fileparts(IntParentPath);
+[ParentPath, DataSetName] = fileparts(IntParentPath);
 IntParentPath = [IntParentPath '/'];
 ParentPath = fileparts(ParentPath);
 OutputPath = [ParentPath '/phase/' DataSetName];

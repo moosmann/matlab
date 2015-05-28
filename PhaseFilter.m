@@ -1,43 +1,51 @@
 function [phaseFilter,phaseAppendix] = PhaseFilter(Method,imSize,EnergyDistancePixelsize,RegPar,BinaryFilterThreshold,outputPrecision)
-% Fourier space filter for phase retrieval. Given normalized intensity map
-% I_z, define intensity contrast g_z = I_z - 1.
+% Fourier space filter for single-distance phase retrieval. 
+%
+% Given a normalized intensity map I_z (i.e. flat- and dark-field
+% corrected), the intensity contrast is defined as g_z = I_z - 1. 
 % Phase retrieval: phi = real( ifft2( PhaseFilter() .* fft2( g_z ) ) ). No
-% fftshift is needed. Optional output is a string consisting of the method
-% and the parameters used.
+% fftshift is needed. Optional output is a string consisting of the
+% parameters used. 
 %
 % Arguments:
 %
-% Methods: string. Default: 'tie'.
-% 'tie': Linearized transport of intensity equation. Is essentially the
-% inversion of the Laplacian.
-% 'ctf': Inversion of the contrast transfer function in the pure phase
-% case. Is essentially the inversion of a sine.
-% 'ctfhalfsine': Same as 'ctf' up to the first half period of the sine.
-% 'qp': Quasiparticle version of 'ctf', i.e. cropping of frequency bands
-% centered around the positions of the zero crossing of the Fourier
-% transform of g_z. See papers: http://dx.doi.org/10.1364/OE.19.025881 and
-% http://dx.doi.org/10.1364/OE.19.012066.
-% 'qphalfsine': use only first half period of the sine of quasiparticle
-% version of 'ctf'.
+% Method : string. Default: 'tie'.
+%   Variants:
+%   'tie': Linearized transport of intensity equation. Essentially the
+%   inversion of the Laplacian, sometimes also referred to as Paganing
+%   or Bronnikov phase retrieval.
+%   'ctf': Inversion of the contrast transfer function in the pure phase
+%   case. Is essentially the inversion of a sine.
+%   'ctfhalfsine': Same as 'ctf' up to the first half period of the sine.
+%   'qp': Quasiparticle version of 'ctf', i.e. cropping of frequency bands
+%   centered around the positions of the zero crossing of the Fourier
+%   transform of g_z. See papers: http://dx.doi.org/10.1364/OE.19.025881
+%   and http://dx.doi.org/10.1364/OE.19.012066.
+%   'qphalfsine': use only first half period of the sine of quasiparticle
+%   version of 'ctf'.
 %
-% imSize: 1x2-vector. Default [1024 1024]. Size of output filter.
+% imSize : 1x2-vector. Default [1024 1024]. Size of output filter.
 %
-% EnergyDistancePixelsize: 1x3-vector. Default: [20 0.945 .75e-6]. Energy
+% EnergyDistancePixelsize : 1x3-vector. Default: [20 0.945 .75e-6]. Energy
 % in keV, Distance in m, Pixelsize in m.
 %
-% RegPar: scalar. Default: 2.5. Regularization parameter: RegPar is - log10
-% of the constant to be added to the denominator to regularize the
-% singularity at zero frequency: 1/sin(x) -> 1/(sin(x)+10^-RegPar). Typical
-% values: 2..3
+% RegPar : scalar. Default: 2.5. Phase retrieval is regularised according:
+% 1/func(x) -> 1/(func(x)+10^(-RegPar)), for details of the placeholder
+% function func see below. Thus, the regularization parameter RegPar is the
+% negative of the decadic logartihm of the constant which is added to the
+% denominator in order to regularize the singularity at zero frequency.
+% Typical values are between 1.5 and 3.5 depending on energy, residual
+% absorption, etc.
 %
-% BinaryFilterThreshold: scalar. Default: 0.1. Parameter for Quasiparticle
-% phase retrieval which defines the width of the rings to be cropped around
-% the zero crossing of the CTF denominator in Fourier space. Typical values:
-% 0.01..0.1, 'qp' retrieval is rather independent of cropping width.
+% BinaryFilterThreshold : scalar. Default: 0.1. Parameter for Quasiparticle
+% phase retrieval defining the width of the rings which are cropped around
+% the zero crossings of the CTF denominator (in Fourier space). Typical
+% values are between 0.01 and 0.1, where large values yields results
+% similiar to 'tie' phase retrieval.
 %
-% outputPrecision: string. 'single' (default) or 'double'.
+% outputPrecision : string. 'single' (default), or 'double'.
 % 
-% Written by Julian Moosmann, last modification: 2014-02-19
+% Written by Julian Moosmann, last modification: 2015-05-27
 %
 % [phaseFilter,phaseAppendix] = PhaseFilter(Method,imSize,EnergyDistancePixelsize,RegPar,BinaryFilterThreshold,outputPrecision)
 
@@ -132,3 +140,37 @@ phaseAppendix = regexprep(phaseAppendix,'\.','p');
         % Call 'PhaseFilterDual'
         [phaseFilter,phaseAppendix] = PhaseFilterDual(Method,imSize,EnergyDistancePixelsize,10^-RegPar,BinaryFilterThreshold,outputPrecision);
 end
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+function k = FrequencyVector(SizeOfVector,Precision,Normalize)
+% Frequency vector for MATLAB's implementation of Fourier space
+% discretization (without 'fftshift') ranging from 0 to
+% floor(('SizeOfVector'-1)/2) and -floor('SizeOfVector'/2) to -1.
+%
+% SizeOfVector: integer.
+%
+% Precsision: string, default: 'single'. Available: 'single', or 'double'.
+%
+% Normalize: boolean, default: 1. Output frequencies normalized by size of
+% vector.
+%
+% Written by Julian Moosmann, last version 2013-11-12.
+%
+%k = FrequencyVector(SizeOfVector,Precision,Normalize)
+
+%% Default arguments %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+if nargin < 2
+    Precision = 'single';
+end
+if nargin < 3
+    Normalize = 1;
+end
+
+%% MAIN %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% Precision
+SizeOfVector = eval(sprintf('%s(%u)',Precision,SizeOfVector));
+
+% Create vector
+k = [0:1:ceil( (SizeOfVector-1)/2 )  -floor( (SizeOfVector-1)/2):1:-1] /(1 -Normalize*(1 - 1*SizeOfVector ) );

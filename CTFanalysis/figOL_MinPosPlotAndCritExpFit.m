@@ -6,11 +6,9 @@ smaxIndex = 7;
 x0 = 1:600;
 x1 = smin:smax(smaxIndex);
 % Create figure
-figure1 = figure('XVisual',...
-    '0x21 (TrueColor, depth 24, RGB mask 0xff0000 0xff00 0x00ff)', ...
-    'Name','Minimum position VS scaling including critical exponent fit');
-set(gcf,'position',[0 0, 1600 900])
-set(gcf,'defaulttextinterpreter','none')
+figure1 = figure('Name','Minimum position VS scaling including critical exponent fit');
+%set(gcf,'position',[0 0, 1600 900])
+%set(gcf,'defaulttextinterpreter','none')
 
 % Create axes
 axes1 = axes('Parent',figure1,'FontSize',18);

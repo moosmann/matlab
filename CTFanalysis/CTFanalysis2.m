@@ -4,7 +4,7 @@ function [out, afintr, afintc, afint, int, phase] = CTFanalysis2(distanceList_m,
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 if nargin < 1
-    distanceList_m = 1;
+    distanceList_m = 0.5;
     %distanceList_m = 0.25:0.25:5;
 end
 if nargin < 2
@@ -12,12 +12,12 @@ if nargin < 2
 end
 if nargin < 3
     %rescalVec = [1, 10:10:501];
-    rescalVec = 1:1:500;
+    rescalVec = 1:10:500;
 end
 if nargin < 4
-    numThetaStepsFac = 1;
+    numThetaStepsFac = 2;
 end
-
+doSave = 0;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % Loop over distances
@@ -175,15 +175,21 @@ for kk = 1:numMaxPhaseShift
     plot( xn, afintr(x,kk) ,'.', xn, cf{kk}(xn) ),
     axis tight equal,
     pause(0.1)
-    %saveas(gcf,sprintf('%s/plot_%03u.png', OutputPath, kk),'png')
+    if doSave
+        %saveas(gcf,sprintf('%s/plot_%03u.png', OutputPath, kk),'png')
+    end
 end
 
 plot(out(dd).MaxPhaseShift,out(dd).cfMinPos,'.-')
-saveas( gcf, sprintf( '%s/MinPos_vs_MaxPhaseShift.png', OutputPath), 'png' )
+if doSave
+    saveas( gcf, sprintf( '%s/MinPos_vs_MaxPhaseShift.png', OutputPath), 'png' )
+end
 OutputPath = '~/data/QP/NormalisedMinPos_vs_MaxPhaseShift';
 CheckAndMakePath( OutputPath )
 plot( out(dd).MaxPhaseShift, normat( out(dd).cfMinPos ), '.-' )
-saveas( gcf, sprintf( '%s/MinPos_vs_MaxPhaseShift_z%03.0fcm.png', OutputPath, distance_m * 100 ),'png')
+if doSave
+    saveas( gcf, sprintf( '%s/MinPos_vs_MaxPhaseShift_z%03.0fcm.png', OutputPath, distance_m * 100 ),'png')
+end
 
 end
 
@@ -212,17 +218,22 @@ h(8).Color='g';
 xlabel('\lambda z {\bf \xi }^2')
 legend(h,'data: S = 1','data: S = 100','data: S = 370','data: S = 500','fit: S = 1','fit: S = 100','fit: S = 370','fit: S = 500')
 OutputPath = '/home/jmoosmann/data/QP/figures';
-saveas( gcf, sprintf( '%s/Fig-1b.png', OutputPath),'png')
-saveas( gcf, sprintf( '%s/Fig-1b.eps', OutputPath),'epsc2')
-saveas( gcf, sprintf( '%s/Fig-1b.pdf', OutputPath),'pdf')
-save(sprintf( '%s/Fig-1b_data.mat', OutputPath),'X','YData','YFits')
-
+if doSave
+    saveas( gcf, sprintf( '%s/Fig-1b.png', OutputPath),'png')
+    saveas( gcf, sprintf( '%s/Fig-1b.eps', OutputPath),'epsc2')
+    saveas( gcf, sprintf( '%s/Fig-1b.pdf', OutputPath),'pdf')
+    save(sprintf( '%s/Fig-1b_data.mat', OutputPath),'X','YData','YFits')
+end
 %% Figure 1c
 figure('Name','Figure 1c: minima position')
 %plot(out.S,out.pixelPosToSinArgROI(out.cfMinPos),'.-');
 X = out.S;
 Y = out.pixelPosToSinArgROI(out.cfMinPos);
-xe = 450;
+if numel(X) > 450
+    xe = 450;
+else
+    xe = numel(X);
+end
 X = X(1:xe);
 Y = Y(1:xe);
 % Critical exponent
@@ -233,11 +244,12 @@ h = plot(X, Y, '.', Xf, Yf, '-');
 xlabel('S')
 ylabel('\lambda z |{\bf\xi}|_{1,min}^2')
 legend(h,'data','fit','Location','NorthWest')
-saveas( gcf, sprintf( '%s/Fig-1c.png', OutputPath),'png')
-saveas( gcf, sprintf( '%s/Fig-1c.eps', OutputPath),'epsc2')
-saveas( gcf, sprintf( '%s/Fig-1c.pdf', OutputPath),'pdf')
-save(sprintf( '%s/Fig-1c_data.mat', OutputPath),'X','Y','Xf','Yf','cf_critExp')
-
+if doSave
+    saveas( gcf, sprintf( '%s/Fig-1c.png', OutputPath),'png')
+    saveas( gcf, sprintf( '%s/Fig-1c.eps', OutputPath),'epsc2')
+    saveas( gcf, sprintf( '%s/Fig-1c.pdf', OutputPath),'pdf')
+    save(sprintf( '%s/Fig-1c_data.mat', OutputPath),'X','Y','Xf','Yf','cf_critExp')
+end
 fprintf('\n Time elapsed: %g s',toc)
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
