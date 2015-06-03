@@ -1,21 +1,25 @@
 function [rec, sino] = astra_conebeam_reco(DataSetNum,NumIterations,PadHor_PadVer,scaleFactor,lambda)
 
 if nargin < 1
-    DataSetNum = 11;
+    DataSetNum = 12;
 end
 if nargin < 2
-    NumIterations = 100;
+    NumIterations = 50;
 end
 if nargin < 3
-    PadHor_PadVer = [560 0];
+    PadHor_PadVer = [0 0];
 end
 if nargin < 4
     scaleFactor = 1;
 end
 if nargin < 5
-    lambda = 5;
+    lambda = 10;
 end
 doInteract = 0;
+doPixelFiltering = 1;
+takeLog = 0;
+doMeanSubtraction = 1;
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 astra_clear
@@ -144,13 +148,23 @@ data(nn).source_origin_mm = 1085.6 - 490.6;
 data(nn).origin_det_mm = 490.6;
 data(nn).detector_width_mm = 500;
 
+nn = 12;
+data(nn).dir = [ getenv('HOME') '/data/gate/'];
+data(nn).filename = '20150528_CBCT_skull';
+data(nn).fieldname = 'detector_astra_full';
+data(nn).permuteOrder = [1 2 3];
+data(nn).fullAngle_rad = -2 * pi;
+data(nn).source_origin_mm = 1085.6 - 490.6; 
+data(nn).origin_det_mm = 490.6;
+data(nn).detector_width_mm = 500;
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 scale_fac = scaleFactor(1);
 
 % Read data
 data = data(DataSetNum);
-sino = load( [data.dir data.filename '.mat'] );
+sino = load( [data.dir data.filename '.mat'], data.fieldname );
 %sino = single( getfield( sino, data.fieldname ) );
 sino = single (sino.(data.fieldname) );
 sino = permute( sino, data.permuteOrder );
@@ -160,22 +174,35 @@ num_pixel_hor_0 = size(sino,1);
 num_pixel_ver_0 = size(sino,3);
 
 fprintf('\nData set: %s', data.filename )
+
 % Remove Infs
-fprintf('\nMedian filtering: #INFs, #NANs =  %u, %u', sum( isinf( sino(:) ) ), sum( isnan( sino(:) ) ) ) 
-%sino(isinf(sino)) = 0;
-for nn=size(sino, 2):-1:1
-    sino(:, nn, :) = FilterPixel(squeeze(sino(:, nn, :)));
+fprintf('\nMedian filtering: [#INFs, #NANs] =  [%u, %u]', sum( isinf( sino(:) ) ), sum( isnan( sino(:) ) ) ) 
+if doPixelFiltering
+    for nn=size(sino, 2):-1:1
+        s = -squeeze(sino(:, nn, :));    
+        sf = FilterPixel(s, [0.01 0], 0, [3 3], 1, [1 1]);
+        sf = FilterSino(sf,2,1);        
+        sino(:, nn, :) = sf;                       
+    end
+    fprintf(' (before), [%u, %u] (after)', sum( isinf( sino(:) ) ), sum( isnan( sino(:) ) ) )
+else
+    sino(isinf(sino)) = 0;
 end
-fprintf(' (before) %u, %u (after)', sum( isinf( sino(:) ) ), sum( isnan( sino(:) ) ) ) 
+
 fprintf('\nRaw projections: [Min, Max] = [%g, %g]', min( sino(:) ), max( sino(:) ) )
 
 % Normalise
-if DataSetNum ~= 10
-    sino = sino + 1e1;
-    sino =  1 - log( (sino) / max( sino(:)) ) ;
-    sino = 1 * normat( sino );
+if takeLog
+    if DataSetNum ~= 10
+        sino = sino + 1e1;
+        sino =  1 - log( (sino) / max( sino(:)) ) ;
+        sino = 1 * normat( sino );
+    end
 end
-sino = SubtractMean(sino);
+
+if doMeanSubtraction
+    sino = SubtractMean(sino);
+end
 fprintf('\nProjections: [Min, Max] = [%g, %g]', min( sino(:) ), max( sino(:) ) )
 
 % Padding
@@ -250,13 +277,30 @@ lnorm_res = zeros(1,NumIterations-1);
 lnorm_upd = zeros(1,NumIterations-1);
 lnorm_rec(:) = lnorm(rec);
 
-% Print and dispaly
+% Print
 fprintf('\n L2 norms:\n %14s%14s%14s','Solution','Residual','Update')
 fprintf('\n %14g', lnorm_rec(1))
-subplot(2,2,1,'replace')
+
+% Dipslay and print
+figure('Name', 'reconstruction')
+xx = round( size( rec, 1) / 2 );
+yy = round( size( rec, 2) / 2 );
 zz = round( size( rec, 3) / 2 );
-imsc( rec(:,:,zz) )
-title('solution')
+
+rows = 6;
+cols = 2;
+
+subplot(rows, cols, [1 3 5])
+imsc( rec(:, :, zz) )
+title(sprintf('reconstruction dim3 = %g', zz))
+
+subplot(rows, cols, [1 3 5]+1)
+imsc( rec(:, yy, :) )
+title(sprintf('reconstruction dim2 = %g', yy))
+
+subplot(rows,cols,[1 3 5]+6)
+imsc( rec(xx, :, :) )
+title(sprintf('reconstruction dim1 = %g', xx))
 
 for nn = 1:(NumIterations-1)
 
@@ -276,25 +320,33 @@ for nn = 1:(NumIterations-1)
     lnorm_upd(nn:end) = lnorm( recu );
     
     % Dipslay and print
-    subplot(2,2,1)
-    imsc( rec(:,:,zz) )
-    title(sprintf('reconstruction dim3 = %g',zz))
+    subplot(rows,cols,[1 3 5])
+    imsc( rec(:, :, zz) )
+    title(sprintf('reconstruction dim3 = %g', zz))
+    
+    subplot(rows,cols,[1 3 5]+1)
+    imsc( rec(:, yy, :) )
+    title(sprintf('reconstruction dim2 = %g', yy))
+
+    subplot(rows,cols,[1 3 5]+6)
+    imsc( rec(xx, :, :) )
+    title(sprintf('reconstruction dim1 = %g', xx))
 
     % solution
-    subplot(2,2,2)    
+    subplot(rows,cols,8)    
     plot(lnorm_rec)    
-    axis square tight;
+    axis tight;
     title('l2-norm: solution')
     
     % residual
-    subplot(2,2,3) 
-    axis square tight;
+    subplot(rows,cols,10) 
+    axis tight;
     plot(lnorm_res)
     title('l2-norm: residual')
     
     % update
-    subplot(2,2,4)     
-    axis square tight;
+    subplot(rows,cols,12)     
+    axis tight;
     plot(lnorm_upd)
     title('l2-norm: update')
     
@@ -316,7 +368,7 @@ astra_clear
 
 function imsc(im)
 % imagesc using gray colormap.
-imagesc(im)
+imagesc(squeeze(im))
 axis tight equal
 colormap(gray)
-pause(0.2)
+%pause(0.2)

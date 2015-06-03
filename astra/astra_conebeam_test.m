@@ -1,16 +1,17 @@
 function [rec, sino] = astra_conebeam_test(DataSetNum,AlgType_str,NumIterations,PadHor_PadVer,scaleFactor,VolInit)
 
 if nargin < 1
-    DataSetNum = 11;
+    DataSetNum = 9;
 end
 if nargin < 2
+    AlgType_str = 'fdk';
     AlgType_str = 'sirt3d';
 end
 if nargin < 3
-    NumIterations = 10;
+    NumIterations = 50;
 end
 if nargin < 4
-    PadHor_PadVer = [0 0];
+    PadHor_PadVer = [-3 0];
 end
 if nargin < 5
     scaleFactor = 1;
@@ -18,6 +19,11 @@ end
 if nargin < 6
     VolInit = 0;
 end
+doPixelFiltering(1) = 1;
+doNormalisation(1) = 1;
+doMeanSubtraction(1) = 1;
+doROI(1) = 0;
+doSinoFiltering(1) = 0;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -150,12 +156,22 @@ data(nn).source_origin_mm = 1085.6 - 490.6;
 data(nn).origin_det_mm = 490.6;
 data(nn).detector_width_mm = 500;
 
+nn = 12;
+data(nn).dir = [ getenv('HOME') '/data/gate/'];
+data(nn).filename = '20150528_CBCT_skull';
+data(nn).fieldname = 'detector_astra_full';
+data(nn).permuteOrder = [1 2 3];
+data(nn).fullAngle_rad = -2 * pi;
+data(nn).source_origin_mm = 1085.6 - 490.6; 
+data(nn).origin_det_mm = 490.6;
+data(nn).detector_width_mm = 500;
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 scale_fac = scaleFactor(1);
 
 % Read data
 data = data(DataSetNum);
-sino = load( [data.dir data.filename '.mat'] );
+sino = load( [data.dir data.filename '.mat'], data.fieldname );
 %sino = single( getfield( sino, data.fieldname ) );
 sino = single (sino.(data.fieldname) );
 sino = permute( sino, data.permuteOrder );
@@ -163,28 +179,45 @@ sino = permute( sino, data.permuteOrder );
 fprintf('\nData set: %s', data.filename )
 
 % Remove Infs
-fprintf('\nMedian filtering: #INFs, #NANs =  %u, %u', sum( isinf( sino(:) ) ), sum( isnan( sino(:) ) ) ) 
-%sino(isinf(sino)) = 0;
-for nn=size(sino, 2):-1:1
-    sino(:, nn, :) = FilterPixel(squeeze(sino(:, nn, :)));
+fprintf('\nMedian filtering: [#INFs, #NANs] =  [%u, %u]', sum( isinf( sino(:) ) ), sum( isnan( sino(:) ) ) ) 
+if doPixelFiltering
+    for nn = size(sino, 2):-1:1
+        %sino(:, nn, :) = FilterPixel(-squeeze(sino(:, nn, :)),[0.05 0.05],0,[3 3],1,[1 1]);
+        s = squeeze(sino(:, nn, :));
+        s = FilterPixel(s, [0.01 0.01], 0, [3 3], 1, [1 1]);        
+        sino(:, nn, :) = s;
+    end
+    fprintf(' (before), [%u, %u] (after)', sum( isinf( sino(:) ) ), sum( isnan( sino(:) ) ) )
+else
+    sino(isinf(sino)) = 0;
 end
-fprintf(' (before) %u, %u (after)', sum( isinf( sino(:) ) ), sum( isnan( sino(:) ) ) ) 
+
+if doSinoFiltering
+    for nn = size(sino, 3):-1:1
+        %sino(:, nn, :) = FilterPixel(-squeeze(sino(:, nn, :)),[0.05 0.05],0,[3 3],1,[1 1]);
+        s = squeeze(sino(:, :, nn));
+        s = FilterSino(s, 2, 2);
+        sino(:, :, nn) = s;
+    end
+end
 
 num_proj = size(sino,2);
 num_pixel_hor_0 = size(sino,1);
 num_pixel_ver_0 = size(sino,3);
 
-
 fprintf('\nMin/Max of raw projections: [%g, %g]', min( sino(:) ), max( sino(:) ) )
 
 % Normalise
-if DataSetNum == 10
-    sino = normat( sino );
-else
-    sino = sino + 1e1;
-    sino =  1 - log( (sino) / max( sino(:)) ) ;
-    sino = scale_fac * normat( sino );
+if doNormalisation
+    if DataSetNum == 10
+        sino = normat( sino );
+    else
+        sino = sino + 1e1;
+        sino =  1 - log( (sino) / max( sino(:)) ) ;
+        sino = scale_fac * normat( sino );
+    end
 end
+
 fprintf('\nMin/Max of projections: [%g, %g]', min( sino(:) ), max( sino(:) ) )
 
 % Padding
@@ -196,9 +229,10 @@ if padding.size_ver < 0
 end
 sino = padarray(sino,[padding.size_hor 0 padding.size_ver],padding.valueOrMethod,'both');
 
-sino = SubtractMean(sino);
+if doMeanSubtraction
+    sino = SubtractMean(sino);
+end
 
-%num_proj = size(sino,2);
 num_pixel_hor  = size(sino,1);
 num_pixel_ver  = size(sino,3);
 
@@ -216,9 +250,12 @@ pixel_width_hor_mm = det_width_mm / num_pixel_hor_0 ;
 pixel_width_ver_mm = det_width_mm / num_pixel_ver_0 ;
 source_origin_mm = data.source_origin_mm;
 origin_det_mm = data.origin_det_mm;
-%source_det_mm = source_origin_mm + origin_det_mm;
-%vol_width_mm = 2 * source_origin_mm * det_width_mm / ( 2 * source_det_mm + det_width_mm );
-vol_width_mm = det_width_mm;
+if doROI
+    source_det_mm = source_origin_mm + origin_det_mm;
+    vol_width_mm = 2 * source_origin_mm * det_width_mm / ( 2 * source_det_mm + det_width_mm );
+else
+    vol_width_mm = det_width_mm;
+end
 voxel_width_mm = vol_width_mm / num_voxel_hor;
 fprintf( '\nWidth of detector: %g mm', det_width_mm)
 fprintf( '\nWidth of volume: %g mm', vol_width_mm)
@@ -257,18 +294,11 @@ end
 
 % Create projection object and store projections in it
 proj_id = astra_mex_data3d('create', '-proj3d', proj_geom , 0);
-%sino = SubtractMean(sino);
 astra_mex_data3d( 'set', proj_id, sino );
-
-
-%proj_id = astra_mex_data3d('create', '-proj3d', proj_geom, sino );
-
-%astra_mex_data3d('set', proj_id, p);
 
 % Set up the parameters for a reconstruction algorithm using the GPU
 cfg.ReconstructionDataId = rec_id;
 cfg.ProjectionDataId = proj_id;
-
 
 if strcmpi( AlgType_str(1:3), 'sir') || strcmpi( AlgType_str(1:3), 'cgl')
 % Volume constraints        
@@ -326,7 +356,7 @@ else
             %2-norm of the difference between the projection data and the
             %projection of the reconstruction. (The square root of the sum of
             %squares of differences
-            res(nn) = astra_mex_algorithm('get_res_norm', alg_id);
+            res(nn:end) = astra_mex_algorithm('get_res_norm', alg_id);
             % Plotting
             
             subplot(2,2,1)
@@ -336,13 +366,13 @@ else
             axis equal tight;
             
             subplot(2,2,2)
-            y = ceil(num_voxel_ver/3);
+            y = ceil(num_voxel_ver/2);
             imsc( squeeze( rec( :, y, : ) ) );
             title(sprintf('slice dim2 = %u', y))
             axis equal tight;
             
             subplot(2,2,3)
-            x = ceil(num_voxel_hor/3);
+            x = ceil(num_voxel_hor/2);
             imsc( squeeze( rec( x, :, : ) ) );
             title(sprintf('slice dim1 = %u', x))
             axis equal tight;
@@ -356,6 +386,7 @@ else
         end
     end
 end
+
 fprintf('\nElapsed time: %g s', toc)
 
 fprintf('\nVolume size: %u x %u x %u', size(rec))
@@ -367,6 +398,7 @@ fprintf('\n')
 % and main RAM in the data objects.
 aclear
 
+%itool(rec, round( size(rec,3)/2 ))
 function ax = imsc(im)
 % imagesc using gray colormap.
 ax = imagesc(im);

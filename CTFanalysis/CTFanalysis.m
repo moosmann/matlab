@@ -1,9 +1,6 @@
 %Analysis of the CTF model for increasing values of the absolute phase
 %shift.
 
-clear all
-close all hidden
-
 %% Parameters.
 printPlots(1) = 1;
 printPlots(2) = 0;
@@ -52,7 +49,7 @@ for kk = length(MaxPhaseShift):-1:1
     fint = fftshift(fft2(int));
     afint = abs(fint);
     %% Modulus of ratio of Fourier transform of intensity contrast to Fourier transform of object.
-    aratio = abs(fint./fftshift(fft2(phase)));
+    %aratio = abs(fint./fftshift(fft2(phase)));
     %% Integration of absolut of FT of intensity over angular sector which avoid truncation rod.
     % Loop over angular offsets.
     for offsetFac = 5
@@ -62,13 +59,17 @@ for kk = length(MaxPhaseShift):-1:1
         theta = thetaoffset:thetastep:pi/2-thetaoffset;
         theta = cat(2,theta,theta+pi/2,theta+pi,theta+3*pi/2);
         % Loop over points along radial direction.
+        
         for rr = paddim/2:-1:1
-            for ii = length(theta):-1:1
+            numtheta = length(theta);
+            xx = zeros(numtheta,1);
+            %xxar = zeros(numtheta,1);
+            for ii = 1:numtheta
                 xx(ii) = afint(round(paddim/2+rr*cos(theta(ii))),round(paddim/2+rr*sin(theta(ii))));
-                xxar(ii) = aratio(round(paddim/2+rr*cos(theta(ii))),round(paddim/2+rr*sin(theta(ii))));
+                %xxar(ii) = aratio(round(paddim/2+rr*cos(theta(ii))),round(paddim/2+rr*sin(theta(ii))));
             end
             y(rr,kk) = sum(xx)/length(theta);
-            yar(rr,kk) = sum(xxar)/length(theta);
+            %yar(rr,kk) = sum(xxar)/length(theta);
         end
         % Plot integrated line.
         %figure(kk)
@@ -78,6 +79,14 @@ for kk = length(MaxPhaseShift):-1:1
     %lowerLimit = -MaxPhaseShift(kk)*100;
 end
 fprintf('Time for computation of maps: %fs\n',toc)
+
+%% Plot data
+for kk = 1:size(y,2)
+    plot(1:length(y(:,kk)),normat(y(:,kk)))
+    legend(sprintf('S = %3u\n max phase = %5.4g',kk,MaxPhaseShift(kk)))
+    pause(0.05)
+end
+
 xMin = 25;
 x = xMin:180;
 SinArg = SineArgPreFac*x.^2;

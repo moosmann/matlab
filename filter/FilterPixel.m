@@ -83,6 +83,12 @@ if filterInfsAndNans(2)
     mask = mask | isnan(im);
     NumNan = sum(mask(:)) - NumInf;
 end
+
+%% Median filterd image
+% set Infs and Nans to zero before computation of median filtered map
+im(mask) = 0;
+imMedian = medfilt2(im, medianFilterRadius, 'symmetric');
+
 %% Dead pixel mask
 if filterDeadPixel > 0
     mask = mask | im <= 0;
@@ -91,8 +97,8 @@ if filterDeadPixel > 0
         return
     end
 end
-%% Median filterd image and ratio of image and median filtered image
-imMedian = medfilt2(im,medianFilterRadius,'symmetric');
+
+%% Ratio of image and median filtered image
 R = im./imMedian;
 if (HotThresh > 0 && HotThresh <= 1) || (DarkThresh > 0 && DarkThresh <= 0.5)
     Rsorted = sort(R(:));

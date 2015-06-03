@@ -11,13 +11,15 @@ if nargin < 2
     VariableSineArg = 0;
 end
 if nargin < 3
-    %rescalVec = [1, 10:10:501];
     rescalVec = 1:10:500;
+    %rescalVec = 1:2:230;
 end
 if nargin < 4
     numThetaStepsFac = 2;
 end
-doSave = 0;
+doSave(1) = 1;
+energy_keV = 10;
+pixelsize_m = 1.1e-6;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % Loop over distances
@@ -29,8 +31,6 @@ for dd = numel( distanceList_m ):-1:1
 doFits = 1;
 filestring = [ getenv('HOME'), '/data/test_pattern/lena/lena.tif' ];
 blurring = [8 8 1];
-energy_keV = 20;
-pixelsize_m = 1.1e-6;
 padding = 'padzeros';'padsym';'none'; 
 % Read image, padding
 switch lower(padding)
@@ -124,6 +124,7 @@ afintc = zeros( numRadialSteps, numMaxPhaseShift, numThetaSteps);
 fprintf('\n Number of angular steps: %u',numThetaSteps)
 % Start looping
 parfor kk = 1:numMaxPhaseShift;
+    radius = 1 : radiusStepSize : radiusMax;
     for rr = 1:numRadialSteps
         afintkk = afint( :, :, kk);
         radiusrr = radius(rr);
@@ -144,6 +145,7 @@ fprintf('\n Time elapsed: %g s',toc)
 %% Fit integrated line.
 if doFits    
     x = pixPosZeroCross(0.4) /radiusStepSize : pixPosZeroCross(1.75) /radiusStepSize;
+    x = x(:);
     xMinSearch = pixPosZeroCross(0.5) /radiusStepSize : pixPosZeroCross(1.4) /radiusStepSize;
     out(dd).x = x;
     xn = SineArgPreFac * ( radiusStepSize * x / dimX ) .^2 / pi;
@@ -171,22 +173,29 @@ if doFits
 end
 fprintf('\n')
 
-for kk = 1:numMaxPhaseShift
-    plot( xn, afintr(x,kk) ,'.', xn, cf{kk}(xn) ),
-    axis tight equal,
+%% Plot sequence
+figure('Name', 'Radial (integrated) Fourier space spectrum')
+out(dd).numMaxPhaseShift = numMaxPhaseShift;
+for kk = 1:out(dd).numMaxPhaseShift
+    plot( out(dd).xn, afintr(out(dd).x,kk) ,'.', out(dd).xn, out(dd).cf{kk}(out.xn), out(dd).pixelPosToSinArgROI(out(dd).cfMinPos(kk)), out(dd).cfMinVal(kk), 'ro' )    
+    axis tight equal
+    legend(sprintf('S = %3u\nphase_{max} = %5.4g',out(dd).S(kk),out(dd).MaxPhaseShift(kk)))
     pause(0.1)
     if doSave
-        %saveas(gcf,sprintf('%s/plot_%03u.png', OutputPath, kk),'png')
+        saveas(gcf,sprintf('%s/plot_%03u.png', OutputPath, kk),'png')
     end
+    %input(sprintf('%3g: Press enter to contiue:', out(dd).MaxPhaseShift(kk)))
 end
 
-plot(out(dd).MaxPhaseShift,out(dd).cfMinPos,'.-')
+figure('Name', 'Minimum position vs. maximum phase shift')
+plot(out(dd).MaxPhaseShift,out(dd).cfMinPos,'.')
 if doSave
     saveas( gcf, sprintf( '%s/MinPos_vs_MaxPhaseShift.png', OutputPath), 'png' )
 end
 OutputPath = '~/data/QP/NormalisedMinPos_vs_MaxPhaseShift';
 CheckAndMakePath( OutputPath )
-plot( out(dd).MaxPhaseShift, normat( out(dd).cfMinPos ), '.-' )
+figure('Name','Minimum position vs maximum phase shift')
+plot( out(dd).MaxPhaseShift, sqrt(normat( out(dd).cfMinPos )), '.' )
 if doSave
     saveas( gcf, sprintf( '%s/MinPos_vs_MaxPhaseShift_z%03.0fcm.png', OutputPath, distance_m * 100 ),'png')
 end
@@ -195,40 +204,46 @@ end
 
 
 %% Figure 1b
-figure('Name','Figure 1b: data and fits')
-ss = [1,100,370,500];
-for nn = numel(ss):-1:1
-    [~, Spos(nn)] = max(out.S == ss(nn));
-    YFits(:,nn) = out.cf{Spos(nn)}(out.xn);
+if rescalVec(end) >= 500
+    
+    figure('Name','Figure 1b: data and fits')
+    ss = [1,100,370,500];
+    for nn = numel(ss):-1:1
+        [~, Spos(nn)] = max(out.S == ss(nn));
+        YFits(:,nn) = out.cf{Spos(nn)}(out.xn);
+    end
+    X = out.xn;
+    YData = afintr(out.x,Spos);
+    %h = plot(out.xn,afintr(out.x,Spos),'.',out.xn,YFits,'-');
+    h = plot(X, YData, '.', X, YFits, '-');
+    axis equal tight
+    h(1).Color='r';
+    h(2).Color='b';
+    h(3).Color='m';
+    h(4).Color='g';
+    h(5).Color='r';
+    h(6).Color='b';
+    h(7).Color='m';
+    h(8).Color='g';
+    %set(0, 'defaultTextInterpreter', 'tex');
+    xlabel('$\lambda z {\bf \xi }^2$', 'Interpreter','LaTex')
+    ylabel('$\widetilde{|\mathcal{F}g|}$', 'Interpreter','LaTex')
+    legend(h, ...
+        {'data: S = 1','data: S = 100','data: S = 370','data: S = 500','fit: S = 1','fit: S = 100','fit: S = 370','fit: S = 500'}, ...
+        'Interpreter','latex')
+    OutputPath = '/home/jmoosmann/data/QP/figures';
+    if doSave
+        saveas( gcf, sprintf( '%s/Fig-1b.png', OutputPath),'png')
+        saveas( gcf, sprintf( '%s/Fig-1b.eps', OutputPath),'epsc2')
+        saveas( gcf, sprintf( '%s/Fig-1b.pdf', OutputPath),'pdf')
+        save(sprintf( '%s/Fig-1b_data.mat', OutputPath),'X','YData','YFits')
+    end
 end
-X = out.xn;
-YData = afintr(out.x,Spos);
-%h = plot(out.xn,afintr(out.x,Spos),'.',out.xn,YFits,'-');
-h = plot(X, YData, '.', X, YFits, '-');
-axis equal tight
-h(1).Color='r';
-h(2).Color='b';
-h(3).Color='m';
-h(4).Color='g';
-h(5).Color='r';
-h(6).Color='b';
-h(7).Color='m';
-h(8).Color='g';
-%set(0, 'defaultTextInterpreter', 'tex');
-xlabel('\lambda z {\bf \xi }^2')
-legend(h,'data: S = 1','data: S = 100','data: S = 370','data: S = 500','fit: S = 1','fit: S = 100','fit: S = 370','fit: S = 500')
-OutputPath = '/home/jmoosmann/data/QP/figures';
-if doSave
-    saveas( gcf, sprintf( '%s/Fig-1b.png', OutputPath),'png')
-    saveas( gcf, sprintf( '%s/Fig-1b.eps', OutputPath),'epsc2')
-    saveas( gcf, sprintf( '%s/Fig-1b.pdf', OutputPath),'pdf')
-    save(sprintf( '%s/Fig-1b_data.mat', OutputPath),'X','YData','YFits')
-end
+
 %% Figure 1c
 figure('Name','Figure 1c: minima position')
-%plot(out.S,out.pixelPosToSinArgROI(out.cfMinPos),'.-');
 X = out.S;
-Y = out.pixelPosToSinArgROI(out.cfMinPos);
+Y = sqrt(out.pixelPosToSinArgROI(out.cfMinPos));
 if numel(X) > 450
     xe = 450;
 else
@@ -241,9 +256,9 @@ Xf = X;
 cf_critExp = FitCritExp(Xf, Y);
 Yf = cf_critExp(Xf);
 h = plot(X, Y, '.', Xf, Yf, '-');
-xlabel('S')
-ylabel('\lambda z |{\bf\xi}|_{1,min}^2')
-legend(h,'data','fit','Location','NorthWest')
+xlabel('$S$','Interpreter','LaTex')
+ylabel('$\sqrt{\lambda z} |{\bf\xi}|_{1,\mathrm{min}}$','Interpreter','LaTex')
+legend(h, {'data','fit: $y_0+\Theta(S-S_{c_1})a_0|S-S_{c_1}|^{a_1}$'},'Location','NorthWest','Interpreter','Latex')
 if doSave
     saveas( gcf, sprintf( '%s/Fig-1c.png', OutputPath),'png')
     saveas( gcf, sprintf( '%s/Fig-1c.eps', OutputPath),'epsc2')

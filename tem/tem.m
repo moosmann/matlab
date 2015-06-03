@@ -1,4 +1,8 @@
 clear all
+
+roi = [0 1];
+%roi = [0.5 0.85];
+
 %% Parameters
 % Acceleration voltage = 200 keV
 energy_keV = 200;
@@ -61,7 +65,7 @@ parentPath = '~/data/tem/JulianET/Phase retrieval';
 pha = ReadMRC(sprintf('%s/balls_phantom.mrc', parentPath));
 folderDose = 'Data set 1. Dose series';
 folderDefocus = 'Data set 2. Defocus series';
-dataFolder = folderDefocus;
+dataFolder = folderDose;
 
 % noise-free intensity
 filename = sprintf('%s/%s/TEMimage_nonoise.mrc', parentPath, folderDose);
@@ -83,88 +87,116 @@ numList = sort(numList);
 figure(1)
 %set(gca, 'XTickLabel', [],'XTick',[])
 %tightfig;
-roi = [0.5 1];
 x = round(1 + roi(1)*imSize(1)):round(roi(2)*imSize(1));
 y = round(1 + roi(1)*imSize(2)):round(roi(2)*imSize(2));
 imsc = @(map) imsc(map(x,y));
 
+outPath = sprintf('%s/images/', parentPath);
 %% Loop through all images sorted by digits, but exlcudes nonoise image
-if 0
-    for nn = 1:numel(numList)
+if 1
+    for nn = 1:numel(numList)+1
         
-        filename = sprintf( '%s/%s/TEMimage_%u.mrc', parentPath, dataFolder, numList(nn));
+        if nn < numel(numList)
+            dataname = numList(nn);
+            nnStr = sprintf('%06u', numList(nn));
+            filename = sprintf( '%s/%s/TEMimage_%u.mrc', parentPath, dataFolder, dataname);
+        else
+            nnStr = 'nonoise';
+            filename = sprintf( '%s/%s/TEMimage_%s.mrc', parentPath, dataFolder, nnStr);
+        end
+        
+        
         [map, s] = ReadMRC(filename );
         
         subplot(3,2,1)
         imsc(map)
+        title(dataname,'Interpreter', 'none')
         axis off tight image 
+        imwrite(normat(map), sprintf('%s/int/int_%s.png', outPath, nnStr), 'png')
         
         subplot(3,2,2)
         imsc(func(map))
-        axis off tight image
+        title('log(1+abs(fft2(int)))')        
+        axis off tight image        
         
         subplot(3,2,3)
-        pha = ifft2( pftie.* fft2( map ) );
-        imsc( pha )        
+        pha = ifft2( pftie.* fft2( map ) ); 
+        imsc( pha )
+        title('tie')
         axis off image
+        imwrite(normat(pha), sprintf('%s/tie/tie_%s.png', outPath, nnStr), 'png')
         
         subplot(3,2,4)
         pha = ifft2( pfctf.* fft2( map ) );
         imsc( pha )        
+        title('ctf')
         axis off image
+        imwrite(normat(pha), sprintf('%s/ctf/ctf_%s.png', outPath, nnStr), 'png')
         
         subplot(3,2,5)
         pha = ifft2( pfqp.* fft2( map ) );
         imsc( pha )        
+        title('qp')
         axis off image
-        
+        imwrite(normat(pha), sprintf('%s/qp/qp_%s.png', outPath, nnStr), 'png')
+                
         subplot(3,2,6)
         pha = ifft2( pfqp2.* fft2( map ) );
         imsc( pha )        
+        title('qp')
         axis off image
+        imwrite(normat(pha), sprintf('%s/qp_2/qp_%s.png', outPath, nnStr), 'png')
         
         %pause(1)
+        %tightfig;
         input('Hit Enter to continue')
     end    
 end
 
 
 %% Loop through all images in unsorted manner
-if 1
+if 0
     for nn=1:numel(dataDir)
-        
-        filename = sprintf( '%s/%s/%s', parentPath, dataFolder, dataDir(nn).name);
-        [map, s] = ReadMRC(filename );
+        dataname = dataDir(nn).name;
+        filename = sprintf( '%s/%s/%s', parentPath, dataFolder, dataname);
+        [map, s] = ReadMRC(filename );                    
         
         subplot(3,2,1)
         imsc(map)
+        title(dataname,'Interpreter', 'none')
         axis off tight image 
         
         subplot(3,2,2)
         imsc(func(map))
+        title('log(1+abs(fft2(int)))')
         axis off tight image
         
         subplot(3,2,3)
         pha = ifft2( pftie.* fft2( map ) );
         imsc( pha )        
+        title('tie')
         axis off image
         
         subplot(3,2,4)
         pha = ifft2( pfctf.* fft2( map ) );
         imsc( pha )        
+        title('ctf')
         axis off image
         
         subplot(3,2,5)
         pha = ifft2( pfqp.* fft2( map ) );
         imsc( pha )        
+        title('qp')
         axis off image
         
         subplot(3,2,6)
         pha = ifft2( pfqp2.* fft2( map ) );
-        imsc( pha )        
+        imsc( pha )
+        title('qp')
         axis off image
         
         %pause(1)
+        %tightfig;
         input('Hit Enter to continue')
     end
 end
