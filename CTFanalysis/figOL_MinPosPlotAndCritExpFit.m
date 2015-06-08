@@ -35,8 +35,8 @@ annotation(figure1,'textarrow',[0.455357142857143 0.588499550763702],...
 
 
 
-set(gcf,'position',[0 0, 1600 900])
-saveas(gcf,'/home/moosmann/ol/Fig-2.eps','epsc2')
-set(gcf,'PaperPositionMode','Auto') 
-saveas(gcf,'/home/moosmann/ol/Fig-2_nonquadr.eps','epsc2')
-saveas(gcf,'/home/moosmann/ol/MinPosPlotAndCritExpFit_(Fig-2).eps','epsc2')
+%set(gcf,'position',[0 0, 1600 900])
+%saveas(gcf,'/home/moosmann/ol/Fig-2.eps','epsc2')
+%set(gcf,'PaperPositionMode','Auto') 
+%saveas(gcf,'/home/moosmann/ol/Fig-2_nonquadr.eps','epsc2')
+%saveas(gcf,'/home/moosmann/ol/MinPosPlotAndCritExpFit_(Fig-2).eps','epsc2')

@@ -8,7 +8,7 @@ if nargin < 2
     alongDim = 2;
 end
 if nargin < 3
-    pause_s = 0.1;
+    pause_s = 0;
 end
 
 %% MAIN
@@ -16,16 +16,28 @@ end
 set( gcf, 'Name', sprintf( '%s. Play plot', inputname(1)) );
 colormap(gray)
 
+
+
 switch alongDim
     case 1
-        for nn = 1:size( data, 1)
-            plot( data(nn,:) )
+        nmax = size( data, 1);
+        if pause_s == 0
+            pause_s = 10 / nmax;
+        end
+        for nn = 1:nmax
+            plot( data(nn,:), '.')
+            legend(sprintf('%u of %u', nn, nmax))
             axis tight;
             pause( pause_s );
         end
     case 2
-        for nn = 1:size( data, 2)
-            plot( data(:,nn) )
+        nmax = size( data, 2);
+        if pause_s == 0
+            pause_s = 10 / nmax;
+        end
+        for nn = 1:nmax
+            plot( data(:,nn), '.' )
+            legend(sprintf('%u of %u', nn, nmax))
             axis tight;
             pause( pause_s );
         end

@@ -5,13 +5,13 @@ if nargin < 1
 end
 if nargin < 2
     AlgType_str = 'fdk';
-    AlgType_str = 'sirt3d';
+    %AlgType_str = 'sirt3d';
 end
 if nargin < 3
-    NumIterations = 50;
+    NumIterations = 10;
 end
 if nargin < 4
-    PadHor_PadVer = [-3 0];
+    PadHor_PadVer = [-1 0];
 end
 if nargin < 5
     scaleFactor = 1;
@@ -20,8 +20,8 @@ if nargin < 6
     VolInit = 0;
 end
 doPixelFiltering(1) = 1;
-doNormalisation(1) = 1;
-doMeanSubtraction(1) = 1;
+doNormalisation(1) = 0;
+doMeanSubtraction(1) = 0;
 doROI(1) = 0;
 doSinoFiltering(1) = 0;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -220,9 +220,14 @@ end
 
 fprintf('\nMin/Max of projections: [%g, %g]', min( sino(:) ), max( sino(:) ) )
 
+
+det_width_mm = data.detector_width_mm ;
+source_origin_mm = data.source_origin_mm;
+
 % Padding
 if padding.size_hor < 0
-    padding.size_hor = abs(padding.size_hor) * ceil( ( sqrt(2) -1 ) / 2 * num_pixel_hor_0 );    
+    padding.size_hor = ceil( sqrt(2) / 2 * abs(padding.size_hor) * sqrt(1 - (det_width_mm / source_origin_mm / 2)^2 ) * num_pixel_hor_0);
+    %padding.size_hor = abs(padding.size_hor) * ceil( ( sqrt(2) -1 ) / 2 * num_pixel_hor_0 );    
 end
 if padding.size_ver < 0
     padding.size_ver = abs(padding.size_ver) * ceil( ( sqrt(2) -1 ) / 2 * num_pixel_ver_0 );    
@@ -245,14 +250,16 @@ num_voxel_ver = round(scale_fac * num_pixel_ver_0 );
 
 %% Parameters in physical units
 % length in mm 
-det_width_mm = data.detector_width_mm ;
 pixel_width_hor_mm = det_width_mm / num_pixel_hor_0 ;
 pixel_width_ver_mm = det_width_mm / num_pixel_ver_0 ;
-source_origin_mm = data.source_origin_mm;
 origin_det_mm = data.origin_det_mm;
-if doROI
+if doROI == 1
     source_det_mm = source_origin_mm + origin_det_mm;
     vol_width_mm = 2 * source_origin_mm * det_width_mm / ( 2 * source_det_mm + det_width_mm );
+elseif doROI == 2
+    pdet_width_mm = source_origin_mm / (source_origin_mm + origin_det_mm) * det_width_mm;
+    vol_width_mm = sqrt(2) * pdet_width_mm / 2 * sqrt(1 - (pdet_width_mm / source_origin_mm / 2)^2 );
+    vol_width_mm = floor(vol_width_mm);
 else
     vol_width_mm = det_width_mm;
 end
@@ -268,6 +275,9 @@ vol_geom = astra_create_vol_geom( num_voxel_hor, num_voxel_hor, num_voxel_ver);
 % Create projection geometry
 det_spacing_x = pixel_width_hor_mm / voxel_width_mm;
 det_spacing_y = pixel_width_ver_mm / voxel_width_mm;
+
+det_spacing_x = ceil(det_spacing_x * num_pixel_hor) / num_pixel_hor;
+det_spacing_y = ceil(det_spacing_y * num_pixel_ver) / num_pixel_ver;
 
 %det_spacing_x = 1;
 %det_spacing_y = det_spacing_x;
