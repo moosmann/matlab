@@ -1,4 +1,4 @@
-function [rec, proj_data] = astra_helicalbeam_sim( NumProj, AlgType_str, NumIterations)
+function [rec, proj_data] = astra_conebeam_helical_sim( NumProj, AlgType_str, NumIterations)
 
 if nargin < 1
     NumProj = 35;

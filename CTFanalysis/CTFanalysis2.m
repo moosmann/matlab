@@ -182,7 +182,7 @@ for dd = numel( distanceList_m ):-1:1
     out(dd).numMaxPhaseShift = numMaxPhaseShift;
     for kk = 1:out(dd).numMaxPhaseShift
         plot( out(dd).xn, afintr(out(dd).x,kk) ,'.', out(dd).xn, out(dd).cf{kk}(out.xn), out(dd).pixelPosToSinArgROI(out(dd).cfMinPos(kk)), out(dd).cfMinVal(kk), 'ro' )
-        axis tight equal                
+        axis tight
         legend({sprintf('S = %3u  \n$\\phi_{\\mathrm{max}} = $ %4.02g ', out(dd).S(kk), out(dd).MaxPhaseShift(kk)),'fit','minimum'}, 'Interpreter','latex')
         pause(0.1)
         if doSave
