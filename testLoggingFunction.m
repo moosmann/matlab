@@ -5,7 +5,7 @@ delete(filename);
 diary(filename);
 try
     a = ones(10);
-    fprintf('\n\nTEST DIARY FUNCITON\n\nSize of a: %u x %u\n',size(a));
+    fprintf('\n\nTEST LOGGING FUNCTION\n\nSize of a: %u x %u\n',size(a));
     a = a.*b;
     fprintf('\n\nSIze of %u %u\n',size(a));
     diary off

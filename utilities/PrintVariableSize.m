@@ -18,4 +18,4 @@ switch lower(Unit)
 end
 
 m = whos('Variable');
-fprintf('\n %s   %g %s\n',inputname(1),m.bytes*1024^-mm,Unit)
+fprintf(' %s   %g %s\n',inputname(1),m.bytes*1024^-mm,Unit)

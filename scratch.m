@@ -20,14 +20,14 @@ ishow(log(abs(u)));
 end;
 % Read Shepp-Logan phantom.
 cd ~/data/shepp-logan_interior_2;
-[object,object,object] = loadgpbin(['sl_E24keV_z00100cm_res512_os1_000-' ...
+[~,~,object] = loadgpbin(['sl_E24keV_z00100cm_res512_os1_000-' ...
                     'usample-real.gpbin']);
 domain(object);
 % Get dimensions.
 [dimx,dimy]=size(object);
 
 %display(sum(sum(exp(i*object))));
-fu       = fft2(exp(i*object),padx,pady);
+fu       = fft2(exp(1i*object),padx,pady);
 % alternating grid.
 pmgrid   = ones(padx+1);
 pmgrid(1:2:end) = 0;
@@ -35,10 +35,10 @@ pmgrid   = pmgrid(1:end-1,1:end-1);
 fph      = zeros(padx);
 n        = floor(padx/4);
 fph(1+n:end-n,1+n:end-n) = pmgrid(1+n:end-n,1+n:end-n);
-fu       = fft2(exp(i*ifft2(fph)),padx,pady);
+fu       = fft2(exp(1i*ifft2(fph)),padx,pady);
 % rectangle grid
 fph      = zeros(padx);
 n        = floor(padx/4);
 fph(1+n:end-n,1+n:end-n) = 1;
-fu       = fft2(exp(i*abs(ifft2(fph))),padx,pady);
+fu       = fft2(exp(1i*abs(ifft2(fph))),padx,pady);
 

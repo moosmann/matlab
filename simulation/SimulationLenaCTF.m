@@ -1,4 +1,5 @@
-im = padarray(0.5+0.5*normat(double(imread('/home/moosmann/lena.tif'))),[256 ...
+filename = [getenv('HOME'), '/data/test_pattern/lena/' 'lena.tif'];
+im = padarray(0.5+0.5*normat(double(imread(filename))),[256 ...
                    256],'replicate','both');
 
 sigma = 16;
