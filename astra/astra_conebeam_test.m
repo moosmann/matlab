@@ -1,7 +1,7 @@
 function [rec, sino] = astra_conebeam_test(DataSetNum,AlgType_str,NumIterations,PadHor_PadVer,scaleFactor,VolInit)
 
 if nargin < 1
-    DataSetNum = 9;
+    DataSetNum = 14;
 end
 if nargin < 2
     AlgType_str = 'fdk';
@@ -11,7 +11,7 @@ if nargin < 3
     NumIterations = 10;
 end
 if nargin < 4
-    PadHor_PadVer = [-1 0];
+    PadHor_PadVer = [0 0];
 end
 if nargin < 5
     scaleFactor = 1;
@@ -19,8 +19,8 @@ end
 if nargin < 6
     VolInit = 0;
 end
-doPixelFiltering(1) = 1;
-doNormalisation(1) = 0;
+doPixelFiltering(1) = 0;
+doNormalisation(1) = 1;
 doMeanSubtraction(1) = 0;
 doROI(1) = 0;
 doSinoFiltering(1) = 0;
@@ -165,6 +165,26 @@ data(nn).fullAngle_rad = -2 * pi;
 data(nn).source_origin_mm = 1085.6 - 490.6; 
 data(nn).origin_det_mm = 490.6;
 data(nn).detector_width_mm = 500;
+
+nn = 13;
+data(nn).dir = data_dir ;
+data(nn).filename = '20150615_microCT_phantom_test';
+data(nn).fieldname = 'proj';
+data(nn).permuteOrder = [1 3 2];
+data(nn).fullAngle_rad =  - 2 * pi;
+data(nn).source_origin_mm = 270; 
+data(nn).origin_det_mm = 97;
+data(nn).detector_width_mm = 120;
+
+nn = 14;
+data(nn).dir = data_dir ;
+data(nn).filename = '20150616_CT_for_SPECT_attenuation';
+data(nn).fieldname = 'detector_astra_projection';
+data(nn).permuteOrder = [1 2 3];
+data(nn).fullAngle_rad =  - 2 * pi;
+data(nn).source_origin_mm = 1085.6 - 490.6; 
+data(nn).origin_det_mm = 490.6;
+data(nn).detector_width_mm = 950;
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 scale_fac = scaleFactor(1);

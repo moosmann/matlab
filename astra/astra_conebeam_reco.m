@@ -1,4 +1,6 @@
 function [rec, sino] = astra_conebeam_reco(DataSetNum,NumIterations,PadHor_PadVer,scaleFactor,lambda)
+% Landweber / SIRT implementation using ASTRA's forward and backword
+% projector
 
 if nargin < 1
     DataSetNum = 12;
