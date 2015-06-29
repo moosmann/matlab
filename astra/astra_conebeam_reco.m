@@ -1,26 +1,29 @@
 function [rec, sino] = astra_conebeam_reco(DataSetNum,NumIterations,PadHor_PadVer,scaleFactor,lambda)
-% Landweber / SIRT implementation using ASTRA's forward and backword
+% Landweber implementation using ASTRA's forward and backword
 % projector
 
 if nargin < 1
-    DataSetNum = 12;
+    DataSetNum = 14;
 end
 if nargin < 2
-    NumIterations = 50;
+    NumIterations = 150;
 end
 if nargin < 3
-    PadHor_PadVer = [0 0];
+    PadHor_PadVer = [160 0];
 end
 if nargin < 4
     scaleFactor = 1;
 end
 if nargin < 5
-    lambda = 10;
+    lambda = 15;
+end
+if nargin < 6
+    volume_scale_factor = 0.5;
 end
 doInteract = 0;
 doPixelFiltering = 1;
-takeLog = 0;
-doMeanSubtraction = 1;
+takeLog = 1;
+doMeanSubtraction = 0;
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -160,6 +163,16 @@ data(nn).source_origin_mm = 1085.6 - 490.6;
 data(nn).origin_det_mm = 490.6;
 data(nn).detector_width_mm = 500;
 
+nn = 14;
+data(nn).dir = data_dir ;
+data(nn).filename = '20150616_CT_for_SPECT_attenuation';
+data(nn).fieldname = 'detector_astra_projection';
+data(nn).permuteOrder = [1 2 3];
+data(nn).fullAngle_rad =  - 2 * pi;
+data(nn).source_origin_mm = 1085.6 - 490.6; 
+data(nn).origin_det_mm = 490.6;
+data(nn).detector_width_mm = 950;
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 scale_fac = scaleFactor(1);
@@ -235,7 +248,7 @@ source_origin_mm = data.source_origin_mm;
 origin_det_mm = data.origin_det_mm;
 %source_det_mm = source_origin_mm + origin_det_mm;
 %vol_width_mm = 2 * source_origin_mm * det_width_mm / ( 2 * source_det_mm + det_width_mm );
-vol_width_mm = det_width_mm;
+vol_width_mm = volume_scale_factor * det_width_mm;
 voxel_width_mm = vol_width_mm / num_voxel_hor;
 fprintf( '\nWidth of detector: %g mm', det_width_mm)
 fprintf( '\nWidth of volume: %g mm', vol_width_mm)
@@ -267,7 +280,8 @@ fprintf( '\nRatio: (detector pixel size) / (voxel size): %g, %g', det_spacing_x,
 
 % BACKPROJECTION
 sino = normat( sino );
-[~, rec] = astra_create_backprojection3d_cuda(sino, proj_geom, vol_geom);
+[rec_id, rec] = astra_create_backprojection3d_cuda(sino, proj_geom, vol_geom);
+astra_mex_data3d('delete', rec_id)
 rescaleFac = 1 / num_proj / sqrt( num_voxel_hor^2 * num_voxel_ver );
 %rec = rescaleFac * lambda * rec;
 rec = rescaleFac * rec;
@@ -307,11 +321,13 @@ title(sprintf('reconstruction dim1 = %g', xx))
 for nn = 1:(NumIterations-1)
 
     % FORWARDPROJECTION 
-    [~, res] = astra_create_sino3d_cuda(rec, proj_geom, vol_geom);
+    [sino_id, res] = astra_create_sino3d_cuda(rec, proj_geom, vol_geom);
+    astra_mex_data3d('delete', sino_id)
     res = sino - res;
 
     % BACKPROJECTION
-    [~, recu] = astra_create_backprojection3d_cuda( res, proj_geom, vol_geom);
+    [rec_id, recu] = astra_create_backprojection3d_cuda( res, proj_geom, vol_geom);
+    astra_mex_data3d('delete', rec_id)
     recu = rescaleFac * lambda * recu;    
     
     % UPDATE
@@ -359,7 +375,7 @@ for nn = 1:(NumIterations-1)
             lambda = nlv;
         end
     end
-    
+    pause(0.1)
     fprintf(' %14g',lnorm_rec(nn+1) )
 end
 
@@ -367,6 +383,7 @@ fprintf('\n')
 % Clean up. Note that GPU memory is tied up in the algorithm object,
 % and main RAM in the data objects.
 astra_clear
+
 
 function imsc(im)
 % imagesc using gray colormap.
