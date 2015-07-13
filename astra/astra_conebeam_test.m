@@ -4,8 +4,8 @@ if nargin < 1
     DataSetNum = 14;
 end
 if nargin < 2
-    AlgType_str = 'fdk';
-    %AlgType_str = 'sirt3d';
+    %AlgType_str = 'fdk';
+    AlgType_str = 'sirt3d';
 end
 if nargin < 3
     NumIterations = 10;
@@ -173,7 +173,7 @@ data(nn).fieldname = 'proj';
 data(nn).permuteOrder = [1 3 2];
 data(nn).fullAngle_rad =  - 2 * pi;
 data(nn).source_origin_mm = 270; 
-data(nn).origin_det_mm = 97;
+data(nn).origin_det_mm = 366 - 270;
 data(nn).detector_width_mm = 120;
 
 nn = 14;
