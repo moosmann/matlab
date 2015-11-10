@@ -143,8 +143,9 @@ else
         axis equal tight;
         subplot(2,2,4)
         plot(res)
-        axis square tight;        
-        pause(0.05);
+        axis square tight;   
+        drawnow
+        % pause(0.05);
     end    
 end
 fprintf('\nTime elapsed for reconstruction: %g s\n',toc)

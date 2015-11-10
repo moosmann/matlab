@@ -1,7 +1,7 @@
 function [rec, sino] = astra_conebeam_test(DataSetNum,AlgType_str,NumIterations,PadHor_PadVer,scaleFactor,VolInit)
 
 if nargin < 1
-    DataSetNum = 14;
+    DataSetNum = 13;
 end
 if nargin < 2
     %AlgType_str = 'fdk';
@@ -21,7 +21,7 @@ if nargin < 6
 end
 doPixelFiltering(1) = 0;
 doNormalisation(1) = 1;
-doMeanSubtraction(1) = 0;
+doMeanSubtraction(1) = 1;
 doROI(1) = 0;
 doSinoFiltering(1) = 0;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -233,8 +233,8 @@ if doNormalisation
         sino = normat( sino );
     else
         sino = sino + 1e1;
-        sino =  1 - log( (sino) / max( sino(:)) ) ;
-        sino = scale_fac * normat( sino );
+        sino =  0 - log( (sino) / max(1 + sino(:)) ) ;
+        %sino = scale_fac * normat( sino );
     end
 end
 

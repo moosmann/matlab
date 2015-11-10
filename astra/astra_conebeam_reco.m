@@ -6,7 +6,7 @@ if nargin < 1
     DataSetNum = 14;
 end
 if nargin < 2
-    NumIterations = 150;
+    NumIterations = 10;
 end
 if nargin < 3
     PadHor_PadVer = [160 0];
@@ -376,6 +376,7 @@ for nn = 1:(NumIterations-1)
         end
     end
     pause(0.1)
+    % drawnow
     fprintf(' %14g',lnorm_rec(nn+1) )
 end
 

@@ -13,10 +13,10 @@ if nargin < 3
     EnergyDistancePixelsize = [20 .7 1.1e-6];
 end
 if nargin < 4
-    AverageCounts = 20000;
+    AverageCounts = 0;
 end
 if nargin < 5
-    filestring='~/lena.tif';
+    filestring='/home/jmoosmann/data/test_pattern/lena/lena.tif';
 end;
 
 %% Read lena test pattern to create a phase map.
