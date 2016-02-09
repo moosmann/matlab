@@ -1,0 +1,208 @@
+
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html><head>
+      <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <!--
+This HTML was auto-generated from MATLAB code.
+To make changes, update the MATLAB code and republish this document.
+      --><title>Total variation regularisation in tomography applications</title><meta name="generator" content="MATLAB 8.6"><link rel="schema.DC" href="http://purl.org/dc/elements/1.1/"><meta name="DC.date" content="2015-12-23"><meta name="DC.source" content="radontvexm.m"><style type="text/css">
+html,body,div,span,applet,object,iframe,h1,h2,h3,h4,h5,h6,p,blockquote,pre,a,abbr,acronym,address,big,cite,code,del,dfn,em,font,img,ins,kbd,q,s,samp,small,strike,strong,sub,sup,tt,var,b,u,i,center,dl,dt,dd,ol,ul,li,fieldset,form,label,legend,table,caption,tbody,tfoot,thead,tr,th,td{margin:0;padding:0;border:0;outline:0;font-size:100%;vertical-align:baseline;background:transparent}body{line-height:1}ol,ul{list-style:none}blockquote,q{quotes:none}blockquote:before,blockquote:after,q:before,q:after{content:'';content:none}:focus{outine:0}ins{text-decoration:none}del{text-decoration:line-through}table{border-collapse:collapse;border-spacing:0}
+
+html { min-height:100%; margin-bottom:1px; }
+html body { height:100%; margin:0px; font-family:Arial, Helvetica, sans-serif; font-size:10px; color:#000; line-height:140%; background:#fff none; overflow-y:scroll; }
+html body td { vertical-align:top; text-align:left; }
+
+h1 { padding:0px; margin:0px 0px 25px; font-family:Arial, Helvetica, sans-serif; font-size:1.5em; color:#d55000; line-height:100%; font-weight:normal; }
+h2 { padding:0px; margin:0px 0px 8px; font-family:Arial, Helvetica, sans-serif; font-size:1.2em; color:#000; font-weight:bold; line-height:140%; border-bottom:1px solid #d6d4d4; display:block; }
+h3 { padding:0px; margin:0px 0px 5px; font-family:Arial, Helvetica, sans-serif; font-size:1.1em; color:#000; font-weight:bold; line-height:140%; }
+
+a { color:#005fce; text-decoration:none; }
+a:hover { color:#005fce; text-decoration:underline; }
+a:visited { color:#004aa0; text-decoration:none; }
+
+p { padding:0px; margin:0px 0px 20px; }
+img { padding:0px; margin:0px 0px 20px; border:none; }
+p img, pre img, tt img, li img, h1 img, h2 img { margin-bottom:0px; } 
+
+ul { padding:0px; margin:0px 0px 20px 23px; list-style:square; }
+ul li { padding:0px; margin:0px 0px 7px 0px; }
+ul li ul { padding:5px 0px 0px; margin:0px 0px 7px 23px; }
+ul li ol li { list-style:decimal; }
+ol { padding:0px; margin:0px 0px 20px 0px; list-style:decimal; }
+ol li { padding:0px; margin:0px 0px 7px 23px; list-style-type:decimal; }
+ol li ol { padding:5px 0px 0px; margin:0px 0px 7px 0px; }
+ol li ol li { list-style-type:lower-alpha; }
+ol li ul { padding-top:7px; }
+ol li ul li { list-style:square; }
+
+.content { font-size:1.2em; line-height:140%; padding: 20px; }
+
+pre, code { font-size:12px; }
+tt { font-size: 1.2em; }
+pre { margin:0px 0px 20px; }
+pre.codeinput { padding:10px; border:1px solid #d3d3d3; background:#f7f7f7; }
+pre.codeoutput { padding:10px 11px; margin:0px 0px 20px; color:#4c4c4c; }
+pre.error { color:red; }
+
+@media print { pre.codeinput, pre.codeoutput { word-wrap:break-word; width:100%; } }
+
+span.keyword { color:#0000FF }
+span.comment { color:#228B22 }
+span.string { color:#A020F0 }
+span.untermstring { color:#B20000 }
+span.syscmd { color:#B28C00 }
+
+.footer { width:auto; padding:10px 0px; margin:25px 0px 0px; border-top:1px dotted #878787; font-size:0.8em; line-height:140%; font-style:italic; color:#878787; text-align:left; float:none; }
+.footer p { margin:0px; }
+.footer a { color:#878787; }
+.footer a:hover { color:#878787; text-decoration:underline; }
+.footer a:visited { color:#878787; }
+
+table th { padding:7px 5px; text-align:left; vertical-align:middle; border: 1px solid #d6d4d4; font-weight:bold; }
+table td { padding:7px 5px; text-align:left; vertical-align:top; border:1px solid #d6d4d4; }
+
+
+
+
+
+  </style></head><body><div class="content"><h1>Total variation regularisation in tomography applications</h1><!--introduction--><p>This is a little program that allows to reconstruct a 3d image from a set of 2d projections. The program therefore realises the minimisation of the mathematical model</p><p><img src="radontvexm_eq16579728803364900265.png" alt="$$ u \in \arg\min_{u \geq 0} \left\{ \frac{\lambda}{2}\| Ru - f \|_2^2 +&#xA;\| \| \nabla u \|_2 \|_1 \right\} $$" style="width:191px;height:27px;"></p><p>via a preconditioned primal dual hybrid gradient method (PDHGM) as described in [1]. In order to use the algorithm described in [1], we have to formulate our mathematical problem as</p><p><img src="radontvexm_eq04564973620248820969.png" alt="$$ \min F(Kx) + G(x) $$" style="width:90px;height:11px;"></p><p>with <img src="radontvexm_eq00000131021721661936.png" alt="$K = (R, \nabla)^T$" style="width:61px;height:13px;">, <img src="radontvexm_eq02741135683834124399.png" alt="$F(z_1, z_2) = \lambda \| z_1 - f \|_2^2 / 2 + \| \| z_2 \|_2 \|_1$" style="width:171px;height:12px;">, and <img src="radontvexm_eq07299102684647181632.png" alt="$G(x) = \chi_P(x)$" style="width:65px;height:11px;">. Here <img src="radontvexm_eq05678969086868012984.png" alt="$\chi_P$" style="width:13px;height:8px;"> denotes the characteristic function over the set <img src="radontvexm_eq11012915630920192869.png" alt="$P := \{ x \ | \ x \geq 0 \}$" style="width:80px;height:11px;">. The PDHGM does not compute a solution of the primal problem, but of the primal-dual problem</p><p><img src="radontvexm_eq01135707772415925604.png" alt="$$ \min \max \langle Kx, y \rangle + G(x) - F^*(y) ;$$" style="width:156px;height:12px;"></p><p>here <img src="radontvexm_eq01419195562712523859.png" alt="$F^*$" style="width:12px;height:8px;"> is the Fenchel-dual of <img src="radontvexm_eq08597826192214703288.png" alt="$F$" style="width:8px;height:8px;"> which is in our case given as <img src="radontvexm_eq11770453195487767849.png" alt="$F^*(y_1, y_2) = \| y_1 \|_2^2 / (2\lambda) + \langle y_1, f\rangle + \chi_U(y_2)$" style="width:200px;height:12px;">, where <img src="radontvexm_eq02051405748609193397.png" alt="$\chi_U$" style="width:13px;height:8px;"> denotes the characteristic function over the set <img src="radontvexm_eq06680178229674379059.png" alt="$U := \{ y \ | \ \| \| y \|_2 \|_\infty \leq 1\}$" style="width:113px;height:11px;">. Given the matrix <img src="radontvexm_eq03845174387838694102.png" alt="$K$" style="width:10px;height:8px;"> and the resolvent operators of <img src="radontvexm_eq01419195562712523859.png" alt="$F^*$" style="width:12px;height:8px;"> and <img src="radontvexm_eq07365524530707038546.png" alt="$G$" style="width:8px;height:8px;">, we compute the iterates as described in [1, Equation (4)].</p><p>Author: Martin Benning - <a href="mailto:mb941@cam.ac.uk">mb941@cam.ac.uk</a></p><p>Date: 23.12.15</p><!--/introduction--><h2>Contents</h2><div><ul><li><a href="#1">Load projection images and create radon operator</a></li><li><a href="#4">Initialise 3d gradient operator</a></li><li><a href="#5">Initialise operator K</a></li><li><a href="#6">Initialise operators for F* and G</a></li><li><a href="#7">Initialise PDHGM</a></li><li><a href="#8">Compute preconditioners</a></li><li><a href="#9">Run PDHGM</a></li><li><a href="#10">Visualise results</a></li><li><a href="#11">References</a></li></ul></div><h2>Load projection images and create radon operator<a name="1"></a></h2><p>We are going to load exemplary projection images that were made from the MATLAB? dataset <b>wmri</b>. We further reduce the number of sampled angles to 45; we only use every fourth projection of the original dataset that included 180 projections in total (for the angular range 0 to 179).</p><pre class="codeinput">load(<span class="string">'projectionimages.mat'</span>)
+angles = (0:4:179)';
+imsize = [128, 128, size(proj, 2)];
+projsmall = proj(:, :, 1:4:180);
+</pre><p>Now we compute a matrix that maps the 3d image onto the sinogram of each z-component. It is recommended to open the parallel pool before executing the following line of code.</p><pre class="codeinput">tic; R = radonmtx(imsize(1), angles, size(proj, 1)); toc;
+</pre><pre class="codeoutput">Grab a coffee, this may take a while!
+Elapsed time is 5.856869 seconds.
+</pre><p>Subsequently, we initalise the operator that maps the 3d image onto the projection images, and store the projection images as our data <b>f</b> in terms of a column vector.</p><pre class="codeinput">Rop = matleftmult(R, [size(R, 2) size(proj, 2)]);
+f = permute(projsmall, [1 3 2]);
+f = f(:); <span class="comment">%sinogram data for each z-slice</span>
+scal = 4096; <span class="comment">%rescaling of the data; acts as a regularisation parameter</span>
+</pre><h2>Initialise 3d gradient operator<a name="4"></a></h2><p>We initialise a 3d forward finite-difference approximation of the gradient operator with the following command.</p><pre class="codeinput">Grad = fcthdlop(imsize, [imsize 3], @fwgradient3d, @bwgradient3d);
+</pre><h2>Initialise operator K<a name="5"></a></h2><p>In order to initialise the operator <img src="radontvexm_eq03845174387838694102.png" alt="$K$" style="width:10px;height:8px;">, we only have to concatenate the operators <b>Rop</b> and <b>Grad</b>.</p><pre class="codeinput">K = [Rop; Grad];
+</pre><h2>Initialise operators for F* and G<a name="6"></a></h2><p>Given the operator <img src="radontvexm_eq03845174387838694102.png" alt="$K$" style="width:10px;height:8px;">, we need to initalise objects of the functionals <img src="radontvexm_eq01419195562712523859.png" alt="$F^*$" style="width:12px;height:8px;"> and <img src="radontvexm_eq07365524530707038546.png" alt="$G$" style="width:8px;height:8px;"> that allow the computation of the resolvent/proximity-operations.</p><pre class="codeinput">Fstar = dualvpproj(imsize, size(projsmall));
+Fstar.setproxdata(f*scal)
+G = nonnegproj(imsize);
+</pre><h2>Initialise PDHGM<a name="7"></a></h2><p>Now we have all the ingredients to initalise an instance of the PDHGM. We set the number of iterations arbitrarily to 300.</p><pre class="codeinput">solver = pdhgm(K, Fstar, G);
+solver.setmaxiter(300)
+</pre><h2>Compute preconditioners<a name="8"></a></h2><p>Before we execute the solver, we need to choose parameters <img src="radontvexm_eq14047577632175690031.png" alt="$T$" style="width:8px;height:8px;"> and <img src="radontvexm_eq11513513746854591617.png" alt="$\Sigma$" style="width:7px;height:8px;">, as they are required for the execution of [1, Equation (4)]. We have precomputed those in analogy to the example in [1, Lemma 2], for <img src="radontvexm_eq11007464405666851578.png" alt="$\alpha = 1$" style="width:26px;height:8px;">, and stored the parameters in 'sigmatau.mat'. We load these parameters and pass them to the objects representing <img src="radontvexm_eq01419195562712523859.png" alt="$F^*$" style="width:12px;height:8px;"> and <img src="radontvexm_eq07365524530707038546.png" alt="$G$" style="width:8px;height:8px;">.</p><pre class="codeinput">load(<span class="string">'sigmatau.mat'</span>)
+Fstar.setproxparam(sigma1, sigma2);
+G.setproxparam(tau);
+</pre><h2>Run PDHGM<a name="9"></a></h2><p>Now we run 300 iterations of the PDHGM. We could change the value of the regulrisation parameter <img src="radontvexm_eq07657233533591063549.png" alt="$\lambda$" style="width:6px;height:8px;">; however, in this setup the re-scaling of the initial data <img src="radontvexm_eq18096895394918367257.png" alt="$f$" style="width:6px;height:10px;"> acts also as a regularisation. As we found the iteration to be more stable with <img src="radontvexm_eq07128910532573418701.png" alt="$\lambda = 1$" style="width:26px;height:8px;">, we stick to the re-scaling of <img src="radontvexm_eq18096895394918367257.png" alt="$f$" style="width:6px;height:10px;">.</p><pre class="codeinput">lambda = 1;
+Fstar.setregularisationparameter(lambda)
+solver.solve
+</pre><h2>Visualise results<a name="10"></a></h2><p>To conlcude, we visuale the 13-th slice of the variable <img src="radontvexm_eq12428413953531653171.png" alt="$x$" style="width:6px;height:6px;"> after 300 iterations of PDHGM.</p><pre class="codeinput">x = reshape(solver.getvariables.x, imsize);
+imagesc(x(:, :, 13))
+axis <span class="string">image</span>
+colorbar
+colormap(gray(512))
+drawnow
+</pre><img vspace="5" hspace="5" src="radontvexm_01.png" style="width:560px;height:420px;" alt=""> <h2>References<a name="11"></a></h2><p>[1] Pock, Thomas, and Antonin Chambolle. "Diagonal preconditioning for first order primal-dual algorithms in convex optimization." Computer Vision (ICCV), 2011 IEEE International Conference on. IEEE, 2011.</p><p class="footer"><br><a href="http://www.mathworks.com/products/matlab/">Published with MATLAB&reg; R2015b</a><br></p></div><!--
+##### SOURCE BEGIN #####
+%% Total variation regularisation in tomography applications
+% This is a little program that allows to reconstruct a 3d image from a set
+% of 2d projections. The program therefore realises the minimisation of the
+% mathematical model
+%
+% $$ u \in \arg\min_{u \geq 0} \left\{ \frac{\lambda}{2}\| Ru - f \|_2^2 +
+% \| \| \nabla u \|_2 \|_1 \right\} $$
+%
+% via a preconditioned primal dual hybrid gradient method (PDHGM) as
+% described in [1]. In order to use the algorithm described in [1], we have
+% to formulate our mathematical problem as
+%
+% $$ \min F(Kx) + G(x) $$
+%
+% with $K = (R, \nabla)^T$, $F(z_1, z_2) = \lambda \| z_1 - f \|_2^2 / 2 +
+% \| \| z_2 \|_2 \|_1$, and $G(x) = \chi_P(x)$. Here $\chi_P$ denotes the
+% characteristic function over the set $P := \{ x \ | \ x \geq 0 \}$. The
+% PDHGM does not compute a solution of the primal problem, but of the
+% primal-dual problem
+%
+% $$ \min \max \langle Kx, y \rangle + G(x) - F^*(y) ;$$
+%
+% here $F^*$ is the Fenchel-dual of $F$ which is in our case given as
+% $F^*(y_1, y_2) = \| y_1 \|_2^2 / (2\lambda) + \langle y_1, f\rangle +
+% \chi_U(y_2)$, where $\chi_U$ denotes the characteristic function over the
+% set $U := \{ y \ | \ \| \| y \|_2 \|_\infty \leq 1\}$. Given the matrix
+% $K$ and the resolvent operators of $F^*$ and $G$, we compute the iterates
+% as described in [1, Equation (4)].
+%
+% Author: Martin Benning - mb941@cam.ac.uk
+%
+% Date: 23.12.15
+%
+%% Load projection images and create radon operator
+% We are going to load exemplary projection images that were made from the
+% MATLAB? dataset *wmri*. We further reduce the number of sampled angles to
+% 45; we only use every fourth projection of the original dataset that
+% included 180 projections in total (for the angular range 0 to 179).
+load('projectionimages.mat')
+angles = (0:4:179)';
+imsize = [128, 128, size(proj, 2)];
+projsmall = proj(:, :, 1:4:180);
+%%
+% Now we compute a matrix that maps the 3d image onto the sinogram of each
+% z-component. It is recommended to open the parallel pool before executing
+% the following line of code.
+tic; R = radonmtx(imsize(1), angles, size(proj, 1)); toc;
+%%
+% Subsequently, we initalise the operator that maps the 3d image onto the
+% projection images, and store the projection images as our data *f* in
+% terms of a column vector.
+Rop = matleftmult(R, [size(R, 2) size(proj, 2)]);
+f = permute(projsmall, [1 3 2]);
+f = f(:); %sinogram data for each z-slice
+scal = 4096; %rescaling of the data; acts as a regularisation parameter
+%% Initialise 3d gradient operator
+% We initialise a 3d forward finite-difference approximation of the
+% gradient operator with the following command.
+Grad = fcthdlop(imsize, [imsize 3], @fwgradient3d, @bwgradient3d);
+%% Initialise operator K
+% In order to initialise the operator $K$, we only have to concatenate the
+% operators *Rop* and *Grad*.
+K = [Rop; Grad];
+%% Initialise operators for F* and G
+% Given the operator $K$, we need to initalise objects of the functionals
+% $F^*$ and $G$ that allow the computation of the
+% resolvent/proximity-operations.
+Fstar = dualvpproj(imsize, size(projsmall));
+Fstar.setproxdata(f*scal)
+G = nonnegproj(imsize);
+%% Initialise PDHGM
+% Now we have all the ingredients to initalise an instance of the PDHGM. We
+% set the number of iterations arbitrarily to 300.
+solver = pdhgm(K, Fstar, G);
+solver.setmaxiter(300)
+%% Compute preconditioners
+% Before we execute the solver, we need to choose parameters $T$ and
+% $\Sigma$, as they are required for the execution of [1, Equation (4)]. We
+% have precomputed those in analogy to the example in [1, Lemma 2], for
+% $\alpha = 1$, and stored the parameters in 'sigmatau.mat'. We load these
+% parameters and pass them to the objects representing $F^*$ and $G$.
+load('sigmatau.mat')
+Fstar.setproxparam(sigma1, sigma2);
+G.setproxparam(tau);
+%% Run PDHGM
+% Now we run 300 iterations of the PDHGM. We could change the value of the
+% regulrisation parameter $\lambda$; however, in this setup the re-scaling
+% of the initial data $f$ acts also as a regularisation. As we found the
+% iteration to be more stable with $\lambda = 1$, we stick to the
+% re-scaling of $f$.
+lambda = 1;
+Fstar.setregularisationparameter(lambda)
+solver.solve
+%% Visualise results
+% To conlcude, we visuale the 13-th slice of the variable $x$ after 300
+% iterations of PDHGM.
+x = reshape(solver.getvariables.x, imsize);
+imagesc(x(:, :, 13))
+axis image
+colorbar
+colormap(gray(512))
+drawnow
+%% References
+% [1] Pock, Thomas, and Antonin Chambolle. "Diagonal preconditioning for
+% first order primal-dual algorithms in convex optimization." Computer
+% Vision (ICCV), 2011 IEEE International Conference on. IEEE, 2011.
+##### SOURCE END #####
+--></body></html>
