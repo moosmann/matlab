@@ -4,18 +4,18 @@ function astra_test_adjoint()
 %% Paramters %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % volume sizes
-vol_shape_2d = [105, 103];
-vol_shape_3d = [105, 103, 101];
+vol_shape_2d = [100, 100];
+vol_shape_3d = [100, 100, 100];
 
 % distances for fanflat and cone
-source_origin = 100;
+source_origin = 300;
 origin_detector = 100;
 
 % parameters for 2D and 3D
-det_col_count = 99; % for 3D use square detector
-num_angles = 111;
+det_col_count = 100; % for 3D use square detector
+num_angles = 1;
 det_width = 2 ;% for 3D use quadratic detector
-angles = linspace2(0, 2*pi/4, num_angles); % excludes upper limit
+angles = linspace2(0, 3*pi, num_angles); % excludes upper limit
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% 2D %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -123,7 +123,7 @@ d2_fan_cuda.Ax = astra_2d_fp_cuda(proj_geom, vol_geom, x);
 % BP
 d2_fan_cuda.Ady = astra_2d_bp_cuda(proj_geom, vol_geom, y);
 % inner products
-d2_fan_cuda.innProdProj = sum(d2_fan_cuda.Ax(:) .* y(:)) * det_width;
+d2_fan_cuda.innProdProj = sum(d2_fan_cuda.Ax(:) .* y(:)) * det_width/mag;
 d2_fan_cuda.innProdVol = sum(x(:) .* d2_fan_cuda.Ady(:));
 
 
@@ -177,7 +177,7 @@ d3_cone_cuda.Ax = astra_3d_fp_cuda(proj_geom, vol_geom, x);
 % BP
 d3_cone_cuda.Ady = astra_3d_bp_cuda(proj_geom, vol_geom, y);
 % inner products
-d3_cone_cuda.innProdProj = sum(d3_cone_cuda.Ax(:) .* y(:))  * det_width^2;
+d3_cone_cuda.innProdProj = sum(d3_cone_cuda.Ax(:) .* y(:))  * det_width^2 / mag^2;
 d3_cone_cuda.innProdVol = sum(x(:) .* d3_cone_cuda.Ady(:));
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -237,6 +237,17 @@ p(pform2, f)
 fprintf(pform, '<x, Ad y>')
 f = @(s) s.innProdVol;
 p(pform2, f)
+
+% inner product projection space
+fprintf(pform, '<A x, y>/#pixel')
+f = @(s) s.innProdProj/numel(s.Ax);
+p(pform2, f)
+% inner product volume space
+fprintf(pform, '<x, Ad y>/#voxel')
+f = @(s) s.innProdVol/numel(s.Ady);
+p(pform2, f)
+
+
 % ratio
 fprintf(pform, '|<A x, y>/<x, Ad y>-1|')
 f = @(s) abs(s.innProdProj / s.innProdVol-1);
@@ -437,3 +448,23 @@ astra_mex_algorithm('iterate', alg_id);
 bp = astra_mex_data3d('get', vol_id);
 
 astra_clear
+
+% number angles = 5, detector pixels width = 2
+% 2D: number voxels = (101, 101), number detector pixels = 100
+% 3D: number voxels = (300, 300, 300), detector pixels = (100, 100)
+% fanflat & cone: distance source orgin = 300, distance origin detector = 100, magnification = 1.33333
+% 
+% geometry                      parallel      parallel      parallel      parallel       fanflat       fanflat       fanflat    parallel3d          cone
+%                                   line        linear         strip          cuda  line_fanflat strip_fanflat          cuda          cuda          cuda
+% min(Ax)                              0             0             0             0             0             0             0       232.429       282.569
+% max(Ax)                        124.843       124.843       249.687       249.686       127.436       194.979       127.436        370.82       400.917
+% mean(Ax)                        50.906       50.9052        102.01        101.81       68.9897        102.01       68.9928       315.638        328.26
+% min(Ad y)                            0             0       4.99998             5             0       4.99476             5             0             0
+% max(Ad y)                      5.26344       4.41354       5.00002             5       5.83996             5             5             5             5
+% mean(Ad y)                     2.49515       2.49511             5             5       3.38152       4.99999             5       2.33802       1.42656
+% <A x, y>                         25453       25452.6         51005       50905.2       34494.9       51004.9       51744.6   6.31275e+07   3.69293e+07
+% <x, Ad y>                        25453       25452.6         51005         51005       34494.9       51004.9         51005   6.31264e+07    3.8517e+07
+% |<A x, y>/<x, Ad y>-1|     8.47551e-08   2.49664e-09   6.89464e-08    0.00195639    5.6175e-08   3.64336e-08     0.0145009   1.75865e-05     0.0412221
+% |<x, Ad y>/<A x, y>-1|     8.47551e-08   2.49664e-09   6.89464e-08    0.00196023    5.6175e-08   3.64336e-08     0.0142937   1.75862e-05     0.0429945
+% <A x, y>/<x, Ad y>                   1             1             1      0.998044             1             1        1.0145       1.00002      0.958778
+% <x, Ad y>/<A x, y>                   1             1             1       1.00196             1             1      0.985706      0.999982       1.04299
