@@ -1,5 +1,4 @@
-
-function FTofIm = ftool(im,epsilon,subtractMean,doFFTshift,PaddingFactor)
+function FTofIm = ftool(im,epsilon,subtractMean,doFFTshift,PaddingFactor, fftdir)
 %Show logarithm of modulus of Fourier-transformed image 'im'. Mean is
 %substracted before processing. If 'im' is an image stack, 'slice' picks
 %the correspondig image from the stack. 'espilon' removes a possible
@@ -22,6 +21,9 @@ if nargin < 4
 end
 if nargin < 5
     PaddingFactor = 0;
+end
+if nargin < 6
+    fftdir = 'both';
 end
 %% MAIN %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 im = double(squeeze(im));
@@ -46,7 +48,14 @@ else
     fprintf('No substraction of mean. ')
 end
 %% FT of image
-im = fft2(im);
+switch fftdir
+    case 'both'
+        im = fft2(im);
+    case {'first', '1st', 1}
+        im = fft(im, [], 1);
+    case{'second', '2nd', 2}
+        im = fft(im, [], 2);
+end
 %% fftshift
 if doFFTshift > 0
     fprintf('Do fftshift.\n')

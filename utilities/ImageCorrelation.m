@@ -68,7 +68,7 @@ out.VerticalRotationAxisPosition   = CenY/2+comY/2;
 if printInfo
     fprintf('Image dimensions: %u x %u. (MATLAB notation: dimX x dimY, x-axis directing downwards.)\n',dimx,dimy);
     fprintf('Image center: [%g %g].\n',CenX,CenY);
-    fprintf('Correlation map peak: [%u %u], value: %g.\n',CorMaxPosX,CorMaxPosY,CorMapMaxVal);
+    fprintf('Correlation map peak: [%.2f %.2f], value: %g.\n',CorMaxPosX,CorMaxPosY,CorMapMaxVal);
     fprintf('Center of mass in the region +/- %u pixels around peak: [%f %f].\n',COMwidth,comX,comY);
     fprintf('Vertical and horizontal shift of 2nd input image w.r.t. 1st input image: [%f %f].\n',out.Xshift,out.Yshift);
     fprintf('Rotation axis position: %f (vertical rotation), %f (horizontal rotation)\n',out.VerticalRotationAxisPosition,out.HorizontalRotationAxisPosition);

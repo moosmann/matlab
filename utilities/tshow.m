@@ -5,7 +5,7 @@ function tshow(ImageNumber,FilenamePattern,WorkspaceVariableName)
 
 %% Default arguments %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 if nargin < 1
-    ImageNumber = 0;
+    ImageNumber = false;
 end
 if nargin < 2
     FilenamePattern = '';
@@ -22,7 +22,7 @@ else
 end
 NumIm = numel(FilenameCell);
 %% Set image number
-if ImageNumber == 0
+if ~ImageNumber
     ImageNumber = ceil(NumIm/2);
 end
 %% Read image
