@@ -1,18 +1,39 @@
-function filt = iradonDesignFilter(filter, len, d)
-% Returns the Fourier Transform of the filter which will be
+function filt = iradonDesignFilter(filter_type, len, d, padToNextPowOf2)
+% Returns the Fourier Transform of the filter_type which will be
 % used to filter the projections
 %
-% INPUT ARGS:   filter - either the string specifying the filter
+% INPUT ARGS:   filter_type - either the string specifying the filter_type
 %               len    - the length of the projections
 %               d      - the fraction of frequencies below the nyquist
 %                        which we want to pass
 %
 % OUTPUT ARGS:  filt   - the filter to use on the projections
+%
+% Modified by Julian Moosmann, 2016-09-29
 
+%% Default arguments
+if nargin < 1
+    filter_type = 'Ram-Lak';
+end
+if nargin < 2
+    len = 1024;
+end
+if nargin < 3
+    d = 1;
+end
+if nargin < 4
+    padToNextPowOf2 = 0;
+end
 
-order = max(64,2^nextpow2(2*len));
+%% Main %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+if padToNextPowOf2
+    order = max(64,2^nextpow2(2*len));
+else
+    order = 2*len;
+end
 
-if strcmpi(filter, 'none')
+filter_type = lower(filter_type);
+if strcmpi(filter_type, 'none')
     filt = ones(1, order);
     return;
 end
@@ -30,7 +51,7 @@ filt = filt(1:(order/2)+1);
 
 w = 2*pi*(0:size(filt,2)-1)/order;   % frequency axis up to Nyquist
 
-switch filter
+switch filter_type
     case 'ram-lak'
         % Do nothing
     case 'shepp-logan'
