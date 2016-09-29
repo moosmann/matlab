@@ -1,22 +1,27 @@
-function editinMatlabPath(Filename,SubFolder,MatlabPath)
-% Create or edit a file 'Filename' in the users MATLAB search path.
+function editinMatlabPath(filename,subfolder,MatlabPath)
+% Create or edit a file 'filename' in the users MATLAB search path.
+%
+% Written by Julian Moosmann. Last modification: 2016-09-28
+%
+% editinMatlabPath(filename,subfolder,MatlabPath)
 
-%% Defaults %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% Default arguments %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 if nargin < 2
-    SubFolder = '';
+    subfolder = '';
 end
 if nargin < 3
     %MatlabPath = '/mnt/tomoraid-LSDF/users/moosmann/matlab';
-    MatlabPath = [getenv('HOME') '/matlab'];
+    MatlabPath = [getenv('HOME'), filesep, 'matlab'];
 end
+
 %% MAIN %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Append extension
-if Filename(end) ~= 'm'
-    Filename = [Filename '.m'];
+if filename(end) ~= 'm'
+    filename = [filename '.m'];
 end
 % Store present working directory
 CurrentPath = pwd;
 % Create and open file
-eval(sprintf('cd %s/%s',MatlabPath,SubFolder));
-eval(sprintf('edit %s',Filename));
-eval(sprintf('cd %s',CurrentPath));
+eval( sprintf('cd %s%s%s', MatlabPath, filesep, subfolder) );
+eval( sprintf('edit %s', filename) );
+eval( sprintf('cd %s', CurrentPath) );

@@ -53,7 +53,7 @@ else
     RowFirst = RowsToRead(1);
     RowLast  = RowsToRead(end);
 end
-% Decleare images that will be used for the tomogram
+% Declare images that will be used for the tomogram
 if isempty(ProjectionsToRead)
     ProjectionsToRead = 1:1:NumIm;
 end

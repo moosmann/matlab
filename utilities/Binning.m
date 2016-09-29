@@ -6,9 +6,8 @@ function im = Binning(im)
 %
 % im = Binning(im)
 
-
 %% MAIN
-% crop
+% crop to even number of pixels
 im = im(1:size(im,1)-mod(size(im,1),4),1:size(im,2)-mod(size(im,2),4));
 % bin
 im = (im(1:2:end,1:2:end)+im(2:2:end,1:2:end)+im(1:2:end,2:2:end)+im(2:2:end,2:2:end))/4;
