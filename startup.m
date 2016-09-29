@@ -4,6 +4,9 @@ rmpath( genpath(  [getenv('HOME') '/matlab/.git'] ) );
 rmpath( genpath(  [getenv('HOME') '/matlab/test'] ) );
 rmpath( genpath(  [getenv('HOME') '/matlab/old'] ) );
 
+%% ASTRA global
+addpath( genpath( '/usr/share/astra/matlab' ) );
+
 %% Set default color map to grayscale instead of jet
 set(groot,'DefaultFigureColormap',gray)
 close all;
