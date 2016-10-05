@@ -17,6 +17,9 @@ function sino = FilterSinoForBackproj(sino, direction, filt_type, pad_method, fi
 %
 % sino = FilterSinoForBackproj(sino, direction, filt_type)
 
+%% TODO: improve documentantion
+%% TODO: clearify how padding parameters are provided
+
 %% Default arguments %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 if nargin < 2
     direction = 1;
@@ -35,7 +38,6 @@ if nargin < 6
 end
 
 %% Main %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
 len = size( sino, direction); 
 
 % Padding method
@@ -49,26 +51,15 @@ else
         filt_len = max(64,2^nextpow2(2*len));
     else
         if filt_len < len
-            error(sprintf('Length of filter FILT_LEN must not be smaller than %u', len))
+            error('Length of filter FILT_LEN must not be smaller than %u', len)
         end        
     end
-
-%     % before
-%     pad_vec = zeros([1, ndims(sino)] );
-%     pre_size = floor( len / 2 );
-%     pad_vec(direction) = pre_size;
-%     sino = padarray(sino, pad_vec, pad_method , 'pre');
-%     % after
-%     pad_vec = zeros([1, ndims(sino)] );
-%     post_size = ceil( len / 2 );
-%     pad_vec(direction) = post_size;
-%     sino = padarray(sino, pad_vec,  pad_method, 'post');
     
     pad_vec = zeros([1, ndims(sino)] );
     pad_vec(direction) = filt_len - len;
     sino = padarray(sino, pad_vec,  pad_method, 'post');
 end
-disp(size(sino))
+
 % Design filter
 filt = iradonDesignFilter(filt_type, filt_len, filt_frequ_cutoff);
 filt_vec = ones([1, ndims(sino)] );
@@ -88,13 +79,10 @@ sino = real( ifft( sino , [], direction, 'symmetric') );
 if ~strcmpi(pad_method, 'none')
     switch direction
         case 1
-%             sino = sino(pre_size + (1:len) , :, : );
             sino( len+1:end, :, :) = [];
         case 2
-%             sino = sino(:, pre_size + (1:len), : );
             sino( :, len+1:end, :) = [];
         case 3
-%             sino = sino(:, :, pre_size + (1:len) );
             sino( :, :, len+1:end) = [];
     end
 

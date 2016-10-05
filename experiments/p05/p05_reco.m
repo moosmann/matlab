@@ -187,8 +187,9 @@ theta = rotation * (0:num_img - 1) / (num_img - 1);
 output_size = size( stack,1);
 rot_axis_pos_offset = 3;
 rot_axis_pos = round(size( stack, 1) / 2) + rot_axis_pos_offset;
-filt = iradonDesignFilter('Ram-Lak', size(stack, 1), 1 , 0);
+filt = iradonDesignFilter('Ram-Lak', size(stack, 1), 1);
 
+tic
 for nn = round( size( stack, 2))
     sino = squeeze( stack(:, nn, :) );
     sino_ft = fft( sino, [], 1);
@@ -196,6 +197,7 @@ for nn = round( size( stack, 2))
     sino = ifft( sino_ft , [], 1, 'symmetric');
        
 end
+disp(toc)
 
 % parfor nn = 1:size( stack, 2)
 %     sino = RotAxisSymmetricCropping(squeeze( stack(:, nn, :) ), rot_axis_pos, 1);
