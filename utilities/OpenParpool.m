@@ -3,6 +3,10 @@ function OpenParpool(poolsize)
 % the desired pool size.
 %
 % poolsize: scalar. Number of workers desired.
+%
+% Written by Julian Moosmann. Last modification: 2016-10-06
+%
+% OpenParpool(poolsize)
 
 
 %% Main %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

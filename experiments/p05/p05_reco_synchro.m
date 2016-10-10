@@ -1,7 +1,7 @@
 % P05 reconstruction pipeline.
 %
 % Written by Julian Moosmann.
-% First version: 2016-09-28. Last modifcation: 2016-10-07
+% First version: 2016-09-28. Last modifcation: 2016-10-10
 
 %% TODO: ROT CENTER
 %% TODO: ROI reconstruction
@@ -9,30 +9,39 @@
 %% TODO: make read filenames into matrix/struct a function
 %% TODO: optimize backprojection filter, it's recalculated each time
 %% TODO: improve syntax of filter for FBP
+%% TODO: add option to save phase maps
 
 %% PARAMETERS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %data_dir = pwd;
-data_dir = '/asap3/petra3/gpfs/p05/2016/commissioning/c20160920_000_diana/raw/Mg-10Gd39_1w';
+data_dir = ...
+    '/asap3/petra3/gpfs/p05/2016/commissioning/c20160803_001_pc_test/raw/we43_phase_030';
+    '/asap3/petra3/gpfs/p05/2016/commissioning/c20160803_001_pc_test/raw/we43_phase_1000';
+    '/asap3/petra3/gpfs/p05/2016/commissioning/c20160803_001_pc_test/raw/we43_phase_200';    
+    '/asap3/petra3/gpfs/p05/2016/commissioning/c20160803_001_pc_test/raw/we43_phase_030';
+    '/asap3/petra3/gpfs/p05/2016/commissioning/c20160803_003_synchro';
 proj_stride = 1; % Stride of projection images to read
-bin = 2; % bin size: if 2 do 2 x 2 binning, if 1 do nothing
+bin = 1; % bin size: if 2 do 2 x 2 binning, if 1 do nothing
 poolsize = 30; % number of workers in parallel pool to be used
 gpu_ind = 1; % GPU Device to use: gpuDevice(gpu_ind)
 gpu_thresh = 0.7; % Percentage of available GPU memory to be used at maximum
-angles = pi; % full angular range (first to very last image) or array of angles in radians
-subfolder = 'test_beam_deshake_best_match_ring_filter_med11_pSymTwice_log'; % folder to subfolder flat_corrected, reco, if not empty
+angles = 2 * pi; % full angular range (first to very last image) or array of angles in radians
 correlate_proj_and_flat = 1;% correlate flat fields and projection to correct beam shaking
-correlate_proj_and_flat_use_best_match = 1; % if 0 takes the mean of all flats which are closest to the projection within the order of 1 pixel
-write_proj = 0;
+correlate_proj_and_flat_use_best_match = 0; % if 0 takes the mean of all flats which are closest to the projection within the order of 1 pixel
+write_proj = 1;
 write_reco = 1;
 write_to_scratch = 1; % for testing
 verbose = 1; % print information to standard output
+phase_retrieval_method = ''; % Phase retrieval if phase_retrieval_method not empty
 ring_filter = 1; % ring artifact filter
 ring_filt_med_width = 11;
 vol_size = 0; % number of voxels of the volume to be reconstructed
 rotation_axis_offset = []; % if empty use automatic computation
-filter_pad_method = 'symmetric'; 'replicate'; 'none'; % FBP filter padding type
+roi1 = [0.25 0.75];
+roi2 = [0.25 0.75];
+filter_pad_method = 'symmetric';'none';  'none'; % FBP filter padding type
 filter_pad_length = 'twice'; % FBP filter padding length
-take_log = 1; % logarithm for attenuation contrast
+take_log = 0; % logarithm for attenuation contrast
+subfolder = 'test_nobin_ringFilter' ; % folder to subfolder flat_corrected, reco, if not empty
 
 %% Main %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -115,8 +124,12 @@ end
 PrintVerbose(verbose, ' Elapsed time: %g s', toc-t)
 
 %% ROI
-roi1 = floor( 0.25 * binned_size(1) ):ceil( 0.75 * binned_size(1) );
-roi2 = floor( 0.25 * binned_size(2) ):ceil( 0.75 * binned_size(2) );
+if numel(roi1) == 2
+    roi1 = floor( roi1(1) * binned_size(1) ):ceil( roi1(2) * binned_size(1) );
+end
+if numel(roi2) == 2
+    roi2 = floor( roi2(1) * binned_size(2) ):ceil( roi2(2) * binned_size(2) );
+end
 
 %% Parallel CPU pool
 t = toc;
@@ -224,11 +237,12 @@ if ring_filter
     sino_mean = mean( proj, 3);
     sino_mean_med = medfilt2( sino_mean, [ring_filt_med_width, 1], 'symmetric' );
     mask = sino_mean_med ./ sino_mean;
-    parfor nn = 1:num_img
+    parfor nn = 1:num_proj
         proj(:, :, nn) = proj(:, :, nn) .* mask;
     end
     PrintVerbose(verbose, ' Elapsed time: %g s = %g min', toc-t, (toc-t)/60)
 end
+
 
 %% Tomgraphic reconstruction 
 filter_type = 'Ram-Lak';
@@ -253,6 +267,18 @@ PrintVerbose(verbose, '\n  respective shift: %g, %g', out.Xshift, out.Yshift)
 PrintVerbose(verbose, '\n  calulated rotation axis offset: %g, %g', out.Xshift / 2)
 if isempty(rotation_axis_offset)
     rotation_axis_offset = round( out.Xshift / 2, 1);
+end
+
+%% Phase retrieval
+PrintVerbose(verbose, '\n Phase retrieval.')
+if ~isempty( phase_retrieval_method )
+    pf = PhaseFilter(phase_retrieval_method, binned_size, [30 1 1e-6], 1.5); 
+    parfor nn = 1:num_proj
+        proj(:, :, nn) = real( ifft2( pf .* fft2( squeeze( proj(:, :, nn) ) ) ) )
+    end
+    PrintVerbose(verbose, ' Elapsed time: %g s = %g min', toc-t, (toc-t)/60)
+else
+    PrintVerbose(verbose, ' None.')
 end
 
 % Determine maximum slab sizes for GPU reconstruction
@@ -283,6 +309,9 @@ PrintVerbose(verbose, '\n maximum memory of subvolume to be reconstructed = %g M
 PrintVerbose(verbose, '\n number of subvolume slabs = %g', num_slabs )
 PrintVerbose(verbose, '\n maximum number of slices per slab = %g', num_sli )
 PrintVerbose(verbose, '\n Tomographic reconstuction.')
+
+
+
 % Loop over slabs
 for nn = 1:num_slabs
     
