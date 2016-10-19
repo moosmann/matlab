@@ -1,4 +1,4 @@
-function vol = astra_parallel3D(sino, angles, rotationAxisOffset, volSize, pixelSize)
+function vol = astra_parallel3D(sino, angles, rotation_axis_offset, vol_shape, pixel_size, link_data)
 % Parallel backprojection of 2D or 3D sinograms using ASTRA's
 % parallel 3D geometry with vector notation. 
 %
@@ -6,31 +6,39 @@ function vol = astra_parallel3D(sino, angles, rotationAxisOffset, volSize, pixel
 % angles: scalar or vector. Default: pi. Angular range or array of angles
 % of the projection. If scalar the angles are angles * (0:num_proj-1) /
 % num_proj. 
-% rotationAxisOffset: scalar. Default: 0. Offset to the position of the
+% rotation_axis_offset: scalar. Default: 0. Offset to the position of the
 % rotation axis. The rotation axis position is assumed to be the detector
 % center, size(sino,1)/2, shifted  by the rotation axis offset.
-% volSize: size of the to be reconstructed volume. Default: horizontal and
+% vol_shape: size of the to be reconstructed volume. Default: horizontal and
 % vertical number of voxel is given by the number of pixels of sinogram
 % along the first and second direction, respectively.
-% pixelSize: 2-component vector. Default: [1 1]. Length a detector pixel.
+% pixel_size: 2-component vector. Default: [1 1]. Length a detector pixel.
+% link_data: boolean. Default: 0. If 0 ASTRA and MATLAB use their own
+% memory. If 1 ASTRA's data objects are references to MATLAB arrays.
+% Changes inside by ASTRA are visible to MATLAB. Changes by MATLAB creates
+% a copy of the data object and are not visible to the data object. Take if
+% using data links.
 %
 % Written by Julian Moosmann
-% First version: 2016-10-5. Last modification: 2016-10-05
+% First version: 2016-10-5. Last modification: 2016-10-12
 
-%% TODO: add support rotation axis offset
+%% TODO: test double precision support
 
 %% Default arguments %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 if nargin < 2
     angles = pi;
 end
 if nargin < 3
-    rotationAxisOffset = 0;
+    rotation_axis_offset = 0;
 end
 if nargin < 4
-    volSize = [size( sino, 1), size( sino, 1), size(sino, 3) ];
+    vol_shape = [size( sino, 1), size( sino, 1), size(sino, 3) ];
 end
 if nargin < 5
-    pixelSize = [1, 1];
+    pixel_size = [1, 1];
+end
+if nargin < 6
+    link_data = 0;
 end
 
 %% Main %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -42,8 +50,8 @@ num_proj = size( sino, 2);
 if numel(angles) == 1
     angles = angles * (0:num_proj-1) / num_proj;
 end
-DetectorSpacingX = pixelSize(1);
-DetectorSpacingY = pixelSize(2);
+DetectorSpacingX = pixel_size(1);
+DetectorSpacingY = pixel_size(2);
 if numel( angles ) ~= size( sino, 2)
     error('Size of ANGLES and size of sinogram do not match.')
 end
@@ -60,8 +68,8 @@ for nn = 1:num_proj
     vectors(nn,3) = 0;
 
     % center of detector
-    vectors(nn,4) = -rotationAxisOffset * cos( theta );
-    vectors(nn,5) = -rotationAxisOffset * sin( theta );
+    vectors(nn,4) = -rotation_axis_offset * cos( theta );
+    vectors(nn,5) = -rotation_axis_offset * sin( theta );
     vectors(nn,6) = 0;
 
     % vector from detector pixel (0,0) to (0,1)
@@ -80,13 +88,26 @@ end
 proj_geom = astra_create_proj_geom('parallel3d_vec',  det_row_count, det_col_count, vectors);
 
 % Volume geometry: y, x, z
-vol_geom = astra_create_vol_geom( volSize(2), volSize(1), volSize(3) );
+vol_size_astra = [vol_shape(2), vol_shape(1), vol_shape(3)];
+vol_geom = astra_create_vol_geom(vol_size_astra);
 
-% Volume object
-vol_id = astra_mex_data3d('create', '-vol', vol_geom);
+% Normalize sino instead of volume
+sino = pi / 2 / length(angles) * sino;
 
 % Sinogram object
-sino_id = astra_mex_data3d('create', '-proj3d', proj_geom, sino);
+if link_data
+    sino_id = astra_mex_data3d_c('link', '-proj3d', proj_geom, sino, 1, 0);
+else
+    sino_id = astra_mex_data3d('create', '-proj3d', proj_geom, sino);
+end
+
+% Volume object
+if link_data
+    vol = zeros(vol_shape, 'single');
+    vol_id = astra_mex_data3d_c('link', '-vol', vol_geom, vol, 1, 0);    
+else
+    vol_id = astra_mex_data3d('create', '-vol', vol_geom);
+end
 
 % ASTRA config struct
 cfg = astra_struct('BP3D_CUDA');
@@ -102,8 +123,10 @@ astra_mex_algorithm('delete', bp_id);
 astra_mex_data3d('delete', sino_id)
 
 % Fetch data from ASTRA memory
-vol = astra_mex_data3d('get_single', vol_id);
+if ~link_data
+    vol = astra_mex_data3d('get_single', vol_id);
+end
 astra_mex_data3d('delete', vol_id)
 
 % Normalize volume
-vol = pi / 2 / length(angles) * vol;
+%vol = pi / 2 / numel(angles) * vol;

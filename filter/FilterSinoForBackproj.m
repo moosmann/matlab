@@ -1,4 +1,4 @@
-function sino = FilterSinoForBackproj(sino, direction, filt_type, pad_method, filt_len, filt_frequ_cutoff)
+function sino = FilterSinoForBackproj(sino, direction, filt_type, pad_method, filt_len, filt_frequ_cutoff, butterworth)
 % Filter designed to apply to sinogram before backprojection.
 %
 % sino: 2-or-3-dimensional array
@@ -36,8 +36,15 @@ end
 if nargin < 6
     filt_frequ_cutoff = 1;
 end
+if nargin < 7
+    butterworth = 0.5;
+end
 
 %% Main %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+if direction == 0
+    return
+end
+
 len = size( sino, direction); 
 
 % Padding method
@@ -65,6 +72,13 @@ filt = iradonDesignFilter(filt_type, filt_len, filt_frequ_cutoff);
 filt_vec = ones([1, ndims(sino)] );
 filt_vec(direction) = filt_len;
 filt = reshape( filt, filt_vec);
+
+% Butterworth filter
+if butterworth > 0
+    [b, a] = butter(6, butterworth);
+    bw = freqz(b, a, numel(filt) );
+    filt = filt .* bw;
+end
 
 % Fourier transform
 sino = fft( sino, [], direction); % zero frequency is at first position 

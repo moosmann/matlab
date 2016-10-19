@@ -15,12 +15,17 @@
 %data_dir = pwd;
 data_dir = ...
     '/asap3/petra3/gpfs/p05/2016/commissioning/c20160803_001_pc_test/raw/we43_phase_030';
+    '/asap3/petra3/gpfs/p05/2016/commissioning/c20160803_001_pc_test/raw/we43_phase_1400';
+    
+    
+    '/asap3/petra3/gpfs/p05/2016/commissioning/c20160803_001_pc_test/raw/we43_phase_600';
     '/asap3/petra3/gpfs/p05/2016/commissioning/c20160803_001_pc_test/raw/we43_phase_1000';
-    '/asap3/petra3/gpfs/p05/2016/commissioning/c20160803_001_pc_test/raw/we43_phase_200';    
     '/asap3/petra3/gpfs/p05/2016/commissioning/c20160803_001_pc_test/raw/we43_phase_030';
+    '/asap3/petra3/gpfs/p05/2016/commissioning/c20160803_001_pc_test/raw/we43_phase_200';    
+    
     '/asap3/petra3/gpfs/p05/2016/commissioning/c20160803_003_synchro';
 proj_stride = 1; % Stride of projection images to read
-bin = 1; % bin size: if 2 do 2 x 2 binning, if 1 do nothing
+bin = 2; % bin size: if 2 do 2 x 2 binning, if 1 do nothing
 poolsize = 30; % number of workers in parallel pool to be used
 gpu_ind = 1; % GPU Device to use: gpuDevice(gpu_ind)
 gpu_thresh = 0.7; % Percentage of available GPU memory to be used at maximum
@@ -31,17 +36,23 @@ write_proj = 1;
 write_reco = 1;
 write_to_scratch = 1; % for testing
 verbose = 1; % print information to standard output
-phase_retrieval_method = ''; % Phase retrieval if phase_retrieval_method not empty
-ring_filter = 1; % ring artifact filter
+
+phase_retrieval_method = 'tie'; % Phase retrieval if phase_retrieval_method not empty
+
+ring_filter = 0; % ring artifact filter
 ring_filt_med_width = 11;
 vol_size = 0; % number of voxels of the volume to be reconstructed
 rotation_axis_offset = []; % if empty use automatic computation
 roi1 = [0.25 0.75];
 roi2 = [0.25 0.75];
+filter_direction = 1; % if 0 no filter is applied
 filter_pad_method = 'symmetric';'none';  'none'; % FBP filter padding type
 filter_pad_length = 'twice'; % FBP filter padding length
 take_log = 0; % logarithm for attenuation contrast
-subfolder = 'test_nobin_ringFilter' ; % folder to subfolder flat_corrected, reco, if not empty
+subfolder = 'test_nobin' ; % folder to subfolder flat_corrected, reco, if not empty
+if ~isempty( phase_retrieval_method )
+    subfolder = [subfolder '_' phase_retrieval_method];
+end
 
 %% Main %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -149,9 +160,9 @@ parfor nn = 1:num_ref
 end
 flat_mean = FilterPixel( squeeze( mean(flat, 3) ), [0.005 0.0025]);
 % Write mean flat field
-if write_proj    
-    write32bitTIFfromSingle( sprintf('%sflat_mean.tif', flatcor_dir), flat_mean);    
-end
+% if write_proj    
+%     write32bitTIFfromSingle( sprintf('%sflat_mean.tif', flatcor_dir), flat_mean);    
+% end
 if sum(flat_mean <= 0)
     fprintf('\n CAUTION: mean flat field contains zeros')
 end
@@ -219,11 +230,10 @@ PrintVerbose(verbose, '\n sinogram size = [%g, %g, %g]', size( proj ) )
 if write_proj
     t = toc;
     PrintVerbose(verbose, '\n Saving corrected projections.')
-    % Dark
-    filename = sprintf('%sdark.tif', flatcor_dir);
-    write32bitTIFfromSingle(filename, dark);    
+    % Dark    
+    % write32bitTIFfromSingle(sprintf('%sdark.tif', flatcor_dir), dark);    
     % Projections
-    parfor nn = 1:num_img        
+    parfor nn = 1:num_proj
         filename = sprintf('%sproj_%06u.tif', flatcor_dir, nn );
         write32bitTIFfromSingle(filename, proj(:, :, nn) );
     end
@@ -248,7 +258,7 @@ end
 filter_type = 'Ram-Lak';
 %% TODO: rename
 pixel_size = [1, 1];
-filter_direction = 1;
+
 t = toc;
 if numel( angles ) == 1
     angles = angles * (0:num_img - 1) / (num_img - 1);
@@ -272,7 +282,7 @@ end
 %% Phase retrieval
 PrintVerbose(verbose, '\n Phase retrieval.')
 if ~isempty( phase_retrieval_method )
-    pf = PhaseFilter(phase_retrieval_method, binned_size, [30 1 1e-6], 1.5); 
+    pf = PhaseFilter(phase_retrieval_method, binned_size, [30 0.03 1e-6], 1.5); 
     parfor nn = 1:num_proj
         proj(:, :, nn) = real( ifft2( pf .* fft2( squeeze( proj(:, :, nn) ) ) ) )
     end
@@ -310,8 +320,6 @@ PrintVerbose(verbose, '\n number of subvolume slabs = %g', num_slabs )
 PrintVerbose(verbose, '\n maximum number of slices per slab = %g', num_sli )
 PrintVerbose(verbose, '\n Tomographic reconstuction.')
 
-
-
 % Loop over slabs
 for nn = 1:num_slabs
     
@@ -336,7 +344,9 @@ for nn = 1:num_slabs
     if write_reco        
         PrintVerbose(verbose, ' saving.')
         parfor ii = 1:size( vol, 3)
-            filename = sprintf( '%sreco_%06u.tif', reco_dir, sli0 + ii - 1);
+        %for ii = 1:size( vol, 3)
+            filename = sprintf( '%sreco_%06u.tif', reco_dir, sli0 + ii - 1);            
+            PrintNum(ii, 1000, ' %0u')
             write32bitTIF( filename, vol( :, :, ii) )
         end
     end
