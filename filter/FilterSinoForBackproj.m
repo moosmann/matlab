@@ -18,7 +18,7 @@ function sino = FilterSinoForBackproj(sino, direction, filt_type, pad_method, fi
 % sino = FilterSinoForBackproj(sino, direction, filt_type)
 
 %% TODO: improve documentantion
-%% TODO: clearify how padding parameters are provided
+%% TODO: improve how padding parameters are provided
 
 %% Default arguments %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 if nargin < 2

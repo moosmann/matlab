@@ -1,12 +1,29 @@
 clear
 aclear
 
-vol_shape = [3,4,2];
+% Volume shape
+vol_shape = [10, 20, 30];
+vol_size = [-1, 1, -2, 2, -3, 3];
+
+
+% Volume shape and size
+row_count = vol_shape(2);
+col_count = vol_shape(1);
+slice_count = vol_shape(3);
+min_x = vol_size(3);
+max_x = vol_size(4);
+min_y = vol_size(1);
+max_y = vol_size(2);
+min_z = vol_size(5);
+max_z = vol_size(6);
+
+% Matlab array
 vol = ones(vol_shape,'single');
 
-% vol
-vol_shape_astra = [vol_shape(2), vol_shape(1), vol_shape(3)];
-vol_geom = astra_create_vol_geom(vol_shape_astra);
+% ASTRA array
+%vol_shape_astra = [vol_shape(2), vol_shape(1), vol_shape(3)];
+%vol_geom = astra_create_vol_geom(vol_shape_astra);
+vol_geom = astra_create_vol_geom(row_count, col_count, slice_count, min_x, max_x, min_y, max_y, min_z, max_z);
 vol_id_link = astra_mex_data3d_c('link', '-vol', vol_geom, vol, 1, 0);
 
 % proj
