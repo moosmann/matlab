@@ -5,39 +5,42 @@
 
 %% PARAMETERS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %scan_dir = pwd;
-scan_dir = ...    
+scan_dir = ...
+    '/asap3/petra3/gpfs/p05/2016/commissioning/c20160913_000_synload/raw/mg5gd_21_3w';
     '/asap3/petra3/gpfs/p05/2016/commissioning/c20160803_001_pc_test/raw/we43_phase_030';
     '/asap3/petra3/gpfs/p05/2016/data/11001464/raw/pnl_16_petrosia_c';
     '/asap3/petra3/gpfs/p05/2016/commissioning/c20160920_000_diana/raw/Mg-10Gd39_1w';
-read_proj = 1; % Read flatfield-corrected images from disc
+    '/asap3/petra3/gpfs/p05/2016/commissioning/c20161024_000_xeno/raw/xeno_01_b';
+read_proj = 0; % Read flatfield-corrected images from disc
 read_proj_folder = []; % subfolder of 'flat_corrected' containing projections
-proj_stride = 2; % Stride of projection images to read
-bin = 2; % bin size: if 2 do 2 x 2 binning, if 1 do nothing
+proj_stride = 1; % Stride of projection images to read
+bin = 1; % bin size: if 2 do 2 x 2 binning, if 1 do nothing
 poolsize = 28; % number of workers in parallel pool to be used
 gpu_ind = 1; % GPU Device to use: gpuDevice(gpu_ind)
-gpu_thresh = 0.7; % Percentage of maximally used to available GPU memory
-angles = [];2 * pi % in radians: empty ([]), full angle of rotation, or array of angles. if empty full rotation angles is determined automatically
+gpu_thresh = 0.8; % Percentage of maximally used to available GPU memory
+angles = []; % in radians: empty ([]), full angle of rotation, or array of angles. if empty full rotation angles is determined automatically
 correct_beam_shake = 1;%  correlate flat fields and projection to correct beam shaking
-correct_beam_shake_max_shift = 0; % if 0 use the best match (i.e. the one which is closest to zero), if > 0 all flats which are shifted less than correct_beam_shake_max_shift are used
+correct_beam_shake_max_shift = 0; % if 0: use the best match (i.e. the one which is closest to zero), if > 0 all flats which are shifted less than correct_beam_shake_max_shift are used
 rot_axis_roi1 = [0.25 0.75]; % for correlation
 rot_axis_roi2 = [0.25 0.75]; % for correlation
-write_proj = 1;
+write_proj = 0;
 write_reco = 1;
 write_to_scratch = 1; % write to 'scratch_cc' instead of 'processed'
 ring_filter = 1; % ring artifact filter
 ring_filt_med_width = 11;
+do_phase_retrieval = 0;
 do_tomo = 1; % reconstruct volume
 vol_shape = []; % shape of the volume to be reconstructed, either in absolute number of voxels or in relative number w.r.t. the default volume which is given by the detector width and height
 vol_size = []; % if empty, unit voxel size is assumed
-rotation_axis_offset = [];614 % if empty use automatic computation
-filter_pad_method = 'symmetric';'replicate';0;'none';  % FBP filter padding type
-filter_pad_length = 'twice'; % FBP filter padding length
+rotation_axis_offset = [];614; % if empty use automatic computation
+rot_global = pi; % global rotation of reconstructed volume
+filter_type = 'Ram-Lak';
+pixel_size = [1, 1]; % size of a detector pixel: if different from one 'vol_size' needs to be ajusted 
 link_data = 1; % ASTRA data objects become references to Matlab arrays.
 take_neg_log = 1; % logarithm for attenuation contrast
-butterworth_cutoff_freq = 0;
-parfolder = []; % parent folder to 'reco' and 'flat_corrected'
+parfolder = ['test_jm']; % parent folder to 'reco' and 'flat_corrected'
 parfolder_flatcor = []; % parent folder to 'flat_corrected'
-parfolder_reco = 'test_ring_filter_nobutter_symmetric_np2'; % parent folder to 'reco'
+parfolder_reco = 'proj1_bin1_ringFilt'; % parent folder to 'reco'
 verbose = 1; % print information to standard output
 
 %% TODO %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -49,19 +52,19 @@ verbose = 1; % print information to standard output
 % TODO: improve syntax of filter for FBP
 % TODO: normalize proj with beam current
 % TODO: write log file
-% TODO: check if negative log should be taken before or after ring filtering
-% TODO: check if rot axis offset should be taken before neg log
+% TODO: check for offsets in projection correlation for rotation axis
+% determination
 
 %% Main %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
 tic
-PrintVerbose(verbose, '\nStart P05 reconstruction pipeline for scan: ')
+PrintVerbose(verbose, '\nStart P05 reconstruction pipeline of scan: ')
 NameCellToMat = @(name_cell) reshape(cell2mat(name_cell), [numel(name_cell{1}), numel(name_cell)])';
 astra_clear % if reco was aborted, data objects are not deleted from ASTRA memory
 
 %% Input folder
 while scan_dir(end) == filesep
-    scan_dir = scan_dir(1:end-1);
+    %scan_dir = scan_dir(1:end-1);
+    scan_dir(end) = [];
 end
 [raw_dir, scan] = fileparts(scan_dir);
 scan_dir = [scan_dir, filesep];
@@ -74,10 +77,9 @@ PrintVerbose(verbose, '%s', scan)
 PrintVerbose(verbose, '\n scan dir:%s', scan_dir)
 
 %% Output folder
+out_folder = 'processed'; 
 if write_to_scratch
     out_folder = 'scratch_cc';
-else
-    out_folder = 'processed'; 
 end
 processed_dir = [beamtime_dir, filesep, out_folder, filesep, scan];
 if isempty(parfolder)
@@ -116,7 +118,7 @@ data_struct = dir( [scan_dir, '*.dar'] );
 dark_names = {data_struct.name};
 num_dark = numel(dark_names);
 
-PrintVerbose(verbose, '\n #[dark, ref, img] = [%g, %g, %g]', num_dark, num_ref, num_img)
+PrintVerbose(verbose, '\n number of [dark, ref, img] = [%g, %g, %g]', num_dark, num_ref, num_img)
 
 % Projection to read
 proj_stride = max( 1, proj_stride);
@@ -144,32 +146,36 @@ PrintVerbose( poolsize > 1, ' Elapsed time: %g s', toc-t)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Read flat corrected projection
 if read_proj    
+data_struct = dir( [flatcor_dir, 'proj*.*'] );
+if isempty( data_struct )
     
-    % File names
-    data_struct = dir( [flatcor_dir, 'proj*.*'] );
-    if isempty( data_struct )
-        fprintf('\n No flat corrected projections found! Try to read raw data.')
-        read_proj = 0;
-    else
-        t = toc;
-        PrintVerbose(verbose, '\n Read flat corrected projections.')
-        proj_names = {data_struct.name};
-        num_proj_read = numel(proj_names);
-        if num_proj_read ~= num_proj
-            fprintf('\n CAUTION: Number of flat corrected projections read (%g) differs from number of projections to be processed (%g)!\n', num_proj_read, num_proj)
-        end
-
-        % Preallocation
-        proj = zeros( binned_size(1), binned_size(2), num_proj_read, 'single');
-        proj_names_mat = NameCellToMat( proj_names );
-        
-        % Read projections
-        parfor nn = 1:num_proj_read
-            filename = sprintf('%s%s', flatcor_dir, proj_names_mat(nn, :));
-            proj(:, :, nn) = imread( filename )';
-        end
-        PrintVerbose(verbose, ' Elapsed time: %g s = %g min', toc - t, ( toc - t ) / 60 )
+    fprintf('\n No flat corrected projections found! Switch to standard pre-processing.')
+    read_proj = 0;
+else
+    proj_names = {data_struct.name};
+    num_proj_read = numel(proj_names);
+    if num_proj > num_proj_read
+        fprintf('\n Less projections available (%g) than demanded (%g)! Switch to standard pre-processing.', num_proj_read, num_proj )
+        read_proj = 0;    
     end
+end    
+    % File names
+    t = toc;
+    PrintVerbose(verbose, '\n Read flat corrected projections.')    
+    if num_proj_read ~= num_proj
+        fprintf('\n CAUTION: Number of flat corrected projections read (%g) differs from number of projections to be processed (%g)!\n', num_proj_read, num_proj)
+    end
+
+    % Preallocation
+    proj = zeros( binned_size(1), binned_size(2), num_proj_read, 'single');
+    proj_names_mat = NameCellToMat( proj_names );
+
+    % Read projections    
+    parfor nn = 1:num_proj_read
+        filename = sprintf('%s%s', flatcor_dir, proj_names_mat(nn, :));
+        proj(:, :, nn) = imread( filename, 'tif' )';
+    end    
+    PrintVerbose(verbose, ' Elapsed time: %g s = %g min', toc - t, ( toc - t ) / 60 )
 
 %% Read raw data
 elseif ~read_proj
@@ -196,12 +202,7 @@ elseif ~read_proj
     parfor nn = 1:num_ref
         flat(:, :, nn) = Binning( FilterPixel( read_dat( sprintf('%s%s', scan_dir, ref_names_mat(nn, :)) ), [0.01 0.005]), bin) - dark;    
     end
-    flat_mean = FilterPixel( squeeze( mean(flat, 3) ), [0.005 0.0025]);
-    % Write mean flat field
-    % if write_proj
-    %     CheckAndMakePath( flatcor_dir )
-    %     write32bitTIFfromSingle( sprintf('%sflat_mean.tif', flatcor_dir), flat_mean);    
-    % end
+    flat_mean = FilterPixel( squeeze( mean(flat, 3) ), [0.005 0.0025]);    
     if sum(flat_mean <= 0)
         fprintf('\n CAUTION: mean flat field contains zeros')
     end
@@ -244,9 +245,9 @@ elseif ~read_proj
         if correct_beam_shake_max_shift == 0        
             parfor nn = 1:num_proj
                 [val, pos] = min( abs( yshift(nn, : ) ) );            
-                proj(:, :, nn) = NegLog( proj(:, :, nn) ./ flat(:, :, pos), take_neg_log );            
+                proj(:, :, nn) = proj(:, :, nn) ./ flat(:, :, pos);
             end
-        % use all flats which are shifted less than correct_beam_shake_max_shift pixels
+        % use all flats which are shifted less pixels than correct_beam_shake_max_shift
         elseif correct_beam_shake_max_shift > 0
             flat_count = zeros(1, num_proj);
             parfor nn = 1:num_proj
@@ -257,7 +258,7 @@ elseif ~read_proj
                 end
                 flat_count(nn) = numel(flat_ind);    
                 flat_selected_mean = FilterPixel( squeeze( mean( flat(:, :, flat_ind), 3) ), [0.005 0.0025]);           
-                proj(:, :, nn) = - reallog( proj(:, :, nn) ./ flat_selected_mean, take_neg_log );            
+                proj(:, :, nn) = proj(:, :, nn) ./ flat_selected_mean;
             end
         else
             error('Value of maximum shift (%g) is not >= 0', correct_beam_shake_max_shift)
@@ -285,9 +286,6 @@ elseif ~read_proj
         t = toc;   
         PrintVerbose(verbose, '\n Saving corrected projections.')
         CheckAndMakePath( flatcor_dir )
-        % Dark
-    %     filename = sprintf('%sdark.tif', flatcor_dir);
-    %     write32bitTIFfromSingle(filename, dark);    
         % Projections
         parfor nn = 1:num_proj     
             filename = sprintf('%sproj_%06u.tif', flatcor_dir, nn );
@@ -298,15 +296,21 @@ elseif ~read_proj
 end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-if do_tomo    
-   
-    %% Tomgraphic reconstruction 
-    filter_type = 'Ram-Lak';
-    %% TODO: rename
-    pixel_size = [1, 1];
-    filter_direction = 1;
-    t = toc;
+%% Phase retrieval %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+if do_phase_retrieval
+        t = toc;   
+        PrintVerbose(verbose, '\n Phase retrieval.')
+        CheckAndMakePath( reco_phase_dir )
+        % Projections
+        parfor nn = 1:num_proj
+            proj(:,:,nn) = proj(:,:,nn);                                   
+        end
+        PrintVerbose(verbose, ' Elapsed time: %g s = %g min', toc-t, (toc-t)/60)    
+end
 
+%% Tomgraphic reconstruction %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+if do_tomo    
+    t = toc;
     %% Rotation axis position
     PrintVerbose(verbose, '\n Rotation axis:')
     % Automatic determination of full rotation angle if angles is empty
@@ -353,14 +357,14 @@ if do_tomo
         % default volume given by the detector width and height
         vol_shape = [num_pix1, num_pix1, num_pix2];
     else            
-        if vol_shape(1) <  1
-            vol_shape(1) = vol_shape(1) * num_pix1;
+        if vol_shape(1) <=  1
+            vol_shape(1) = round( 1 + vol_shape(1) * (num_pix1 - 1) );
         end
-        if vol_shape(2) <  1
-            vol_shape(2) = vol_shape(2) * num_pix1;
+        if vol_shape(2) <=  1
+            vol_shape(2) = round( 1 + vol_shape(2) * (num_pix1 - 1) );
         end
-        if vol_shape(3) <  1
-            vol_shape(3) = vol_shape(3) * num_pix2;
+        if vol_shape(3) <=  1
+            vol_shape(3) = round( 1 + vol_shape(3) * (num_pix2 - 1) );
         end
     end
     if isempty( vol_size )
@@ -377,18 +381,20 @@ if do_tomo
     % Readjust number slices to make all of similar size
     num_sli = ceil(vol_shape(3) / num_slabs);
     subvol_shape = [vol_shape(1:2), num_sli];
-    PrintVerbose(verbose, '\n rotation axis offset = %g', rotation_axis_offset );
+    PrintVerbose(verbose, '\n rotation axis offset: %g', rotation_axis_offset );
+    PrintVerbose(verbose, '\n rotation axis position: %g', num_pix1 / 2 + rotation_axis_offset );
     PrintVerbose(verbose, '\n GPU name: %s', gpu.Name );
     PrintVerbose(verbose, '\n GPU memory available: %g MiB (%.2f%%) of %g MiB', gpu.AvailableMemory/10^6, 100*gpu.AvailableMemory/gpu.TotalMemory, gpu.TotalMemory/10^6)
-    PrintVerbose(verbose, '\n shape of reconstruction volume = [%g, %g, %g]', vol_shape )
-    PrintVerbose(verbose, '\n shape of reconstruction subvolume = [%g, %g, %g]', subvol_shape )
-    PrintVerbose(verbose, '\n estimated GPU memory / slice = %g MiB', rec_mem / 1024^2 )
-    PrintVerbose(verbose, '\n memory of total reconstruction volume = %g MiB', prod( vol_shape ) * 4 / 1024^2 )
-    PrintVerbose(verbose, '\n maximum memory of subvolume = %g MiB', prod( subvol_shape ) * 4 / 1024^2 )
-    PrintVerbose(verbose, '\n number of subvolume slabs = %g', num_slabs )
-    PrintVerbose(verbose, '\n maximum number of slices per slab = %g', num_sli )
+    PrintVerbose(verbose, '\n shape of reconstruction volume: [%g, %g, %g]', vol_shape )
+    PrintVerbose(verbose, '\n shape of reconstruction subvolume: [%g, %g, %g]', subvol_shape )
+    PrintVerbose(verbose, '\n memory required for reconstruction of a single slice: %g MiB (estimate)', rec_mem / 1024^2 )
+    PrintVerbose(verbose, '\n memory of reconstructed volume: %g MiB', prod( vol_shape ) * 4 / 1024^2 )
+    PrintVerbose(verbose, '\n maximum memory of subvolume: %g MiB', prod( subvol_shape ) * 4 / 1024^2 )
+    PrintVerbose(verbose, '\n number of subvolume slabs: %g', num_slabs )
+    PrintVerbose(verbose, '\n maximum number of slices per slab: %g', num_sli )
     PrintVerbose(verbose, '\n Tomographic reconstruction of')
     % Loop over slabs
+    filt_direction = 1; % direction along the detector lines orthogonal to the rotation axis
     for nn = 1:num_slabs
 
         % Slice indices
@@ -396,8 +402,9 @@ if do_tomo
         sli1 = min( [nn * num_sli, vol_shape(3)] );
 
         % Filter sinogram
-        PrintVerbose(verbose, ' \n  subvolume %g of %g: Filter sino: ', nn, num_slabs)
-        sino = FilterSinoForBackproj( permute( proj(:, sli0:sli1, :), [1 3 2] ), filter_direction, filter_type, filter_pad_method, filter_pad_length, butterworth_cutoff_freq);        
+        PrintVerbose(verbose, ' \n  subvolume %g of %g: Filter sino: ', nn, num_slabs)                     
+        filt = iradonDesignFilter('Ram-Lak', size(proj,1), 1);
+        sino = real( ifft( bsxfun(@times, fft( NegLog(permute(proj(:,sli0:sli1,:), [1 3 2]), take_neg_log), [], 1), filt), [], 1, 'symmetric') );        
         PrintVerbose(verbose, 'done.')
 
         % Backprojection
@@ -405,8 +412,8 @@ if do_tomo
         subvol_shape(3) = size( sino, 3);
         subvol_size = vol_size;
         subvol_size(5) = subvol_shape(3) / vol_shape(3) * vol_size(5);
-        subvol_size(6) = subvol_shape(3) / vol_shape(3) * vol_size(6);        
-        vol = astra_parallel3D( sino, angles, rotation_axis_offset, subvol_shape, subvol_size, pixel_size, link_data);
+        subvol_size(6) = subvol_shape(3) / vol_shape(3) * vol_size(6);
+        vol = astra_parallel3D( sino, rot_global + angles, rotation_axis_offset, subvol_shape, subvol_size, pixel_size, link_data);
         PrintVerbose(verbose, 'done.')
 
         % Save subvolume

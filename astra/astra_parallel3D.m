@@ -36,7 +36,7 @@ if nargin < 4
     vol_shape = [size( sino, 1), size( sino, 1), size(sino, 3) ];
 end
 if nargin < 5
-    vol_size = [-vol_shape(1)/2, vol_shape(1)/2, -vol_shape(2)/2, vol_shape(2)/2, -vol_shape(3)/2, vol_shape(3)/2];
+    vol_size = [];
 end
 if nargin < 6
     pixel_size = [1, 1];
@@ -98,6 +98,10 @@ row_count = vol_shape(2);
 col_count = vol_shape(1);
 slice_count = vol_shape(3);
 % Volume size
+if isempty( vol_size )
+    vol_size = [-vol_shape(1)/2, vol_shape(1)/2, ...
+        -vol_shape(2)/2, vol_shape(2)/2, -vol_shape(3)/2, vol_shape(3)/2];
+end 
 min_x = vol_size(3);
 max_x = vol_size(4);
 min_y = vol_size(1);
@@ -105,7 +109,6 @@ max_y = vol_size(2);
 min_z = vol_size(5);
 max_z = vol_size(6);
 % Volume geometry object
-%vol_geom = astra_create_vol_geom(vol_size_astra);
 vol_geom = astra_create_vol_geom(row_count, col_count, slice_count, min_x, max_x, min_y, max_y, min_z, max_z);
 
 % Normalize sino instead of volume
