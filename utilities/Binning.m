@@ -24,6 +24,14 @@ elseif bin == 2
     % bin
     im = im(1:2:end,1:2:end) + im(2:2:end,1:2:end) + im(1:2:end,2:2:end) + im(2:2:end,2:2:end);
     %im = im ./4 ;
+    
+elseif bin == 4
+    % crop to even number of pixels    
+    im = im(1:size(im,1)-mod(size(im,1),4),1:size(im,2)-mod(size(im,2),4)); 
+
+    % bin
+    im = im(1:2:end,1:2:end) + im(2:2:end,1:2:end) + im(1:2:end,2:2:end) + im(2:2:end,2:2:end);
+    im = im(1:2:end,1:2:end) + im(2:2:end,1:2:end) + im(1:2:end,2:2:end) + im(2:2:end,2:2:end);        
 
 else
     error('Bin size %g not implemented', bin)

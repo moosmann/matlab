@@ -5,8 +5,8 @@
 
 %% PARAMETERS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %scan_dir = pwd;
-scan_dir = ...
-    '/asap3/petra3/gpfs/p05/2016/data/11001994/raw/szeb_01_b';
+scan_dir = ...      
+    '/asap3/petra3/gpfs/p05/2016/data/11001994/raw/szeb_03_b';
     '/asap3/petra3/gpfs/p05/2016/commissioning/c20160803_001_pc_test/raw/phase_1000';
     '/asap3/petra3/gpfs/p05/2016/commissioning/c20160803_001_pc_test/raw/phase_1400';
     '/asap3/petra3/gpfs/p05/2016/commissioning/c20160913_000_synload/raw/mg5gd_21_3w';
@@ -17,25 +17,25 @@ scan_dir = ...
 read_proj = 0; % Read flatfield-corrected images from disc
 read_proj_folder = []; % subfolder of 'flat_corrected' containing projections
 proj_stride = 1; % Stride of projection images to read
-bin = 2; % bin size: if 2 do 2 x 2 binning, if 1 do nothing
+bin = 4; % bin size: if 2 do 2 x 2 binning, if 1 do nothing
 poolsize = 28; % number of workers in parallel pool to be used
 gpu_ind = 1; % GPU Device to use: gpuDevice(gpu_ind)
 gpu_thresh = 0.8; % Percentage of maximally used to available GPU memory
-angles = []; % in radians: empty ([]), full angle of rotation, or array of angles. if empty full rotation angles is determined automatically
-correct_beam_shake = 1;%  correlate flat fields and projection to correct beam shaking
+angles = [2*pi]; % in radians: empty ([]), full angle of rotation, or array of angles. if empty full rotation angles is determined automatically
+correct_beam_shake = 0;%  correlate flat fields and projection to correct beam shaking
 correct_beam_shake_max_shift = 0; % if 0: use the best match (i.e. the one which is closest to zero), if > 0 all flats which are shifted less than correct_beam_shake_max_shift are used
 rot_axis_roi1 = [0.25 0.75]; % for correlation
 rot_axis_roi2 = [0.25 0.75]; % for correlation
 write_proj = 0;
 write_reco = 1;
-write_to_scratch = 0; % write to 'scratch_cc' instead of 'processed'
+write_to_scratch = 1; % write to 'scratch_cc' instead of 'processed'
 ring_filter = 1; % ring artifact filter
 ring_filt_med_width = 11;
 do_phase_retrieval = 1;
 phase_retrieval_method = 'tie';
 energy = 25; % in keV
 sample_detector_distance = 1.0; % in m
-phys_pixel_size = 2 * 0.68e-6;1.3056e-5;% physical size of detector pixels, in m
+phys_pixel_size = bin * 0.68e-6;1.3056e-5;% physical size of detector pixels, in m
 reg_par = 3;
 bin_filt = 0.1;
 do_tomo = 1; % reconstruct volume
@@ -62,6 +62,9 @@ verbose = 1; % print information to standard output
 % TODO: check for offsets in projection correlation for rotation axis
 % determination
 % TODO: add output file format option
+
+warning( 'off', 'MATLAB:imagesci:rtifc:missingPhotometricTag');
+warning('off','all')
 
 %% Main %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 tic
@@ -101,7 +104,7 @@ if isempty( parfolder_flatcor )
 else
     flatcor_dir = [out_dir, filesep, 'flat_corrected', filesep, parfolder_flatcor, filesep];
 end
-PrintVerbose(verbose, '\n flatcor: %s', flatcor_dir)
+PrintVerbose(verbose & write_proj, '\n flatcor: %s', flatcor_dir)
 % reco dir
 if isempty( parfolder_reco )
     reco_dir = [out_dir, filesep, 'reco', filesep];
@@ -111,18 +114,28 @@ end
 PrintVerbose(verbose, '\n reco   : %s', reco_dir)
 
 %% File names
+
 % Raw projection file names
 data_struct = dir( [scan_dir, '*.img'] );
+if isempty( data_struct )
+    data_struct = dir( [scan_dir, 'proj_*.tif'] );
+end
 img_names = {data_struct.name};
 num_img = numel(img_names);
 
 % Ref file names
 data_struct = dir( [scan_dir, '*.ref'] );
+if isempty( data_struct )
+    data_struct = dir( [scan_dir, 'ref_*.tif'] );
+end
 ref_names = {data_struct.name};
 num_ref = numel(ref_names);
 
 % Dark file names
 data_struct = dir( [scan_dir, '*.dar'] );
+if isempty( data_struct )
+    data_struct = dir( [scan_dir, 'dark_*.tif'] );
+end
 dark_names = {data_struct.name};
 num_dark = numel(dark_names);
 
@@ -136,7 +149,8 @@ PrintVerbose(verbose, '\n projections used: %g, indices: first:stride:last =  %g
 
 %% Image shape and ROI
 filename = sprintf('%s%s', scan_dir, dark_names{1});
-raw_size = size( read_dat( filename ) );
+im = read_image( filename );
+raw_size = size( im );
 binned_size = floor( raw_size / bin );
 PrintVerbose(verbose, '\n image shape: raw = [%g, %g], binned = [%g, %g]', raw_size, binned_size)
 if numel(rot_axis_roi1) == 2
@@ -194,7 +208,7 @@ elseif ~read_proj
     dark = zeros( [binned_size, num_dark], 'single');
     for nn = 1:num_dark
         filename = sprintf('%s%s', scan_dir, dark_names{nn});
-        dark(:, :, nn) = Binning( FilterPixel( read_dat( filename ), [0.02 0.02]), bin);    
+        dark(:, :, nn) = Binning( FilterPixel( read_image( filename ), [0.02 0.02]), bin);    
     end
     dark = FilterPixel( squeeze( median(dark, 3) ), [0.02 0.02]);
     if sum(dark <= 0)
@@ -211,7 +225,7 @@ elseif ~read_proj
     % Parallel loop
     parfor nn = 1:num_ref
         filename = sprintf('%s%s', scan_dir, ref_names_mat(nn, :));
-        flat(:, :, nn) = Binning( FilterPixel( read_dat( filename ), [0.01 0.005]), bin) - dark;    
+        flat(:, :, nn) = Binning( FilterPixel( read_image( filename ), [0.01 0.005]), bin) - dark;    
     end
     flat_mean = FilterPixel( squeeze( mean(flat, 3) ), [0.005 0.0025]);    
     if sum(flat_mean <= 0)
@@ -228,7 +242,7 @@ elseif ~read_proj
     img_names_mat = img_names_mat(proj_ind, :);
     parfor nn = 1:num_proj
         filename = sprintf('%s%s', scan_dir, img_names_mat(nn, :));
-        img = Binning( FilterPixel( read_dat( filename ), [0.02 0.01]), bin) - dark;
+        img = Binning( FilterPixel( read_image( filename ), [0.02 0.01]), bin) - dark;
         if ~correct_beam_shake
             img = img ./ flat_mean;
         end
@@ -324,7 +338,7 @@ if do_tomo
         elseif max( cm1(:) ) < max( cm2(:) )
             angles = pi;
         else
-            error('Automatic determination of full angle of rotation via correlation of first and last (flipped) projection failled.')
+            error('Automatic determination of full angle of rotation via correlation of first and last (flipped) projection failed.')
         end
     end
     if numel( angles ) == 1

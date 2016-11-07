@@ -16,6 +16,7 @@ if nargin < 2
 end
 
 %% Main %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+warning( 'off', 'MATLAB:imagesci:rtifc:missingPhotometricTag');
 
 if isempty( filetype )
     [~, ~, filetype] = fileparts(filename);
@@ -28,9 +29,9 @@ switch lower( filetype )
     case 'edf'
         im = pmedfread( filename );
     case {'tif', 'tiff'}
-        im = imread( filename, 'tif' );
+        im = imread( filename, 'tif' )';
     case {'img', 'dar', 'ref'}
         im = read_dat( filename );
     otherwise
-        im = imread( filename, filetype );
+        im = imread( filename, filetype )';
 end
