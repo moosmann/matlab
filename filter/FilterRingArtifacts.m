@@ -87,11 +87,9 @@ Vq = (Vq - 1) * (Vq_max - Vq_min) + Vq_min;
 % %% Radial median filtering
 % Vqf = medfilt2(Vq, [1, 15], 'symmetric');
 
-
 % Inverse polar transformation
 [thq, rq] = cart2pol(X, Y);
 out = interp2(r, th, Vq, rq, thq, 'linear', 0);
-
 
 % Print information to standard out
 if verbose

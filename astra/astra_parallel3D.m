@@ -13,15 +13,16 @@ function vol = astra_parallel3D(sino, angles, rotation_axis_offset, vol_shape, v
 % vertical number of voxel is given by the number of pixels of sinogram
 % along the first and second direction, respectively.
 % vol_size: size of the reconstructed volume
-% pixel_size: 2-component vector. Default: [1 1]. Length a detector pixel.
+% pixel_size: scalar or 2-component vector. Default: 1. Size of a detector
+% pixel. If scalar square pixels are assumed.
 % link_data: boolean. Default: 0. If 0 ASTRA and MATLAB use their own
 % memory. If 1 ASTRA's data objects are references to MATLAB arrays.
-% Changes inside by ASTRA are visible to MATLAB. Changes by MATLAB creates
-% a copy of the data object and are not visible to the data object. Take if
+% Changes by ASTRA are visible to MATLAB. Changes by MATLAB creates a copy
+% of the data object and are not visible to the data object. Take care if 
 % using data links.
 %
 % Written by Julian Moosmann
-% First version: 2016-10-5. Last modification: 2016-10-19
+% First version: 2016-10-5. Last modification: 2016-10-26
 
 %% TODO: test double precision support
 
@@ -54,6 +55,9 @@ num_proj = size( sino, 2);
 if numel(angles) == 1
     angles = angles * (0:num_proj-1) / num_proj;
 end
+if numel( pixel_size ) == 1
+    pixel_size(2) = pixel_size;
+end    
 DetectorSpacingX = pixel_size(1);
 DetectorSpacingY = pixel_size(2);
 if numel( angles ) ~= size( sino, 2)
