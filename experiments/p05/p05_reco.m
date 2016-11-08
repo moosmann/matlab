@@ -1,12 +1,14 @@
 % P05 reconstruction pipeline.
 %
 % Written by Julian Moosmann.
-% First version: 2016-09-28. Last modifcation: 2016-10-10
+% First version: 2016-09-28. Last modifcation: 2016-11-08
+
+clear all
 
 %% PARAMETERS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %scan_dir = pwd;
 scan_dir = ...      
-    '/asap3/petra3/gpfs/p05/2016/data/11001994/raw/szeb_03_b';
+    '/asap3/petra3/gpfs/p05/2016/data/11001994/raw/szeb_07_04';
     '/asap3/petra3/gpfs/p05/2016/commissioning/c20160803_001_pc_test/raw/phase_1000';
     '/asap3/petra3/gpfs/p05/2016/commissioning/c20160803_001_pc_test/raw/phase_1400';
     '/asap3/petra3/gpfs/p05/2016/commissioning/c20160913_000_synload/raw/mg5gd_21_3w';
@@ -21,7 +23,7 @@ bin = 4; % bin size: if 2 do 2 x 2 binning, if 1 do nothing
 poolsize = 28; % number of workers in parallel pool to be used
 gpu_ind = 1; % GPU Device to use: gpuDevice(gpu_ind)
 gpu_thresh = 0.8; % Percentage of maximally used to available GPU memory
-angles = [2*pi]; % in radians: empty ([]), full angle of rotation, or array of angles. if empty full rotation angles is determined automatically
+angles = [pi]; % in radians: empty ([]), full angle of rotation, or array of angles. if empty full rotation angles is determined automatically
 correct_beam_shake = 0;%  correlate flat fields and projection to correct beam shaking
 correct_beam_shake_max_shift = 0; % if 0: use the best match (i.e. the one which is closest to zero), if > 0 all flats which are shifted less than correct_beam_shake_max_shift are used
 rot_axis_roi1 = [0.25 0.75]; % for correlation
@@ -41,7 +43,7 @@ bin_filt = 0.1;
 do_tomo = 1; % reconstruct volume
 vol_shape = []; % shape of the volume to be reconstructed, either in absolute number of voxels or in relative number w.r.t. the default volume which is given by the detector width and height
 vol_size = []; % if empty, unit voxel size is assumed
-rotation_axis_offset = []; % if empty use automatic computation
+rotation_axis_offset = [2]; % if empty use automatic computation
 rot_global = pi; % global rotation of reconstructed volume
 filter_type = 'Ram-Lak';
 pixel_size = 1; % size of a detector pixel: if different from one 'vol_size' needs to be ajusted 
@@ -55,6 +57,7 @@ verbose = 1; % print information to standard output
 %% TODO %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % TODO: automatic determination of rot center (entropy type)
 % TODO: make pixel filtering thresholds parameters
+% TODO: vertical ROI reco
 % TODO: make read filenames into matrix/struct a function
 % TODO: add padding options for FBP filter
 % TODO: normalize proj with beam current
@@ -62,6 +65,9 @@ verbose = 1; % print information to standard output
 % TODO: check for offsets in projection correlation for rotation axis
 % determination
 % TODO: add output file format option
+% TODO: support excentric rotation axis position
+% TODO: simple GUI for rot axis determination
+% TODO: 
 
 warning( 'off', 'MATLAB:imagesci:rtifc:missingPhotometricTag');
 warning('off','all')
@@ -196,7 +202,8 @@ end
     % Read projections    
     parfor nn = 1:num_proj_read
         filename = sprintf('%s%s', flatcor_dir, proj_names_mat(nn, :));
-        proj(:, :, nn) = imread( filename, 'tif' )';
+        %proj(:, :, nn) = imread( filename, 'tif' )';
+        proj(:, :, nn) = read_image( filename )';
     end    
     PrintVerbose(verbose, ' Elapsed time: %g s = %g min', toc - t, ( toc - t ) / 60 )
 
