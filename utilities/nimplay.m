@@ -14,7 +14,7 @@ function nimplay(imstack,normGlobal,permuteOrder)
 
 %% Default arguments
 if nargin < 2
-    normGlobal = 1;
+    normGlobal = 0;
 end
 if nargin < 3
     permuteOrder = 0;

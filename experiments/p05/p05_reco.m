@@ -8,7 +8,7 @@ clear all
 %% PARAMETERS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %scan_dir = pwd;
 scan_dir = ...      
-    '/asap3/petra3/gpfs/p05/2016/data/11001994/raw/szeb_07_04';
+    '/asap3/petra3/gpfs/p05/2016/data/11001994/raw/szeb_28_00';
     '/asap3/petra3/gpfs/p05/2016/commissioning/c20160803_001_pc_test/raw/phase_1000';
     '/asap3/petra3/gpfs/p05/2016/commissioning/c20160803_001_pc_test/raw/phase_1400';
     '/asap3/petra3/gpfs/p05/2016/commissioning/c20160913_000_synload/raw/mg5gd_21_3w';
@@ -23,11 +23,10 @@ bin = 4; % bin size: if 2 do 2 x 2 binning, if 1 do nothing
 poolsize = 28; % number of workers in parallel pool to be used
 gpu_ind = 1; % GPU Device to use: gpuDevice(gpu_ind)
 gpu_thresh = 0.8; % Percentage of maximally used to available GPU memory
-angles = [pi]; % in radians: empty ([]), full angle of rotation, or array of angles. if empty full rotation angles is determined automatically
+full_angular_range = [pi]; % in radians: empty ([]), full angle of rotation, or array of angles. if empty full rotation angles is determined automatically
+num_proj_hard = 550; % hard coded number of projection.
 correct_beam_shake = 0;%  correlate flat fields and projection to correct beam shaking
 correct_beam_shake_max_shift = 0; % if 0: use the best match (i.e. the one which is closest to zero), if > 0 all flats which are shifted less than correct_beam_shake_max_shift are used
-rot_axis_roi1 = [0.25 0.75]; % for correlation
-rot_axis_roi2 = [0.25 0.75]; % for correlation
 write_proj = 0;
 write_reco = 1;
 write_to_scratch = 1; % write to 'scratch_cc' instead of 'processed'
@@ -37,20 +36,22 @@ do_phase_retrieval = 1;
 phase_retrieval_method = 'tie';
 energy = 25; % in keV
 sample_detector_distance = 1.0; % in m
-phys_pixel_size = bin * 0.68e-6;1.3056e-5;% physical size of detector pixels, in m
+phys_pixel_size = bin * 0.68e-6; %1.3056e-5;% physical size of detector pixels, in m
 reg_par = 3;
 bin_filt = 0.1;
 do_tomo = 1; % reconstruct volume
 vol_shape = []; % shape of the volume to be reconstructed, either in absolute number of voxels or in relative number w.r.t. the default volume which is given by the detector width and height
 vol_size = []; % if empty, unit voxel size is assumed
-rotation_axis_offset = [2]; % if empty use automatic computation
+rotation_axis_offset = [5.5]; % if empty use automatic computation
 rot_global = pi; % global rotation of reconstructed volume
+rot_axis_roi1 = [0.25 0.75]; % for correlation
+rot_axis_roi2 = [0.25 0.75]; % for correlation
 filter_type = 'Ram-Lak';
 pixel_size = 1; % size of a detector pixel: if different from one 'vol_size' needs to be ajusted 
 link_data = 1; % ASTRA data objects become references to Matlab arrays.
 take_neg_log = 0; % logarithm for attenuation contrast
-parfolder = ['test_jm']; % parent folder to 'reco' and 'flat_corrected'
-parfolder_flatcor = []; % parent folder to 'flat_corrected'
+parfolder = ''; % parent folder to 'reco' and 'flat_corrected'
+parfolder_flatcor = ''; % parent folder to 'flat_corrected'
 parfolder_reco = ''; % parent folder to 'reco'
 verbose = 1; % print information to standard output
 
@@ -58,29 +59,32 @@ verbose = 1; % print information to standard output
 % TODO: automatic determination of rot center (entropy type)
 % TODO: make pixel filtering thresholds parameters
 % TODO: vertical ROI reco
-% TODO: make read filenames into matrix/struct a function
-% TODO: add padding options for FBP filter
+% TODO: convert read filenames into matrix/struct a function
+% TODO: padding options for FBP filter
 % TODO: normalize proj with beam current
 % TODO: write log file
-% TODO: check for offsets in projection correlation for rotation axis
-% determination
-% TODO: add output file format option
-% TODO: support excentric rotation axis position
-% TODO: simple GUI for rot axis determination
-% TODO: 
-
-warning( 'off', 'MATLAB:imagesci:rtifc:missingPhotometricTag');
-warning('off','all')
+% TODO: check offsets in projection correlation for rotation axis determination
+% TODO: output file format option
+% TODO: excentric rotation axis 
+% TODO: interactive determination of rotation axis position
+% TODO: save and read sinograms
+% TODO: read number of projection from log file
+% TODO: add photometric tag when reading tif files without one
+% TODO: read imager ROI and check if it's faster at all
+% TODO: optional save format. Currently 32 bit tiff.
+% TODO: ref stride
 
 %% Main %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 tic
+warning( 'off', 'MATLAB:imagesci:rtifc:missingPhotometricTag');
+warning( 'off','all')
+cdscandir = cd(scan_dir);
 PrintVerbose(verbose, '\nStart P05 reconstruction pipeline of scan: ')
 NameCellToMat = @(name_cell) reshape(cell2mat(name_cell), [numel(name_cell{1}), numel(name_cell)])';
 astra_clear % if reco was aborted, data objects are not deleted from ASTRA memory
 
 %% Input folder
-while scan_dir(end) == filesep
-    %scan_dir = scan_dir(1:end-1);
+while scan_dir(end) == filesep    
     scan_dir(end) = [];
 end
 [raw_dir, scan] = fileparts(scan_dir);
@@ -127,6 +131,7 @@ if isempty( data_struct )
     data_struct = dir( [scan_dir, 'proj_*.tif'] );
 end
 img_names = {data_struct.name};
+img_nums = CellString2Vec( img_names );
 num_img = numel(img_names);
 
 % Ref file names
@@ -135,6 +140,7 @@ if isempty( data_struct )
     data_struct = dir( [scan_dir, 'ref_*.tif'] );
 end
 ref_names = {data_struct.name};
+ref_nums = CellString2Vec( ref_names );
 num_ref = numel(ref_names);
 
 % Dark file names
@@ -143,6 +149,7 @@ if isempty( data_struct )
     data_struct = dir( [scan_dir, 'dark_*.tif'] );
 end
 dark_names = {data_struct.name};
+dark_nums = CellString2Vec( dark_names );
 num_dark = numel(dark_names);
 
 PrintVerbose(verbose, '\n number of [dark, ref, img] = [%g, %g, %g]', num_dark, num_ref, num_img)
@@ -211,9 +218,9 @@ end
 elseif ~read_proj
     %% Dark field
     t = toc;
-    PrintVerbose(verbose, '\n Processing dark fields.')
+    PrintVerbose(verbose, '\nProcessing dark fields.')
     dark = zeros( [binned_size, num_dark], 'single');
-    for nn = 1:num_dark
+    parfor nn = 1:num_dark
         filename = sprintf('%s%s', scan_dir, dark_names{nn});
         dark(:, :, nn) = Binning( FilterPixel( read_image( filename ), [0.02 0.02]), bin);    
     end
@@ -225,7 +232,7 @@ elseif ~read_proj
 
     %% Flat field
     t = toc;
-    PrintVerbose(verbose, '\n Processing flat fields.')
+    PrintVerbose(verbose, '\nProcessing flat fields.')
     % Preallocation
     flat = zeros( [binned_size, num_ref], 'single');
     ref_names_mat = NameCellToMat(ref_names);
@@ -242,7 +249,7 @@ elseif ~read_proj
 
     %% Projections
     t = toc;
-    PrintVerbose(verbose, '\n Read and filter raws.')
+    PrintVerbose(verbose, '\nRead and filter raws.')
     % Preallocation
     proj = zeros( binned_size(1), binned_size(2), num_proj, 'single');
     img_names_mat = NameCellToMat( img_names );
@@ -259,7 +266,7 @@ elseif ~read_proj
 
     %% Correlate shifted flat fields
     if correct_beam_shake    
-        PrintVerbose(verbose, '\n Correct beam shake.')
+        PrintVerbose(verbose, '\nCorrect beam shake.')
         % ROI to correlate
         flatroi = flat(1:50, rot_axis_roi2, :);
         projroi = proj(1:50, rot_axis_roi2, :);
@@ -306,7 +313,7 @@ elseif ~read_proj
     %% Ring artifact filter
     if ring_filter
         t = toc;
-        PrintVerbose(verbose, '\n Ring artifact filtering.')
+        PrintVerbose(verbose, '\nFilter ring artifacts.')
         sino_mean = mean( proj, 3);
         sino_mean_med = medfilt2( sino_mean, [ring_filt_med_width, 1], 'symmetric' );
         mask = sino_mean_med ./ sino_mean;      
@@ -317,7 +324,7 @@ elseif ~read_proj
     %% Write corrected projections
     if write_proj
         t = toc;   
-        PrintVerbose(verbose, '\n Saving corrected projections.')
+        PrintVerbose(verbose, '\nSave flat-corrected projections.')
         CheckAndMakePath( flatcor_dir )
         % Projections
         parfor nn = 1:num_proj     
@@ -334,26 +341,27 @@ if do_tomo
     t = toc;
    
     PrintVerbose(verbose, '\n Rotation axis:')
-    % Automatic determination of full rotation angle if angles is empty
-    if isempty( angles )    
+    % Automatic determination of full rotation angle if full_angular_range is empty
+    if isempty( full_angular_range )    
         im1 = proj( rot_axis_roi1, rot_axis_roi2, 1);
         im2 = proj( rot_axis_roi1, rot_axis_roi2, num_proj);
         [~, cm1] = ImageCorrelation( im1, im2); % large if full angle is  2 * pi
         [~, cm2] = ImageCorrelation( im1, flipud(im2)); % large if full angle is pi
         if max( cm1(:) ) > max( cm2(:) )
-            angles = 2 * pi;
+            full_angular_range = 2 * pi;
         elseif max( cm1(:) ) < max( cm2(:) )
-            angles = pi;
+            full_angular_range = pi;
         else
             error('Automatic determination of full angle of rotation via correlation of first and last (flipped) projection failed.')
         end
     end
-    if numel( angles ) == 1
-        PrintVerbose(verbose, '\n  angular range: %g', angles)
-        angles = angles * (0:num_proj - 1) / (num_proj - 1);
-    else
-        PrintVerbose(verbose, '\n  angular range:', max( angles ) - min( angles ))
-    end
+    %if numel( angles ) == 1
+    PrintVerbose(verbose, '\n  angular range: %g', full_angular_range)
+    %angles = full_angular_range * (0:num_proj - 1) / (num_proj - 1);
+    angles = full_angular_range * img_nums / num_proj_hard;
+%     else
+%         PrintVerbose(verbose, '\n  angular range:', max( angles ) - min( angles ))
+%     end
     if numel( angles ) ~= num_proj
         error('Number of elements in array of angles (%g) unequal number of projections read (%g)', numel( angles ), num_proj)
     end
@@ -363,10 +371,10 @@ if do_tomo
     % Correlate images
     im1 = proj( :, rot_axis_roi2, ind1);
     im2 = flipud( proj( :, rot_axis_roi2, ind2) );
-    PrintVerbose(verbose, '\n  image to correlate: #%g at angle %g pi and #%g at angle %g pi', ind1, val1 / pi, ind2, (val2 + pi) / pi )
+    PrintVerbose(verbose, '\n images to correlate: #%g at index %g and angle %g pi and #%g at index %g and angle %g pi', img_nums(ind1), ind1, val1 / pi, img_nums(ind2), ind2, (val2 + pi) / pi )
     out = ImageCorrelation( im1, im2, 0, 0);
-    PrintVerbose(verbose, '\n  respective shift: %g, %g', out.Xshift, out.Yshift)
-    PrintVerbose(verbose, '\n  calulated rotation axis offset: %g, %g', out.Xshift / 2)
+    PrintVerbose(verbose, '\n respective shift: %g, %g', out.Xshift, out.Yshift)
+    PrintVerbose(verbose, '\n calulated rotation axis offset: %g, %g', out.Xshift / 2)
     if isempty(rotation_axis_offset)
         rotation_axis_offset = round( out.Xshift / 2, 1);
     end
@@ -412,14 +420,12 @@ if do_tomo
     PrintVerbose(verbose, '\n memory of reconstructed volume: %g MiB', prod( vol_shape ) * 4 / 1024^2 )
     PrintVerbose(verbose, '\n maximum memory of subvolume: %g MiB', prod( subvol_shape ) * 4 / 1024^2 )
     PrintVerbose(verbose, '\n number of subvolume slabs: %g', num_slabs )
-    PrintVerbose(verbose, '\n maximum number of slices per slab: %g', num_sli )
-    PrintVerbose(verbose, '\n Tomographic reconstruction of')
+    PrintVerbose(verbose, '\n maximum number of slices per slab: %g', num_sli )    
     % Loop over slabs
     filt_direction = 1; % direction along the detector lines orthogonal to the rotation axis
 end
 
 %% Phase retrieval %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
 if do_phase_retrieval
         t = toc;   
         
@@ -435,7 +441,7 @@ if do_phase_retrieval
         end
         CheckAndMakePath( reco_phase_dir )
         PrintVerbose(verbose, '\n reco phase  : %s', reco_phase_dir)
-        PrintVerbose(verbose, '\n Phase retrieval.')
+        PrintVerbose(verbose, '\nPhase retrieval.')
         
                 
         % Projections
@@ -449,6 +455,7 @@ end
 
 %% Tomographic reco
 if do_tomo
+    PrintVerbose(verbose, '\n Tomographic reconstruction of')
     for nn = 1:num_slabs
 
         % Slice indices
