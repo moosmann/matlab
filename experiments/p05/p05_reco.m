@@ -7,7 +7,9 @@ clear all
 
 %% PARAMETERS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %scan_dir = pwd;
-scan_dir = ...  
+scan_dir = ...
+    '/asap3/petra3/gpfs/p05/2016/data/11001978/raw/mah_28_15R_top';
+    '/asap3/petra3/gpfs/p05/2016/data/11001978/raw/mah_28_15R_bottom';    
     '/asap3/petra3/gpfs/p05/2016/data/11001978/raw/mah_24_50L_top_load';
     '/asap3/petra3/gpfs/p05/2016/data/11001978/raw/mah_16_57R_load';
     '/asap3/petra3/gpfs/p05/2016/data/11001978/raw/mah_15_57R';
@@ -28,7 +30,7 @@ poolsize = 28; % number of workers in parallel pool to be used
 gpu_ind = 1; % GPU Device to use: gpuDevice(gpu_ind)
 gpu_thresh = 0.8; % Percentage of maximally used to available GPU memory
 full_angular_range = [pi]; % in radians: empty ([]), full angle of rotation, or array of angles. if empty full rotation angles is determined automatically
-num_proj_hard = [];550; % hard coded number of projection.
+num_proj_hard = []; % hard coded number of projection.
 correct_beam_shake = 1;%  correlate flat fields and projection to correct beam shaking
 correct_beam_shake_max_shift = 0; % if 0: use the best match (i.e. the one which is closest to zero), if > 0 all flats which are shifted less than correct_beam_shake_max_shift are used
 write_proj = 0;
@@ -46,22 +48,25 @@ bin_filt = 0.1;
 do_tomo = 1; % reconstruct volume
 vol_shape = []; % shape of the volume to be reconstructed, either in absolute number of voxels or in relative number w.r.t. the default volume which is given by the detector width and height
 vol_size = []; % if empty, unit voxel size is assumed
-rotation_axis_offset = []; % if empty use automatic computation
+rot_axis_offset = []; % if empty use automatic computation
 rot_global = pi; % global rotation of reconstructed volume
 rot_axis_roi1 = [0.25 0.75]; % for correlation
 rot_axis_roi2 = [0.25 0.75]; % for correlation
+rot_axis_tilt = 0;-0.15 / 180 * pi;
 filter_type = 'Ram-Lak';
 butterworth = 1;
 pixel_size = 1; % size of a detector pixel: if different from one 'vol_size' needs to be ajusted 
 link_data = 1; % ASTRA data objects become references to Matlab arrays.
 take_neg_log = 1; % logarithm for attenuation contrast
-parfolder = 'test'; % parent folder to 'reco' and 'flat_corrected'
+parfolder = ''; % parent folder to 'reco' and 'flat_corrected'
 parfolder_flatcor = ''; % parent folder to 'flat_corrected'
-parfolder_reco = ''; % parent folder to 'reco'
+parfolder_reco = 'nocorTilt'; % parent folder to 'reco'
 verbose = 1; % print information to standard output
-visualOutput = 1; % show images and plots during reconstruction
+visualOutput = 0; % show images and plots during reconstruction
 
 %% TODO %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% TODO: CLEAN UP
+% TOCO: merge subbranch to master
 % TODO: automatic determination of rot center (entropy type)
 % TODO: make pixel filtering thresholds parameters
 % TODO: vertical ROI reco
@@ -75,9 +80,10 @@ visualOutput = 1; % show images and plots during reconstruction
 % TODO: interactive determination of rotation axis position
 % TODO: save and read sinograms
 % TODO: read number of projection from log file
-% TODO: add photometric tag when reading tif files without one
-% TODO: read imager ROI and check if it's faster at all
-% TODO: optional save format. Currently 32 bit tiff.
+% TODO: set photometric tag for tif files w/o one, turn on respective warning
+% TODO: read image ROI and check if it's faster at all
+% TODO: optional output format: 8-bit, 16-bit. Currently 32 bit tiff.
+% TODO: check attenutation values of reconstructed slice
 % TODO: ref stride
 % TODO: adopt for missing images w.r.t. to img or tif 
 
@@ -462,10 +468,10 @@ if do_tomo
     out = ImageCorrelation( im1, im2, 0, 0);
     PrintVerbose(verbose, '\n respective shift: %g, %g', out.Xshift, out.Yshift)
     PrintVerbose(verbose, '\n calulated rotation axis offset: %g, %g', out.Xshift / 2)
-    if isempty(rotation_axis_offset)
-        rotation_axis_offset = round( out.Xshift / 2, 1);
+    if isempty(rot_axis_offset)
+        rot_axis_offset = round( out.Xshift / 2, 1);
     end
-    rotation_axis_pos = num_pix1 / 2 + rotation_axis_offset;
+    rotation_axis_pos = num_pix1 / 2 + rot_axis_offset;
     im1c = RotAxisSymmetricCropping( im1, rotation_axis_pos, 1);
     im2c = flipud(RotAxisSymmetricCropping( flipud(im2), rotation_axis_pos, 1));
     if visualOutput
@@ -515,7 +521,7 @@ if do_tomo
     % Readjust number slices to make all of similar size
     num_sli = ceil(vol_shape(3) / num_slabs);
     subvol_shape = [vol_shape(1:2), num_sli];
-    PrintVerbose(verbose, '\n rotation axis offset: %g', rotation_axis_offset );
+    PrintVerbose(verbose, '\n rotation axis offset: %g', rot_axis_offset );
     PrintVerbose(verbose, '\n rotation axis position: %g', rotation_axis_pos );
     PrintVerbose(verbose, '\n GPU name: %s', gpu.Name );
     PrintVerbose(verbose, '\n GPU memory available: %g MiB (%.2f%%) of %g MiB', gpu.AvailableMemory/10^6, 100*gpu.AvailableMemory/gpu.TotalMemory, gpu.TotalMemory/10^6)
@@ -583,7 +589,7 @@ if do_tomo
         subvol_size = vol_size;
         subvol_size(5) = subvol_shape(3) / vol_shape(3) * vol_size(5);
         subvol_size(6) = subvol_shape(3) / vol_shape(3) * vol_size(6);
-        vol = astra_parallel3D( sino, rot_global + angles, rotation_axis_offset, subvol_shape, subvol_size, pixel_size, link_data);
+        vol = astra_parallel3D( sino, rot_global + angles, rot_axis_offset, subvol_shape, subvol_size, pixel_size, link_data, rot_axis_tilt);
         PrintVerbose(verbose, 'done.')
 
         % Save subvolume

@@ -1,4 +1,4 @@
-function vol = astra_parallel3D(sino, angles, rotation_axis_offset, vol_shape, vol_size, pixel_size, link_data)
+function vol = astra_parallel3D(sino, angles, rotation_axis_offset, vol_shape, vol_size, pixel_size, link_data, tilt)
 % Parallel backprojection of 2D or 3D sinograms using ASTRA's
 % parallel 3D geometry with vector notation. 
 %
@@ -45,6 +45,9 @@ end
 if nargin < 7
     link_data = 0;
 end
+if nargin < 8
+    tilt = 0;
+end
 
 %% Main %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -81,14 +84,14 @@ for nn = 1:num_proj
     vectors(nn,6) = 0;
 
     % vector from detector pixel (0,0) to (0,1)
-    vectors(nn,7) = cos( theta ) * DetectorSpacingX;
-    vectors(nn,8) = sin( theta ) * DetectorSpacingX;
-    vectors(nn,9) = 0;
+    vectors(nn,7) = cos( tilt ) * cos( theta ) * DetectorSpacingX;
+    vectors(nn,8) = cos( tilt) * sin( theta ) * DetectorSpacingX;
+    vectors(nn,9) = sin( tilt ) * DetectorSpacingX;
 
     % vector from detector pixel (0,0) to (1,0)
-    vectors(nn,10) = 0;
-    vectors(nn,11) = 0;
-    vectors(nn,12) = DetectorSpacingY;
+    vectors(nn,10) = -sin( tilt) * cos( theta ) * DetectorSpacingY;
+    vectors(nn,11) = -sin( tilt) * sin( theta ) * DetectorSpacingY;
+    vectors(nn,12) = cos(tilt) * DetectorSpacingY;
 
 end
 
