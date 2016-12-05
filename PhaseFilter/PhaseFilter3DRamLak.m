@@ -2,7 +2,7 @@ function [phaseFilter,phaseAppendix] = PhaseFilter3DRamLak(Method,imSize,EnergyD
 % Phase filter for reconstruction of the real refractive index decrement
 % 'delta' on a tomographic volume. Parameters as in 'PhaseFilter'.
 %
-% Written by Julian Moosmann, last version: 2013-11-13
+% Written by Julian Moosmann, last version: 2016-12-05
 %
 % [phaseFilter,phaseAppendix] = PhaseFilter3D(Method,imSize,EnergyDistancePixelsize,RegPar,BinaryFilterThreshold,outputPrecision)
 
@@ -15,7 +15,7 @@ if nargin < 2
     imSize = [1024 1024 1024];
 end
 if nargin < 3
-    EnergyDistancePixelsize = [30 .4 1e-6];
+    EnergyDistancePixelsize = [30e3 .4 1e-6];
 end
 if nargin < 4
     RegPar = 2.5;
@@ -31,7 +31,7 @@ end
 Energy    = EnergyDistancePixelsize(1);
 Distance  = EnergyDistancePixelsize(2);
 Pixelsize = EnergyDistancePixelsize(3);
-lambda    = 6.62606896e-34*299792458/(Energy*1.60217733e-16);
+lambda    = 6.62606896e-34*299792458/(Energy/1000*1.60217733e-16);
 % Prefactor needed for TIE and CTF retrieval.
 ArgPrefac = 2*pi*lambda*Distance/Pixelsize^2;
 

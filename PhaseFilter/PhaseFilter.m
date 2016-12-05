@@ -26,8 +26,8 @@ function [phaseFilter,phaseAppendix] = PhaseFilter(Method,imSize,EnergyDistanceP
 %
 % imSize : 1x2-vector. Default [1024 1024]. Size of output filter.
 %
-% EnergyDistancePixelsize : 1x3-vector. Default: [20 0.945 .75e-6]. Energy
-% in keV, Distance in m, Pixelsize in m.
+% EnergyDistancePixelsize : 1x3-vector. Default: [20e3 0.945 .75e-6]. Energy
+% in eV, Distance in m, Pixelsize in m.
 %
 % RegPar : scalar. Default: 2.5. Phase retrieval is regularised according:
 % 1/func(x) -> 1/(func(x)+10^(-RegPar)), for details of the placeholder
@@ -45,7 +45,7 @@ function [phaseFilter,phaseAppendix] = PhaseFilter(Method,imSize,EnergyDistanceP
 %
 % outputPrecision : string. 'single' (default), or 'double'.
 % 
-% Written by Julian Moosmann, last modification: 2015-05-27
+% Written by Julian Moosmann, last modification: 2016-12-05
 %
 % [phaseFilter,phaseAppendix] = PhaseFilter(Method,imSize,EnergyDistancePixelsize,RegPar,BinaryFilterThreshold,outputPrecision)
 
@@ -57,7 +57,7 @@ if nargin < 2
     imSize = [1024 1024];
 end
 if nargin < 3
-    EnergyDistancePixelsize = [20 0.945 .75e-6];
+    EnergyDistancePixelsize = [20e3 0.945 .75e-6];
 end
 if nargin < 4
     RegPar = 2.5;
@@ -81,7 +81,7 @@ Energy    = EnergyDistancePixelsize(1);
 Distance  = EnergyDistancePixelsize(2);
 Pixelsize = EnergyDistancePixelsize(3);
 % wave length
-lambda    = 6.62606896e-34*299792458/(Energy*1.60217733e-16);
+lambda    = 6.62606896e-34*299792458/(Energy/1000*1.60217733e-16);
 ArgPrefac = pi*lambda*Distance/Pixelsize^2;
 
 %% Fourier coordinates

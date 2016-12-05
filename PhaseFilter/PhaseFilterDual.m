@@ -7,7 +7,7 @@ function [phaseFilter,phaseAppendix] = PhaseFilterDual(Method,imSize,EnergyDista
 % function assume a duality (proportionality) between attenuation B and
 % phase to hold: B = -Epsilon * phase
 %
-% Written by Julian Moosmann, last version: 2014-01-15
+% Written by Julian Moosmann, last version: 2016-12-05
 %
 % [phaseFilter,phaseAppendix] = PhaseFilterDual(Method,imSize,EnergyDistancePixelsize,Epsilon,BinaryFilterThreshold,outputPrecision) 
 
@@ -24,7 +24,7 @@ if nargin < 2
     imSize = [1024 1024];
 end
 if nargin < 3
-    EnergyDistancePixelsize = [20 0.945 .75e-6];
+    EnergyDistancePixelsize = [20e3 0.945 .75e-6];
 end
 if nargin < 4
     Epsilon = 2.5;
@@ -40,7 +40,7 @@ end
 Energy    = EnergyDistancePixelsize(1);
 Distance  = EnergyDistancePixelsize(2);
 Pixelsize = EnergyDistancePixelsize(3);
-lambda    = 6.62606896e-34*299792458/(Energy*1.60217733e-16);
+lambda    = 6.62606896e-34*299792458/(Energy/1000*1.60217733e-16);
 ArgPrefac = 2*pi*lambda*Distance/Pixelsize^2;
 %% Fourier coordinates.
 % 1D
