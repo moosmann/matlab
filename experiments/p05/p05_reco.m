@@ -14,8 +14,8 @@
 %% PARAMETERS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %scan_path = pwd;
 scan_path = ...
-    '/asap3/petra3/gpfs/p05/2015/data/11001102/raw/hzg_wzb_mgag_14';
     '/asap3/petra3/gpfs/p05/2016/data/11001978/raw/mah_28_15R_top';
+    '/asap3/petra3/gpfs/p05/2015/data/11001102/raw/hzg_wzb_mgag_14';    
     '/asap3/petra3/gpfs/p05/2016/data/11001978/raw/mah_28_15R_bottom';    
     '/asap3/petra3/gpfs/p05/2016/data/11001978/raw/mah_24_50L_top_load';
     '/asap3/petra3/gpfs/p05/2016/data/11001978/raw/mah_16_57R_load';
@@ -31,7 +31,7 @@ scan_path = ...
     '/asap3/petra3/gpfs/p05/2016/commissioning/c20161024_000_xeno/raw/xeno_01_b';
 read_proj = 0; % Read flatfield-corrected images from disc
 read_proj_folder = []; % subfolder of 'flat_corrected' containing projections
-proj_stride = 1; % Stride of projection images to read
+proj_stride = 3; % Stride of projection images to read
 bin = 2; % bin size: if 2 do 2 x 2 binning, if 1 do nothing
 poolsize = 28; % number of workers in parallel pool to be used
 gpu_ind = 1; % GPU Device to use: gpuDevice(gpu_ind)
@@ -41,7 +41,7 @@ correct_beam_shake = 1;%  correlate flat fields and projection to correct beam s
 correct_beam_shake_max_shift = 0; % if 0: use the best match (i.e. the one which is closest to zero), if > 0 all flats which are shifted less than correct_beam_shake_max_shift are used
 flat_corr_area1 = [1 50]; % correlation area: proper index range or relative/absolute position of [first pix, last pix]
 flat_corr_area2 = [0.25 0.75]; %correlation area: proper index range or relative/absolute position of [first pix, last pix]
-write_proj = 1;
+write_proj = 0;
 write_reco = 1;
 write_to_scratch = 1; % write to 'scratch_cc' instead of 'processed'
 ring_filter = 1; % ring artifact filter
@@ -60,12 +60,12 @@ vol_size = []; % if empty, unit voxel size is assumed
 rot_angle_full = []; % in radians: empty ([]), full angle of rotation, or array of angles. if empty full rotation angles is determined automatically
 rot_angle_offset = pi; % global rotation of reconstructed volume
 rot_axis_offset = []; % if empty use automatic computation
-rot_axis_pos = [766.8]; % if empty use automatic computation. either offset or pos has to be empty. can't use both
+rot_axis_pos = [];[766.8]; % if empty use automatic computation. either offset or pos has to be empty. can't use both
 rot_corr_area1 = [0.25 0.75]; % ROI to correlate projections at angles 0 & pi
 rot_corr_area2 = [0.25 0.75]; % ROI to correlate projections at angles 0 & pi
 rot_axis_tilt = 0 * -0.1 / 180 * pi; % camera tilt w.r.t rotation axis
 fbp_filter_type = 'Ram-Lak';
-fbp_filter_dim = 1; % dimension of the sinogram to be filtered. should be the one of the detector lines orthogonal to the rotation axis
+fbp_filter_dim = 1; % dimension of sinogram to apply filte. should be the one of the detector lines orthogonal to the rotation axis
 butterworth_filter = 1;
 butterworth_order = 1;
 butterworth_cutoff_frequ = 0.5;
@@ -74,13 +74,13 @@ link_data = 1; % ASTRA data objects become references to Matlab arrays.
 take_neg_log = 1; % logarithm for attenuation contrast
 parfolder = ''; % parent folder to 'reco' and 'flat_corrected'
 parfolder_flatcor = ''; % parent folder to 'flat_corrected'
-parfolder_reco = 'rotPos766p8'; % parent folder to 'reco'
+parfolder_reco = ''; % parent folder to 'reco'
 verbose = 1; % print information to standard output
 visualOutput = 0; % show images and plots during reconstruction
 
 %% TODO %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % TODO: CLEAN UP
-% TOCO: merge subbranch to master
+% TODO: merge subbranch to master
 % TODO: automatic determination of rot center (entropy type)
 % TODO: manual interactive finding of rotation center
 % TODO: make pixel filtering thresholds parameters
@@ -97,7 +97,8 @@ visualOutput = 0; % show images and plots during reconstruction
 % TODO: optional output format: 8-bit, 16-bit. Currently 32 bit tiff.
 % TODO: check attenutation values of reconstructed slice
 % TODO: ref stride
-% TODO: adopt for missing images w.r.t. to img or tif 
+% TODO: adopt for missing images w.r.t. to img or tif
+% TODO: save phase maps
 
 %% Main %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 tic
@@ -148,11 +149,6 @@ else
     reco_dir = [out_path, filesep, 'reco', filesep, parfolder_reco, filesep];
 end
 PrintVerbose(verbose, '\n reco   : %s', reco_dir)
-% Save path to reconstruction in file
-filename = [getenv('HOME'), filesep, 'matlab/experiments/p05/pathtolastreco'];
-fid = fopen(filename , 'w' );
-fprintf( fid, '%s', reco_dir );   
-fclose( fid );
 
 %% File names
 
@@ -182,7 +178,6 @@ end
 dark_names = {data_struct.name};
 dark_nums = CellString2Vec( dark_names );
 num_dark = numel(dark_names);
-
 PrintVerbose(verbose, '\n number of [dark, ref, img] = [%g, %g, %g]', num_dark, num_ref, num_img)
 
 % Projection to read
@@ -253,7 +248,8 @@ elseif ~read_proj
     end
     dark_min = min( dark(:) );
     dark_max = max( dark(:) );
-    dark = FilterPixel( squeeze( median(dark, 3) ), [0.02 0.02]);
+    dark = squeeze( median(dark, 3) );
+    %dark = FilterPixel( squeeze( median(dark, 3) ), [0.02 0.02]);
     if sum(dark <= 0)
         fprintf('\n CAUTION: dark field contains zeros')
     end
@@ -276,14 +272,16 @@ elseif ~read_proj
     % Parallel loop
     parfor nn = 1:num_ref
         filename = sprintf('%s%s', scan_path, ref_names_mat(nn, :));
-        flat(:, :, nn) = Binning( FilterPixel( read_image( filename ), [0.01 0.005]), bin) - dark;    
+        %flat(:, :, nn) = Binning( FilterPixel( read_image( filename ), [0.01 0.005]), bin) - dark;    
+        flat(:, :, nn) = Binning( FilterPixel( read_image( filename ), [0.01 0.005]), bin);
     end
     flat_min = min( flat(:) );
-    flat_max = max( flat(:) );
-    flat_mean = FilterPixel( squeeze( mean(flat, 3) ), [0.005 0.0025]);    
-    if sum(flat_mean <= 0)
+    flat_max = max( flat(:) );    
+    if sum( flat(:) < 1 )
         fprintf('\n CAUTION: mean flat field contains zeros')
     end
+    % Dark field correction
+    flat = bsxfun( @minus, flat, dark );
     PrintVerbose(verbose, ' Elapsed time: %.1f s', toc-t)
     if visualOutput(1)
         figure(h1)
@@ -312,18 +310,21 @@ elseif ~read_proj
         title(sprintf('raw projection #1'))
         drawnow
     end
-    % Loop
+    % Read raw projections    
     parfor nn = 1:num_proj
-        filename = sprintf('%s%s', scan_path, img_names_mat(nn, :));
-        img = Binning( FilterPixel( read_image( filename ), [0.02 0.01]), bin) - dark;
-        if ~correct_beam_shake
-            img = img ./ flat_mean;
-        end
-        proj(:, :, nn) = img;
-    end
+        filename = sprintf('%s%s', scan_path, img_names_mat(nn, :));        
+        %proj(:, :, nn) = Binning( FilterPixel( read_image( filename ), [0.02 0.01]), bin) - dark;
+        proj(:, :, nn) = Binning( FilterPixel( read_image( filename ), [0.02 0.01]), bin);
+    end    
     raw_min = min( proj(:) );
     raw_max = max( proj(:) );
-    %proj = bsxfun( @times, proj, mask);            
+    % Dark field correction
+    proj = bsxfun( @minus, proj, dark);
+    % Flat field correction without correlation
+    if ~correct_beam_shake
+        flat_m = median(flat, 3);
+        proj = bsxfun( @times, proj, flat_m);
+    end    
     PrintVerbose(verbose, ' Elapsed time: %.1f s (%.2f min)', toc - t, ( toc - t ) / 60 )    
 
     %% Correlate shifted flat fields
@@ -605,6 +606,8 @@ end
 %% Tomographic reco
 if do_tomo
     PrintVerbose(verbose, '\n Tomographic reconstruction of')
+    vol_min = NaN;
+    vol_max = NaN;
     for nn = 1:num_slabs
 
         % Slice indices
@@ -639,13 +642,21 @@ if do_tomo
             else
                 save_dir = reco_dir;
             end
-            CheckAndMakePath(reco_dir) 
+            CheckAndMakePath(reco_dir)
+            % Save reco path to reconstruction in file
+            filename = [getenv('HOME'), filesep, 'matlab/experiments/p05/pathtolastreco'];
+            fid = fopen( filename , 'w' );
+            fprintf( fid, '%s', reco_dir );   
+            fclose( fid );
+            % Save slices
             parfor ii = 1:size( vol, 3)
                 filename = sprintf( '%sreco_%06u.tif', save_dir, sli0 + ii - 1);
                 write32bitTIFfromSingle( filename, vol( :, :, ii) )
             end
             PrintVerbose(verbose, ' done.')
         end
+        vol_min = min( min( vol(:) ), vol_min );
+        vol_max = max( max( vol(:) ), vol_max );
     end
     PrintVerbose(verbose, '\n  Elapsed time: %.1f s (%.2f min)', toc-t, (toc-t)/60 )
     
@@ -656,7 +667,7 @@ if do_tomo
          fprintf(fid, 'scan_name : %s\n', scan_name);
          fprintf(fid, 'scan_path : %s\n', scan_path);
          fprintf(fid, 'reco_path : %s\n', save_dir);                  
-         fprintf(fid, 'MATLAB notation. Index of first element: 1\n');
+         fprintf(fid, 'MATLAB notation. Index of first element: 1. Range: first:stride:last\n');
          fprintf(fid, 'MATLAB version: %s\n', version);
          fprintf(fid, 'Platform: %s\n', computer);
          fprintf(fid, 'num_dark_found : %u\n', num_dark);
@@ -672,12 +683,10 @@ if do_tomo
          fprintf(fid, 'energy_eV : %g', energy);
          fprintf(fid, 'flat_field_correlation_area_1: %u:%u:%u\n', flat_corr_area1(1), flat_corr_area1(2) - flat_corr_area1(1), flat_corr_area1(end));
          fprintf(fid, 'flat_field_correlation_area_2: %u:%u:%u\n', flat_corr_area2(1), flat_corr_area2(2) - flat_corr_area2(1), flat_corr_area2(end));
-         fprintf(fid, 'minimum_of_all_darks : %f \n', dark_min);
-         fprintf(fid, 'maximum_of_all_darks : %f \n', dark_max);
-         fprintf(fid, 'minimum_of_all_flats : %f \n', flat_min);
-         fprintf(fid, 'maximum_of_all_flats : %f \n', flat_max);
-         fprintf(fid, 'minimum_of_all_raws : %f \n', raw_min);
-         fprintf(fid, 'maximum_of_all_raws : %f \n', raw_max);
+         fprintf(fid, 'min_max_of_all_darks : %6g %6g\n', dark_min, dark_max);         
+         fprintf(fid, 'min_max_of_all_flats : %6g %6g\n', flat_min, flat_max);
+         fprintf(fid, 'min_max_of_all_raws :  %6g %6g\n', raw_min, raw_max);         
+         fprintf(fid, 'min_max_of_all_flat_corr_projs : %g %g \n', proj_min, proj_max);
          % Phase retrieval
          fprintf(fid, 'use_phase_retrieval : %u\n', phase_retrieval);
          fprintf(fid, 'phase_retrieval_method : %s\n', phase_retrieval_method);
@@ -704,6 +713,7 @@ if do_tomo
          fprintf(fid, 'take_negative_logarithm : %u\n', take_neg_log);
          fprintf(fid, 'gpu_name : %s\n', gpu.Name);
          fprintf(fid, 'num_subvolume_slabs : %u\n', num_slabs);
+         fprintf(fid, 'min_max_of_all_slices : %g %g\n', vol_min, vol_max);         
          %fprintf(fid, ' : \n', );
          fprintf(fid, 'seconds_elapsed_for_full_reco : %.1f\n', toc);
          fclose(fid);
