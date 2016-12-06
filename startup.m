@@ -1,8 +1,14 @@
 %% Scripts and functions
-addpath( genpath( [getenv('HOME') '/matlab'] ) );
-rmpath( genpath(  [getenv('HOME') '/matlab/.git'] ) );
-rmpath( genpath(  [getenv('HOME') '/matlab/test'] ) );
-rmpath( genpath(  [getenv('HOME') '/matlab/old'] ) );
+[~, hostname] = unix('echo $HOSTNAME');
+if strcmp( hostname(1:3), 'max')
+    local_matlab_path = '/asap3/petra3/gpfs/common/p05/jm/matlab';
+else
+    local_matlab_path = [getenv('HOME') '/matlab/'];
+end
+addpath( genpath( local_matlab_path ) );
+rmpath( genpath(  [local_matlab_path '.git'] ) );
+rmpath( genpath(  [local_matlab_path 'test'] ) );
+rmpath( genpath(  [local_matlab_path 'old'] ) );
 
 %% ASTRA 
 % ASTRA 1.6
