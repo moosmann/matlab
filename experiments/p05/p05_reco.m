@@ -14,7 +14,7 @@
 %% PARAMETERS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %scan_path = pwd;
 scan_path = ...
-    '/asap3/petra3/gpfs/p05/2015/data/11001102/raw/hzg_wzb_mgag_38';
+    '/asap3/petra3/gpfs/p05/2015/data/11001102/raw/hzg_wzb_mgag_14';
     '/asap3/petra3/gpfs/p05/2016/data/11001978/raw/mah_28_15R_top';
     '/asap3/petra3/gpfs/p05/2016/data/11001978/raw/mah_28_15R_bottom';    
     '/asap3/petra3/gpfs/p05/2016/data/11001978/raw/mah_24_50L_top_load';
@@ -41,7 +41,7 @@ correct_beam_shake = 1;%  correlate flat fields and projection to correct beam s
 correct_beam_shake_max_shift = 0; % if 0: use the best match (i.e. the one which is closest to zero), if > 0 all flats which are shifted less than correct_beam_shake_max_shift are used
 flat_corr_area1 = [1 50]; % correlation area: proper index range or relative/absolute position of [first pix, last pix]
 flat_corr_area2 = [0.25 0.75]; %correlation area: proper index range or relative/absolute position of [first pix, last pix]
-write_proj = 0;
+write_proj = 1;
 write_reco = 1;
 write_to_scratch = 1; % write to 'scratch_cc' instead of 'processed'
 ring_filter = 1; % ring artifact filter
@@ -107,7 +107,7 @@ cdscandir = cd(scan_path);
 PrintVerbose(verbose, '\nStart P05 reconstruction pipeline of scan_name: ')
 NameCellToMat = @(name_cell) reshape(cell2mat(name_cell), [numel(name_cell{1}), numel(name_cell)])';
 imsc1 = @(im) imsc( flipud( im' ) );
-astra_clear % if reco was aborted, data objects are not deleted from ASTRA memory
+astra_clear % if reco was aborted, ASTRA memory is not cleared
 if ~isempty( rot_axis_offset ) && ~isempty( rot_axis_pos )
     error('Either of rot_axis_offset (%f) or rot_axis_pos (%f) must be empty.', rot_axis_offset, rot_axis_pos)
 end
@@ -121,7 +121,6 @@ scan_path = [scan_path, filesep];
 [beamtime_dir, raw_folder] = fileparts(raw_path);
 if ~strcmp(raw_folder, 'raw')
     error('Name of folder is not raw: %s', raw_folder)
-    return
 end
 PrintVerbose(verbose, '%s', scan_name)
 PrintVerbose(verbose, '\n scan_name dir:%s', scan_path)
@@ -149,6 +148,11 @@ else
     reco_dir = [out_path, filesep, 'reco', filesep, parfolder_reco, filesep];
 end
 PrintVerbose(verbose, '\n reco   : %s', reco_dir)
+% Save path to reconstruction in file
+filename = [getenv('HOME'), filesep, 'matlab/experiments/p05/pathtolastreco'];
+fid = fopen(filename , 'w' );
+fprintf( fid, '%s', reco_dir );   
+fclose( fid );
 
 %% File names
 
@@ -247,6 +251,8 @@ elseif ~read_proj
         filename = sprintf('%s%s', scan_path, dark_names{nn});
         dark(:, :, nn) = Binning( FilterPixel( read_image( filename ), [0.02 0.02]), bin);    
     end
+    dark_min = min( dark(:) );
+    dark_max = max( dark(:) );
     dark = FilterPixel( squeeze( median(dark, 3) ), [0.02 0.02]);
     if sum(dark <= 0)
         fprintf('\n CAUTION: dark field contains zeros')
@@ -272,6 +278,8 @@ elseif ~read_proj
         filename = sprintf('%s%s', scan_path, ref_names_mat(nn, :));
         flat(:, :, nn) = Binning( FilterPixel( read_image( filename ), [0.01 0.005]), bin) - dark;    
     end
+    flat_min = min( flat(:) );
+    flat_max = max( flat(:) );
     flat_mean = FilterPixel( squeeze( mean(flat, 3) ), [0.005 0.0025]);    
     if sum(flat_mean <= 0)
         fprintf('\n CAUTION: mean flat field contains zeros')
@@ -313,6 +321,9 @@ elseif ~read_proj
         end
         proj(:, :, nn) = img;
     end
+    raw_min = min( proj(:) );
+    raw_max = max( proj(:) );
+    %proj = bsxfun( @times, proj, mask);            
     PrintVerbose(verbose, ' Elapsed time: %.1f s (%.2f min)', toc - t, ( toc - t ) / 60 )    
 
     %% Correlate shifted flat fields
@@ -419,7 +430,10 @@ elseif ~read_proj
             drawnow        
         end
     end
-
+    
+    proj_min = min( proj(:) );
+    proj_max = max( proj(:) );
+    
     %% Write corrected projections
     if write_proj(1)
         t = toc;   
@@ -657,7 +671,13 @@ if do_tomo
          fprintf(fid, 'effective_pixel_size_binned : %g\n', eff_pixel_size_binned);
          fprintf(fid, 'energy_eV : %g', energy);
          fprintf(fid, 'flat_field_correlation_area_1: %u:%u:%u\n', flat_corr_area1(1), flat_corr_area1(2) - flat_corr_area1(1), flat_corr_area1(end));
-         fprintf(fid, 'flat_field_correlation_area_2: %u:%u:%u\n', flat_corr_area2(1), flat_corr_area2(2) - flat_corr_area2(1), flat_corr_area2(end));         
+         fprintf(fid, 'flat_field_correlation_area_2: %u:%u:%u\n', flat_corr_area2(1), flat_corr_area2(2) - flat_corr_area2(1), flat_corr_area2(end));
+         fprintf(fid, 'minimum_of_all_darks : %f \n', dark_min);
+         fprintf(fid, 'maximum_of_all_darks : %f \n', dark_max);
+         fprintf(fid, 'minimum_of_all_flats : %f \n', flat_min);
+         fprintf(fid, 'maximum_of_all_flats : %f \n', flat_max);
+         fprintf(fid, 'minimum_of_all_raws : %f \n', raw_min);
+         fprintf(fid, 'maximum_of_all_raws : %f \n', raw_max);
          % Phase retrieval
          fprintf(fid, 'use_phase_retrieval : %u\n', phase_retrieval);
          fprintf(fid, 'phase_retrieval_method : %s\n', phase_retrieval_method);
