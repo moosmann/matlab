@@ -1,13 +1,20 @@
-% P05 reconstruction pipeline.
+% P05 reconstruction pipeline. Preprocessing and tomographic
+% reconstruction.
+%
+% USAGE
+% Set parameters in PARAMETERS section and run script. If you are lucky you
+% only have to adjust the 'scan_path' (or change to that folder and use
+% 'pwd', see below).
 %
 % Written by Julian Moosmann.
-% First version: 2016-09-28. Last modifcation: 2016-11-08
+% First version: 2016-09-28. Last modifcation: 2016-12-06
 
 %clear all
 
 %% PARAMETERS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %scan_path = pwd;
 scan_path = ...
+    '/asap3/petra3/gpfs/p05/2015/data/11001102/raw/hzg_wzb_mgag_38';
     '/asap3/petra3/gpfs/p05/2016/data/11001978/raw/mah_28_15R_top';
     '/asap3/petra3/gpfs/p05/2016/data/11001978/raw/mah_28_15R_bottom';    
     '/asap3/petra3/gpfs/p05/2016/data/11001978/raw/mah_24_50L_top_load';
@@ -24,7 +31,7 @@ scan_path = ...
     '/asap3/petra3/gpfs/p05/2016/commissioning/c20161024_000_xeno/raw/xeno_01_b';
 read_proj = 0; % Read flatfield-corrected images from disc
 read_proj_folder = []; % subfolder of 'flat_corrected' containing projections
-proj_stride = 3; % Stride of projection images to read
+proj_stride = 1; % Stride of projection images to read
 bin = 2; % bin size: if 2 do 2 x 2 binning, if 1 do nothing
 poolsize = 28; % number of workers in parallel pool to be used
 gpu_ind = 1; % GPU Device to use: gpuDevice(gpu_ind)
@@ -50,12 +57,13 @@ eff_pixel_size_binned = bin * eff_pixel_size; %1.3056e-5
 do_tomo = 1; % reconstruct volume
 vol_shape = []; % shape of the volume to be reconstructed, either in absolute number of voxels or in relative number w.r.t. the default volume which is given by the detector width and height
 vol_size = []; % if empty, unit voxel size is assumed
-rot_angle_full = [pi]; % in radians: empty ([]), full angle of rotation, or array of angles. if empty full rotation angles is determined automatically
+rot_angle_full = []; % in radians: empty ([]), full angle of rotation, or array of angles. if empty full rotation angles is determined automatically
 rot_angle_offset = pi; % global rotation of reconstructed volume
 rot_axis_offset = []; % if empty use automatic computation
+rot_axis_pos = [766.8]; % if empty use automatic computation. either offset or pos has to be empty. can't use both
 rot_corr_area1 = [0.25 0.75]; % ROI to correlate projections at angles 0 & pi
 rot_corr_area2 = [0.25 0.75]; % ROI to correlate projections at angles 0 & pi
-rot_axis_tilt = 0* -0.1 / 180 * pi;
+rot_axis_tilt = 0 * -0.1 / 180 * pi; % camera tilt w.r.t rotation axis
 fbp_filter_type = 'Ram-Lak';
 fbp_filter_dim = 1; % dimension of the sinogram to be filtered. should be the one of the detector lines orthogonal to the rotation axis
 butterworth_filter = 1;
@@ -66,7 +74,7 @@ link_data = 1; % ASTRA data objects become references to Matlab arrays.
 take_neg_log = 1; % logarithm for attenuation contrast
 parfolder = ''; % parent folder to 'reco' and 'flat_corrected'
 parfolder_flatcor = ''; % parent folder to 'flat_corrected'
-parfolder_reco = 'test'; % parent folder to 'reco'
+parfolder_reco = 'rotPos766p8'; % parent folder to 'reco'
 verbose = 1; % print information to standard output
 visualOutput = 0; % show images and plots during reconstruction
 
@@ -74,16 +82,14 @@ visualOutput = 0; % show images and plots during reconstruction
 % TODO: CLEAN UP
 % TOCO: merge subbranch to master
 % TODO: automatic determination of rot center (entropy type)
+% TODO: manual interactive finding of rotation center
 % TODO: make pixel filtering thresholds parameters
 % TODO: vertical ROI reco
-% TODO: convert read filenames into matrix/struct a function
 % TODO: padding options for FBP filter
 % TODO: normalize proj with beam current
-% TODO: write log file
 % TODO: check offsets in projection correlation for rotation axis determination
 % TODO: output file format option
 % TODO: excentric rotation axis 
-% TODO: interactive determination of rotation axis position
 % TODO: save and read sinograms
 % TODO: read number of projection from log file
 % TODO: set photometric tag for tif files w/o one, turn on respective warning
@@ -102,6 +108,9 @@ PrintVerbose(verbose, '\nStart P05 reconstruction pipeline of scan_name: ')
 NameCellToMat = @(name_cell) reshape(cell2mat(name_cell), [numel(name_cell{1}), numel(name_cell)])';
 imsc1 = @(im) imsc( flipud( im' ) );
 astra_clear % if reco was aborted, data objects are not deleted from ASTRA memory
+if ~isempty( rot_axis_offset ) && ~isempty( rot_axis_pos )
+    error('Either of rot_axis_offset (%f) or rot_axis_pos (%f) must be empty.', rot_axis_offset, rot_axis_pos)
+end
 
 %% Input folder
 while scan_path(end) == filesep    
@@ -111,7 +120,7 @@ end
 scan_path = [scan_path, filesep];
 [beamtime_dir, raw_folder] = fileparts(raw_path);
 if ~strcmp(raw_folder, 'raw')
-    fprintf('\n ERROR. Folder name is not raw: %s\n', raw_folder)
+    error('Name of folder is not raw: %s', raw_folder)
     return
 end
 PrintVerbose(verbose, '%s', scan_name)
@@ -392,11 +401,11 @@ elseif ~read_proj
         if visualOutput(1)          
             h3 = figure('Name', 'Sinogram and ring filter');
             subplot(2,2,1)
-            imsc( sino' )            
+            imsc( sino )            
             axis equal tight
             title(sprintf('sinogram unfiltered'))
             subplot(2,2,2)
-            imsc( squeeze(proj(round(raw_im_shape_binned1/2),:,:))' )
+            imsc( squeeze(proj(round(raw_im_shape_binned1/2),:,:)) )
             axis equal tight
             title(sprintf('sinogram filtered'))            
             subplot(2,2,3)
@@ -477,12 +486,19 @@ if do_tomo
     PrintVerbose(verbose, '\n images to correlate: #%g at index %g and angle %g pi and #%g at index %g and angle %g pi', img_nums(ind1), ind1, val1 / pi, img_nums(ind2), ind2, (val2 + pi) / pi )
     out = ImageCorrelation( im1, im2, 0, 0);
     PrintVerbose(verbose, '\n respective shift: %g, %g', out.Xshift, out.Yshift)
-    rot_axis_offset_calc = round( out.Xshift / 2, 1); 
+    rot_axis_offset_calc = round( out.Xshift / 2, 1);     
+    rot_axis_pos_calc = raw_im_shape_binned1 / 2 + rot_axis_offset_calc;        
     PrintVerbose(verbose, '\n calulated rotation axis offset: %g, %g', rot_axis_offset_calc)
-    if isempty(rot_axis_offset)
+    % use calculated offset if both offset and position are empty
+    if isempty( rot_axis_offset ) && isempty( rot_axis_pos )
         rot_axis_offset = rot_axis_offset_calc;
     end
-    rot_axis_pos = raw_im_shape_binned1 / 2 + rot_axis_offset;
+    if isempty( rot_axis_pos )
+        rot_axis_pos = raw_im_shape_binned1 / 2 + rot_axis_offset;
+    end
+    if isempty( rot_axis_offset )
+        rot_axis_offset = rot_axis_pos - raw_im_shape_binned1 / 2;
+    end
     im1c = RotAxisSymmetricCropping( im1, rot_axis_pos, 1);
     im2c = flipud(RotAxisSymmetricCropping( flipud(im2), rot_axis_pos, 1));
     if visualOutput(1)
@@ -637,9 +653,9 @@ if do_tomo
          fprintf(fid, 'raw_image_shape : %u %u\n', raw_im_shape);
          fprintf(fid, 'raw_image_shape_binned : %u %u\n', raw_im_shape_binned);
          fprintf(fid, 'raw_image_binning : %u\n', bin);
-         fprintf(fid, 'effective_pixel_size : %f\n', eff_pixel_size);
-         fprintf(fid, 'effective_pixel_size_binned : %f\n', eff_pixel_size_binned);
-         fprintf(fid, 'energy_eV : %f', energy);
+         fprintf(fid, 'effective_pixel_size : %g\n', eff_pixel_size);
+         fprintf(fid, 'effective_pixel_size_binned : %g\n', eff_pixel_size_binned);
+         fprintf(fid, 'energy_eV : %g', energy);
          fprintf(fid, 'flat_field_correlation_area_1: %u:%u:%u\n', flat_corr_area1(1), flat_corr_area1(2) - flat_corr_area1(1), flat_corr_area1(end));
          fprintf(fid, 'flat_field_correlation_area_2: %u:%u:%u\n', flat_corr_area2(1), flat_corr_area2(2) - flat_corr_area2(1), flat_corr_area2(end));         
          % Phase retrieval
@@ -649,10 +665,12 @@ if do_tomo
          fprintf(fid, 'phase_retrieval_binary_filter_threshold : %f\n', phase_retrieval_bin_filt);
          % Rotation
          fprintf(fid, 'rotation_angle_full : %f\n', rot_angle_full);
-         fprintf(fid, 'rotation_offset : %f\n', rot_angle_offset);
+         fprintf(fid, 'rotation_angle_offset : %f\n', rot_angle_offset);
          fprintf(fid, 'rotation_axis_offset_calculated : %f\n', rot_axis_offset_calc);
          fprintf(fid, 'rotation_axis_offset_used : %f\n', rot_axis_offset);
-         fprintf(fid, 'rotation_axis_position : %f\n', rot_axis_pos);
+         fprintf(fid, 'rotation_axis_position_calculated : %f\n', rot_axis_pos_calc);
+         fprintf(fid, 'rotation_axis_position_used : %f\n', rot_axis_pos);
+         fprintf(fid, 'raw_image_binned_center : %f\n', raw_im_shape_binned1 / 2);         
          fprintf(fid, 'rotation_correlation_area_1 : %u:%u:%u\n', rot_corr_area1(1), rot_corr_area1(2) - rot_corr_area1(1), rot_corr_area1(end));
          fprintf(fid, 'rotation_correlation_area_2 : %u:%u:%u\n', rot_corr_area2(1), rot_corr_area2(2) - rot_corr_area2(1), rot_corr_area2(end));         
          % FBP
