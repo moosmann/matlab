@@ -244,7 +244,7 @@ elseif ~read_proj
     dark = zeros( [raw_im_shape_binned, num_dark], 'single');
     parfor nn = 1:num_dark
         filename = sprintf('%s%s', scan_path, dark_names{nn});
-        dark(:, :, nn) = Binning( FilterPixel( read_image( filename ), [0.02 0.02]), bin);    
+        dark(:, :, nn) = Binning( FilterPixel( read_image( filename ), [0.02 0.02]), bin) / bin^2;
     end
     dark_min = min( dark(:) );
     dark_max = max( dark(:) );
@@ -271,9 +271,8 @@ elseif ~read_proj
     ref_names_mat = NameCellToMat(ref_names);
     % Parallel loop
     parfor nn = 1:num_ref
-        filename = sprintf('%s%s', scan_path, ref_names_mat(nn, :));
-        %flat(:, :, nn) = Binning( FilterPixel( read_image( filename ), [0.01 0.005]), bin) - dark;    
-        flat(:, :, nn) = Binning( FilterPixel( read_image( filename ), [0.01 0.005]), bin);
+        filename = sprintf('%s%s', scan_path, ref_names_mat(nn, :));        
+        flat(:, :, nn) = Binning( FilterPixel( read_image( filename ), [0.01 0.005]), bin) / bin^2;
     end
     flat_min = min( flat(:) );
     flat_max = max( flat(:) );    
@@ -303,7 +302,7 @@ elseif ~read_proj
     if visualOutput(1)  
         figure(h1)
         filename = sprintf('%s%s', scan_path, img_names_mat(1, :));
-        raw1 = Binning( FilterPixel( read_image( filename ), [0.02 0.01]), bin);                
+        raw1 = Binning( FilterPixel( read_image( filename ), [0.02 0.01]), bin) / bin^2;
         subplot(2,2,3)       
         imsc1( raw1 + dark );
         axis equal tight;% square
@@ -312,9 +311,8 @@ elseif ~read_proj
     end
     % Read raw projections    
     parfor nn = 1:num_proj
-        filename = sprintf('%s%s', scan_path, img_names_mat(nn, :));        
-        %proj(:, :, nn) = Binning( FilterPixel( read_image( filename ), [0.02 0.01]), bin) - dark;
-        proj(:, :, nn) = Binning( FilterPixel( read_image( filename ), [0.02 0.01]), bin);
+        filename = sprintf('%s%s', scan_path, img_names_mat(nn, :));                
+        proj(:, :, nn) = Binning( FilterPixel( read_image( filename ), [0.02 0.01]), bin) / bin^2;
     end    
     raw_min = min( proj(:) );
     raw_max = max( proj(:) );
@@ -644,7 +642,7 @@ if do_tomo
             end
             CheckAndMakePath(reco_dir)
             % Save reco path to reconstruction in file
-            filename = [getenv('HOME'), filesep, 'matlab/experiments/p05/pathtolastreco'];
+            filename = [userpath, filesep, 'experiments/p05/pathtolastreco'];
             fid = fopen( filename , 'w' );
             fprintf( fid, '%s', reco_dir );   
             fclose( fid );

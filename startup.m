@@ -1,14 +1,17 @@
 %% Scripts and functions
 [~, hostname] = unix('echo $HOSTNAME');
 if strcmp( hostname(1:3), 'max')
-    local_matlab_path = '/asap3/petra3/gpfs/common/p05/jm/matlab';
+    userpath( '/asap3/petra3/gpfs/common/p05/jm/matlab' );    
 else
-    local_matlab_path = [getenv('HOME') '/matlab/'];
+    userpath( [getenv('HOME') '/matlab'] );
 end
-addpath( genpath( local_matlab_path ) );
-rmpath( genpath(  [local_matlab_path '.git'] ) );
-rmpath( genpath(  [local_matlab_path 'test'] ) );
-rmpath( genpath(  [local_matlab_path 'old'] ) );
+addpath( genpath( userpath ) );
+rmpath( genpath(  [userpath '/.git'] ) );
+rmpath( genpath(  [userpath '/test'] ) );
+rmpath( genpath(  [userpath '/old'] ) );
+
+fprintf( 'HOSTNAME: %s', hostname );
+fprintf( 'userpath: %s', userpath );
 
 %% ASTRA 
 % ASTRA 1.6

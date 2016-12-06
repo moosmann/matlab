@@ -1,11 +1,14 @@
 function im = Binning(im, bin)
-% 2 x 2 binning of 2-D image. Images is cropped before binning such that
-% mod(size(im), 2) = 0. 
-% 
-% Written by Julian Moosmann.
-% Last modification 2016-10-07
+% 2 x 2 or 4 x 4 binning of 2-D image. Images is cropped before binning
+% such that mod(size(im), bin) = 0. 
 %
-% im = Binning(im)
+% im: 2D image to bin
+% bin: bin size, 2 or 4. Default: 2
+%
+% Written by Julian Moosmann.
+% Last modification 2016-12-06
+%
+% im = Binning(im, bin)
 
 %% Default arguments %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 if nargin < 2
@@ -23,7 +26,6 @@ elseif bin == 2
 
     % bin
     im = im(1:2:end,1:2:end) + im(2:2:end,1:2:end) + im(1:2:end,2:2:end) + im(2:2:end,2:2:end);
-    %im = im ./4 ;
     
 elseif bin == 4
     % crop to even number of pixels    
