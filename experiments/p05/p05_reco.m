@@ -39,7 +39,7 @@ gpu_thresh = 0.8; % Percentage of maximally used to available GPU memory
 num_proj_hard = []; % hard coded number of projection.
 correct_beam_shake = 1;%  correlate flat fields and projection to correct beam shaking
 correct_beam_shake_max_shift = 0; % if 0: use the best match (i.e. the one which is closest to zero), if > 0 all flats which are shifted less than correct_beam_shake_max_shift are used
-flat_corr_area1 = [1 50]; % correlation area: proper index range or relative/absolute position of [first pix, last pix]
+flat_corr_area1 = [1 floor(100/bin)]; % correlation area: proper index range or relative/absolute position of [first pix, last pix]
 flat_corr_area2 = [0.25 0.75]; %correlation area: proper index range or relative/absolute position of [first pix, last pix]
 ring_filter = 1; % ring artifact filter
 ring_filter_median_width = 11;
@@ -57,21 +57,21 @@ vol_size = []; % if empty, unit voxel size is assumed
 rot_angle_full = []; % in radians: empty ([]), full angle of rotation, or array of angles. if empty full rotation angles is determined automatically
 rot_angle_offset = pi; % global rotation of reconstructed volume
 rot_axis_offset = []; % if empty use automatic computation
-rot_axis_pos = [];[766.8]; % if empty use automatic computation. either offset or pos has to be empty. can't use both
+rot_axis_pos = []; % if empty use automatic computation. either offset or pos has to be empty. can't use both
 rot_corr_area1 = [0.25 0.75]; % ROI to correlate projections at angles 0 & pi
 rot_corr_area2 = [0.25 0.75]; % ROI to correlate projections at angles 0 & pi
 rot_axis_tilt = 0 * -0.1 / 180 * pi; % camera tilt w.r.t rotation axis
 fbp_filter_type = 'Ram-Lak';
 fbp_filter_dim = 1; % dimension of sinogram to apply filte. should be the one of the detector lines orthogonal to the rotation axis
-butterworth_filter = 1;
+butterworth_filter = 1; % use butterworth filter in addition to FBP filter
 butterworth_order = 1;
 butterworth_cutoff_frequ = 0.5;
 astra_pixel_size = 1; % size of a detector pixel: if different from one 'vol_size' needs to be ajusted 
 link_data = 1; % ASTRA data objects become references to Matlab arrays.
 take_neg_log = 1; % logarithm for attenuation contrast
 out_path = ''; % absolute path were output data will be stored. overwrites the write_to_scratch flage. if empty uses the beamtime directory and either 'processed' or 'scratch_cc'
-write_proj = 0;
-write_reco = 1;
+write_proj = 0; % save preprocessed projections
+write_reco = 1; % save reconstructed slices
 write_to_scratch = 1; % write to 'scratch_cc' instead of 'processed'
 parfolder = 'test'; % parent folder to 'reco' and 'flat_corrected'
 parfolder_flatcor = ''; % parent folder to 'flat_corrected'
@@ -80,7 +80,6 @@ verbose = 1; % print information to standard output
 visualOutput = 0; % show images and plots during reconstruction
 
 %% TODO %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% TODO: CLEAN UP
 % TODO: merge subbranch to master
 % TODO: automatic determination of rot center (entropy type)
 % TODO: manual interactive finding of rotation center
@@ -104,7 +103,7 @@ visualOutput = 0; % show images and plots during reconstruction
 %% Main %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 tic
 warning( 'off', 'MATLAB:imagesci:rtifc:missingPhotometricTag');
-warning( 'off','all')
+%warning( 'off','all')
 cdscandir = cd(scan_path);
 PrintVerbose(verbose, '\nStart P05 reconstruction pipeline of scan_name: ')
 NameCellToMat = @(name_cell) reshape(cell2mat(name_cell), [numel(name_cell{1}), numel(name_cell)])';
@@ -126,7 +125,7 @@ if ~strcmp(raw_folder, 'raw')
     error('Name of folder is not raw: %s', raw_folder)
 end
 PrintVerbose(verbose, '%s', scan_name)
-PrintVerbose(verbose, '\n scan_name dir:%s', scan_path)
+PrintVerbose(verbose, '\n raw_path:%s', scan_path)
 
 %% Output folder
 out_folder = 'processed'; 
@@ -154,7 +153,7 @@ if isempty( parfolder_reco )
 else
     reco_dir = [out_path, filesep, 'reco', filesep, parfolder_reco, filesep];
 end
-PrintVerbose(verbose, '\n reco   : %s', reco_dir)
+PrintVerbose(verbose, '\n reco_path : %s', reco_dir)
 
 %% File names
 
@@ -190,7 +189,8 @@ PrintVerbose(verbose, '\n number of [dark, ref, img] = [%g, %g, %g]', num_dark, 
 proj_stride = max( 1, proj_stride);
 proj_ind = 1:proj_stride:num_img;
 num_proj = numel( proj_ind );
-PrintVerbose(verbose, '\n projections used: %g, indices: first:stride:last =  %g:%g:%g', num_proj, proj_ind(1), proj_stride, proj_ind(end))
+PrintVerbose(verbose, '\n number of projections used : %g', num_proj)
+PrintVerbose(verbose, '\n projection range used : first:stride:last =  %g:%g:%g', proj_ind(1), proj_stride, proj_ind(end))
 
 %% Image shape and ROI
 filename = sprintf('%s%s', scan_path, dark_names{1});
@@ -199,7 +199,8 @@ raw_im_shape = size( im );
 raw_im_shape_binned = floor( raw_im_shape / bin );
 raw_im_shape_binned1 = raw_im_shape_binned(1);
 raw_im_shape_binned2 = raw_im_shape_binned(2);    
-PrintVerbose(verbose, '\n image shape: raw = [%g, %g], binned = [%g, %g]', raw_im_shape, raw_im_shape_binned)
+PrintVerbose(verbose, '\n raw image shape : %g  %g', raw_im_shape)
+PrintVerbose(verbose, '\n raw image shape binned : %g  %g', raw_im_shape_binned)
 
 %% Start parallel CPU pool
 t = toc;
@@ -457,7 +458,6 @@ end
 %%  %% Rotation axis position and Tomgraphic parameters %%%%%%%%%%%%%%%%%%%
 if do_tomo    
     t = toc;
-    PrintVerbose(verbose, '\n Rotation axis:')
     rot_corr_area1 = IndexParameterToRange( rot_corr_area1, raw_im_shape_binned1 );
     rot_corr_area2 = IndexParameterToRange( rot_corr_area2, raw_im_shape_binned2 );
     % if numel(rot_corr_area1) == 2
@@ -482,7 +482,7 @@ if do_tomo
         end
     end
     %if numel( angles ) == 1
-    PrintVerbose(verbose, '\n  angular range: %g', rot_angle_full)
+    PrintVerbose(verbose, '\n full rotation angule: %g', rot_angle_full)
     angles = rot_angle_full * (0:num_proj - 1) / (num_proj - 1);
 % use above for img files and below for tiff files which accounts for missing images 
 %     if isempty( num_proj_hard )
@@ -502,9 +502,9 @@ if do_tomo
     % Correlate images
     im1 = proj( :, rot_corr_area2, ind1);
     im2 = flipud( proj( :, rot_corr_area2, ind2) );    
-    PrintVerbose(verbose, '\n images to correlate: #%g at index %g and angle %g pi and #%g at index %g and angle %g pi', img_nums(ind1), ind1, val1 / pi, img_nums(ind2), ind2, (val2 + pi) / pi )
+    PrintVerbose(verbose, '\n image correlation: #%g at index %g and angle %g pi and #%g at index %g and angle %g pi', img_nums(ind1), ind1, val1 / pi, img_nums(ind2), ind2, (val2 + pi) / pi )
     out = ImageCorrelation( im1, im2, 0, 0);
-    PrintVerbose(verbose, '\n respective shift: %g, %g', out.Xshift, out.Yshift)
+    PrintVerbose(verbose, '\n relative shift: %g, %g', out.Xshift, out.Yshift)
     rot_axis_offset_calc = round( out.Xshift / 2, 1);     
     rot_axis_pos_calc = raw_im_shape_binned1 / 2 + rot_axis_offset_calc;        
     PrintVerbose(verbose, '\n calulated rotation axis offset: %g, %g', rot_axis_offset_calc)
@@ -568,11 +568,10 @@ if do_tomo
     num_sli = ceil(vol_shape(3) / num_slabs);
     subvol_shape = [vol_shape(1:2), num_sli];
     PrintVerbose(verbose, '\n rotation axis offset: %g', rot_axis_offset );
-    PrintVerbose(verbose, '\n rotation axis position: %g', rot_axis_pos );
-    PrintVerbose(verbose, '\n GPU name: %s', gpu.Name );
-    PrintVerbose(verbose, '\n GPU memory available: %g MiB (%.2f%%) of %g MiB', gpu.AvailableMemory/10^6, 100*gpu.AvailableMemory/gpu.TotalMemory, gpu.TotalMemory/10^6)
+    PrintVerbose(verbose, '\n rotation axis position: %g', rot_axis_pos );    
     PrintVerbose(verbose, '\n shape of reconstruction volume: [%g, %g, %g]', vol_shape )
     PrintVerbose(verbose, '\n shape of reconstruction subvolume: [%g, %g, %g]', subvol_shape )
+    PrintVerbose(verbose, '\n available gpu memory : %g MiB (%.2f%%) of %g MiB', gpu.AvailableMemory/10^6, 100*gpu.AvailableMemory/gpu.TotalMemory, gpu.TotalMemory/10^6)
     PrintVerbose(verbose, '\n memory required for reconstruction of a single slice: %g MiB (estimate)', rec_mem / 1024^2 )
     PrintVerbose(verbose, '\n memory of reconstructed volume: %g MiB', prod( vol_shape ) * 4 / 1024^2 )
     PrintVerbose(verbose, '\n maximum memory of subvolume: %g MiB', prod( subvol_shape ) * 4 / 1024^2 )
@@ -609,7 +608,7 @@ end
 
 %% Tomographic reco
 if do_tomo
-    PrintVerbose(verbose, '\n Tomographic reconstruction of')
+    PrintVerbose(verbose, '\nTomographic reconstruction of %u slabs:', num_slabs)
     vol_min = NaN;
     vol_max = NaN;
     for nn = 1:num_slabs
@@ -619,7 +618,7 @@ if do_tomo
         sli1 = min( [nn * num_sli, vol_shape(3)] );
 
         % Filter sinogram
-        PrintVerbose(verbose, ' \n  subvolume %g of %g: Filter sino: ', nn, num_slabs)                     
+        PrintVerbose(verbose, '\n slab %g of %g: Filter sino: ', nn, num_slabs)                     
         filt = iradonDesignFilter('Ram-Lak', size(proj,1), 1);
         if butterworth_filter            
             [b, a] = butter(butterworth_order, butterworth_cutoff_frequ);
@@ -662,7 +661,7 @@ if do_tomo
         vol_min = min( min( vol(:) ), vol_min );
         vol_max = max( max( vol(:) ), vol_max );
     end
-    PrintVerbose(verbose, '\n  Elapsed time: %.1f s (%.2f min)', toc-t, (toc-t)/60 )
+    PrintVerbose(verbose, ' Elapsed time: %.1f s (%.2f min)', toc-t, (toc-t)/60 )
     
     % Write log file
     if write_reco
@@ -722,7 +721,7 @@ if do_tomo
          %fprintf(fid, ' : \n', );
          fprintf(fid, 'seconds_elapsed_for_full_reco : %.1f\n', toc);
          fclose(fid);
-         PrintVerbose(verbose, '\n Log file : %s\n', filename)
+         PrintVerbose(verbose, '\n log file : %s\n', filename)
     end
 
 end

@@ -1,6 +1,7 @@
 %% Scripts and functions
 [~, hostname] = unix('echo $HOSTNAME');
 if strcmp( hostname(1:3), 'max')
+    %% !! PATH TO USER MATLAB FILES: ADJUST UNLESS YOU USE ~/matlab !!
     userpath( '/asap3/petra3/gpfs/common/p05/jm/matlab' );    
 else
     userpath( [getenv('HOME') '/matlab'] );
