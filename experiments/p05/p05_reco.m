@@ -32,7 +32,7 @@ scan_path = ...
 read_proj = 0; % Read flatfield-corrected images from disc
 read_proj_folder = []; % subfolder of 'flat_corrected' containing projections
 proj_stride = 3; % Stride of projection images to read
-bin = 2; % bin size: if 2 do 2 x 2 binning, if 1 do nothing
+bin = 4; % bin size: if 2 do 2 x 2 binning, if 1 do nothing
 poolsize = 28; % number of workers in parallel pool to be used
 gpu_ind = 1; % GPU Device to use: gpuDevice(gpu_ind)
 gpu_thresh = 0.8; % Percentage of maximally used to available GPU memory
@@ -41,9 +41,6 @@ correct_beam_shake = 1;%  correlate flat fields and projection to correct beam s
 correct_beam_shake_max_shift = 0; % if 0: use the best match (i.e. the one which is closest to zero), if > 0 all flats which are shifted less than correct_beam_shake_max_shift are used
 flat_corr_area1 = [1 50]; % correlation area: proper index range or relative/absolute position of [first pix, last pix]
 flat_corr_area2 = [0.25 0.75]; %correlation area: proper index range or relative/absolute position of [first pix, last pix]
-write_proj = 0;
-write_reco = 1;
-write_to_scratch = 1; % write to 'scratch_cc' instead of 'processed'
 ring_filter = 1; % ring artifact filter
 ring_filter_median_width = 11;
 phase_retrieval = 0;
@@ -72,7 +69,11 @@ butterworth_cutoff_frequ = 0.5;
 astra_pixel_size = 1; % size of a detector pixel: if different from one 'vol_size' needs to be ajusted 
 link_data = 1; % ASTRA data objects become references to Matlab arrays.
 take_neg_log = 1; % logarithm for attenuation contrast
-parfolder = ''; % parent folder to 'reco' and 'flat_corrected'
+out_path = ''; % absolute path were output data will be stored. overwrites the write_to_scratch flage. if empty uses the beamtime directory and either 'processed' or 'scratch_cc'
+write_proj = 0;
+write_reco = 1;
+write_to_scratch = 1; % write to 'scratch_cc' instead of 'processed'
+parfolder = 'test'; % parent folder to 'reco' and 'flat_corrected'
 parfolder_flatcor = ''; % parent folder to 'flat_corrected'
 parfolder_reco = ''; % parent folder to 'reco'
 verbose = 1; % print information to standard output
@@ -120,6 +121,7 @@ end
 [raw_path, scan_name] = fileparts(scan_path);
 scan_path = [scan_path, filesep];
 [beamtime_dir, raw_folder] = fileparts(raw_path);
+[~, beamtime_id] = fileparts(beamtime_dir);
 if ~strcmp(raw_folder, 'raw')
     error('Name of folder is not raw: %s', raw_folder)
 end
@@ -131,7 +133,11 @@ out_folder = 'processed';
 if write_to_scratch(1)
     out_folder = 'scratch_cc';
 end
-out_path = [beamtime_dir, filesep, out_folder, filesep, scan_name];
+if isempty( out_path )
+    out_path = [beamtime_dir, filesep, out_folder, filesep, scan_name];
+else
+    out_path = [out_path, filesep, scan_name];
+end
 if ~isempty(parfolder)
     out_path = [out_path, filesep, parfolder];
 end
@@ -663,11 +669,12 @@ if do_tomo
          filename = sprintf( '%sreco.log', save_dir);
          fid = fopen(filename, 'w');
          fprintf(fid, 'scan_name : %s\n', scan_name);
+         fprintf(fid, 'beamtime_id : beamtime_id\n');
          fprintf(fid, 'scan_path : %s\n', scan_path);
          fprintf(fid, 'reco_path : %s\n', save_dir);                  
          fprintf(fid, 'MATLAB notation. Index of first element: 1. Range: first:stride:last\n');
          fprintf(fid, 'MATLAB version: %s\n', version);
-         fprintf(fid, 'Platform: %s\n', computer);
+         fprintf(fid, 'platform: %s\n', computer);
          fprintf(fid, 'num_dark_found : %u\n', num_dark);
          fprintf(fid, 'num_ref_found : %u\n', num_ref);
          fprintf(fid, 'num_proj_found : %u\n', num_img);
