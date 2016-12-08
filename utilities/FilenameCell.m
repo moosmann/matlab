@@ -9,7 +9,6 @@ if nargin < 1
     DirectoryName = './*';
 end
 
-%CellOfFilenames = dir([DirectoryName '*']);
 CellOfFilenames = dir(DirectoryName);
 CellOfFilenames = {CellOfFilenames(:).name};
 
