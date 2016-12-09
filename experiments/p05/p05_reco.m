@@ -2,20 +2,20 @@
 % reconstruction.
 %
 % USAGE
-% Set parameters in PARAMETERS section and run script. If you are lucky you
-% only have to adjust the 'scan_path' (or change to that folder and use
-% 'pwd', see below).
+% Set parameters in PARAMETERS section and run script. For the
+% reconstruction of standard scans only 'scan_path'  has to be adjusted (or
+% change to scann folder and use % 'pwd', see below).
 %
 % Written by Julian Moosmann.
-% First version: 2016-09-28. Last modifcation: 2016-12-08
-
-%clear all
+% First version: 2016-09-28. Last modifcation: 2016-12-09
 
 %% PARAMETERS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %scan_path = pwd;
 scan_path = ...
-    '/asap3/petra3/gpfs/p05/2016/data/11001978/raw/mah_28_15R_top';
     '/asap3/petra3/gpfs/p05/2015/data/11001102/raw/hzg_wzb_mgag_14';    
+    '/asap3/petra3/gpfs/p05/2015/data/11001102/raw/hzg_wzb_mgag_38';
+    '/asap3/petra3/gpfs/p05/2015/data/11001102/raw/hzg_wzb_mgag_02';        
+    '/asap3/petra3/gpfs/p05/2016/data/11001978/raw/mah_28_15R_top';
     '/asap3/petra3/gpfs/p05/2016/data/11001978/raw/mah_28_15R_bottom';    
     '/asap3/petra3/gpfs/p05/2016/data/11001978/raw/mah_24_50L_top_load';
     '/asap3/petra3/gpfs/p05/2016/data/11001978/raw/mah_16_57R_load';
@@ -32,10 +32,10 @@ scan_path = ...
 read_proj = 0; % Read flatfield-corrected images from disc
 read_proj_folder = []; % subfolder of 'flat_corrected' containing projections
 %proj_stride = 3; % stride of projection images to read
-proj_range = 3; % range of found projections to be used. if empty: all, if scalar: stride
-ref_range = [2:2:17]; % range of found flats to be used. if empty: all, if scalar: stride
-bin = 4; % bin size: if 2 do 2 x 2 binning, if 1 do nothing
-poolsize = 28; % number of workers in parallel pool to be used
+proj_range = 1:1300; % range of found projections to be used. if empty: all, if scalar: stride
+ref_range = 1; % range of found flats to be used. if empty: all, if scalar: stride
+bin = 2; % bin size: if 2 do 2 x 2 binning, if 1 do nothing
+poolsize = 28; % number of workers in parallel pool to be usedcdcdsc
 gpu_ind = 1; % GPU Device to use: gpuDevice(gpu_ind)
 gpu_thresh = 0.8; % Percentage of maximally used to available GPU memory
 num_proj_hard = []; % hard coded number of projection. required if projections are missing
@@ -46,17 +46,18 @@ flat_corr_area2 = [0.25 0.75]; %correlation area: proper index range or relative
 ring_filter = 1; % ring artifact filter
 ring_filter_median_width = 11;
 phase_retrieval = 0;
-phase_retrieval_method = 'tie';
+phase_retrieval_method = 'tie'; % 'ctf', 'qp'
 phase_retrieval_reg_par = 3;
 phase_retrieval_bin_filt = 0.1;
 energy = 30; % in keV
 sample_detector_distance = 1.0; % in m
 eff_pixel_size = 0.35e-6; % effective pixel size: (detector pixel size) / magnification
 eff_pixel_size_binned = bin * eff_pixel_size; %1.3056e-5
+round_precision = 2; % precision when rounding of pixel shifts
 do_tomo = 1; % reconstruct volume
 vol_shape = []; % shape of the volume to be reconstructed, either in absolute number of voxels or in relative number w.r.t. the default volume which is given by the detector width and height
 vol_size = []; % if empty, unit voxel size is assumed
-rot_angle_full = []; % in radians: empty ([]), full angle of rotation, or array of angles. if empty full rotation angles is determined automatically
+rot_angle_full = [1300/1800*2*pi]; % in radians: empty ([]), full angle of rotation, or array of angles. if empty full rotation angles is determined automatically to pi or 2 pi
 rot_angle_offset = pi; % global rotation of reconstructed volume
 rot_axis_offset = []; % if empty use automatic computation
 rot_axis_pos = []; % if empty use automatic computation. either offset or pos has to be empty. can't use both
@@ -70,22 +71,26 @@ butterworth_order = 1;
 butterworth_cutoff_frequ = 0.5;
 astra_pixel_size = 1; % size of a detector pixel: if different from one 'vol_size' needs to be ajusted 
 link_data = 1; % ASTRA data objects become references to Matlab arrays.
-take_neg_log = []; % logarithm for attenuation contrast
+take_neg_log = 1; % take negative logarithm. if empty, use 1 for attenuation contrast, 0 for phase contrast
 out_path = ''; % absolute path were output data will be stored. overwrites the write_to_scratch flage. if empty uses the beamtime directory and either 'processed' or 'scratch_cc'
-write_proj = 0; % save preprocessed projections
+write_proj = 1; % save preprocessed projections
+write_phase_map = 1; % save phase maps (if phase retrieval is not 0)
+write_sino = 1; % save sinograms (after preprocessing & phase retrieval, before FBP filtering)
 write_reco = 1; % save reconstructed slices
 write_to_scratch = 1; % write to 'scratch_cc' instead of 'processed'
-parfolder = 'test'; % parent folder to 'reco' and 'flat_corrected'
-parfolder_flatcor = ''; % parent folder to 'flat_corrected'
-parfolder_reco = ''; % parent folder to 'reco'
+parfolder = ''; % parent folder of 'reco', 'sino', and 'flat_corrected'
+parfolder = sprintf('test%04uto%04u', proj_range(1), proj_range(end) );
+subfolder_flatcor = ''; % subfolder of 'flat_corrected'
+subfolder_phase_map = ''; % subfolder of 'phase_map'
+subfolder_sino = ''; % subfolder of 'sino'
+subfolder_reco = ''; % parent folder to 'reco'
 verbose = 1; % print information to standard output
 visualOutput = 0; % show images and plots during reconstruction
 
 %% TODO %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% TODO: use log files instead of hard coded number of projection when
-% images are missing
+% TODO: use log files instead of hard coded number for missing projections
 % TODO: merge subbranch to master
-% TODO: automatic determination of rot center (entropy type)
+% TODO: automatic determination of rot center: entropy type
 % TODO: manual interactive finding of rotation center
 % TODO: make pixel filtering thresholds parameters
 % TODO: vertical ROI reco
@@ -94,27 +99,27 @@ visualOutput = 0; % show images and plots during reconstruction
 % TODO: check offsets in projection correlation for rotation axis determination
 % TODO: output file format option
 % TODO: excentric rotation axis 
-% TODO: save and read sinograms
+% TODO: read sinograms
 % TODO: read number of projection from log file
 % TODO: set photometric tag for tif files w/o one, turn on respective warning
 % TODO: read image ROI and check if it's faster at all
 % TODO: optional output format: 8-bit, 16-bit. Currently 32 bit tiff.
 % TODO: check attenutation values of reconstructed slice
-% TODO: ref stride
 % TODO: adopt for missing images w.r.t. to img or tif
-% TODO: save phase maps
+% TODO: tomo with parfor loop and astra
+% TODO: median filter width of ring filter dependence on binning
 
 %% Main %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 tic
 warning( 'off', 'MATLAB:imagesci:rtifc:missingPhotometricTag');
 %warning( 'off','all')
 cdscandir = cd(scan_path);
-PrintVerbose(verbose, '\nStart P05 reconstruction pipeline of scan_name: ')
+PrintVerbose(verbose, 'Start P05 reconstruction pipeline of scan_name: ')
 NameCellToMat = @(name_cell) reshape(cell2mat(name_cell), [numel(name_cell{1}), numel(name_cell)])';
 imsc1 = @(im) imsc( flipud( im' ) );
 astra_clear % if reco was aborted, ASTRA memory is not cleared
 if ~isempty( rot_axis_offset ) && ~isempty( rot_axis_pos )
-    error('Either of rot_axis_offset (%f) or rot_axis_pos (%f) must be empty.', rot_axis_offset, rot_axis_pos)
+    error('rot_axis_offset (%f) and rot_axis_pos (%f) cannot be used simultaneously. One must be empty.', rot_axis_offset, rot_axis_pos)
 end
 
 %% Input folder
@@ -123,13 +128,13 @@ while scan_path(end) == filesep
 end
 [raw_path, scan_name] = fileparts(scan_path);
 scan_path = [scan_path, filesep];
-[beamtime_dir, raw_folder] = fileparts(raw_path);
-[~, beamtime_id] = fileparts(beamtime_dir);
+[beamtime_path, raw_folder] = fileparts(raw_path);
+[~, beamtime_id] = fileparts(beamtime_path);
 if ~strcmp(raw_folder, 'raw')
     error('Name of folder is not raw: %s', raw_folder)
 end
 PrintVerbose(verbose, '%s', scan_name)
-PrintVerbose(verbose, '\n raw_path:%s', scan_path)
+PrintVerbose(verbose, '\n scan_path:%s', scan_path)
 
 %% Output folder
 out_folder = 'processed'; 
@@ -137,27 +142,45 @@ if write_to_scratch(1)
     out_folder = 'scratch_cc';
 end
 if isempty( out_path )
-    out_path = [beamtime_dir, filesep, out_folder, filesep, scan_name];
+    out_path = [beamtime_path, filesep, out_folder, filesep, scan_name];
 else
     out_path = [out_path, filesep, scan_name];
 end
 if ~isempty(parfolder)
     out_path = [out_path, filesep, parfolder];
 end
-% flat_corrected dir
-if isempty( parfolder_flatcor )
+
+% Projections path
+if isempty( subfolder_flatcor )
     flatcor_path = [out_path, filesep, 'flat_corrected', filesep];
 else
-    flatcor_path = [out_path, filesep, 'flat_corrected', filesep, parfolder_flatcor, filesep];
+    flatcor_path = [out_path, filesep, 'flat_corrected', filesep, subfolder_flatcor, filesep];
 end
-PrintVerbose(verbose & write_proj, '\n flatcor: %s', flatcor_path)
-% reco dir
-if isempty( parfolder_reco )
-    reco_dir = [out_path, filesep, 'reco', filesep];
+PrintVerbose(verbose & write_proj, '\n flatcor_path: %s', flatcor_path)
+
+% Phase map path
+if isempty( subfolder_phase_map )
+       phase_map_path = [out_path, filesep, 'phase_map', filesep];
 else
-    reco_dir = [out_path, filesep, 'reco', filesep, parfolder_reco, filesep];
+    phase_map_path = [out_path, filesep, 'phase_map', filesep, subfolder_phase_map, filesep];    
 end
-PrintVerbose(verbose, '\n reco_path : %s', reco_dir)
+PrintVerbose(verbose & write_phase_map, '\n phase_map_path: %s', phase_map_path)
+
+% Sinogram path
+if isempty( subfolder_sino )
+    sino_path = [out_path, filesep, 'sino', filesep];
+else
+    sino_path = [out_path, filesep, 'flat_corrected', filesep, subfolder_sino, filesep]; 
+end
+PrintVerbose(verbose & write_sino, '\n sino_path: %s', sino_path)
+
+% Reco path
+if isempty( subfolder_reco )
+    reco_path = [out_path, filesep, 'reco', filesep];
+else
+    reco_path = [out_path, filesep, 'reco', filesep, subfolder_reco, filesep];
+end
+PrintVerbose(verbose, '\n reco_path : %s', reco_path)
 
 %% File names
 
@@ -367,9 +390,9 @@ elseif ~read_proj
         for ff = 1:num_ref_used
             flat_ff = flatroi(:,:,ff);
             parfor pp = 1:num_proj_used
-                out = ImageCorrelation(projroi(:,:,pp), flat_ff, 0,0);
-                xshift(pp, ff) = out.Xshift;
-                yshift(pp, ff) = out.Yshift; % relevant shift
+                out = ImageCorrelation(projroi(:,:,pp), flat_ff, 0,0);                
+                xshift(pp, ff) = round( out.Xshift, round_precision );
+                yshift(pp, ff) = round( out.Yshift, round_precision) ; % relevant shift
             end    
         end       
         if visualOutput(1)
@@ -503,7 +526,7 @@ if do_tomo
         end
     end
     %if numel( angles ) == 1
-    PrintVerbose(verbose, '\n full rotation angule: %g', rot_angle_full)
+    PrintVerbose(verbose, '\n full rotation angle: %g * pi', rot_angle_full / pi)
     angles = rot_angle_full * (0:num_proj_used - 1) / (num_proj_used - 1);
 % use above for img files and below for tiff files which accounts for missing images 
 %     if isempty( num_proj_hard )
@@ -525,8 +548,10 @@ if do_tomo
     im2 = flipud( proj( :, rot_corr_area2, ind2) );    
     PrintVerbose(verbose, '\n image correlation: #%g at index %g and angle %g pi and #%g at index %g and angle %g pi', proj_nums(ind1), ind1, val1 / pi, proj_nums(ind2), ind2, (val2 + pi) / pi )
     out = ImageCorrelation( im1, im2, 0, 0);
-    PrintVerbose(verbose, '\n relative shift: %g, %g', out.Xshift, out.Yshift)
-    rot_axis_offset_calc = round( out.Xshift / 2, 1);     
+    xshift = round( out.Xshift, round_precision);
+    yshift = round( out.Yshift, round_precision);    
+    PrintVerbose(verbose, '\n relative shift: %g, %g', xshift, yshift)
+    rot_axis_offset_calc = xshift / 2;
     rot_axis_pos_calc = raw_im_shape_binned1 / 2 + rot_axis_offset_calc;        
     PrintVerbose(verbose, '\n calulated rotation axis offset: %g, %g', rot_axis_offset_calc)
     % use calculated offset if both offset and position are empty
@@ -602,6 +627,8 @@ end
 
 %% Phase retrieval %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 if phase_retrieval(1)
+        PrintVerbose(verbose, '\n energy : %g keV', energy)
+        PrintVerbose(verbose, '\n sample detector distance : %g m', sample_detector_distance)        
         t = toc;   
         if isempty( take_neg_log )
             take_neg_log = 0;
@@ -612,28 +639,55 @@ if phase_retrieval(1)
         [pf, pha_appendix] = PhaseFilter( phase_retrieval_method, raw_im_shape_binned, edp, phase_retrieval_reg_par, phase_retrieval_bin_filt, 'single');
           
         % reco phase dir
-        if isempty( parfolder_reco )
-            reco_phase_dir = [out_path, filesep, 'reco_phase_', pha_appendix, filesep];
+        if isempty( subfolder_reco )
+            reco_phase_path = [out_path, filesep, 'reco_phase_', pha_appendix, filesep];
         else
-            reco_phase_dir = [out_path, filesep, 'reco_phase_', pha_appendix, filesep, parfolder_reco, filesep];
+            reco_phase_path = [out_path, filesep, 'reco_phase_', pha_appendix, filesep, subfolder_reco, filesep];
         end
-        CheckAndMakePath( reco_phase_dir )
-        PrintVerbose(verbose, '\n reco phase  : %s', reco_phase_dir)
-        PrintVerbose(verbose, '\nPhase retrieval.')
+        CheckAndMakePath( reco_phase_path )
+        PrintVerbose(verbose, '\n reco phase  : %s', reco_phase_path)
+        PrintVerbose(verbose, '\n phase retrieval method : %s', phase_retrieval_method)
+        PrintVerbose(verbose, '\nPhase retrieval.')        
                      
         % Projections
         parfor nn = 1:num_proj_used            
             proj(:,:,nn) = -real( ifft2( pf .* fft2( proj(:,:,nn) ) ) );            
         end
         PrintVerbose(verbose, ' Elapsed time: %g s (%.2f min)', toc-t, (toc-t)/60)
-        PrintVerbose(verbose, '\n phase retrieval method : %s', phase_retrieval_method)
-        PrintVerbose(verbose, '\n energy : %g keV', energy)
-        PrintVerbose(verbose, '\n sample detector distance : %g m', sample_detector_distance)        
+        
+        % Save phase maps
+        %% NOT YET TESTED
+        if write_phase_map(1)
+            PrintVerbose(verbose, '\nSave phase maps:')            
+            phase_map_path = [phase_map_path, pha_appendix, filesep];                        
+            parfor nn = 1:num_proj_used
+                filename = sprintf( '%sphase_%06u.tif', phase_map_path, nn);
+                write32bitTIFfromSingle( filename, squeeze( proj( :, :, nn) ) )    
+            end
+            PrintVerbose(verbose, ' Elapsed time: %g s (%.2f min)', toc-t, (toc-t)/60)   
+        end        
+end
+
+%% Save sinograms
+if write_sino(1)    
+    PrintVerbose(verbose, '\nSave sinogram:')    
+    CheckAndMakePath(sino_path)
+    
+    % Save slices
+    parfor nn = 1:raw_im_shape_binned2
+        filename = sprintf( '%ssino_%06u.tif', sino_path, nn);
+        write32bitTIFfromSingle( filename, squeeze( proj( :, nn, :) )' )
+    end
+    PrintVerbose(verbose, ' done.')
+    PrintVerbose(verbose, ' Elapsed time: %g s (%.2f min)', toc-t, (toc-t)/60)   
 end
 
 %% Tomographic reco
 if do_tomo
     PrintVerbose(verbose, '\nTomographic reconstruction of %u slabs:', num_slabs)
+    if isempty( take_neg_log )
+        take_neg_log = 1;
+    end
     vol_min = NaN;
     vol_max = NaN;
     for nn = 1:num_slabs
@@ -644,7 +698,7 @@ if do_tomo
 
         % Filter sinogram
         PrintVerbose(verbose, '\n slab %g of %g: Filter sino: ', nn, num_slabs)                     
-        filt = iradonDesignFilter('Ram-Lak', size(proj,1), 1);
+        filt = iradonDesignFilter('Ram-Lak', raw_im_shape_binned1, 1);
         if butterworth_filter            
             [b, a] = butter(butterworth_order, butterworth_cutoff_frequ);
             bw = freqz(b, a, numel(filt) );
@@ -666,19 +720,21 @@ if do_tomo
         if write_reco
             PrintVerbose(verbose, ' Save slices:')
             if phase_retrieval(1)
-                save_dir = reco_phase_dir;
+                save_path = reco_phase_path;
             else
-                save_dir = reco_dir;
+                save_path = reco_path;
             end
-            CheckAndMakePath(reco_dir)
+            CheckAndMakePath(save_path)
+            
             % Save reco path to reconstruction in file
             filename = [userpath, filesep, 'experiments/p05/pathtolastreco'];
             fid = fopen( filename , 'w' );
-            fprintf( fid, '%s', reco_dir );   
+            fprintf( fid, '%s', save_path );   
             fclose( fid );
+            
             % Save slices
             parfor ii = 1:size( vol, 3)
-                filename = sprintf( '%sreco_%06u.tif', save_dir, sli0 + ii - 1);
+                filename = sprintf( '%sreco_%06u.tif', save_path, sli0 + ii - 1);
                 write32bitTIFfromSingle( filename, vol( :, :, ii) )
             end
             PrintVerbose(verbose, ' done.')
@@ -690,14 +746,14 @@ if do_tomo
     
     % Write log file
     if write_reco
-         filename = sprintf( '%sreco.log', save_dir);
+         filename = sprintf( '%sreco.log', save_path);
          fid = fopen(filename, 'w');
          fprintf(fid, 'scan_name : %s\n', scan_name);
-         fprintf(fid, 'beamtime_id : beamtime_id\n');
+         fprintf(fid, 'beamtime_id : %s\n', beamtime_id);
          fprintf(fid, 'scan_path : %s\n', scan_path);
-         fprintf(fid, 'reco_path : %s\n', save_dir);                  
-         fprintf(fid, 'MATLAB notation. Index of first element: 1. Range: first:stride:last\n');
-         fprintf(fid, 'MATLAB version: %s\n', version);
+         fprintf(fid, 'reco_path : %s\n', save_path);                  
+         fprintf(fid, 'MATLAB notation, index of first element: 1, range: first:stride:last\n');
+         fprintf(fid, 'MATLAB version : %s\n', version);
          fprintf(fid, 'platform: %s\n', computer);
          fprintf(fid, 'num_dark_found : %u\n', num_dark);
          fprintf(fid, 'num_ref_found : %u\n', num_ref_found);
@@ -709,11 +765,11 @@ if do_tomo
          fprintf(fid, 'raw_image_shape : %u %u\n', raw_im_shape);
          fprintf(fid, 'raw_image_shape_binned : %u %u\n', raw_im_shape_binned);
          fprintf(fid, 'raw_image_binning : %u\n', bin);
-         fprintf(fid, 'effective_pixel_size : %g\n', eff_pixel_size);
-         fprintf(fid, 'effective_pixel_size_binned : %g\n', eff_pixel_size_binned);
+         fprintf(fid, 'effective_pixel_size_m : %g\n', eff_pixel_size);
+         fprintf(fid, 'effective_pixel_size_binned_m : %g\n', eff_pixel_size_binned);
          fprintf(fid, 'energy_eV : %g\n', energy);
-         fprintf(fid, 'flat_field_correlation_area_1: %u:%u:%u\n', flat_corr_area1(1), flat_corr_area1(2) - flat_corr_area1(1), flat_corr_area1(end));
-         fprintf(fid, 'flat_field_correlation_area_2: %u:%u:%u\n', flat_corr_area2(1), flat_corr_area2(2) - flat_corr_area2(1), flat_corr_area2(end));
+         fprintf(fid, 'flat_field_correlation_area_1 : %u:%u:%u\n', flat_corr_area1(1), flat_corr_area1(2) - flat_corr_area1(1), flat_corr_area1(end));
+         fprintf(fid, 'flat_field_correlation_area_2 : %u:%u:%u\n', flat_corr_area2(1), flat_corr_area2(2) - flat_corr_area2(1), flat_corr_area2(end));
          fprintf(fid, 'min_max_of_all_darks : %6g %6g\n', dark_min, dark_max);         
          fprintf(fid, 'min_max_of_all_flats : %6g %6g\n', flat_min, flat_max);
          fprintf(fid, 'min_max_of_all_raws :  %6g %6g\n', raw_min, raw_max);         
@@ -724,8 +780,8 @@ if do_tomo
          fprintf(fid, 'phase_retrieval_regularisation_parameter : %f\n', phase_retrieval_reg_par);
          fprintf(fid, 'phase_retrieval_binary_filter_threshold : %f\n', phase_retrieval_bin_filt);
          % Rotation
-         fprintf(fid, 'rotation_angle_full : %f\n', rot_angle_full);
-         fprintf(fid, 'rotation_angle_offset : %f\n', rot_angle_offset);
+         fprintf(fid, 'rotation_angle_full_rad : %f\n', rot_angle_full);
+         fprintf(fid, 'rotation_angle_offset_rad : %f\n', rot_angle_offset);
          fprintf(fid, 'rotation_axis_offset_calculated : %f\n', rot_axis_offset_calc);
          fprintf(fid, 'rotation_axis_offset_used : %f\n', rot_axis_offset);
          fprintf(fid, 'rotation_axis_position_calculated : %f\n', rot_axis_pos_calc);
@@ -746,11 +802,11 @@ if do_tomo
          fprintf(fid, 'num_subvolume_slabs : %u\n', num_slabs);
          fprintf(fid, 'min_max_of_all_slices : %g %g\n', vol_min, vol_max);         
          %fprintf(fid, ' : \n', );
-         fprintf(fid, 'seconds_elapsed_for_full_reco : %.1f\n', toc);
+         fprintf(fid, 'full_reconstruction_time_s : %.1f\n', toc);
+         fprintf(fid, 'date : %s', datetime);
          fclose(fid);
          PrintVerbose(verbose, '\n log file : %s', filename)
     end
-
 end
 
 PrintVerbose(verbose, '\nFinished. Total time elapsed: %g s (%.2f min)\n\n', toc, toc / 60 );

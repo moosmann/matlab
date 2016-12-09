@@ -1,5 +1,5 @@
 %% Scripts and functions
-[~, hostname] = unix('echo $HOSTNAME');
+hostname = getenv('HOSTNAME');
 if strcmp( hostname(1:3), 'max')
     %% !! PATH TO USER MATLAB FILES: ADJUST UNLESS YOU USE ~/matlab !!
     userpath( '/asap3/petra3/gpfs/common/p05/jm/matlab' );    
@@ -11,7 +11,7 @@ rmpath( genpath(  [userpath '/.git'] ) );
 rmpath( genpath(  [userpath '/test'] ) );
 rmpath( genpath(  [userpath '/old'] ) );
 
-fprintf( 'HOSTNAME: %s', hostname );
+fprintf( 'HOSTNAME: %s\n', hostname );
 fprintf( 'userpath: %s', userpath );
 
 %% ASTRA 
@@ -26,10 +26,10 @@ close all;
 
 %% BUG FIXES
 
-% Shall fix error: An unexpected error occurred during CUDA execution. The
+% Fix error: An unexpected error occurred during CUDA execution. The
 % CUDA error was: cannot set while device is active in this process.
 a = gpuArray(1); 
 clear a;
 
-% Fix Matlab bug: “dlopen: cannot load any more object with static TLS”
+% Fix error: “dlopen: cannot load any more object with static TLS”
 %ones(10) * ones(10);
