@@ -10,9 +10,10 @@
 % First version: 2016-09-28. Last modifcation: 2017-01-03
 
 %% PARAMETERS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+clear all
 %scan_path = pwd;
 scan_path = ...
-    '/asap3/petra3/gpfs/p05/2016/data/11001994/raw/szeb_74_13';
+    '/asap3/petra3/gpfs/p05/2016/data/11001994/raw/szeb_14_00';
     '/asap3/petra3/gpfs/p05/2015/data/11001102/raw/hzg_wzb_mgag_14';        
     '/asap3/petra3/gpfs/p05/2016/data/11001978/raw/mah_36_1R_top';    
     '/asap3/petra3/gpfs/p05/2016/data/11001978/raw/mah_28_15R_top';    
@@ -51,22 +52,22 @@ max_num_flats = 11; % maximum number of flat fields used for average/median of f
 norm_by_ring_current = 1; % normalize flat fields and projections by ring current
 flat_corr_area1 = [1 floor(100/bin)]; % correlation area: proper index range or relative/absolute position of [first pix, last pix]
 flat_corr_area2 = [0.25 0.75]; %correlation area: proper index range or relative/absolute position of [first pix, last pix]
-ring_filter = 1; % ring artifact filter
+round_precision = 2; % precision when rounding of pixel shifts
+ring_filter = 0; % ring artifact filter
 ring_filter_median_width = 11;
-phase_retrieval = 0;
+phase_retrieval = 1;
 phase_retrieval_method = 'tie'; % 'ctf', 'qp'
-phase_retrieval_reg_par = 3;
-phase_retrieval_bin_filt = 0.1;
+phase_retrieval_reg_par = 3; % regularization parameter
+phase_retrieval_bin_filt = 0.1; % threshold for quasiparticle retrieval 'qp', 'qp2'
 energy = []; % in eV. if empty: read from log file
 sample_detector_distance = []; % in m
 eff_pixel_size = []; % if empty: read from log file. effective pixel size =  detector pixel size / magnification
-round_precision = 2; % precision when rounding of pixel shifts
 do_tomo = 1; % reconstruct volume
 vol_shape = []; % shape of the volume to be reconstructed, either in absolute number of voxels or in relative number w.r.t. the default volume which is given by the detector width and height
 vol_size = []; % if empty, unit voxel size is assumed
 rot_angle_full = []; % in radians: empty ([]), full angle of rotation, or array of angles. if empty full rotation angles is determined automatically to pi or 2 pi
 rot_angle_offset = pi; % global rotation of reconstructed volume
-rot_axis_offset = []; % if empty use automatic computation
+rot_axis_offset = []; % if empty use automatic computationflat
 rot_axis_pos = []; % if empty use automatic computation. either offset or pos has to be empty. can't use both
 rot_corr_area1 = [0.25 0.75]; % ROI to correlate projections at angles 0 & pi
 rot_corr_area2 = [0.25 0.75]; % ROI to correlate projections at angles 0 & pi
@@ -78,7 +79,7 @@ butterworth_order = 1;
 butterworth_cutoff_frequ = 0.5;
 astra_pixel_size = 1; % size of a detector pixel: if different from one 'vol_size' needs to be ajusted 
 link_data = 1; % ASTRA data objects become references to Matlab arrays.
-take_neg_log = 1; % take negative logarithm. if empty, use 1 for attenuation contrast, 0 for phase contrast
+take_neg_log = []; % take negative logarithm. if empty, use 1 for attenuation contrast, 0 for phase contrast
 out_path = ''; % absolute path were output data will be stored. overwrites the write_to_scratch flage. if empty uses the beamtime directory and either 'processed' or 'scratch_cc'
 write_proj = 0; % save preprocessed projections
 write_phase_map = 0; % save phase maps (if phase retrieval is not 0)
@@ -86,7 +87,7 @@ write_sino = 0; % save sinograms (after preprocessing & phase retrieval, before 
 write_reco = 1; % save reconstructed slices
 write_to_scratch = 1; % write to 'scratch_cc' instead of 'processed'
 %parfolder = 'test'; % parent folder of 'reco', 'sino', and 'flat_corrected'
-parfolder = sprintf('test_normbyringcur%u', norm_by_ring_current); % parent folder of 'reco', 'sino', and 'flat_corrected'
+parfolder = sprintf('test'); % parent folder of 'reco', 'sino', and 'flat_corrected'
 subfolder_flatcor = ''; % subfolder of 'flat_corrected'
 subfolder_phase_map = ''; % subfolder of 'phase_map'
 subfolder_sino = ''; % subfolder of 'sino'
@@ -304,7 +305,7 @@ if read_proj(1)
     t = toc;
     PrintVerbose(verbose, '\n Read flat corrected projections.')
     if num_proj_read ~= num_proj_used
-        fprintf('\n CAUTION: Number of flat corrected projections read (%g) differs from number of projections to be processed (%g)!\n', num_proj_read, num_proj_used)
+        fprintf('\n WARNING: Number of flat corrected projections read (%g) differs from number of projections to be processed (%g)!\n', num_proj_read, num_proj_used)
     end
     
     % Preallocation
@@ -325,22 +326,31 @@ elseif ~read_proj
     PrintVerbose(verbose, '\nProcessing dark fields.')
     dark = zeros( [raw_im_shape_binned, num_dark], 'single');
     parfor nn = 1:num_dark
-        filename = sprintf('%s%s', scan_path, dark_names{nn});        
-        dark(:, :, nn) = Binning( FilterPixel( read_image( filename ), [darkFiltPixHot darkFiltPixDark]), bin) / bin^2;
+        filename = sprintf('%s%s', scan_path, dark_names{nn});
+        im = single( read_image( filename ) );
+        % Remove large outliers. Assume Poisson distribtion at large lambda
+        % is approximately a Gaussian distribution and set all value above
+        % mean + 4 * std (99.994 of values lie within 4 std). Due to
+        % outliers 4*std will contain much more values and is a good
+        % estimate
+        im_mean = mean( im(:) );
+        im_std = std( im(:) );
+        im( im > im_mean + 4*im_std) = im_mean;
+        dark(:, :, nn) = Binning( FilterPixel( im, [darkFiltPixHot darkFiltPixDark]), bin) / bin^2;
     end
     dark_min = min( dark(:) );
     dark_max = max( dark(:) );
-    dark = squeeze( median(dark, 3) );    
-    if sum(dark <= 0)
-        fprintf('\n CAUTION: dark field contains zeros')
-    end
+    dark = squeeze( median(dark, 3) );
+    dark_med_min = min( dark(:) );
+    dark_med_max = max( dark(:) );
     PrintVerbose(verbose, ' Elapsed time: %.1f s', toc-t)
     if visualOutput(1)
         h1 = figure('Name', 'mean dark field, flat field, projections');
         subplot(2,2,1)
-        imsc( dark' );
+        imsc1( dark );
         axis equal tight;% square tight; pause(0.05);         
         title(sprintf('dark field'))
+        colorbar
         drawnow
     end
 
@@ -354,32 +364,62 @@ elseif ~read_proj
     % Parallel loop
     parfor nn = 1:num_ref_used
         filename = sprintf('%s%s', scan_path, ref_names_mat(nn, :));        
-        flat(:, :, nn) = Binning( FilterPixel( read_image( filename ), [refFiltPixHot refFiltPixDark]), bin) / bin^2;
+        flat(:, :, nn) = Binning( FilterPixel( read_image( filename ), [refFiltPixHot refFiltPixDark]), bin) / bin^2;        
+        % Check for zeros        
+        nfz =  sum( sum( flat(:,:,nn) < 1 ) );
+        if nfz > 0
+            fprintf('\n WARNING: %u pixel of flat field no %u has value below 1.', nfz, nn)            
+        end        
     end
+    % min/max values before dark field subtraction and ring normalization
     flat_min = min( flat(:) );
-    flat_max = max( flat(:) );    
+    flat_max = max( flat(:) ); 
+    
+    % Dark field correction
+    flat = bsxfun( @minus, flat, dark );
+    
+    % Ring current normalization
     if norm_by_ring_current(1)
         if isequal( ref_nums, [cur.ref(ref_range).ind] )
             sc = 100 ./ shiftdim( [cur.ref(ref_range).val], -1 );
             flat = bsxfun( @times, flat, sc );
+            if visualOutput(1)
+                hrc = figure('Name', 'Ring current normalization');
+                subplot(1,2,1);
+                plot( sc(:) )
+                axis equal tight square
+                title(sprintf('flats'))
+                drawnow
+            end            
         else
-            fprintf('\n CAUTION: flat fields not normalized by ring current. Names read from dir() and log-file are inconsistent.')
+            fprintf('\n WARNING: flat fields not normalized by ring current. Names read from dir() and log-file are inconsistent.')
         end
     end
-    if sum( flat(:) < 1 )
-        fprintf('\n CAUTION: mean flat field contains zeros')
-    end
     
-    % Dark field correction
-    flat = bsxfun( @minus, flat, dark );
+    % Check for non-positive values
+    parfor nn = 1:num_ref_used
+        im = flat(:,:,nn);
+        m = im < 1;
+        im(m) = 1;
+        flat(:,:,nn) = im;
+    end
+    flat_min2 = min( flat(:) );
+    flat_max2 = max( flat(:) ); 
+    
+    nfz =  sum( flat(:) < 1 );
+    if nfz > 0
+        fprintf('\n WARNING: flat field contains %u zeros', nfz)        
+    end
+        
     PrintVerbose(verbose, ' Elapsed time: %.1f s', toc-t)
     if visualOutput(1)
         figure(h1)
         subplot(2,2,2)
-        imsc1( flat(:,:,1) );
-        axis equal tight;% square
-        title(sprintf('flat field #1'));
-        drawnow;
+        imsc1( flat(:,:,1) )
+        axis equal tight% square
+        title(sprintf('flat field #1'))
+        drawnow
+        colorbar
     end
 
     %% Projections
@@ -398,10 +438,11 @@ elseif ~read_proj
         filename = sprintf('%s%s', scan_path, img_names_mat(1, :));
         raw1 = Binning( FilterPixel( read_image( filename ), [projFiltPixHot, projFiltPixDark]), bin) / bin^2;
         subplot(2,2,3)       
-        imsc1( raw1 + dark );
-        axis equal tight;% square
+        imsc1( raw1 )
+        axis equal tight% square
         title(sprintf('raw projection #1'))
         drawnow
+        colorbar
     end
     
     % Read raw projections
@@ -412,18 +453,40 @@ elseif ~read_proj
     raw_min = min( proj(:) );
     raw_max = max( proj(:) );
     
+    % Dark field correction
+    proj = bsxfun( @minus, proj, dark);
+    
     % Ring current normalization
     if norm_by_ring_current(1)
         if isequal( proj_nums, [cur.proj(proj_range).ind] )
             sc = 100 ./ shiftdim( [cur.proj(proj_range).val], -1 );
-            proj = bsxfun( @times, proj, sc );
+            proj = bsxfun( @times, proj, sc );            
+            if visualOutput(1)
+                figure(hrc)
+                subplot(1,2,2);
+                plot( sc(:) )
+                axis equal tight square
+                title(sprintf('projections'))
+                drawnow
+            end            
         else
-            fprintf('\n CAUTION: projections not normalized by ring current. Names read from dir() and log-file are not consistent.')
+            fprintf('\n WARNING: projections not normalized by ring current. Names read from dir() and log-file are not consistent.')
+        end
+    end    
+    
+    % Check for non-positive values
+    parfor nn = 1:num_proj_used
+        im = proj(:,:,nn);
+        m = im < 1;
+        if sum( m(:) ) > 0            
+            im(m) = 1;
+            proj(:,:,nn) = im;
         end
     end
+    raw_min2 = min( proj(:) );
+    raw_max2 = max( proj(:) );
     
-    % Dark field correction
-    proj = bsxfun( @minus, proj, dark);
+    %% Flat field correction
     
     % Flat field correction without correlation
     if ~correct_beam_shake
@@ -432,7 +495,7 @@ elseif ~read_proj
     end    
     PrintVerbose(verbose, ' Elapsed time: %.1f s (%.2f min)', toc - t, ( toc - t ) / 60 )    
 
-    %% Correlate shifted flat fields
+    % Correlate shifted flat fields
     if correct_beam_shake    
         PrintVerbose(verbose, '\nCorrect beam shake.')
         % Correlation ROI
@@ -500,40 +563,46 @@ elseif ~read_proj
     if visualOutput(1)
         figure(h1)
         subplot(2,2,4)        
-        imsc1( proj(:,:,1));
+        imsc1( proj(:,:,1))
         axis equal tight
         title(sprintf('flat-&-dark corrected projection #1'))
-        drawnow
+        colorbar
+        drawnow        
     end
 
     %% Ring artifact filter
-    if ring_filter
+    if ring_filter(1)
         t = toc;
-        PrintVerbose(verbose, '\nFilter ring artifacts.')
-        sino = squeeze(proj(round(raw_im_shape_binned1/2),:,:));
+        PrintVerbose(verbose, '\nFilter ring artifacts.')        
         proj_mean = mean( proj, 3);
         proj_mean_med = medfilt2( proj_mean, [ring_filter_median_width, 1], 'symmetric' );
         mask = proj_mean_med ./ proj_mean;      
         proj = bsxfun( @times, proj, mask);            
         PrintVerbose(verbose, ' Elapsed time: %.1f s (%.2f min)', toc-t, (toc-t)/60)
-        if visualOutput(1)          
+        PrintVerbose( verbose, '\nring filter mask min/max: %f, %f', min( mask(:) ), max( mask(:) ) )
+        if visualOutput(1)
+            sino = squeeze(proj(round(raw_im_shape_binned1/2),:,:));
             h3 = figure('Name', 'Sinogram and ring filter');
             subplot(2,2,1)
-            imsc( sino )            
+            imsc( sino' )            
             axis equal tight
             title(sprintf('sinogram unfiltered'))
+            colorbar('Location', 'southoutside')
             subplot(2,2,2)
-            imsc( squeeze(proj(round(raw_im_shape_binned1/2),:,:)) )
+            imsc( squeeze(proj(round(raw_im_shape_binned1/2),:,:))' )
             axis equal tight
-            title(sprintf('sinogram filtered'))            
+            title(sprintf('sinogram filtered'))
+            colorbar('Location', 'southoutside')
             subplot(2,2,3)
             imsc1( proj_mean )
             axis equal tight
             title(sprintf('mean projection'))
+            colorbar
             subplot(2,2,4)
             imsc1( mask )
             axis equal tight
-            title(sprintf('mask for normalization'))            
+            title(sprintf('mask for normalization'))
+            colorbar
             drawnow        
         end
     end
@@ -569,17 +638,21 @@ if do_tomo
     % end
 
     % Automatic determination of full rotation angle if rot_angle_full is empty
-    if isempty( rot_angle_full )        
-        im1 = proj( rot_corr_area1, rot_corr_area2, 1);
-        im2 = proj( rot_corr_area1, rot_corr_area2, num_proj_used);
-        [~, cm1] = ImageCorrelation( im1, im2); % large if full angle is  2 * pi
-        [~, cm2] = ImageCorrelation( im1, flipud(im2)); % large if full angle is pi
-        if max( cm1(:) ) > max( cm2(:) )
-            rot_angle_full = 2 * pi;
-        elseif max( cm1(:) ) < max( cm2(:) )
-            rot_angle_full = pi;
+    if isempty( rot_angle_full )
+        if isfield( par, 'rotation')
+            rot_angle_full = par.rotation / 180 * pi;
         else
-            error('Automatic determination of full angle of rotation via correlation of first and last (flipped) projection failed.')
+            im1 = proj( rot_corr_area1, rot_corr_area2, 1);
+            im2 = proj( rot_corr_area1, rot_corr_area2, num_proj_used);
+            [~, cm1] = ImageCorrelation( im1, im2); % large if full angle is  2 * pi
+            [~, cm2] = ImageCorrelation( im1, flipud(im2)); % large if full angle is pi
+            if max( cm1(:) ) > max( cm2(:) )
+                rot_angle_full = 2 * pi;
+            elseif max( cm1(:) ) < max( cm2(:) )
+                rot_angle_full = pi;
+            else
+                error('Automatic determination of full angle of rotation via correlation of first and last (flipped) projection failed.')
+            end
         end
     end
     %if numel( angles ) == 1
@@ -629,14 +702,17 @@ if do_tomo
         imsc1( im1c )
         axis equal tight
         title(sprintf('proj at 0'))
+        colorbar
         subplot(2,2,2)
         imsc1( im2c )
         axis equal tight
         title(sprintf('proj at pi'))
+        colorbar
         subplot(2,2,3)
         imsc1( abs(im1c - im2c) )
         axis equal tight
         title(sprintf('difference'))
+        colorbar
         drawnow 
         nimplay(cat(3, im1c',im2c'))
     end
@@ -827,9 +903,12 @@ if do_tomo
          fprintf(fid, 'energy : %g eV\n', energy);
          fprintf(fid, 'flat_field_correlation_area_1 : %u:%u:%u\n', flat_corr_area1(1), flat_corr_area1(2) - flat_corr_area1(1), flat_corr_area1(end));
          fprintf(fid, 'flat_field_correlation_area_2 : %u:%u:%u\n', flat_corr_area2(1), flat_corr_area2(2) - flat_corr_area2(1), flat_corr_area2(end));
-         fprintf(fid, 'min_max_of_all_darks : %6g %6g\n', dark_min, dark_max);         
+         fprintf(fid, 'min_max_of_all_darks : %6g %6g\n', dark_min, dark_max);
+         fprintf(fid, 'min_max_of_median_dark : %6g %6g\n', dark_med_min, dark_med_max);
          fprintf(fid, 'min_max_of_all_flats : %6g %6g\n', flat_min, flat_max);
+         fprintf(fid, 'min_max_of_all_corrected_flats : %6g %6g\n', flat_min2, flat_max2);
          fprintf(fid, 'min_max_of_all_raws :  %6g %6g\n', raw_min, raw_max);         
+         fprintf(fid, 'min_max_of_all_corrected_raws :  %6g %6g\n', raw_min2, raw_max2);
          fprintf(fid, 'min_max_of_all_flat_corr_projs : %g %g \n', proj_min, proj_max);
          % Phase retrieval
          fprintf(fid, 'use_phase_retrieval : %u\n', phase_retrieval);
