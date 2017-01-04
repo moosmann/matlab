@@ -7,21 +7,22 @@
 % change to scann folder and use % 'pwd', see below).
 %
 % Written by Julian Moosmann.
-% First version: 2016-09-28. Last modifcation: 2016-12-09
+% First version: 2016-09-28. Last modifcation: 2017-01-03
 
 %% PARAMETERS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %scan_path = pwd;
 scan_path = ...
-    '/asap3/petra3/gpfs/p05/2015/data/11001102/raw/hzg_wzb_mgag_14';    
+    '/asap3/petra3/gpfs/p05/2016/data/11001994/raw/szeb_74_13';
+    '/asap3/petra3/gpfs/p05/2015/data/11001102/raw/hzg_wzb_mgag_14';        
+    '/asap3/petra3/gpfs/p05/2016/data/11001978/raw/mah_36_1R_top';    
+    '/asap3/petra3/gpfs/p05/2016/data/11001978/raw/mah_28_15R_top';    
     '/asap3/petra3/gpfs/p05/2015/data/11001102/raw/hzg_wzb_mgag_38';
-    '/asap3/petra3/gpfs/p05/2015/data/11001102/raw/hzg_wzb_mgag_02';        
-    '/asap3/petra3/gpfs/p05/2016/data/11001978/raw/mah_28_15R_top';
+    '/asap3/petra3/gpfs/p05/2015/data/11001102/raw/hzg_wzb_mgag_02';           
     '/asap3/petra3/gpfs/p05/2016/data/11001978/raw/mah_28_15R_bottom';    
     '/asap3/petra3/gpfs/p05/2016/data/11001978/raw/mah_24_50L_top_load';
     '/asap3/petra3/gpfs/p05/2016/data/11001978/raw/mah_16_57R_load';
     '/asap3/petra3/gpfs/p05/2016/data/11001978/raw/mah_15_57R';
     '/asap3/petra3/gpfs/p05/2016/data/11001978/raw/mah_10_13R_bottom';
-    '/asap3/petra3/gpfs/p05/2016/data/11001994/raw/szeb_74_13';
     '/asap3/petra3/gpfs/p05/2016/commissioning/c20160803_001_pc_test/raw/phase_1000';
     '/asap3/petra3/gpfs/p05/2016/commissioning/c20160803_001_pc_test/raw/phase_1400';
     '/asap3/petra3/gpfs/p05/2016/commissioning/c20160913_000_synload/raw/mg5gd_21_3w';
@@ -31,16 +32,23 @@ scan_path = ...
     '/asap3/petra3/gpfs/p05/2016/commissioning/c20161024_000_xeno/raw/xeno_01_b';
 read_proj = 0; % Read flatfield-corrected images from disc
 read_proj_folder = []; % subfolder of 'flat_corrected' containing projections
-%proj_stride = 3; % stride of projection images to read
-proj_range = 1:1300; % range of found projections to be used. if empty: all, if scalar: stride
-ref_range = 1; % range of found flats to be used. if empty: all, if scalar: stride
+proj_range = 1; % range of found projections to be used. if empty: all, if scalar: stride
+ref_range = 8; % range of flat fields to be used. if empty: all (equals 1), if scalar: stride
 bin = 2; % bin size: if 2 do 2 x 2 binning, if 1 do nothing
 poolsize = 28; % number of workers in parallel pool to be usedcdcdsc
 gpu_ind = 1; % GPU Device to use: gpuDevice(gpu_ind)
 gpu_thresh = 0.8; % Percentage of maximally used to available GPU memory
-num_proj_hard = []; % hard coded number of projection. required if projections are missing
+num_angles = []; % number of angles. required if projections are missing. if empty: read from log file
+darkFiltPixHot = 0.01; % Hot pixel filter parameter for dark fields, for details see 'FilterPixel'
+darkFiltPixDark = 0.005; % Dark pixel filter parameter for dark fields, for details see 'FilterPixel'
+refFiltPixHot = 0.01; % Hot pixel filter parameter for flat fields, for details see 'FilterPixel'
+refFiltPixDark = 0.005; % Dark pixel filter parameter for flat fields, for details see 'FilterPixel'
+projFiltPixHot = 0.01; % Hot pixel filter parameter for projections, for details see 'FilterPixel'
+projFiltPixDark = 0.005; % Dark pixel filter parameter for projections, for details see 'FilterPixel'
 correct_beam_shake = 1;%  correlate flat fields and projection to correct beam shaking
-correct_beam_shake_max_shift = 0; % if 0: use the best match (i.e. the one which is closest to zero), if > 0 all flats which are shifted less than correct_beam_shake_max_shift are used
+correct_beam_shake_max_shift = 0; % if 0: use the best match (i.e. the one with the least shift), if > 0 all flats which are shifted less than correct_beam_shake_max_shift are used
+max_num_flats = 11; % maximum number of flat fields used for average/median of flats
+norm_by_ring_current = 1; % normalize flat fields and projections by ring current
 flat_corr_area1 = [1 floor(100/bin)]; % correlation area: proper index range or relative/absolute position of [first pix, last pix]
 flat_corr_area2 = [0.25 0.75]; %correlation area: proper index range or relative/absolute position of [first pix, last pix]
 ring_filter = 1; % ring artifact filter
@@ -49,15 +57,14 @@ phase_retrieval = 0;
 phase_retrieval_method = 'tie'; % 'ctf', 'qp'
 phase_retrieval_reg_par = 3;
 phase_retrieval_bin_filt = 0.1;
-energy = 30; % in keV
-sample_detector_distance = 1.0; % in m
-eff_pixel_size = 0.35e-6; % effective pixel size: (detector pixel size) / magnification
-eff_pixel_size_binned = bin * eff_pixel_size; %1.3056e-5
+energy = []; % in eV. if empty: read from log file
+sample_detector_distance = []; % in m
+eff_pixel_size = []; % if empty: read from log file. effective pixel size =  detector pixel size / magnification
 round_precision = 2; % precision when rounding of pixel shifts
 do_tomo = 1; % reconstruct volume
 vol_shape = []; % shape of the volume to be reconstructed, either in absolute number of voxels or in relative number w.r.t. the default volume which is given by the detector width and height
 vol_size = []; % if empty, unit voxel size is assumed
-rot_angle_full = [1300/1800*2*pi]; % in radians: empty ([]), full angle of rotation, or array of angles. if empty full rotation angles is determined automatically to pi or 2 pi
+rot_angle_full = []; % in radians: empty ([]), full angle of rotation, or array of angles. if empty full rotation angles is determined automatically to pi or 2 pi
 rot_angle_offset = pi; % global rotation of reconstructed volume
 rot_axis_offset = []; % if empty use automatic computation
 rot_axis_pos = []; % if empty use automatic computation. either offset or pos has to be empty. can't use both
@@ -73,48 +80,45 @@ astra_pixel_size = 1; % size of a detector pixel: if different from one 'vol_siz
 link_data = 1; % ASTRA data objects become references to Matlab arrays.
 take_neg_log = 1; % take negative logarithm. if empty, use 1 for attenuation contrast, 0 for phase contrast
 out_path = ''; % absolute path were output data will be stored. overwrites the write_to_scratch flage. if empty uses the beamtime directory and either 'processed' or 'scratch_cc'
-write_proj = 1; % save preprocessed projections
-write_phase_map = 1; % save phase maps (if phase retrieval is not 0)
-write_sino = 1; % save sinograms (after preprocessing & phase retrieval, before FBP filtering)
+write_proj = 0; % save preprocessed projections
+write_phase_map = 0; % save phase maps (if phase retrieval is not 0)
+write_sino = 0; % save sinograms (after preprocessing & phase retrieval, before FBP filtering)
 write_reco = 1; % save reconstructed slices
 write_to_scratch = 1; % write to 'scratch_cc' instead of 'processed'
-parfolder = ''; % parent folder of 'reco', 'sino', and 'flat_corrected'
-parfolder = sprintf('test%04uto%04u', proj_range(1), proj_range(end) );
+%parfolder = 'test'; % parent folder of 'reco', 'sino', and 'flat_corrected'
+parfolder = sprintf('test_normbyringcur%u', norm_by_ring_current); % parent folder of 'reco', 'sino', and 'flat_corrected'
 subfolder_flatcor = ''; % subfolder of 'flat_corrected'
 subfolder_phase_map = ''; % subfolder of 'phase_map'
 subfolder_sino = ''; % subfolder of 'sino'
 subfolder_reco = ''; % parent folder to 'reco'
 verbose = 1; % print information to standard output
-visualOutput = 0; % show images and plots during reconstruction
+visualOutput = 1; % show images and plots during reconstruction
 
 %% TODO %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% TODO: use log files instead of hard coded number for missing projections
-% TODO: merge subbranch to master
+% TODO: test KIT camera data set 
+% TODO: adopt for missing images w.r.t. to img or tif
 % TODO: automatic determination of rot center: entropy type
 % TODO: manual interactive finding of rotation center
-% TODO: make pixel filtering thresholds parameters
 % TODO: vertical ROI reco
 % TODO: padding options for FBP filter
-% TODO: normalize proj with beam current
+% TODO: normalize proj with beam current for KIT camera
 % TODO: check offsets in projection correlation for rotation axis determination
 % TODO: output file format option
 % TODO: excentric rotation axis 
 % TODO: read sinograms
-% TODO: read number of projection from log file
 % TODO: set photometric tag for tif files w/o one, turn on respective warning
-% TODO: read image ROI and check if it's faster at all
+% TODO: read image ROI and test for speed up
+% TODO: parallelize slice reconstruction using parpool and astra
 % TODO: optional output format: 8-bit, 16-bit. Currently 32 bit tiff.
 % TODO: check attenutation values of reconstructed slice
-% TODO: adopt for missing images w.r.t. to img or tif
 % TODO: tomo with parfor loop and astra
 % TODO: median filter width of ring filter dependence on binning
 
 %% Main %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 tic
+PrintVerbose(verbose, 'Start reconstruction of ')
 warning( 'off', 'MATLAB:imagesci:rtifc:missingPhotometricTag');
-%warning( 'off','all')
 cdscandir = cd(scan_path);
-PrintVerbose(verbose, 'Start P05 reconstruction pipeline of scan_name: ')
 NameCellToMat = @(name_cell) reshape(cell2mat(name_cell), [numel(name_cell{1}), numel(name_cell)])';
 imsc1 = @(im) imsc( flipud( im' ) );
 astra_clear % if reco was aborted, ASTRA memory is not cleared
@@ -127,6 +131,7 @@ while scan_path(end) == filesep
     scan_path(end) = [];
 end
 [raw_path, scan_name] = fileparts(scan_path);
+PrintVerbose(verbose, '%s', scan_name)
 scan_path = [scan_path, filesep];
 [beamtime_path, raw_folder] = fileparts(raw_path);
 [~, beamtime_id] = fileparts(beamtime_path);
@@ -189,7 +194,6 @@ proj_names = FilenameCell( [scan_path, '*.img'] );
 if isempty( proj_names )
     proj_names =  FilenameCell( [scan_path, 'proj_*.tif'] );
 end
-proj_nums = CellString2Vec( proj_names );
 num_proj_found = numel(proj_names);
 
 % Ref file names
@@ -197,7 +201,6 @@ ref_names = FilenameCell( [scan_path, '*.ref'] );
 if isempty( ref_names )
     ref_names = FilenameCell( [scan_path, 'ref_*.tif'] );
 end
-ref_nums = CellString2Vec( ref_names );
 num_ref_found = numel(ref_names);
 if isempty( ref_range )
     ref_range = 1;
@@ -206,6 +209,8 @@ if numel( ref_range ) == 1
     ref_range = 1:ref_range:num_ref_found;
 end
 num_ref_used = numel( ref_range );
+ref_names_mat = NameCellToMat( ref_names(ref_range) );
+ref_nums = CellString2Vec( ref_names(ref_range) );
 PrintVerbose(verbose, '\n number of refs found : %g', num_ref_found)
 PrintVerbose(verbose, '\n number of refs used : %g', num_ref_used)
 PrintVerbose(verbose, '\n reference range used : %g:%g:%g%', ref_range(1), ref_range(2) - ref_range(1), ref_range(end))
@@ -226,9 +231,8 @@ end
 if numel( proj_range ) == 1
     proj_range = 1:proj_range:num_proj_found;
 end
-%proj_stride = max( 1, proj_stride);
-%proj_range = 1:proj_stride:num_proj_found;
 num_proj_used = numel( proj_range );
+proj_nums = CellString2Vec( proj_names(proj_range) );
 PrintVerbose(verbose, '\n number of projections found : %g', num_proj_found)
 PrintVerbose(verbose, '\n number of projections used : %g', num_proj_used)
 PrintVerbose(verbose, '\n projection range used : first:stride:last =  %g:%g:%g', proj_range(1), proj_range(2) - proj_range(1), proj_range(end))
@@ -239,13 +243,45 @@ im = read_image( filename );
 raw_im_shape = size( im );
 raw_im_shape_binned = floor( raw_im_shape / bin );
 raw_im_shape_binned1 = raw_im_shape_binned(1);
-raw_im_shape_binned2 = raw_im_shape_binned(2);    
+raw_im_shape_binned2 = raw_im_shape_binned(2);
 PrintVerbose(verbose, '\n raw image shape : %g  %g', raw_im_shape)
 PrintVerbose(verbose, '\n raw image shape binned : %g  %g', raw_im_shape_binned)
 
+%% Read par log
+str = dir( sprintf( '%s*scan.log', scan_path) );
+filename = sprintf( '%s/%s', str.folder, str.name);
+[par, cur] = p05_log( filename );
+if isempty( energy )
+    if isfield( par, 'Energy' )
+        energy = par.Energy;
+    elseif isfield( par, 'energy' )
+        energy = par.energy;
+    end              
+end
+if isempty( eff_pixel_size )
+    if isfield( par, 'eff_pix_size' )
+        eff_pixel_size = par.eff_pix_size ;
+    elseif isfield( par, 'ccd_pixsize' )
+        eff_pixel_size = par.ccd_pixsize / par.magn ;
+    end
+end
+eff_pixel_size_binned = bin * eff_pixel_size;
+if isempty( sample_detector_distance)
+    if isfield( par, 'camera_distance')
+        sample_detector_distance = par.camera_distance;
+    end
+end
+if isempty( num_angles )
+    if isfield( par, 'n_angle' )
+        num_angles = par.n_angle;
+    elseif isfield( par, 'projections' )
+        num_angles = par.projections;
+    end
+end
+
 %% Start parallel CPU pool
 t = toc;
-PrintVerbose( poolsize > 1, '\n Use parallel CPU pool of %u workers (or more). ', poolsize)
+PrintVerbose( poolsize > 1, '\nStart parallel pool of %u workers. ', poolsize)
 OpenParpool(poolsize);
 PrintVerbose( poolsize > 1, ' Elapsed time: %.1f s', toc-t)
 
@@ -253,8 +289,7 @@ PrintVerbose( poolsize > 1, ' Elapsed time: %.1f s', toc-t)
 %% Read flat corrected projection
 if read_proj(1)
     data_struct = dir( [flatcor_path, 'proj*.*'] );
-    if isempty( data_struct )
-        
+    if isempty( data_struct )        
         fprintf('\n No flat corrected projections found! Switch to standard pre-processing.')
         read_proj = 0;
     else
@@ -278,26 +313,24 @@ if read_proj(1)
     
     % Read projections
     parfor nn = 1:num_proj_read
-        filename = sprintf('%s%s', flatcor_path, proj_names_mat(nn, :));
-        %proj(:, :, nn) = imread( filename, 'tif' )';
+        filename = sprintf('%s%s', flatcor_path, proj_names_mat(nn, :));        
         proj(:, :, nn) = read_image( filename )';
     end
     PrintVerbose(verbose, ' Elapsed time: %.1f s (%.2f min)', toc - t, ( toc - t ) / 60 )
     
-%% Read raw data
+%% Read raw data %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 elseif ~read_proj
     %% Dark field
     t = toc;
     PrintVerbose(verbose, '\nProcessing dark fields.')
     dark = zeros( [raw_im_shape_binned, num_dark], 'single');
     parfor nn = 1:num_dark
-        filename = sprintf('%s%s', scan_path, dark_names{nn});
-        dark(:, :, nn) = Binning( FilterPixel( read_image( filename ), [0.02 0.02]), bin) / bin^2;
+        filename = sprintf('%s%s', scan_path, dark_names{nn});        
+        dark(:, :, nn) = Binning( FilterPixel( read_image( filename ), [darkFiltPixHot darkFiltPixDark]), bin) / bin^2;
     end
     dark_min = min( dark(:) );
     dark_max = max( dark(:) );
-    dark = squeeze( median(dark, 3) );
-    %dark = FilterPixel( squeeze( median(dark, 3) ), [0.02 0.02]);
+    dark = squeeze( median(dark, 3) );    
     if sum(dark <= 0)
         fprintf('\n CAUTION: dark field contains zeros')
     end
@@ -316,16 +349,23 @@ elseif ~read_proj
     PrintVerbose(verbose, '\nProcessing flat fields.')        
     
     % Preallocation
-    flat = zeros( [raw_im_shape_binned, num_ref_used], 'single');
-    ref_names_mat = NameCellToMat(ref_names);
+    flat = zeros( [raw_im_shape_binned, num_ref_used], 'single');    
     
     % Parallel loop
     parfor nn = 1:num_ref_used
         filename = sprintf('%s%s', scan_path, ref_names_mat(nn, :));        
-        flat(:, :, nn) = Binning( FilterPixel( read_image( filename ), [0.01 0.005]), bin) / bin^2;
+        flat(:, :, nn) = Binning( FilterPixel( read_image( filename ), [refFiltPixHot refFiltPixDark]), bin) / bin^2;
     end
     flat_min = min( flat(:) );
     flat_max = max( flat(:) );    
+    if norm_by_ring_current(1)
+        if isequal( ref_nums, [cur.ref(ref_range).ind] )
+            sc = 100 ./ shiftdim( [cur.ref(ref_range).val], -1 );
+            flat = bsxfun( @times, flat, sc );
+        else
+            fprintf('\n CAUTION: flat fields not normalized by ring current. Names read from dir() and log-file are inconsistent.')
+        end
+    end
     if sum( flat(:) < 1 )
         fprintf('\n CAUTION: mean flat field contains zeros')
     end
@@ -347,28 +387,44 @@ elseif ~read_proj
     PrintVerbose(verbose, '\nRead and filter raws.')
     % Preallocation
     proj = zeros( raw_im_shape_binned(1), raw_im_shape_binned(2), num_proj_used, 'single');    
-    img_names_mat = NameCellToMat( proj_names );
-    img_names_mat = img_names_mat( proj_range, :);
+    img_names_mat = NameCellToMat( proj_names(proj_range) );    
+    
+%     img_names_mat = NameCellToMat( proj_names );
+%     img_names_mat = img_names_mat( proj_range, :);
+     
     % Display first raw images
     if visualOutput(1)  
         figure(h1)
         filename = sprintf('%s%s', scan_path, img_names_mat(1, :));
-        raw1 = Binning( FilterPixel( read_image( filename ), [0.02 0.01]), bin) / bin^2;
+        raw1 = Binning( FilterPixel( read_image( filename ), [projFiltPixHot, projFiltPixDark]), bin) / bin^2;
         subplot(2,2,3)       
         imsc1( raw1 + dark );
         axis equal tight;% square
         title(sprintf('raw projection #1'))
         drawnow
     end
-    % Read raw projections    
+    
+    % Read raw projections
     parfor nn = 1:num_proj_used
         filename = sprintf('%s%s', scan_path, img_names_mat(nn, :));                
-        proj(:, :, nn) = Binning( FilterPixel( read_image( filename ), [0.02 0.01]), bin) / bin^2;
+        proj(:, :, nn) = Binning( FilterPixel( read_image( filename ), [projFiltPixHot, projFiltPixDark]), bin) / bin^2;
     end    
     raw_min = min( proj(:) );
     raw_max = max( proj(:) );
+    
+    % Ring current normalization
+    if norm_by_ring_current(1)
+        if isequal( proj_nums, [cur.proj(proj_range).ind] )
+            sc = 100 ./ shiftdim( [cur.proj(proj_range).val], -1 );
+            proj = bsxfun( @times, proj, sc );
+        else
+            fprintf('\n CAUTION: projections not normalized by ring current. Names read from dir() and log-file are not consistent.')
+        end
+    end
+    
     % Dark field correction
     proj = bsxfun( @minus, proj, dark);
+    
     % Flat field correction without correlation
     if ~correct_beam_shake
         flat_m = median(flat, 3);
@@ -414,8 +470,7 @@ elseif ~read_proj
         % use best match
         if correct_beam_shake_max_shift == 0            
             [~, pos] = min( abs( yshift ), [], 2 );
-            parfor nn = 1:num_proj_used
-                %[~, pos] = min( abs( yshift(nn, : ) ) );                
+            parfor nn = 1:num_proj_used                
                 proj(:, :, nn) = proj(:, :, nn) ./ flat(:, :, pos(nn));
             end
         % use all flats which are shifted less pixels than correct_beam_shake_max_shift
@@ -424,12 +479,14 @@ elseif ~read_proj
             parfor nn = 1:num_proj_used
                 vec = 1:num_ref_used;
                 flat_ind = vec( abs( yshift(nn, :) ) < correct_beam_shake_max_shift );
+                if numel( flat_ind ) > max_num_flats
+                    flat_ind( max_num_flats + 1:end ) = [];
+                end
                 if isempty( flat_ind )
                     [~, flat_ind] = min( abs( yshift(nn, :) ) );
                 end
-                flat_count(nn) = numel(flat_ind);    
-                flat_selected_mean = FilterPixel( squeeze( mean( flat(:, :, flat_ind), 3) ), [0.005 0.0025]);           
-                proj(:, :, nn) = proj(:, :, nn) ./ flat_selected_mean;
+                flat_count(nn) = numel(flat_ind);                    
+                proj(:, :, nn) = proj(:, :, nn) ./ squeeze( mean( flat(:, :, flat_ind), 3) );
             end
         else
             error('Value of maximum shift (%g) is not >= 0', correct_beam_shake_max_shift)
@@ -529,10 +586,10 @@ if do_tomo
     PrintVerbose(verbose, '\n full rotation angle: %g * pi', rot_angle_full / pi)
     angles = rot_angle_full * (0:num_proj_used - 1) / (num_proj_used - 1);
 % use above for img files and below for tiff files which accounts for missing images 
-%     if isempty( num_proj_hard )
+%     if isempty( num_angles )
 %         angles = rot_angle_full * proj_nums / num_proj_used;
 %     else
-%         angles = rot_angle_full * proj_nums / num_proj_hard;
+%         angles = rot_angle_full * proj_nums / num_angles;
 %     end
 %     else
 %         PrintVerbose(verbose, '\n  angular range:', max( angles ) - min( angles ))
@@ -553,7 +610,7 @@ if do_tomo
     PrintVerbose(verbose, '\n relative shift: %g, %g', xshift, yshift)
     rot_axis_offset_calc = xshift / 2;
     rot_axis_pos_calc = raw_im_shape_binned1 / 2 + rot_axis_offset_calc;        
-    PrintVerbose(verbose, '\n calulated rotation axis offset: %g, %g', rot_axis_offset_calc)
+    PrintVerbose(verbose, '\n calulated rotation axis offset: %f', rot_axis_offset_calc)
     % use calculated offset if both offset and position are empty
     if isempty( rot_axis_offset ) && isempty( rot_axis_pos )
         rot_axis_offset = rot_axis_offset_calc;
@@ -613,8 +670,8 @@ if do_tomo
     % Readjust number slices to make all of similar size
     num_sli = ceil(vol_shape(3) / num_slabs);
     subvol_shape = [vol_shape(1:2), num_sli];
-    PrintVerbose(verbose, '\n rotation axis offset: %g', rot_axis_offset );
-    PrintVerbose(verbose, '\n rotation axis position: %g', rot_axis_pos );    
+    PrintVerbose(verbose, '\n rotation axis offset: %f', rot_axis_offset );
+    PrintVerbose(verbose, '\n rotation axis position: %f', rot_axis_pos );    
     PrintVerbose(verbose, '\n shape of reconstruction volume: [%g, %g, %g]', vol_shape )
     PrintVerbose(verbose, '\n shape of reconstruction subvolume: [%g, %g, %g]', subvol_shape )
     PrintVerbose(verbose, '\n available gpu memory : %g MiB (%.2f%%) of %g MiB', gpu.AvailableMemory/10^6, 100*gpu.AvailableMemory/gpu.TotalMemory, gpu.TotalMemory/10^6)
@@ -627,7 +684,7 @@ end
 
 %% Phase retrieval %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 if phase_retrieval(1)
-        PrintVerbose(verbose, '\n energy : %g keV', energy)
+        PrintVerbose(verbose, '\n energy : %g eV', energy)
         PrintVerbose(verbose, '\n sample detector distance : %g m', sample_detector_distance)        
         t = toc;   
         if isempty( take_neg_log )
@@ -767,7 +824,7 @@ if do_tomo
          fprintf(fid, 'raw_image_binning : %u\n', bin);
          fprintf(fid, 'effective_pixel_size_m : %g\n', eff_pixel_size);
          fprintf(fid, 'effective_pixel_size_binned_m : %g\n', eff_pixel_size_binned);
-         fprintf(fid, 'energy_eV : %g\n', energy);
+         fprintf(fid, 'energy : %g eV\n', energy);
          fprintf(fid, 'flat_field_correlation_area_1 : %u:%u:%u\n', flat_corr_area1(1), flat_corr_area1(2) - flat_corr_area1(1), flat_corr_area1(end));
          fprintf(fid, 'flat_field_correlation_area_2 : %u:%u:%u\n', flat_corr_area2(1), flat_corr_area2(2) - flat_corr_area2(1), flat_corr_area2(end));
          fprintf(fid, 'min_max_of_all_darks : %6g %6g\n', dark_min, dark_max);         

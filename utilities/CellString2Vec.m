@@ -8,14 +8,20 @@ function vec = CellString2Vec(cc)
 % OUTPUT
 % vec: array of double
 %
-% Written by Julian Moosmann, 2016-11-08. Modified:
+% Written by Julian Moosmann, 2017-01-03. Modified:
 %
 % vec = CellString2Vec(cc)
 
-%cellpos = regexp( cc, '\d' );
-
-for nn = numel( cc ):-1:1
-   %vec(nn) = str2double( cc{nn}(cellpos{nn}) );
-   vec(nn) = str2double( cc{nn}(end-8:end-4) );
+%% KIT camera
+if strcmp( cc{1}(end-2:end), 'tif' )
+    for nn = numel( cc ):-1:1
+    vec(nn) = str2double( cc{nn}(end-7:end-4) );   
+    end
+    
+%% EHD camera    
+else    
+    for nn = numel( cc ):-1:1   
+    vec(nn) = str2double( cc{nn}(end-8:end-4) );
    
+    end
 end

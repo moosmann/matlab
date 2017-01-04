@@ -1,17 +1,12 @@
 %% Scripts and functions
-hostname = getenv('HOSTNAME');
-if strcmp( hostname(1:3), 'max')
-    %% !! PATH TO USER MATLAB FILES: ADJUST UNLESS YOU USE ~/matlab !!
-    userpath( '/asap3/petra3/gpfs/common/p05/jm/matlab' );    
-else
-    userpath( [getenv('HOME') '/matlab'] );
-end
+%% TODO: adapt for cases where there is another matlab folder already in use
+userpath( fileparts( mfilename('fullpath') ) );    
 addpath( genpath( userpath ) );
 rmpath( genpath(  [userpath '/.git'] ) );
 rmpath( genpath(  [userpath '/test'] ) );
 rmpath( genpath(  [userpath '/old'] ) );
 
-fprintf( 'HOSTNAME: %s\n', hostname );
+fprintf( 'HOSTNAME: %s\n', getenv('HOSTNAME') );
 fprintf( 'userpath: %s', userpath );
 
 %% ASTRA 

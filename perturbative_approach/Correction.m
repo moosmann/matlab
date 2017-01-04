@@ -45,10 +45,10 @@ phi2        = prefactor*(phi2 - mean(phi2(:)));
 
 
 % Take real part and clip zero-padded matrices to original size
-if dimx~=dim1 | dimy~=dim2,
+if dimx~=dim1 || dimy~=dim2
     xcut  = 1+dimx/2-dim1/2:dimx/2+dim1/2;
     ycut  = 1+dimy/2-dim2/2:dimy/2+dim2/2;
     phi2  = real(phi2(xcut,ycut,:));
-else,
+else
     phi2  = real(phi2);
 end;

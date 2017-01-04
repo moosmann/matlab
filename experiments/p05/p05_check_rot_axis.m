@@ -1,4 +1,4 @@
-function p05_check_rot_axis(im1, im2, rotate_images )
+function [im0r, im180r, err] = p05_check_rot_axis(im1, im2, rotate_images )
 % Compute tilt of images that are projections which differ by a rotation
 % angle of pi.
 
@@ -7,12 +7,16 @@ if nargin < 1
     % Read images
     par_folder = '/asap3/petra3/gpfs/p05/2016/data/11001978/raw/images/';
     rows = [1200 2200];
+    rows = [1200 2100];
     cols = [1 3056];    
+    cols = [501 2556];    
     im1 = FilterPixel( flipud( imread([par_folder 'holder_000'],'tif', 'PixelRegion', {rows, cols}) ), [0.01, 0.001] );
     im2 = FilterPixel( flipud( imread([par_folder 'holder_180'],'tif', 'PixelRegion', {rows, cols})), [0.01, 0.001] );
+    im1 = FilterPixel( flipud( imread([par_folder 'holder_090'],'tif', 'PixelRegion', {rows, cols}) ), [0.01, 0.001] );
+    im2 = FilterPixel( flipud( imread([par_folder 'holder_270'],'tif', 'PixelRegion', {rows, cols})), [0.01, 0.001] );
     % Normalize
-    im1 = im1 / mean( im1(:) );
-    im2 = im2 / mean( im2(:) );
+    %im1 = im1 / mean( im1(:) );
+    %im2 = im2 / mean( im2(:) );
 end
 if nargin < 3
     rotate_images = 0;
@@ -49,7 +53,7 @@ fprintf('\n rotation axis offset: %g', rot_axis_offset)
 im0c = RotAxisSymmetricCropping( im0, rot_axis_pos, 2);
 im180c = fliplr(RotAxisSymmetricCropping( im180, rot_axis_pos, 2) );
 
-tilt_max = 0.5;
+tilt_max = 1;
 tilt_stride = 0.05;
 tilt_range = 0:tilt_stride:tilt_max;
 tilt_range = [-tilt_range(end:-1:2), tilt_range];
@@ -58,8 +62,8 @@ err_l2 = zeros( 1, numel( tilt_range) );
 err = zeros( [size(im0c), numel( tilt_range) ]);
 for nn = 1:numel(tilt_range)
     tilt = tilt_range(nn);
-    im0r = imrotate(im0c, -tilt/2, 'bilinear', 'crop');
-    im180r = imrotate(im180c, tilt/2, 'bilinear', 'crop');
+    im0r = imrotate(im0c, -tilt/2, 'nearest', 'crop');
+    im180r = imrotate(im180c, tilt/2, 'nearest', 'crop');
     d = abs(im0r - im180r);
     err(:, :, nn) = d;
     err_l2(nn) = sqrt( mean2( d(201:end-200,201:end-200) ).^2 ) ;
