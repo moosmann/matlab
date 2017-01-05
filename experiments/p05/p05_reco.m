@@ -52,12 +52,13 @@ norm_by_ring_current = 1; % normalize flat fields and projections by ring curren
 flat_corr_area1 = [1 floor(100/bin)]; % correlation area: proper index range or relative/absolute position of [first pix, last pix]
 flat_corr_area2 = [0.25 0.75]; %correlation area: proper index range or relative/absolute position of [first pix, last pix]
 round_precision = 2; % precision when rounding of pixel shifts
-ring_filter = 0; % ring artifact filter
+ring_filter = 1; % ring artifact filter
 ring_filter_median_width = 11;
 phase_retrieval = 1;
 phase_retrieval_method = 'tie'; % 'ctf', 'qp'
 phase_retrieval_reg_par = 3; % regularization parameter
 phase_retrieval_bin_filt = 0.1; % threshold for quasiparticle retrieval 'qp', 'qp2'
+phase_padding = 1; % symmetric padding of intensities before phase retrieval
 energy = []; % in eV. if empty: read from log file
 sample_detector_distance = []; % in m
 eff_pixel_size = []; % in m. if empty: read from log file. effective pixel size =  detector pixel size / magnification
@@ -89,7 +90,7 @@ parfolder = sprintf('test'); % parent folder of 'reco', 'sino', and 'flat_correc
 subfolder_flatcor = ''; % subfolder of 'flat_corrected'
 subfolder_phase_map = ''; % subfolder of 'phase_map'
 subfolder_sino = ''; % subfolder of 'sino'
-subfolder_reco = sprintf('ringFilt%u_bwFilt%u', ring_filter, butterworth_filter); % parent folder to 'reco'
+subfolder_reco = sprintf('ringFilt%uMedWid%u_bwFilt%u_phasePad%u', ring_filter, ring_filter_median_width, butterworth_filter, phase_padding); % parent folder to 'reco'
 verbose = 1; % print information to standard output
 visualOutput = 0; % show images and plots during reconstruction
 
@@ -426,11 +427,8 @@ elseif ~read_proj
     PrintVerbose(verbose, '\nRead and filter raws.')
     % Preallocation
     proj = zeros( raw_im_shape_binned(1), raw_im_shape_binned(2), num_proj_used, 'single');    
-    img_names_mat = NameCellToMat( proj_names(proj_range) );    
+    img_names_mat = NameCellToMat( proj_names(proj_range) );
     
-%     img_names_mat = NameCellToMat( proj_names );
-%     img_names_mat = img_names_mat( proj_range, :);
-     
     % Display first raw images
     if visualOutput(1)  
         figure(h1)
@@ -766,10 +764,14 @@ if phase_retrieval(1)
             take_neg_log = 0;
         end
         
-        % Phase retieval filter
+        % Phase retrieval filter
         edp = [energy, sample_detector_distance, eff_pixel_size_binned];
-        [pf, pha_appendix] = PhaseFilter( phase_retrieval_method, raw_im_shape_binned, edp, phase_retrieval_reg_par, phase_retrieval_bin_filt, 'single');
-          
+        if phase_padding(1)
+            [pf, pha_appendix] = PhaseFilter( phase_retrieval_method, 2*raw_im_shape_binned, edp, phase_retrieval_reg_par, phase_retrieval_bin_filt, 'single');
+        else
+            [pf, pha_appendix] = PhaseFilter( phase_retrieval_method, raw_im_shape_binned, edp, phase_retrieval_reg_par, phase_retrieval_bin_filt, 'single');
+        end
+                          
         % reco phase dir
         if isempty( subfolder_reco )
             reco_phase_path = [out_path, filesep, 'reco_phase_', pha_appendix, filesep];
@@ -781,10 +783,21 @@ if phase_retrieval(1)
         PrintVerbose(verbose, '\n phase retrieval method : %s', phase_retrieval_method)
         PrintVerbose(verbose, '\nPhase retrieval.')        
                      
-        % Projections
-        parfor nn = 1:num_proj_used            
-            proj(:,:,nn) = -real( ifft2( pf .* fft2( proj(:,:,nn) ) ) );            
+        % Retrieval
+        parfor nn = 1:num_proj_used
+            if phase_padding
+                tic
+                %im = padarray( proj(:,:,nn), raw_im_shape_binned, 'post', 'symmetric' );
+                im = padarray( gpuArray( proj(:,:,nn) ), raw_im_shape_binned, 'post', 'symmetric' );
+                im = -real( ifft2( pf .* fft2( im ) ) );
+                %proj(:,:,nn) = im(1:raw_im_shape_binned1, 1:raw_im_shape_binned2);
+                proj(:,:,nn) = gather( im(1:raw_im_shape_binned1, 1:raw_im_shape_binned2) );
+                toc
+            else
+                proj(:,:,nn) = gather( -real( ifft2( pf .* fft2( gpuArray( proj(:,:,nn) ) ) ) ) );
+            end            
         end
+        
         PrintVerbose(verbose, ' Elapsed time: %g s (%.2f min)', toc-t, (toc-t)/60)
         
         % Save phase maps
