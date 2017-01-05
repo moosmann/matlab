@@ -7,13 +7,12 @@
 % change to scann folder and use % 'pwd', see below).
 %
 % Written by Julian Moosmann.
-% First version: 2016-09-28. Last modifcation: 2017-01-03
+% First version: 2016-09-28. Last modifcation: 2017-01-05
 
 %% PARAMETERS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-clear all
 %scan_path = pwd;
 scan_path = ...
-    '/asap3/petra3/gpfs/p05/2016/data/11001994/raw/szeb_14_00';
+    '/asap3/petra3/gpfs/p05/2016/data/11001994/raw/szeb_19_00';
     '/asap3/petra3/gpfs/p05/2015/data/11001102/raw/hzg_wzb_mgag_14';        
     '/asap3/petra3/gpfs/p05/2016/data/11001978/raw/mah_36_1R_top';    
     '/asap3/petra3/gpfs/p05/2016/data/11001978/raw/mah_28_15R_top';    
@@ -34,7 +33,7 @@ scan_path = ...
 read_proj = 0; % Read flatfield-corrected images from disc
 read_proj_folder = []; % subfolder of 'flat_corrected' containing projections
 proj_range = 1; % range of found projections to be used. if empty: all, if scalar: stride
-ref_range = 8; % range of flat fields to be used. if empty: all (equals 1), if scalar: stride
+ref_range = []; % range of flat fields to be used: start:inc:end. if empty: all (equals 1). if scalar: stride
 bin = 2; % bin size: if 2 do 2 x 2 binning, if 1 do nothing
 poolsize = 28; % number of workers in parallel pool to be usedcdcdsc
 gpu_ind = 1; % GPU Device to use: gpuDevice(gpu_ind)
@@ -47,7 +46,7 @@ refFiltPixDark = 0.005; % Dark pixel filter parameter for flat fields, for detai
 projFiltPixHot = 0.01; % Hot pixel filter parameter for projections, for details see 'FilterPixel'
 projFiltPixDark = 0.005; % Dark pixel filter parameter for projections, for details see 'FilterPixel'
 correct_beam_shake = 1;%  correlate flat fields and projection to correct beam shaking
-correct_beam_shake_max_shift = 0; % if 0: use the best match (i.e. the one with the least shift), if > 0 all flats which are shifted less than correct_beam_shake_max_shift are used
+correct_beam_shake_max_shift = 0.5; % if 0: use the best match (i.e. the one with the least shift), if > 0 all flats which are shifted less than correct_beam_shake_max_shift are used
 max_num_flats = 11; % maximum number of flat fields used for average/median of flats
 norm_by_ring_current = 1; % normalize flat fields and projections by ring current
 flat_corr_area1 = [1 floor(100/bin)]; % correlation area: proper index range or relative/absolute position of [first pix, last pix]
@@ -61,7 +60,7 @@ phase_retrieval_reg_par = 3; % regularization parameter
 phase_retrieval_bin_filt = 0.1; % threshold for quasiparticle retrieval 'qp', 'qp2'
 energy = []; % in eV. if empty: read from log file
 sample_detector_distance = []; % in m
-eff_pixel_size = []; % if empty: read from log file. effective pixel size =  detector pixel size / magnification
+eff_pixel_size = []; % in m. if empty: read from log file. effective pixel size =  detector pixel size / magnification
 do_tomo = 1; % reconstruct volume
 vol_shape = []; % shape of the volume to be reconstructed, either in absolute number of voxels or in relative number w.r.t. the default volume which is given by the detector width and height
 vol_size = []; % if empty, unit voxel size is assumed
@@ -73,7 +72,6 @@ rot_corr_area1 = [0.25 0.75]; % ROI to correlate projections at angles 0 & pi
 rot_corr_area2 = [0.25 0.75]; % ROI to correlate projections at angles 0 & pi
 rot_axis_tilt = 0 * -0.1 / 180 * pi; % camera tilt w.r.t rotation axis
 fbp_filter_type = 'Ram-Lak';
-fbp_filter_dim = 1; % dimension of sinogram to apply filte. should be the one of the detector lines orthogonal to the rotation axis
 butterworth_filter = 1; % use butterworth filter in addition to FBP filter
 butterworth_order = 1;
 butterworth_cutoff_frequ = 0.5;
@@ -91,12 +89,11 @@ parfolder = sprintf('test'); % parent folder of 'reco', 'sino', and 'flat_correc
 subfolder_flatcor = ''; % subfolder of 'flat_corrected'
 subfolder_phase_map = ''; % subfolder of 'phase_map'
 subfolder_sino = ''; % subfolder of 'sino'
-subfolder_reco = ''; % parent folder to 'reco'
+subfolder_reco = sprintf('ringFilt%u_bwFilt%u', ring_filter, butterworth_filter); % parent folder to 'reco'
 verbose = 1; % print information to standard output
-visualOutput = 1; % show images and plots during reconstruction
+visualOutput = 0; % show images and plots during reconstruction
 
 %% TODO %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% TODO: test KIT camera data set 
 % TODO: adopt for missing images w.r.t. to img or tif
 % TODO: automatic determination of rot center: entropy type
 % TODO: manual interactive finding of rotation center
@@ -114,6 +111,8 @@ visualOutput = 1; % show images and plots during reconstruction
 % TODO: check attenutation values of reconstructed slice
 % TODO: tomo with parfor loop and astra
 % TODO: median filter width of ring filter dependence on binning
+% TODO: FBP filter padding
+% TODO: phase retrieval padding
 
 %% Main %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 tic
@@ -261,15 +260,15 @@ if isempty( energy )
 end
 if isempty( eff_pixel_size )
     if isfield( par, 'eff_pix_size' )
-        eff_pixel_size = par.eff_pix_size ;
-    elseif isfield( par, 'ccd_pixsize' )
-        eff_pixel_size = par.ccd_pixsize / par.magn ;
+        eff_pixel_size = par.eff_pix_size * 1e-3 ;
+    elseif isfield( par, 'ccd_pixsize' ) && isfield( par, 'magn' )
+        eff_pixel_size = par.ccd_pixsize / par.magn * 1e-3 ;
     end
 end
 eff_pixel_size_binned = bin * eff_pixel_size;
-if isempty( sample_detector_distance)
+if isempty( sample_detector_distance )
     if isfield( par, 'camera_distance')
-        sample_detector_distance = par.camera_distance;
+        sample_detector_distance = par.camera_distance / 1000;
     end
 end
 if isempty( num_angles )
@@ -831,7 +830,7 @@ if do_tomo
 
         % Filter sinogram
         PrintVerbose(verbose, '\n slab %g of %g: Filter sino: ', nn, num_slabs)                     
-        filt = iradonDesignFilter('Ram-Lak', raw_im_shape_binned1, 1);
+        filt = iradonDesignFilter(fbp_filter_type, raw_im_shape_binned1, 1);
         if butterworth_filter            
             [b, a] = butter(butterworth_order, butterworth_cutoff_frequ);
             bw = freqz(b, a, numel(filt) );
@@ -897,9 +896,9 @@ if do_tomo
          fprintf(fid, 'proj_range : %u\n', proj_range(1), proj_range(2) - proj_range(1), proj_range(end) );
          fprintf(fid, 'raw_image_shape : %u %u\n', raw_im_shape);
          fprintf(fid, 'raw_image_shape_binned : %u %u\n', raw_im_shape_binned);
-         fprintf(fid, 'raw_image_binning : %u\n', bin);
-         fprintf(fid, 'effective_pixel_size_m : %g\n', eff_pixel_size);
-         fprintf(fid, 'effective_pixel_size_binned_m : %g\n', eff_pixel_size_binned);
+         fprintf(fid, 'binning_factor : %u\n', bin);
+         fprintf(fid, 'effective_pixel_size_mu : %g\n', eff_pixel_size * 1e6);
+         fprintf(fid, 'effective_pixel_size_binned_mu : %g\n', eff_pixel_size_binned * 1e6);
          fprintf(fid, 'energy : %g eV\n', energy);
          fprintf(fid, 'flat_field_correlation_area_1 : %u:%u:%u\n', flat_corr_area1(1), flat_corr_area1(2) - flat_corr_area1(1), flat_corr_area1(end));
          fprintf(fid, 'flat_field_correlation_area_2 : %u:%u:%u\n', flat_corr_area2(1), flat_corr_area2(2) - flat_corr_area2(1), flat_corr_area2(end));
@@ -911,7 +910,7 @@ if do_tomo
          fprintf(fid, 'min_max_of_all_corrected_raws :  %6g %6g\n', raw_min2, raw_max2);
          fprintf(fid, 'min_max_of_all_flat_corr_projs : %g %g \n', proj_min, proj_max);
          % Phase retrieval
-         fprintf(fid, 'use_phase_retrieval : %u\n', phase_retrieval);
+         fprintf(fid, 'phase_retrieval : %u\n', phase_retrieval);
          fprintf(fid, 'phase_retrieval_method : %s\n', phase_retrieval_method);
          fprintf(fid, 'phase_retrieval_regularisation_parameter : %f\n', phase_retrieval_reg_par);
          fprintf(fid, 'phase_retrieval_binary_filter_threshold : %f\n', phase_retrieval_bin_filt);
