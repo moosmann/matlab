@@ -58,7 +58,7 @@ phase_retrieval = 1;
 phase_retrieval_method = 'tie'; % 'ctf', 'qp'
 phase_retrieval_reg_par = 3; % regularization parameter
 phase_retrieval_bin_filt = 0.1; % threshold for quasiparticle retrieval 'qp', 'qp2'
-phase_padding = 1; % symmetric padding of intensities before phase retrieval
+phase_padding = 0; % padding of intensities before phase retrieval
 energy = []; % in eV. if empty: read from log file
 sample_detector_distance = []; % in m
 eff_pixel_size = []; % in m. if empty: read from log file. effective pixel size =  detector pixel size / magnification
@@ -73,7 +73,9 @@ rot_corr_area1 = [0.25 0.75]; % ROI to correlate projections at angles 0 & pi
 rot_corr_area2 = [0.25 0.75]; % ROI to correlate projections at angles 0 & pi
 rot_axis_tilt = 0 * -0.1 / 180 * pi; % camera tilt w.r.t rotation axis
 fbp_filter_type = 'Ram-Lak';
-butterworth_filter = 1; % use butterworth filter in addition to FBP filter
+fpb_freq_cutoff = 1;
+fbp_filter_padding = 0;
+butterworth_filter = 0; % use butterworth filter in addition to FBP filter
 butterworth_order = 1;
 butterworth_cutoff_frequ = 0.5;
 astra_pixel_size = 1; % size of a detector pixel: if different from one 'vol_size' needs to be ajusted 
@@ -85,12 +87,11 @@ write_phase_map = 0; % save phase maps (if phase retrieval is not 0)
 write_sino = 0; % save sinograms (after preprocessing & phase retrieval, before FBP filtering)
 write_reco = 1; % save reconstructed slices
 write_to_scratch = 1; % write to 'scratch_cc' instead of 'processed'
-%parfolder = 'test'; % parent folder of 'reco', 'sino', and 'flat_corrected'
 parfolder = sprintf('test'); % parent folder of 'reco', 'sino', and 'flat_corrected'
 subfolder_flatcor = ''; % subfolder of 'flat_corrected'
 subfolder_phase_map = ''; % subfolder of 'phase_map'
 subfolder_sino = ''; % subfolder of 'sino'
-subfolder_reco = sprintf('ringFilt%uMedWid%u_bwFilt%u_phasePad%u', ring_filter, ring_filter_median_width, butterworth_filter, phase_padding); % parent folder to 'reco'
+subfolder_reco = sprintf('ringFilt%uMedWid%u_bwFilt%u_phasePad%u_freqCutoff%2.0f_fbpPad%u', ring_filter, ring_filter_median_width, butterworth_filter, phase_padding, fpb_freq_cutoff*100, fbp_filter_padding); % parent folder to 'reco'
 verbose = 1; % print information to standard output
 visualOutput = 0; % show images and plots during reconstruction
 
@@ -102,18 +103,31 @@ visualOutput = 0; % show images and plots during reconstruction
 % TODO: padding options for FBP filter
 % TODO: normalize proj with beam current for KIT camera
 % TODO: check offsets in projection correlation for rotation axis determination
-% TODO: output file format option
 % TODO: excentric rotation axis 
 % TODO: read sinograms
 % TODO: set photometric tag for tif files w/o one, turn on respective warning
 % TODO: read image ROI and test for speed up
 % TODO: parallelize slice reconstruction using parpool and astra
-% TODO: optional output format: 8-bit, 16-bit. Currently 32 bit tiff.
+% TODO: output file format option: 8-bit, 16-bit. Currently 32 bit tiff.
 % TODO: check attenutation values of reconstructed slice
-% TODO: tomo with parfor loop and astra
 % TODO: median filter width of ring filter dependence on binning
 % TODO: FBP filter padding
-% TODO: phase retrieval padding
+
+%% Notes %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Paddin and phase retrieval:
+% Symmetric padding of intensity maps before phase retrieval cleary reduces
+% artifacts in the retrieved phase maps which are due to inconistent
+% boundary conditions. However, due to local tomography phase retrieval
+% with padding can result in more artifacts in the recostructed volume
+% (such as additonal bumps at the halo described below). After phase
+% retrieval without padding the region close to the left
+% boundary is blended in to the region close to the right boundary and vice
+% versa (same holds for top and bottom). This effect fades out with
+% increasing distance to the boundarys. Due to this blending effect 
+% asymmetrical 'density' distributions, which are the cause of halo-like
+% artifacts stretching outwards from the biggest possible circle within the
+% reconstruction volume within a slice, are reduced which reduces the
+% halo-like artifacts as well.
 
 %% Main %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 tic
@@ -368,7 +382,7 @@ elseif ~read_proj
         % Check for zeros        
         nfz =  sum( sum( flat(:,:,nn) < 1 ) );
         if nfz > 0
-            fprintf('\n WARNING: %u pixel of flat field no %u has value below 1.', nfz, nn)            
+            fprintf('\n WARNING: values of %u pixels of flat field no %u are lower than 1.', nfz, nn)            
         end        
     end
     % min/max values before dark field subtraction and ring normalization
@@ -785,16 +799,15 @@ if phase_retrieval(1)
                      
         % Retrieval
         parfor nn = 1:num_proj_used
-            if phase_padding
-                tic
-                %im = padarray( proj(:,:,nn), raw_im_shape_binned, 'post', 'symmetric' );
-                im = padarray( gpuArray( proj(:,:,nn) ), raw_im_shape_binned, 'post', 'symmetric' );
+            if phase_padding                
+                im = padarray( proj(:,:,nn), raw_im_shape_binned, 'symmetric', 'post' );
+                %im = padarray( gpuArray( proj(:,:,nn) ), raw_im_shape_binned, 'post', 'symmetric' );
                 im = -real( ifft2( pf .* fft2( im ) ) );
-                %proj(:,:,nn) = im(1:raw_im_shape_binned1, 1:raw_im_shape_binned2);
-                proj(:,:,nn) = gather( im(1:raw_im_shape_binned1, 1:raw_im_shape_binned2) );
-                toc
+                proj(:,:,nn) = im(1:raw_im_shape_binned1, 1:raw_im_shape_binned2);
+                %proj(:,:,nn) = gather( im(1:raw_im_shape_binned1, 1:raw_im_shape_binned2) );                
             else
-                proj(:,:,nn) = gather( -real( ifft2( pf .* fft2( gpuArray( proj(:,:,nn) ) ) ) ) );
+                proj(:,:,nn) = -real( ifft2( pf .* fft2( proj(:,:,nn) ) ) );
+                %proj(:,:,nn) = gather( -real( ifft2( pf .* fft2( gpuArray( proj(:,:,nn) ) ) ) ) );
             end            
         end
         
@@ -842,14 +855,24 @@ if do_tomo
         sli1 = min( [nn * num_sli, vol_shape(3)] );
 
         % Filter sinogram
-        PrintVerbose(verbose, '\n slab %g of %g: Filter sino: ', nn, num_slabs)                     
-        filt = iradonDesignFilter(fbp_filter_type, raw_im_shape_binned1, 1);
-        if butterworth_filter            
+        PrintVerbose(verbose, '\n slab %g of %g: Filter sino: ', nn, num_slabs)
+        if fbp_filter_padding(1)
+            filt = iradonDesignFilter(fbp_filter_type, 2*raw_im_shape_binned1, fpb_freq_cutoff);
+        else
+            filt = iradonDesignFilter(fbp_filter_type, raw_im_shape_binned1, fpb_freq_cutoff);
+        end        
+        if butterworth_filter(1)
             [b, a] = butter(butterworth_order, butterworth_cutoff_frequ);
             bw = freqz(b, a, numel(filt) );
             filt = filt .* bw;
         end
-        sino = real( ifft( bsxfun(@times, fft( NegLog(permute(proj(:,sli0:sli1,:), [1 3 2]), take_neg_log), [], 1), filt), [], 1, 'symmetric') );        
+        if fbp_filter_padding(1)
+            sino = padarray( NegLog(permute(proj(:,sli0:sli1,:), [1 3 2]), take_neg_log), [raw_im_shape_binned1 0 0], 'symmetric', 'post' );
+            sino = real( ifft( bsxfun(@times, fft( sino, [], 1), filt), [], 1, 'symmetric') );
+            sino = sino(1:raw_im_shape_binned1,:,:);
+        else
+            sino = real( ifft( bsxfun(@times, fft( NegLog(permute(proj(:,sli0:sli1,:), [1 3 2]), take_neg_log), [], 1), filt), [], 1, 'symmetric') );
+        end        
         PrintVerbose(verbose, 'done.')
 
         % Backprojection
@@ -927,6 +950,7 @@ if do_tomo
          fprintf(fid, 'phase_retrieval_method : %s\n', phase_retrieval_method);
          fprintf(fid, 'phase_retrieval_regularisation_parameter : %f\n', phase_retrieval_reg_par);
          fprintf(fid, 'phase_retrieval_binary_filter_threshold : %f\n', phase_retrieval_bin_filt);
+         fprintf(fid, 'phase_padding : %u\n', phase_padding);
          % Rotation
          fprintf(fid, 'rotation_angle_full_rad : %f\n', rot_angle_full);
          fprintf(fid, 'rotation_angle_offset_rad : %f\n', rot_angle_offset);

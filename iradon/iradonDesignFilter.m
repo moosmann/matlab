@@ -1,6 +1,6 @@
 function f = iradonDesignFilter(filter_type, filter_length, freq_cutoff)
-% Returns the Fourier Transform of the filter_type which will be
-% used to filter the projections
+% Fourier Transform of the filter_type to be used to filter the projections
+% before backprojection.
 %
 % INPUT ARGS:
 % filter_type: string. Default: 'Ram-Lak'. Specifying the filter type.
@@ -11,7 +11,7 @@ function f = iradonDesignFilter(filter_type, filter_length, freq_cutoff)
 % OUTPUT ARGS: f: vector. Filter to use on the projections
 %
 % Taken from Matlab's iradon and modified by Julian Moosmann, 2016-09-29.
-% Last modification: 2016-10-26
+% Last modification: 2017-01-06
 %
 % f = iradonDesignFilter(filter_type, filter_length, freq_cutoff)
 

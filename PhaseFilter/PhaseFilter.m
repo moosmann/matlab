@@ -1,15 +1,18 @@
-function [phaseFilter,phaseAppendix] = PhaseFilter(Method,imSize,EnergyDistancePixelsize,RegPar,BinaryFilterThreshold,outputPrecision)
-% Fourier space filter for single-distance phase retrieval. 
+function [fourier_filter, string_appendix] = PhaseFilter(method, filter_size, energy_distance_pixelsize, regularization_parameter, binary_filter_threshold, precision)
+% Fourier space filter for Fourier-transform-absed, simple algebraic,
+% single-distance phase retrieval.
 %
 % Given a normalized intensity map I_z (i.e. flat- and dark-field
-% corrected), the intensity contrast is defined as g_z = I_z - 1. 
-% Phase retrieval: phi = real( ifft2( PhaseFilter() .* fft2( g_z ) ) ). No
-% fftshift is needed. Optional output is a string consisting of the
-% parameters used. 
+% corrected), we define the intensity contrast as g_z = I_z - 1. 
 %
-% Arguments:
+% Phase retrieval: 
+% phi = real( ifft2( fourier_filter(ARG) .* fft2( g_z ) ) ), 
+% No fftshift required. Optional output is a unique string consisting of
+% the given parameters. 
 %
-% Method : string. Default: 'tie'.
+% ARGUMENTS:
+%
+% method : string. Default: 'tie'.
 %   Variants:
 %   'tie': Linearized transport of intensity equation. Essentially the
 %   inversion of the Laplacian, sometimes also referred to as Paganing
@@ -24,121 +27,123 @@ function [phaseFilter,phaseAppendix] = PhaseFilter(Method,imSize,EnergyDistanceP
 %   'qphalfsine': use only first half period of the sine of quasiparticle
 %   version of 'ctf'.
 %
-% imSize : 1x2-vector. Default [1024 1024]. Size of output filter.
+% filter_size : 1x2-vector. Default [1024 1024]. Size of output filter.
 %
-% EnergyDistancePixelsize : 1x3-vector. Default: [20e3 0.945 .75e-6]. Energy
-% in eV, Distance in m, Pixelsize in m.
+% energy_distance_pixelsize : 1x3-vector. Default: [20e3 0.945 .75e-6].
+% Energy in eV, Distance in m, Pixelsize in m.
 %
-% RegPar : scalar. Default: 2.5. Phase retrieval is regularised according:
-% 1/func(x) -> 1/(func(x)+10^(-RegPar)), for details of the placeholder
-% function func see below. Thus, the regularization parameter RegPar is the
-% negative of the decadic logartihm of the constant which is added to the
-% denominator in order to regularize the singularity at zero frequency.
-% Typical values are between 1.5 and 3.5 depending on energy, residual
-% absorption, etc.
+% regularization_parameter : scalar. Default: 2.5. Phase retrieval is
+% regularised according: 1/func(x) ->
+% 1/(func(x)+10^(-regularization_parameter)), for details of the
+% placeholder  function func see below. Thus, the regularization parameter
+% regularization_parameter is the negative of the decadic logartihm of the
+% constant which is added to the denominator in order to regularize the
+% singularity at zero frequency. Typical values are between 1.5 and 3.5
+% depending on energy, residual absorption, etc.
 %
-% BinaryFilterThreshold : scalar. Default: 0.1. Parameter for Quasiparticle
-% phase retrieval defining the width of the rings which are cropped around
-% the zero crossings of the CTF denominator (in Fourier space). Typical
-% values are between 0.01 and 0.1, where large values yields results
-% similiar to 'tie' phase retrieval.
+% binary_filter_threshold : scalar. Default: 0.1. Parameter for
+% quasiparticle % phase retrieval defining the width of the rings which are
+% cropped around the zero crossings of the CTF denominator (in Fourier
+% space). Typical values are between 0.01 and 0.1, where large values
+% yields results similiar to 'tie' phase retrieval.  
 %
-% outputPrecision : string. 'single' (default), or 'double'.
+% precision : string. 'single' (default), or 'double'.
 % 
-% Written by Julian Moosmann, last modification: 2016-12-05
+% Written by Julian Moosmann, last modification: 2017-01-06
 %
-% [phaseFilter,phaseAppendix] = PhaseFilter(Method,imSize,EnergyDistancePixelsize,RegPar,BinaryFilterThreshold,outputPrecision)
+% PhaseFilter(method, filter_size, energy_distance_pixelsize, regularization_parameter, binary_filter_threshold, precision)
+
 
 %% Default arguments %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 if nargin < 1
-    Method = 'tie';
+    method = 'tie';
 end
 if nargin < 2
-    imSize = [1024 1024];
+    filter_size = [1024 1024];
 end
 if nargin < 3
-    EnergyDistancePixelsize = [20e3 0.945 .75e-6];
+    energy_distance_pixelsize = [20e3 0.945 .75e-6];
 end
 if nargin < 4
-    RegPar = 2.5;
+    regularization_parameter = 2.5;
 end
 if nargin < 5
-    BinaryFilterThreshold = 0.1;
+    binary_filter_threshold = 0.1;
 end
 if nargin < 6
-    outputPrecision = 'single';
+    precision = 'single';
 end
 
 %% MAIN %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Call 'PhaseFilterDual' if duality is assumed. Then, 'regPar' is
 % interpreted as -log10 of duality factor epsilon.
-strInd = strfind(lower(Method),'dual');
+strInd = strfind(lower(method),'dual');
 switch ~isempty(strInd)
 %% Standard phase retrieval %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     case 0
 %% Parameter
-Energy    = EnergyDistancePixelsize(1);
-Distance  = EnergyDistancePixelsize(2);
-Pixelsize = EnergyDistancePixelsize(3);
+Energy    = energy_distance_pixelsize(1);
+Distance  = energy_distance_pixelsize(2);
+Pixelsize = energy_distance_pixelsize(3);
 % wave length
 lambda    = 6.62606896e-34*299792458/(Energy/1000*1.60217733e-16);
 ArgPrefac = pi*lambda*Distance/Pixelsize^2;
 
 %% Fourier coordinates
 % 1D
-xi  = FrequencyVector(imSize(2),outputPrecision,1);
-eta = FrequencyVector(imSize(1),outputPrecision,1);
+xi  = FrequencyVector(filter_size(2),precision,1);
+eta = FrequencyVector(filter_size(1),precision,1);
 % 2D
 [sinArg, sinxiquad]   = meshgrid(xi,eta);
 % Function on 2D
 sinArg = ArgPrefac*(sinArg.^2 + sinxiquad.^2);
 
 %% Filter 
-switch lower(Method)
+switch lower(method)
     case 'tie'
-        phaseFilter = 1/2./(sinArg + 10^-RegPar);
-        phaseAppendix = sprintf('tie_regPar%3.2f',RegPar);
+        fourier_filter = 1/2./(sinArg + 10^-regularization_parameter);
+        string_appendix = sprintf('tie_regPar%3.2f',regularization_parameter);
     case 'ctf'
         sinxiquad   = sin(sinArg);
-        phaseFilter = 1/2*sign(sinxiquad)./(abs(sinxiquad)+10^-RegPar);        
-        phaseAppendix = sprintf('ctf_regPar%3.2f',RegPar);
+        fourier_filter = 1/2*sign(sinxiquad)./(abs(sinxiquad)+10^-regularization_parameter);        
+        string_appendix = sprintf('ctf_regPar%3.2f',regularization_parameter);
     case {'ctfhalfsine','ctffirsthalfsine','halfsine','firsthalfsine'}
         sinxiquad   = sin(sinArg);
-        phaseFilter = 1/2*sign(sinxiquad)./(abs(sinxiquad)+10^-RegPar);
-        phaseFilter( sinArg >= pi ) = 0;
-        phaseAppendix = sprintf('ctfHalfSine_regPar%3.2f',RegPar);
+        fourier_filter = 1/2*sign(sinxiquad)./(abs(sinxiquad)+10^-regularization_parameter);
+        fourier_filter( sinArg >= pi ) = 0;
+        string_appendix = sprintf('ctfHalfSine_regPar%3.2f',regularization_parameter);
     case {'qp','pctf','quasi','quasiparticle','quasiparticles'}
         sinxiquad   = sin(sinArg);
-        phaseFilter = 1/2*sign(sinxiquad)./(abs(sinxiquad)+10^-RegPar);
-        phaseFilter( sinArg > pi/2  &  abs(sinxiquad) < BinaryFilterThreshold) = 0;
-        phaseAppendix = sprintf('qp_regPar%3.2f_binFilt%3.3f',RegPar,BinaryFilterThreshold);
+        fourier_filter = 1/2*sign(sinxiquad)./(abs(sinxiquad)+10^-regularization_parameter);
+        fourier_filter( sinArg > pi/2  &  abs(sinxiquad) < binary_filter_threshold) = 0;
+        string_appendix = sprintf('qp_regPar%3.2f_binFilt%3.3f',regularization_parameter,binary_filter_threshold);
     case {'qphalfsine','pctfhalfsine','pctffirsthalfsine','quasihalfsine','quasifirsthalfsine'}
         sinxiquad   = sin(sinArg);
-        phaseFilter = 1/2*sign(sinxiquad)./(abs(sinxiquad)+10^-RegPar);
-        phaseFilter( sinArg > pi/2  &  abs(sinxiquad) < BinaryFilterThreshold) = 0;
-        phaseFilter( sinArg >= pi ) = 0;
-        phaseAppendix = sprintf('qpHalfSine_regPar%3.2f_binFilt%3.3f',RegPar,BinaryFilterThreshold);
+        fourier_filter = 1/2*sign(sinxiquad)./(abs(sinxiquad)+10^-regularization_parameter);
+        fourier_filter( sinArg > pi/2  &  abs(sinxiquad) < binary_filter_threshold) = 0;
+        fourier_filter( sinArg >= pi ) = 0;
+        string_appendix = sprintf('qpHalfSine_regPar%3.2f_binFilt%3.3f',regularization_parameter,binary_filter_threshold);
     case {'qp2','quasi2','pctf2'}
         sinxiquad   = sin(sinArg);
-        phaseFilter = 1/2*sign(sinxiquad)./(abs(sinxiquad)+10^-RegPar);
-        mask = sinArg > pi/2  &  abs(sinxiquad) < BinaryFilterThreshold;
-        phaseFilter( mask ) = bsxfun(@(a,b) a(b),sign(phaseFilter)/(2*(BinaryFilterThreshold+10^-RegPar)),mask);
-        phaseAppendix = sprintf('qp2_regPar%3.2f_binFilt%3.3f',RegPar,BinaryFilterThreshold);
+        fourier_filter = 1/2*sign(sinxiquad)./(abs(sinxiquad)+10^-regularization_parameter);
+        mask = sinArg > pi/2  &  abs(sinxiquad) < binary_filter_threshold;
+        fourier_filter( mask ) = bsxfun(@(a,b) a(b),sign(fourier_filter)/(2*(binary_filter_threshold+10^-regularization_parameter)),mask);
+        string_appendix = sprintf('qp2_regPar%3.2f_binFilt%3.3f',regularization_parameter,binary_filter_threshold);
 end
 
 % Restore zero frequency component
-phaseFilter(1) = 1/2*10^RegPar;
+fourier_filter(1) = 1/2*10^regularization_parameter;
 
 % Replace dots by p
-phaseAppendix = regexprep(phaseAppendix,'\.','p');
+string_appendix = regexprep(string_appendix,'\.','p');
 
 %% Dual phase retrieval %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     case 1
-        % remove string 'dual' from Variable 'Method' to use it as input
+        % remove string 'dual' from Variable 'method' to use it as input
         % for 'PhaseFilterDual'
-        Method(strInd+(0:3)) = [];
+        method(strInd+(0:3)) = [];
         % Call 'PhaseFilterDual'
-        [phaseFilter,phaseAppendix] = PhaseFilterDual(Method,imSize,EnergyDistancePixelsize,10^-RegPar,BinaryFilterThreshold,outputPrecision);
+        [fourier_filter,string_appendix] = PhaseFilterDual(method,filter_size,energy_distance_pixelsize,10^-regularization_parameter,binary_filter_threshold,precision);
 end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
