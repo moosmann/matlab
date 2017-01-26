@@ -12,7 +12,12 @@
 %% PARAMETERS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %scan_path = pwd;
 scan_path = ...
-    '/asap3/petra3/gpfs/p05/2016/data/11001994/raw/szeb_19_00';
+    '/asap3/petra3/gpfs/p05/2016/data/11001994/raw/szeb_23_01'; % Nothobranchius furzeri
+    '/asap3/petra3/gpfs/p05/2016/data/11001994/raw/szeb_23_00'; % Nothobranchius furzeri; bewegung
+    '/asap3/petra3/gpfs/p05/2016/data/11001994/raw/szeb_13_00'; % no conspicuous movement artifacts, but cell shape are unclear and nuclei not visible
+    '/asap3/petra3/gpfs/p05/2016/data/11001994/raw/szeb_13_09'; % dead    
+    '/asap3/petra3/gpfs/p05/2016/data/11001994/raw/szeb_07_00'; % strong movement
+    '/asap3/petra3/gpfs/p05/2016/data/11001994/raw/szeb_13_00';
     '/asap3/petra3/gpfs/p05/2015/data/11001102/raw/hzg_wzb_mgag_14';        
     '/asap3/petra3/gpfs/p05/2016/data/11001978/raw/mah_36_1R_top';    
     '/asap3/petra3/gpfs/p05/2016/data/11001978/raw/mah_28_15R_top';    
@@ -34,7 +39,7 @@ read_proj = 0; % Read flatfield-corrected images from disc
 read_proj_folder = []; % subfolder of 'flat_corrected' containing projections
 proj_range = 1; % range of found projections to be used. if empty: all, if scalar: stride
 ref_range = []; % range of flat fields to be used: start:inc:end. if empty: all (equals 1). if scalar: stride
-bin = 2; % bin size: if 2 do 2 x 2 binning, if 1 do nothing
+bin = 4; % bin size: if 2 do 2 x 2 binning, if 1 do nothing
 poolsize = 28; % number of workers in parallel pool to be usedcdcdsc
 gpu_ind = 1; % GPU Device to use: gpuDevice(gpu_ind)
 gpu_thresh = 0.8; % Percentage of maximally used to available GPU memory
@@ -56,7 +61,7 @@ ring_filter = 1; % ring artifact filter
 ring_filter_median_width = 11;
 phase_retrieval = 1;
 phase_retrieval_method = 'tie'; % 'ctf', 'qp'
-phase_retrieval_reg_par = 3; % regularization parameter
+phase_retrieval_reg_par = 0; % regularization parameter
 phase_retrieval_bin_filt = 0.1; % threshold for quasiparticle retrieval 'qp', 'qp2'
 phase_padding = 0; % padding of intensities before phase retrieval
 energy = []; % in eV. if empty: read from log file
@@ -67,12 +72,12 @@ vol_shape = []; % shape of the volume to be reconstructed, either in absolute nu
 vol_size = []; % if empty, unit voxel size is assumed
 rot_angle_full = []; % in radians: empty ([]), full angle of rotation, or array of angles. if empty full rotation angles is determined automatically to pi or 2 pi
 rot_angle_offset = pi; % global rotation of reconstructed volume
-rot_axis_offset = []; % if empty use automatic computationflat
+rot_axis_offset = 0;[]; % if empty use automatic computationflat
 rot_axis_pos = []; % if empty use automatic computation. either offset or pos has to be empty. can't use both
 rot_corr_area1 = [0.25 0.75]; % ROI to correlate projections at angles 0 & pi
 rot_corr_area2 = [0.25 0.75]; % ROI to correlate projections at angles 0 & pi
 rot_axis_tilt = 0 * -0.1 / 180 * pi; % camera tilt w.r.t rotation axis
-fbp_filter_type = 'Ram-Lak';
+fbp_filter_type = 'Ram-Lak';'linear';
 fpb_freq_cutoff = 1;
 fbp_filter_padding = 0;
 butterworth_filter = 0; % use butterworth filter in addition to FBP filter
@@ -81,7 +86,7 @@ butterworth_cutoff_frequ = 0.5;
 astra_pixel_size = 1; % size of a detector pixel: if different from one 'vol_size' needs to be ajusted 
 link_data = 1; % ASTRA data objects become references to Matlab arrays.
 take_neg_log = []; % take negative logarithm. if empty, use 1 for attenuation contrast, 0 for phase contrast
-out_path = ''; % absolute path were output data will be stored. overwrites the write_to_scratch flage. if empty uses the beamtime directory and either 'processed' or 'scratch_cc'
+out_path = ''; % absolute path were output data will be stored. !!overwrites the write_to_scratch flag. if empty uses the beamtime directory and either 'processed' or 'scratch_cc'
 write_proj = 0; % save preprocessed projections
 write_phase_map = 0; % save phase maps (if phase retrieval is not 0)
 write_sino = 0; % save sinograms (after preprocessing & phase retrieval, before FBP filtering)
@@ -91,7 +96,7 @@ parfolder = sprintf('test'); % parent folder of 'reco', 'sino', and 'flat_correc
 subfolder_flatcor = ''; % subfolder of 'flat_corrected'
 subfolder_phase_map = ''; % subfolder of 'phase_map'
 subfolder_sino = ''; % subfolder of 'sino'
-subfolder_reco = sprintf('ringFilt%uMedWid%u_bwFilt%u_phasePad%u_freqCutoff%2.0f_fbpPad%u', ring_filter, ring_filter_median_width, butterworth_filter, phase_padding, fpb_freq_cutoff*100, fbp_filter_padding); % parent folder to 'reco'
+subfolder_reco = '';%sprintf('fbpFilt%s_ringFilt%uMedWid%u_bwFilt%ubwCutoff%u_phasePad%u_freqCutoff%2.0f_fbpPad%u', fbp_filter_type, ring_filter, ring_filter_median_width, butterworth_filter, 100*butterworth_cutoff_frequ, phase_padding, fpb_freq_cutoff*100, fbp_filter_padding); % parent folder to 'reco'
 verbose = 1; % print information to standard output
 visualOutput = 0; % show images and plots during reconstruction
 
@@ -103,7 +108,7 @@ visualOutput = 0; % show images and plots during reconstruction
 % TODO: padding options for FBP filter
 % TODO: normalize proj with beam current for KIT camera
 % TODO: check offsets in projection correlation for rotation axis determination
-% TODO: excentric rotation axis 
+% TODO: excentric rotation axis, projection stitching
 % TODO: read sinograms
 % TODO: set photometric tag for tif files w/o one, turn on respective warning
 % TODO: read image ROI and test for speed up
@@ -111,10 +116,10 @@ visualOutput = 0; % show images and plots during reconstruction
 % TODO: output file format option: 8-bit, 16-bit. Currently 32 bit tiff.
 % TODO: check attenutation values of reconstructed slice
 % TODO: median filter width of ring filter dependence on binning
-% TODO: FBP filter padding
+% TODO: GPU phase retrieval: parfor-loop requires memory managment
 
 %% Notes %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% Paddin and phase retrieval:
+% Padding and phase retrieval:
 % Symmetric padding of intensity maps before phase retrieval cleary reduces
 % artifacts in the retrieved phase maps which are due to inconistent
 % boundary conditions. However, due to local tomography phase retrieval
@@ -284,6 +289,8 @@ eff_pixel_size_binned = bin * eff_pixel_size;
 if isempty( sample_detector_distance )
     if isfield( par, 'camera_distance')
         sample_detector_distance = par.camera_distance / 1000;
+    elseif isfield( par, 'o_ccd_dist')
+        sample_detector_distance = par.o_ccd_dist / 1000;
     end
 end
 if isempty( num_angles )
@@ -929,7 +936,7 @@ if do_tomo
          fprintf(fid, 'ref_range : %u:%u:%u\n', ref_range(1), ref_range(2) - ref_range(1), ref_range(end) );         
          fprintf(fid, 'num_proj_found : %u\n', num_proj_found);
          fprintf(fid, 'num_proj_used : %u\n', num_proj_used);
-         fprintf(fid, 'proj_range : %u\n', proj_range(1), proj_range(2) - proj_range(1), proj_range(end) );
+         fprintf(fid, 'proj_range : %u:%u:%u\n', proj_range(1), proj_range(2) - proj_range(1), proj_range(end) );
          fprintf(fid, 'raw_image_shape : %u %u\n', raw_im_shape);
          fprintf(fid, 'raw_image_shape_binned : %u %u\n', raw_im_shape_binned);
          fprintf(fid, 'binning_factor : %u\n', bin);
