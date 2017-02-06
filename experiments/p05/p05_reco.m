@@ -12,6 +12,7 @@
 %% PARAMETERS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %scan_path = pwd;
 scan_path = ...
+    '/asap3/petra3/gpfs/p05/2016/data/11001994/raw/szeb_23_00';
     '/asap3/petra3/gpfs/p05/2016/data/11001994/raw/szeb_23_01'; % Nothobranchius furzeri
     '/asap3/petra3/gpfs/p05/2016/data/11001994/raw/szeb_23_00'; % Nothobranchius furzeri; bewegung
     '/asap3/petra3/gpfs/p05/2016/data/11001994/raw/szeb_13_00'; % no conspicuous movement artifacts, but cell shape are unclear and nuclei not visible
@@ -61,7 +62,7 @@ ring_filter = 1; % ring artifact filter
 ring_filter_median_width = 11;
 phase_retrieval = 1;
 phase_retrieval_method = 'tie'; % 'ctf', 'qp'
-phase_retrieval_reg_par = 0; % regularization parameter
+phase_retrieval_reg_par = 2.5; % regularization parameter
 phase_retrieval_bin_filt = 0.1; % threshold for quasiparticle retrieval 'qp', 'qp2'
 phase_padding = 0; % padding of intensities before phase retrieval
 energy = []; % in eV. if empty: read from log file
@@ -72,7 +73,7 @@ vol_shape = []; % shape of the volume to be reconstructed, either in absolute nu
 vol_size = []; % if empty, unit voxel size is assumed
 rot_angle_full = []; % in radians: empty ([]), full angle of rotation, or array of angles. if empty full rotation angles is determined automatically to pi or 2 pi
 rot_angle_offset = pi; % global rotation of reconstructed volume
-rot_axis_offset = 0;[]; % if empty use automatic computationflat
+rot_axis_offset = 5.75;[]; % if empty use automatic computationflat
 rot_axis_pos = []; % if empty use automatic computation. either offset or pos has to be empty. can't use both
 rot_corr_area1 = [0.25 0.75]; % ROI to correlate projections at angles 0 & pi
 rot_corr_area2 = [0.25 0.75]; % ROI to correlate projections at angles 0 & pi
@@ -80,7 +81,7 @@ rot_axis_tilt = 0 * -0.1 / 180 * pi; % camera tilt w.r.t rotation axis
 fbp_filter_type = 'Ram-Lak';'linear';
 fpb_freq_cutoff = 1;
 fbp_filter_padding = 0;
-butterworth_filter = 0; % use butterworth filter in addition to FBP filter
+butterworth_filter = 1; % use butterworth filter in addition to FBP filter
 butterworth_order = 1;
 butterworth_cutoff_frequ = 0.5;
 astra_pixel_size = 1; % size of a detector pixel: if different from one 'vol_size' needs to be ajusted 
@@ -92,15 +93,17 @@ write_phase_map = 0; % save phase maps (if phase retrieval is not 0)
 write_sino = 0; % save sinograms (after preprocessing & phase retrieval, before FBP filtering)
 write_reco = 1; % save reconstructed slices
 write_to_scratch = 1; % write to 'scratch_cc' instead of 'processed'
-parfolder = sprintf('test'); % parent folder of 'reco', 'sino', and 'flat_corrected'
+parfolder = sprintf(''); % parent folder of 'reco', 'sino', and 'flat_corrected'
 subfolder_flatcor = ''; % subfolder of 'flat_corrected'
 subfolder_phase_map = ''; % subfolder of 'phase_map'
 subfolder_sino = ''; % subfolder of 'sino'
 subfolder_reco = '';%sprintf('fbpFilt%s_ringFilt%uMedWid%u_bwFilt%ubwCutoff%u_phasePad%u_freqCutoff%2.0f_fbpPad%u', fbp_filter_type, ring_filter, ring_filter_median_width, butterworth_filter, 100*butterworth_cutoff_frequ, phase_padding, fpb_freq_cutoff*100, fbp_filter_padding); % parent folder to 'reco'
 verbose = 1; % print information to standard output
 visualOutput = 0; % show images and plots during reconstruction
+check_rot_axis_offset = visualOutput; % reconstructs a slice with different offset
 
 %% TODO %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% TODO: redo naming schemo for phase tomos
 % TODO: adopt for missing images w.r.t. to img or tif
 % TODO: automatic determination of rot center: entropy type
 % TODO: manual interactive finding of rotation center
@@ -675,7 +678,18 @@ if do_tomo
     end
     %if numel( angles ) == 1
     PrintVerbose(verbose, '\n full rotation angle: %g * pi', rot_angle_full / pi)
-    angles = rot_angle_full * (0:num_proj_used - 1) / (num_proj_used - 1);
+    if exist('cur', 'var') && isfield(cur, 'proj') && isfield( cur.proj, 'angle')
+        angles = [cur.proj.angle] / 180 * pi;
+        angles = angles(1 + proj_nums);
+    else
+        if isfield( par, 'projections' )
+            num_proj = par.projections;
+        elseif isfield( par, 'n_angles' )
+            num_proj = par.n_angles;
+        end
+        %% CHECK: num_proj or num_proj - 1
+        angles = rot_angle_full * (0:num_proj - 1) / (num_proj - 1);
+    end
 % use above for img files and below for tiff files which accounts for missing images 
 %     if isempty( num_angles )
 %         angles = rot_angle_full * proj_nums / num_proj_used;
@@ -916,8 +930,17 @@ if do_tomo
         end
         vol_min = min( min( vol(:) ), vol_min );
         vol_max = max( max( vol(:) ), vol_max );
+                        
     end
     PrintVerbose(verbose, ' Elapsed time: %.1f s (%.2f min)', toc-t, (toc-t)/60 )
+    
+    %% Check position of rotation axis
+    if check_rot_axis_offset
+        offset = rot_axis_offset + (-4:0.5:4);
+        slice = floor(raw_im_shape_binned2 / 2);
+        vr = find_rot_axis(proj, angles, offset, slice);
+        nimplay(vr)
+    end
     
     % Write log file
     if write_reco

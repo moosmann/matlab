@@ -11,7 +11,7 @@ if nargin < 2
 end
 if nargin < 3
     %MatlabPath = '/mnt/tomoraid-LSDF/users/moosmann/matlab';
-    MatlabPath = [getenv('HOME'), filesep, 'matlab'];
+    MatlabPath = userpath;%[getenv('HOME'), filesep, 'matlab'];
 end
 
 %% MAIN %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
