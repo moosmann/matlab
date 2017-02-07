@@ -12,7 +12,7 @@ end
 if nargin < 4
     SampleDetector_m = 2;
 end
-if nargin < 5;
+if nargin < 5
    Bandwidth = 10^-4;
 end
 if nargin < 6
