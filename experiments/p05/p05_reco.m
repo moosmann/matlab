@@ -12,7 +12,8 @@
 %% PARAMETERS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %scan_path = pwd;
 scan_path = ...
-    '/asap3/petra3/gpfs/p05/2016/data/11001994/raw/szeb_23_00';
+    '/asap3/petra3/gpfs/p05/2016/data/11001978/raw/mah_30_15R_top_occd125_withoutpaper';
+    '/asap3/petra3/gpfs/p05/2016/data/11001994/raw/szeb_23_00'; % rot_axis_offset 5.75;
     '/asap3/petra3/gpfs/p05/2016/data/11001994/raw/szeb_23_01'; % Nothobranchius furzeri
     '/asap3/petra3/gpfs/p05/2016/data/11001994/raw/szeb_23_00'; % Nothobranchius furzeri; bewegung
     '/asap3/petra3/gpfs/p05/2016/data/11001994/raw/szeb_13_00'; % no conspicuous movement artifacts, but cell shape are unclear and nuclei not visible
@@ -40,7 +41,7 @@ read_proj = 0; % Read flatfield-corrected images from disc
 read_proj_folder = []; % subfolder of 'flat_corrected' containing projections
 proj_range = 1; % range of found projections to be used. if empty: all, if scalar: stride
 ref_range = []; % range of flat fields to be used: start:inc:end. if empty: all (equals 1). if scalar: stride
-bin = 4; % bin size: if 2 do 2 x 2 binning, if 1 do nothing
+bin = 1; % bin size: if 2 do 2 x 2 binning, if 1 do nothing
 poolsize = 28; % number of workers in parallel pool to be usedcdcdsc
 gpu_ind = 1; % GPU Device to use: gpuDevice(gpu_ind)
 gpu_thresh = 0.8; % Percentage of maximally used to available GPU memory
@@ -53,7 +54,7 @@ projFiltPixHot = 0.01; % Hot pixel filter parameter for projections, for details
 projFiltPixDark = 0.005; % Dark pixel filter parameter for projections, for details see 'FilterPixel'
 correct_beam_shake = 1;%  correlate flat fields and projection to correct beam shaking
 correct_beam_shake_max_shift = 0.5; % if 0: use the best match (i.e. the one with the least shift), if > 0 all flats which are shifted less than correct_beam_shake_max_shift are used
-max_num_flats = 11; % maximum number of flat fields used for average/median of flats
+max_num_flats = 9; % maximum number of flat fields used for average/median of flats
 norm_by_ring_current = 1; % normalize flat fields and projections by ring current
 flat_corr_area1 = [1 floor(100/bin)]; % correlation area: proper index range or relative/absolute position of [first pix, last pix]
 flat_corr_area2 = [0.25 0.75]; %correlation area: proper index range or relative/absolute position of [first pix, last pix]
@@ -73,7 +74,7 @@ vol_shape = []; % shape of the volume to be reconstructed, either in absolute nu
 vol_size = []; % if empty, unit voxel size is assumed
 rot_angle_full = []; % in radians: empty ([]), full angle of rotation, or array of angles. if empty full rotation angles is determined automatically to pi or 2 pi
 rot_angle_offset = pi; % global rotation of reconstructed volume
-rot_axis_offset = 5.75;[]; % if empty use automatic computationflat
+rot_axis_offset = [];5.75; % if empty use automatic computationflat
 rot_axis_pos = []; % if empty use automatic computation. either offset or pos has to be empty. can't use both
 rot_corr_area1 = [0.25 0.75]; % ROI to correlate projections at angles 0 & pi
 rot_corr_area2 = [0.25 0.75]; % ROI to correlate projections at angles 0 & pi
@@ -88,9 +89,9 @@ astra_pixel_size = 1; % size of a detector pixel: if different from one 'vol_siz
 link_data = 1; % ASTRA data objects become references to Matlab arrays.
 take_neg_log = []; % take negative logarithm. if empty, use 1 for attenuation contrast, 0 for phase contrast
 out_path = ''; % absolute path were output data will be stored. !!overwrites the write_to_scratch flag. if empty uses the beamtime directory and either 'processed' or 'scratch_cc'
-write_proj = 0; % save preprocessed projections
+write_proj = 1; % save preprocessed projections
 write_phase_map = 0; % save phase maps (if phase retrieval is not 0)
-write_sino = 0; % save sinograms (after preprocessing & phase retrieval, before FBP filtering)
+write_sino = 1; % save sinograms (after preprocessing & phase retrieval, before FBP filtering)
 write_reco = 1; % save reconstructed slices
 write_to_scratch = 1; % write to 'scratch_cc' instead of 'processed'
 parfolder = sprintf(''); % parent folder of 'reco', 'sino', and 'flat_corrected'
@@ -120,8 +121,10 @@ check_rot_axis_offset = visualOutput; % reconstructs a slice with different offs
 % TODO: check attenutation values of reconstructed slice
 % TODO: median filter width of ring filter dependence on binning
 % TODO: GPU phase retrieval: parfor-loop requires memory managment
+% TODO: delete files before writing data to a folder
 
 %% Notes %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
 % Padding and phase retrieval:
 % Symmetric padding of intensity maps before phase retrieval cleary reduces
 % artifacts in the retrieved phase maps which are due to inconistent
@@ -136,6 +139,21 @@ check_rot_axis_offset = visualOutput; % reconstructs a slice with different offs
 % artifacts stretching outwards from the biggest possible circle within the
 % reconstruction volume within a slice, are reduced which reduces the
 % halo-like artifacts as well.
+%
+% FOV extension by excentric rotation axis:
+% For absorpion-contrast data (more precisely when no phase retrieval
+% is used), volumes can be reconstructed from a data set where an excentric
+% position of the rotation axis is used without prior stitching of the
+% projections by simply providing the correct rotation axis position and
+% setting fbp_filter_padding to 1. For the automatic detection of the
+% rotation axis to work, the area to correlate has to be adjusted i.e.
+% 'rot_corr_area1' (not yet tested). When a phase retrieval is used, this
+% approach does not work appropriately and gives rise to artifacts near the
+% center of the reconstructed volume. This is due to the fact, that without
+% stitching the phase is retrieved from a 'cropped' projection which
+% results in inconsitently retrieved low frequencies (large scale
+% variations) in the phase map. Using the 'linear' FBP filter instead of
+% 'Ram-Lak' can maybe reduce these artifacts (not tested).
 
 %% Main %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 tic
@@ -273,7 +291,7 @@ PrintVerbose(verbose, '\n raw image shape binned : %g  %g', raw_im_shape_binned)
 %% Read par log
 str = dir( sprintf( '%s*scan.log', scan_path) );
 filename = sprintf( '%s/%s', str.folder, str.name);
-[par, cur] = p05_log( filename );
+[par, cur, cam] = p05_log( filename );
 if isempty( energy )
     if isfield( par, 'Energy' )
         energy = par.Energy;
@@ -679,8 +697,11 @@ if do_tomo
     %if numel( angles ) == 1
     PrintVerbose(verbose, '\n full rotation angle: %g * pi', rot_angle_full / pi)
     if exist('cur', 'var') && isfield(cur, 'proj') && isfield( cur.proj, 'angle')
-        angles = [cur.proj.angle] / 180 * pi;
-        angles = angles(1 + proj_nums);
+        angles = [cur.proj.angle] / 180 * pi; % for KIT cam this includes missing angles
+        if strcmpi(cam, 'kit')
+            % drop angles where projections are missing
+            angles = angles(1 + proj_nums);
+        end
     else
         if isfield( par, 'projections' )
             num_proj = par.projections;
@@ -952,7 +973,8 @@ if do_tomo
          fprintf(fid, 'reco_path : %s\n', save_path);                  
          fprintf(fid, 'MATLAB notation, index of first element: 1, range: first:stride:last\n');
          fprintf(fid, 'MATLAB version : %s\n', version);
-         fprintf(fid, 'platform: %s\n', computer);
+         fprintf(fid, 'platform : %s\n', computer);
+         fprintf(fid, 'camera : %s\n', cam);
          fprintf(fid, 'num_dark_found : %u\n', num_dark);
          fprintf(fid, 'num_ref_found : %u\n', num_ref_found);
          fprintf(fid, 'num_ref_used : %u\n', num_ref_used);

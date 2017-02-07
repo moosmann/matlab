@@ -1,4 +1,4 @@
-function [par,cur] = p05_log( file )
+function [par,cur, cam] = p05_log( file )
 % Read log file of beamline P05.
 %
 % ARGUMENTS
@@ -23,9 +23,11 @@ end
 
 [~, name] = fileparts( file );
 if length( name ) > 4
-    [par, cur] = EHD_log( file );    
+    cam = 'EHD';
+    [par, cur] = EHD_log( file );
 else
-    [par, cur] = KIT_log( file );    
+    cam = 'KIT';
+    [par, cur] = KIT_log( file ); 
 end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
