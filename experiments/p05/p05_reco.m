@@ -43,7 +43,7 @@ read_proj = 0; % Read flatfield-corrected images from disc
 read_proj_folder = []; % subfolder of 'flat_corrected' containing projections
 proj_range = 1; % range of found projections to be used. if empty: all, if scalar: stride
 ref_range = []; % range of flat fields to be used: start:inc:end. if empty: all (equals 1). if scalar: stride
-bin = 4; % bin size: if 2 do 2 x 2 binning, if 1 do nothing
+bin = 1; % bin size: if 2 do 2 x 2 binning, if 1 do nothing
 poolsize = 28; % number of workers in parallel pool to be usedcdcdsc
 gpu_ind = 1; % GPU Device to use: gpuDevice(gpu_ind)
 gpu_thresh = 0.8; % Percentage of maximally used to available GPU memory
@@ -63,22 +63,22 @@ flat_corr_area2 = [0.25 0.75]; %correlation area: proper index range or relative
 round_precision = 2; % precision when rounding of pixel shifts
 ring_filter = 1; % ring artifact filter
 ring_filter_median_width = 11;
-do_phase_retrieval = 0;
+do_phase_retrieval = 1;
 phase_retrieval_method = 'tie'; % 'ctf', 'qp'
 phase_retrieval_reg_par = 2.5; % regularization parameter
 phase_retrieval_bin_filt = 0.1; % threshold for quasiparticle retrieval 'qp', 'qp2'
 phase_padding = 0; % padding of intensities before phase retrieval
 energy = []; % in eV. if empty: read from log file
-sample_detector_distance = []; % in m
+sample_detector_distance = []; % in m. if empty: read from log file
 eff_pixel_size = []; % in m. if empty: read from log file. effective pixel size =  detector pixel size / magnification
-do_tomo = 1; % reconstruct volume
+do_tomo = 1; % run tomographic reconstruction of volume
 vol_shape = []; % shape of the volume to be reconstructed, either in absolute number of voxels or in relative number w.r.t. the default volume which is given by the detector width and height
 vol_size = []; % if empty, unit voxel size is assumed
 rot_angle_full = []; % in radians: empty ([]), full angle of rotation, or array of angles. if empty full rotation angles is determined automatically to pi or 2 pi
 rot_angle_offset = pi; % global rotation of reconstructed volume
 rot_axis_offset = [];5.75; % if empty use automatic computationflat
 rot_axis_pos = []; % if empty use automatic computation. either offset or pos has to be empty. can't use both
-rot_corr_area1 = [0.25 0.75]; % ROI to correlate projections at angles 0 & pi
+rot_corr_area1 = [0.25 0.75]; % ROI to correlate projections at angles 0 & pi. Use [0.75 1] or so for scans with an excentric rotation axis
 rot_corr_area2 = [0.25 0.75]; % ROI to correlate projections at angles 0 & pi
 rot_axis_tilt = 0 * -0.1 / 180 * pi; % camera tilt w.r.t rotation axis
 fbp_filter_type = 'Ram-Lak';'linear';
@@ -91,7 +91,7 @@ astra_pixel_size = 1; % size of a detector pixel: if different from one 'vol_siz
 link_data = 1; % ASTRA data objects become references to Matlab arrays.
 take_neg_log = []; % take negative logarithm. if empty, use 1 for attenuation contrast, 0 for phase contrast
 out_path = ''; % absolute path were output data will be stored. !!overwrites the write_to_scratch flag. if empty uses the beamtime directory and either 'processed' or 'scratch_cc'
-write_to_scratch = 1; % write to 'scratch_cc' instead of 'processed'
+write_to_scratch = 0; % write to 'scratch_cc' instead of 'processed'
 write_proj = 1; % save preprocessed projections
 write_phase_map = 0; % save phase maps (if phase retrieval is not 0)
 write_sino = 0; % save sinograms (after preprocessing & before FBP filtering and phase retrieval)
@@ -104,18 +104,17 @@ subfolder_sino = ''; % subfolder of 'sino'
 subfolder_reco = '';%sprintf('fbpFilt%s_ringFilt%uMedWid%u_bwFilt%ubwCutoff%u_phasePad%u_freqCutoff%2.0f_fbpPad%u', fbp_filter_type, ring_filter, ring_filter_median_width, butterworth_filter, 100*butterworth_cutoff_frequ, phase_padding, fpb_freq_cutoff*100, fbp_filter_padding); % parent folder to 'reco'
 verbose = 1; % print information to standard output
 visualOutput = 0; % show images and plots during reconstruction
-check_rot_axis_offset = 1;visualOutput; % reconstructs a slice with different offset
+check_rot_axis_offset = 1; % reconstruct slices with different offsets
 
 %% TODO %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % TODO: redo naming scheme for phase tomos
 % TODO: adopt for missing images w.r.t. to img or tif
 % TODO: automatic determination of rot center: entropy type
-% TODO: manual interactive finding of rotation center
 % TODO: vertical ROI reco
-% TODO: more padding options for FBP filter
+% TODO: additional padding schemes for FBP filter
 % TODO: normalize proj with beam current for KIT camera and missing images
 % TODO: check offsets in projection correlation for rotation axis determination
-% TODO: excentric rotation axis, projection stitching
+% TODO: projection stitching for excentric rotation axis scans
 % TODO: read sinograms option
 % TODO: set photometric tag for tif files w/o one, turn on respective warning
 % TODO: read image ROI and test for speed up
@@ -923,14 +922,16 @@ if do_tomo(1)
             slice = floor(raw_im_shape_binned2 / 2);
             vr = find_rot_axis(proj, angles, offset, slice);
             nimplay(vr)            
-            inp = input( '\nENTER NUMBER OF BEST RECONSTRUCTION TO CONTINUE SCRIPT OR ENTER OFFSETS AS [-1,0,1,2,etc] TO REDO RECONSTRUCTIONS:\n');            
-            if isscalar( inp )                                
+            offset = input( '\nTYPE ROTATION AXIS OFFSET OR ENTER TO CONTINUE SCRIPT OR TYPE OFFSET RANGE AS [...] TO RE-RUN RECONSTRUCTIONS:\n');
+            if isempty( offset )
+                fprintf( '\n new and old rotation axis offset : %g', rot_axis_offset)
+                break
+            elseif isscalar( offset )                             
                 fprintf( '\n old rotation axis offset : %g', rot_axis_offset)
-                rot_axis_offset = offset(inp);
+                rot_axis_offset = offset;
                 fprintf( '\n new rotation axis offset : %g', rot_axis_offset)
-                return
-            else
-                offset = inp;
+                break
+            else                
                 fprintf( '\n new offset range :')
                 fprintf( '\n position     value')
                 for nn = 1:numel(offset)
