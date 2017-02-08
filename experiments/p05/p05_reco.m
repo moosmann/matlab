@@ -64,7 +64,7 @@ round_precision = 2; % precision when rounding of pixel shifts
 ring_filter = 1; % ring artifact filter
 ring_filter_median_width = 11;
 do_phase_retrieval = 1;
-phase_retrieval_method = 'tie'; % 'ctf', 'qp'
+phase_retrieval_method = 'qp'; % 'ctf', 'qp'
 phase_retrieval_reg_par = 2.5; % regularization parameter
 phase_retrieval_bin_filt = 0.1; % threshold for quasiparticle retrieval 'qp', 'qp2'
 phase_padding = 0; % padding of intensities before phase retrieval
@@ -127,7 +127,7 @@ check_rot_axis_offset = 1; % reconstruct slices with different offsets
 % TODO: log file location
 
 %% Notes %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%
+
 % Padding and phase retrieval:
 % Symmetric padding of intensity maps before phase retrieval cleary reduces
 % artifacts in the retrieved phase maps which are due to inconistent
@@ -142,7 +142,7 @@ check_rot_axis_offset = 1; % reconstruct slices with different offsets
 % artifacts stretching outwards from the biggest possible circle within the
 % reconstruction volume within a slice, are reduced which reduces the
 % halo-like artifacts as well.
-%
+
 % FOV extension by excentric rotation axis:
 % For absorpion-contrast data (more precisely when no phase retrieval
 % is used), volumes can be reconstructed from a data set where an excentric
@@ -334,7 +334,7 @@ end
 t = toc;
 PrintVerbose( poolsize > 1, '\nStart parallel pool of %u workers. ', poolsize)
 OpenParpool(poolsize);
-PrintVerbose( poolsize > 1, ' Total time elapsed: %.1f s', toc-t)
+PrintVerbose( poolsize > 1, ' Time elapsed: %.1f s', toc-t)
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Read flat corrected projection
@@ -367,7 +367,7 @@ if read_proj(1)
         filename = sprintf('%s%s', flatcor_path, proj_names_mat(nn, :));        
         proj(:, :, nn) = read_image( filename )';
     end
-    PrintVerbose(verbose, ' Total time elapsed: %.1f s (%.2f min)', toc - t, ( toc - t ) / 60 )
+    PrintVerbose(verbose, ' Time elapsed: %.1f s (%.2f min)', toc - t, ( toc - t ) / 60 )
     
 %% Read raw data %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 elseif ~read_proj
@@ -393,7 +393,7 @@ elseif ~read_proj
     dark = squeeze( median(dark, 3) );
     dark_med_min = min( dark(:) );
     dark_med_max = max( dark(:) );
-    PrintVerbose(verbose, ' Total time elapsed: %.1f s', toc-t)
+    PrintVerbose(verbose, ' Time elapsed: %.1f s', toc-t)
     if visualOutput(1)
         h1 = figure('Name', 'mean dark field, flat field, projections');
         subplot(2,2,1)
@@ -461,7 +461,7 @@ elseif ~read_proj
         fprintf('\n WARNING: flat field contains %u zeros', nfz)        
     end
         
-    PrintVerbose(verbose, ' Total time elapsed: %.1f s', toc-t)
+    PrintVerbose(verbose, ' Time elapsed: %.1f s', toc-t)
     if visualOutput(1)
         figure(h1)
         subplot(2,2,2)
@@ -540,7 +540,7 @@ elseif ~read_proj
         flat_m = median(flat, 3);
         proj = bsxfun( @times, proj, flat_m);
     end    
-    PrintVerbose(verbose, ' Total time elapsed: %.1f s (%.2f min)', toc - t, ( toc - t ) / 60 )    
+    PrintVerbose(verbose, ' Time elapsed: %.1f s (%.2f min)', toc - t, ( toc - t ) / 60 )    
 
     % Correlate shifted flat fields
     if correct_beam_shake    
@@ -601,7 +601,7 @@ elseif ~read_proj
         else
             error('Value of maximum shift (%g) is not >= 0', correct_beam_shake_max_shift)
         end
-        PrintVerbose(verbose, ' Total time elapsed: %.1f s (%.2f min)', toc - t, ( toc - t ) / 60 )
+        PrintVerbose(verbose, ' Time elapsed: %.1f s (%.2f min)', toc - t, ( toc - t ) / 60 )
         if correct_beam_shake_max_shift > 0
             PrintVerbose(verbose, '\n number of flats used per projection: [mean, min, max] = [%g, %g, %g]', mean( flat_count ), min( flat_count ), max( flat_count) )
         end
@@ -625,7 +625,7 @@ elseif ~read_proj
         proj_mean_med = medfilt2( proj_mean, [ring_filter_median_width, 1], 'symmetric' );
         mask = proj_mean_med ./ proj_mean;      
         proj = bsxfun( @times, proj, mask);            
-        PrintVerbose(verbose, ' Total time elapsed: %.1f s (%.2f min)', toc-t, (toc-t)/60)
+        PrintVerbose(verbose, ' Time elapsed: %.1f s (%.2f min)', toc-t, (toc-t)/60)
         PrintVerbose( verbose, '\nring filter mask min/max: %f, %f', min( mask(:) ), max( mask(:) ) )
         if visualOutput(1)
             sino = squeeze(proj(round(raw_im_shape_binned1/2),:,:));
@@ -652,8 +652,7 @@ elseif ~read_proj
             colorbar
             drawnow        
         end
-    end
-    
+    end    
     proj_min = min( proj(:) );
     proj_max = max( proj(:) );
     
@@ -667,7 +666,7 @@ elseif ~read_proj
             filename = sprintf('%sproj_%06u.tif', flatcor_path, nn );
             write32bitTIFfromSingle(filename, proj(:, :, nn)' );
         end
-        PrintVerbose(verbose, ' Total time elapsed: %g .0f (%.2f min)', toc-t, (toc-t)/60)
+        PrintVerbose(verbose, ' Time elapsed: %g .0f (%.2f min)', toc-t, (toc-t)/60)
     end 
 end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -816,7 +815,43 @@ if do_tomo(1)
     PrintVerbose(verbose, '\n memory of reconstructed volume: %g MiB', prod( vol_shape ) * 4 / 1024^2 )
     PrintVerbose(verbose, '\n maximum memory of subvolume: %g MiB', prod( subvol_shape ) * 4 / 1024^2 )
     PrintVerbose(verbose, '\n number of subvolume slabs: %g', num_slabs )
-    PrintVerbose(verbose, '\n maximum number of slices per slab: %g', num_sli )    
+    PrintVerbose(verbose, '\n maximum number of slices per slab: %g', num_sli )
+    
+    %% Check position of rotation axis
+    if check_rot_axis_offset
+        fprintf( '\n\nENTER INTERACTIVE MODE' )
+        % default offset
+        offset = rot_axis_offset + (-4:0.5:4);
+        fprintf( '\n default offset range for reconstructions:')
+        fprintf( '\n position     value')
+        for nn = 1:numel(offset)
+            fprintf( '\n %8u %9.2f', nn, offset(nn))
+        end
+        % Loop over offsets
+        while ~isscalar( offset )
+            pause(0.5)
+            slice = floor(raw_im_shape_binned2 / 2);
+            vr = find_rot_axis(proj, angles, offset, slice);
+            nimplay(vr)            
+            offset = input( '\nTYPE ROTATION AXIS OFFSET OR ENTER TO CONTINUE SCRIPT OR TYPE OFFSET RANGE AS [...] TO RE-RUN RECONSTRUCTIONS:\n');
+            if isempty( offset )
+                fprintf( '\n new and old rotation axis offset : %g', rot_axis_offset)
+                break
+            elseif isscalar( offset )                             
+                fprintf( '\n old rotation axis offset : %g', rot_axis_offset)
+                rot_axis_offset = offset;
+                fprintf( '\n new rotation axis offset : %g', rot_axis_offset)
+                break
+            else                
+                fprintf( '\n new offset range :')
+                fprintf( '\n position     value')
+                for nn = 1:numel(offset)
+                    fprintf( '\n %8u %9.2f', nn, offset(nn))
+                end                
+            end
+        end
+        rot_axis_pos = raw_im_shape_binned1 / 2 + rot_axis_offset;
+    end
 end
 
 %% Save sinograms
@@ -830,7 +865,7 @@ if write_sino(1)
         write32bitTIFfromSingle( filename, squeeze( proj( :, nn, :) )' )
     end
     PrintVerbose(verbose, ' done.')
-    PrintVerbose(verbose, ' Total time elapsed: %g s (%.2f min)', toc-t, (toc-t)/60)   
+    PrintVerbose(verbose, ' Time elapsed: %g s (%.2f min)', toc-t, (toc-t)/60)   
 end
 
 
@@ -876,7 +911,7 @@ if do_phase_retrieval(1)
                 %proj(:,:,nn) = gather( -real( ifft2( pf .* fft2( gpuArray( proj(:,:,nn) ) ) ) ) );
             end            
         end        
-        PrintVerbose(verbose, ' Total time elapsed: %g s (%.2f min)', toc-t, (toc-t)/60)
+        PrintVerbose(verbose, ' Time elapsed: %g s (%.2f min)', toc-t, (toc-t)/60)
         
         % Save phase maps
         if write_phase_map(1)
@@ -886,7 +921,7 @@ if do_phase_retrieval(1)
                 filename = sprintf( '%sphase_%06u.tif', phase_map_path, nn);
                 write32bitTIFfromSingle( filename, squeeze( proj( :, :, nn) ) )    
             end
-            PrintVerbose(verbose, ' Total time elapsed: %g s (%.2f min)', toc-t, (toc-t)/60)   
+            PrintVerbose(verbose, ' Time elapsed: %g s (%.2f min)', toc-t, (toc-t)/60)   
         end        
 end
 
@@ -900,47 +935,11 @@ if write_sino(1)
         write32bitTIFfromSingle( filename, squeeze( proj( :, nn, :) )' )
     end
     PrintVerbose(verbose, ' done.')
-    PrintVerbose(verbose, ' Total time elapsed: %g s (%.2f min)', toc-t, (toc-t)/60)   
+    PrintVerbose(verbose, ' Time elapsed: %g s (%.2f min)', toc-t, (toc-t)/60)   
 end
 
 %% Tomographic reco
-if do_tomo(1)
-    
-    %% Check position of rotation axis
-    if check_rot_axis_offset
-        fprintf( '\n\nENTER INTERACTIVE MODE' )
-        % default offset
-        offset = rot_axis_offset + (-4:0.5:4);
-        fprintf( '\n default offset range for reconstructions:')
-        fprintf( '\n position     value')
-        for nn = 1:numel(offset)
-            fprintf( '\n %8u %9.2f', nn, offset(nn))
-        end
-        % Loop over offsets
-        while ~isscalar( offset )
-            pause(0.5)
-            slice = floor(raw_im_shape_binned2 / 2);
-            vr = find_rot_axis(proj, angles, offset, slice);
-            nimplay(vr)            
-            offset = input( '\nTYPE ROTATION AXIS OFFSET OR ENTER TO CONTINUE SCRIPT OR TYPE OFFSET RANGE AS [...] TO RE-RUN RECONSTRUCTIONS:\n');
-            if isempty( offset )
-                fprintf( '\n new and old rotation axis offset : %g', rot_axis_offset)
-                break
-            elseif isscalar( offset )                             
-                fprintf( '\n old rotation axis offset : %g', rot_axis_offset)
-                rot_axis_offset = offset;
-                fprintf( '\n new rotation axis offset : %g', rot_axis_offset)
-                break
-            else                
-                fprintf( '\n new offset range :')
-                fprintf( '\n position     value')
-                for nn = 1:numel(offset)
-                    fprintf( '\n %8u %9.2f', nn, offset(nn))
-                end                
-            end
-        end
-    end
-    
+if do_tomo(1)            
     PrintVerbose(verbose, '\nTomographic reconstruction of %u slabs:', num_slabs)
     if isempty( take_neg_log )
         take_neg_log = 1;
@@ -1010,7 +1009,7 @@ if do_tomo(1)
         vol_max = max( max( vol(:) ), vol_max );
                         
     end
-    PrintVerbose(verbose, ' Total time elapsed: %.1f s (%.2f min)', toc-t, (toc-t)/60 )    
+    PrintVerbose(verbose, ' Time elapsed: %.1f s (%.2f min)', toc-t, (toc-t)/60 )    
     
     % Write log file
     if write_reco
