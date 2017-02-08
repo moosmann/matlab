@@ -1,4 +1,4 @@
-function [rm,x,y]=ConcentricRings(dim,nyquistx);
+function [rm,x,y]=ConcentricRings(dim,nyquistx)
 % Create concentric rings of decreasing amplitude and period.
  
 if (nargin<1) || isempty(dim)

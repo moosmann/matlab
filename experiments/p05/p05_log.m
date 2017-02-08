@@ -42,6 +42,7 @@ par.num_flat_per_block = '%u' ;
 par.ROI = '%u%u%u%u';
 par.scan_duration = '%f';
 par.eff_pix_size = '%f';
+par.eff_pix = '%f';
 par.projections = '%u';
 par.ref_prefix = '%s';
 par.sample = '%s';
