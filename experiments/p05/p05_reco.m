@@ -12,7 +12,7 @@
 %% PARAMETERS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %scan_path = pwd;
 scan_path = ...
-    '/asap3/petra3/gpfs/p05/2016/commissioning/c20160803_001_pc_test/raw/phase_1000';
+    '/asap3/petra3/gpfs/p05/2016/commissioning/c20160803_001_pc_test/raw/phase_1000'; %rot_axis_offset=7.5
     '/asap3/petra3/gpfs/p05/2016/commissioning/c20160803_001_pc_test/raw/phase_1400';
     '/asap3/petra3/gpfs/p05/2016/commissioning/c20160913_000_synload/raw/mg5gd_21_3w';
     '/asap3/petra3/gpfs/p05/2016/commissioning/c20160803_001_pc_test/raw/we43_phase_030';
@@ -64,9 +64,10 @@ round_precision = 2; % precision when rounding of pixel shifts
 ring_filter = 1; % ring artifact filter
 ring_filter_median_width = 11;
 do_phase_retrieval = 1;
-phase_retrieval_method = 'qp'; % 'ctf', 'qp'
-phase_retrieval_reg_par = 2.5; % regularization parameter
-phase_retrieval_bin_filt = 0.1; % threshold for quasiparticle retrieval 'qp', 'qp2'
+phase_retrieval_method = 'qpcut';%'qp' 'ctf' 'tie', 'qp2'
+phase_retrieval_reg_par = 2; % regularization parameter
+phase_retrieval_bin_filt = 0.17; % threshold for quasiparticle retrieval 'qp', 'qp2'
+phase_retrieval_cutoff_frequ = 1 * pi; % in radian. frequency cutoff in Fourier space for 'qpcut' phase retrieval
 phase_padding = 0; % padding of intensities before phase retrieval
 energy = []; % in eV. if empty: read from log file
 sample_detector_distance = []; % in m. if empty: read from log file
@@ -76,14 +77,14 @@ vol_shape = []; % shape of the volume to be reconstructed, either in absolute nu
 vol_size = []; % if empty, unit voxel size is assumed
 rot_angle_full = []; % in radians: empty ([]), full angle of rotation, or array of angles. if empty full rotation angles is determined automatically to pi or 2 pi
 rot_angle_offset = pi; % global rotation of reconstructed volume
-rot_axis_offset = [];5.75; % if empty use automatic computationflat
+rot_axis_offset = [7.5];5.75; % if empty use automatic computationflat
 rot_axis_pos = []; % if empty use automatic computation. either offset or pos has to be empty. can't use both
 rot_corr_area1 = [0.25 0.75]; % ROI to correlate projections at angles 0 & pi. Use [0.75 1] or so for scans with an excentric rotation axis
 rot_corr_area2 = [0.25 0.75]; % ROI to correlate projections at angles 0 & pi
 rot_axis_tilt = 0 * -0.1 / 180 * pi; % camera tilt w.r.t rotation axis
-fbp_filter_type = 'Ram-Lak';'linear';
+fbp_filter_type = 'linear';'Ram-Lak';
 fpb_freq_cutoff = 1; % Cut-off frequency in Fourier space of the above FBP filter
-fbp_filter_padding = 0; % Symmetric padding for consistent boundary conditions
+fbp_filter_padding = 0; % symmetric padding for consistent boundary conditions
 butterworth_filter = 1; % use butterworth filter in addition to FBP filter
 butterworth_order = 1;
 butterworth_cutoff_frequ = 0.5;
@@ -92,7 +93,7 @@ link_data = 1; % ASTRA data objects become references to Matlab arrays.
 take_neg_log = []; % take negative logarithm. if empty, use 1 for attenuation contrast, 0 for phase contrast
 out_path = ''; % absolute path were output data will be stored. !!overwrites the write_to_scratch flag. if empty uses the beamtime directory and either 'processed' or 'scratch_cc'
 write_to_scratch = 0; % write to 'scratch_cc' instead of 'processed'
-write_proj = 1; % save preprocessed projections
+write_proj = 0; % save preprocessed projections
 write_phase_map = 0; % save phase maps (if phase retrieval is not 0)
 write_sino = 0; % save sinograms (after preprocessing & before FBP filtering and phase retrieval)
 write_sino_phase = 0; % save sinograms of phase maps
@@ -104,7 +105,7 @@ subfolder_sino = ''; % subfolder of 'sino'
 subfolder_reco = '';%sprintf('fbpFilt%s_ringFilt%uMedWid%u_bwFilt%ubwCutoff%u_phasePad%u_freqCutoff%2.0f_fbpPad%u', fbp_filter_type, ring_filter, ring_filter_median_width, butterworth_filter, 100*butterworth_cutoff_frequ, phase_padding, fpb_freq_cutoff*100, fbp_filter_padding); % parent folder to 'reco'
 verbose = 1; % print information to standard output
 visualOutput = 0; % show images and plots during reconstruction
-check_rot_axis_offset = 1; % reconstruct slices with different offsets
+interactive_determination_of_rot_axis = 0; % reconstruct slices with different offsets
 
 %% TODO %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % TODO: redo naming scheme for phase tomos
@@ -818,9 +819,9 @@ if do_tomo(1)
     PrintVerbose(verbose, '\n maximum number of slices per slab: %g', num_sli )
     
     %% Check position of rotation axis
-    if check_rot_axis_offset
+    if interactive_determination_of_rot_axis
         fprintf( '\n\nENTER INTERACTIVE MODE' )
-        % default offset
+        % default range is centered at the given or calculated offset
         offset = rot_axis_offset + (-4:0.5:4);
         fprintf( '\n default offset range for reconstructions:')
         fprintf( '\n position     value')
@@ -881,9 +882,9 @@ if do_phase_retrieval(1)
         
         % Phase retrieval filter        
         if phase_padding(1)
-            [pf, pha_appendix] = PhaseFilter( phase_retrieval_method, 2*raw_im_shape_binned, edp, phase_retrieval_reg_par, phase_retrieval_bin_filt, 'single');
+            [pf, pha_appendix] = PhaseFilter( phase_retrieval_method, 2*raw_im_shape_binned, edp, phase_retrieval_reg_par, phase_retrieval_bin_filt, phase_retrieval_cutoff_frequ, 'single');
         else
-            [pf, pha_appendix] = PhaseFilter( phase_retrieval_method, raw_im_shape_binned, edp, phase_retrieval_reg_par, phase_retrieval_bin_filt, 'single');
+            [pf, pha_appendix] = PhaseFilter( phase_retrieval_method, raw_im_shape_binned, edp, phase_retrieval_reg_par, phase_retrieval_bin_filt, phase_retrieval_cutoff_frequ, 'single');
         end
                           
         % reco phase dir
@@ -900,7 +901,7 @@ if do_phase_retrieval(1)
         % Retrieval
         parfor nn = 1:num_proj_used
             % combined GPU and parfor usage requires memory management
-            if phase_padding   
+            if phase_padding
                 im = padarray( proj(:,:,nn), raw_im_shape_binned, 'symmetric', 'post' );
                 %im = padarray( gpuArray( proj(:,:,nn) ), raw_im_shape_binned, 'post', 'symmetric' );
                 im = -real( ifft2( pf .* fft2( im ) ) );

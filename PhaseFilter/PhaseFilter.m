@@ -1,4 +1,4 @@
-function [fourier_filter, string_appendix] = PhaseFilter(method, filter_size, energy_distance_pixelsize, regularization_parameter, binary_filter_threshold, precision)
+function [fourier_filter, string_appendix] = PhaseFilter(method, filter_size, energy_distance_pixelsize, regularization_parameter, binary_filter_threshold, frequency_cutoff, precision)
 % Fourier space filter for Fourier-transform-absed, simple algebraic,
 % single-distance phase retrieval.
 %
@@ -14,18 +14,22 @@ function [fourier_filter, string_appendix] = PhaseFilter(method, filter_size, en
 %
 % method : string. Default: 'tie'.
 %   Variants:
-%   'tie': Linearized transport of intensity equation. Essentially the
-%   inversion of the Laplacian, sometimes also referred to as Paganing
+%   'tie' : Linearized transport of intensity equation. Essentially the
+%   inversion of the Laplacian, sometimes also referred to as Paganin
 %   or Bronnikov phase retrieval.
-%   'ctf': Inversion of the contrast transfer function in the pure phase
+%   'ctf' : Inversion of the contrast transfer function in the pure phase
 %   case. Is essentially the inversion of a sine.
 %   'ctfhalfsine': Same as 'ctf' up to the first half period of the sine.
-%   'qp': Quasiparticle version of 'ctf', i.e. cropping of frequency bands
+%   'qp' : Quasiparticle version of 'ctf', i.e. cropping of frequency bands
 %   centered around the positions of the zero crossing of the Fourier
 %   transform of g_z. See papers: http://dx.doi.org/10.1364/OE.19.025881
 %   and http://dx.doi.org/10.1364/OE.19.012066.
-%   'qphalfsine': use only first half period of the sine of quasiparticle
-%   version of 'ctf'.
+%   'qpcut' : quasiparticle phase retrieval up to the cutoff frequency in
+%   Fourier space
+%   'qp2' : Similar to the quasiparticle phase retrieval except that the
+%   frequency bands are not set to zero but multiplied by the constant
+%   which is given by the values of the CTF at the boundary of frequency
+%   band to be filtered.
 %
 % filter_size : 1x2-vector. Default [1024 1024]. Size of output filter.
 %
@@ -46,6 +50,8 @@ function [fourier_filter, string_appendix] = PhaseFilter(method, filter_size, en
 % cropped around the zero crossings of the CTF denominator (in Fourier
 % space). Typical values are between 0.01 and 0.1, where large values
 % yields results similiar to 'tie' phase retrieval.  
+%
+% frequency_cutoff : cutoff frequency in radian for 'qphalfsine' method
 %
 % precision : string. 'single' (default), or 'double'.
 % 
@@ -70,9 +76,17 @@ end
 if nargin < 5
     binary_filter_threshold = 0.1;
 end
-if nargin < 6
+if nargin < 6 
+    frequency_cutoff = 1*pi;
+end
+if nargin < 7
     precision = 'single';
 end
+
+%% TODO %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% TODO: frequency cut off for all method with no cut off as default
+% TODO: consistence of reg par and duality parameter
+% TODO: clean up
 
 %% MAIN %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Call 'PhaseFilterDual' if duality is assumed. Then, 'regPar' is
@@ -117,12 +131,12 @@ switch lower(method)
         fourier_filter = 1/2*sign(sinxiquad)./(abs(sinxiquad)+10^-regularization_parameter);
         fourier_filter( sinArg > pi/2  &  abs(sinxiquad) < binary_filter_threshold) = 0;
         string_appendix = sprintf('qp_regPar%3.2f_binFilt%3.3f',regularization_parameter,binary_filter_threshold);
-    case {'qphalfsine','pctfhalfsine','pctffirsthalfsine','quasihalfsine','quasifirsthalfsine'}
+    case {'qpcut', 'quasicut', 'quasiparticlecut'}
         sinxiquad   = sin(sinArg);
         fourier_filter = 1/2*sign(sinxiquad)./(abs(sinxiquad)+10^-regularization_parameter);
         fourier_filter( sinArg > pi/2  &  abs(sinxiquad) < binary_filter_threshold) = 0;
-        fourier_filter( sinArg >= pi ) = 0;
-        string_appendix = sprintf('qpHalfSine_regPar%3.2f_binFilt%3.3f',regularization_parameter,binary_filter_threshold);
+        fourier_filter( sinArg >= frequency_cutoff ) = 0;
+        string_appendix = sprintf('qpcut_regPar%3.2f_binFilt%3.3f_cutoff%3.2fpi',regularization_parameter,binary_filter_threshold, frequency_cutoff/pi);
     case {'qp2','quasi2','pctf2'}
         sinxiquad   = sin(sinArg);
         fourier_filter = 1/2*sign(sinxiquad)./(abs(sinxiquad)+10^-regularization_parameter);
