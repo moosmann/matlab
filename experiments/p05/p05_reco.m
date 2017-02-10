@@ -40,14 +40,27 @@ scan_path = ...
     '/asap3/petra3/gpfs/p05/2016/data/11001464/raw/pnl_16_petrosia_c';
     '/asap3/petra3/gpfs/p05/2016/commissioning/c20160920_000_diana/raw/Mg-10Gd39_1w';
     '/asap3/petra3/gpfs/p05/2016/commissioning/c20161024_000_xeno/raw/xeno_01_b';
-read_flatcor = 0; % Read flatfield-corrected images from disc. Skips preprocessing steps
+
+% Input %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+read_flatcor = 1; % Read flatfield-corrected images from disc. Skips preprocessing steps
 read_flatcor_path = '/asap3/petra3/gpfs/p05/2016/data/11001978/scratch_cc/c20160803_001_pc_test/phase_1000/flat_corrected'; % subfolder of 'flat_corrected' containing projections
-% read_sino = 0; % Read sinogram from disc and skips all preprocessing related steps
-% read_sino_path = []; % if emtpy uses default path
-% read_sino_range = []; % rangle of sinograms to read from disc. if emtpy uses all
+% Output %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+out_path = '/asap3/petra3/gpfs/p05/2016/data/11001978/scratch_cc/c20160803_001_pc_test'; % absolute path were output data will be stored. !!overwrites the write_to_scratch flag. if empty uses the beamtime directory and either 'processed' or 'scratch_cc'
+write_to_scratch = 0; % write to 'scratch_cc' instead of 'processed'
+write_flatcor = 1; % save preprocessed flat corrected projections
+write_phase_map = 1; % save phase maps (if phase retrieval is not 0)
+write_sino = 0; % save sinograms (after preprocessing & before FBP filtering and phase retrieval)
+write_sino_phase = 0; % save sinograms of phase maps
+write_reco = 1; % save reconstructed slices (if do_tomo=1)
+parfolder = sprintf(''); % parent folder of 'reco', 'sino', and 'flat_corrected'
+subfolder_flatcor = ''; % subfolder of 'flat_corrected'
+subfolder_phase_map = ''; % subfolder of 'phase_map'
+subfolder_sino = ''; % subfolder of 'sino'
+subfolder_reco = '';%sprintf('fbpFilt%s_ringFilt%uMedWid%u_bwFilt%ubwCutoff%u_phasePad%u_freqCutoff%2.0f_fbpPad%u', fbp_filter_type, ring_filter, ring_filter_median_width, butterworth_filter, 100*butterworth_cutoff_frequ, phase_padding, fpb_freq_cutoff*100, fbp_filter_padding); % parent folder to 'reco'
+% Preprocessing %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+bin = 1; % bin size: if 2 do 2 x 2 binning, if 1 do nothing
 proj_range = 1; % range of found projections to be used. if empty: all, if scalar: stride
 ref_range = []; % range of flat fields to be used: start:inc:end. if empty: all (equals 1). if scalar: stride
-bin = 1; % bin size: if 2 do 2 x 2 binning, if 1 do nothing
 num_angles = []; % number of angles. required if projections are missing. if empty: read from log file
 darkFiltPixHot = 0.01; % Hot pixel filter parameter for dark fields, for details see 'FilterPixel'
 darkFiltPixDark = 0.005; % Dark pixel filter parameter for dark fields, for details see 'FilterPixel'
@@ -61,13 +74,13 @@ max_num_flats = 9; % maximum number of flat fields used for average/median of fl
 norm_by_ring_current = 1; % normalize flat fields and projections by ring current
 flat_corr_area1 = [1 floor(100/bin)]; % correlation area: proper index range or relative/absolute position of [first pix, last pix]
 flat_corr_area2 = [0.25 0.75]; %correlation area: proper index range or relative/absolute position of [first pix, last pix]
-round_precision = 2; % precision when rounding of pixel shifts
+round_precision = 2; % precision when rounding pixel shifts
 ring_filter = 1; % ring artifact filter
 ring_filter_median_width = 11;
 % Phase retrieval %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 do_phase_retrieval = 1;
 phase_retrieval_method = 'tie';'qpcut';%'qp' 'ctf' 'tie', 'qp2'
-phase_retrieval_reg_par = 0.5; % regularization parameter
+phase_retrieval_reg_par = 3.5; % regularization parameter
 phase_retrieval_bin_filt = 0.17; % threshold for quasiparticle retrieval 'qp', 'qp2'
 phase_retrieval_cutoff_frequ = 1 * pi; % in radian. frequency cutoff in Fourier space for 'qpcut' phase retrieval
 phase_padding = 0; % padding of intensities before phase retrieval
@@ -93,26 +106,14 @@ butterworth_order = 1;
 butterworth_cutoff_frequ = 0.5;
 astra_pixel_size = 1; % size of a detector pixel: if different from one 'vol_size' needs to be ajusted 
 take_neg_log = []; % take negative logarithm. if empty, use 1 for attenuation contrast, 0 for phase contrast
-out_path = '/asap3/petra3/gpfs/p05/2016/data/11001978/scratch_cc/c20160803_001_pc_test'; % absolute path were output data will be stored. !!overwrites the write_to_scratch flag. if empty uses the beamtime directory and either 'processed' or 'scratch_cc'
-write_to_scratch = 0; % write to 'scratch_cc' instead of 'processed'
-write_flatcor = 1; % save preprocessed flat corrected projections
-write_phase_map = 1; % save phase maps (if phase retrieval is not 0)
-write_sino = 0; % save sinograms (after preprocessing & before FBP filtering and phase retrieval)
-write_sino_phase = 0; % save sinograms of phase maps
-write_reco = 1; % save reconstructed slices (if do_tomo=1)
-parfolder = sprintf(''); % parent folder of 'reco', 'sino', and 'flat_corrected'
-subfolder_flatcor = ''; % subfolder of 'flat_corrected'
-subfolder_phase_map = ''; % subfolder of 'phase_map'
-subfolder_sino = ''; % subfolder of 'sino'
-subfolder_reco = '';%sprintf('fbpFilt%s_ringFilt%uMedWid%u_bwFilt%ubwCutoff%u_phasePad%u_freqCutoff%2.0f_fbpPad%u', fbp_filter_type, ring_filter, ring_filter_median_width, butterworth_filter, 100*butterworth_cutoff_frequ, phase_padding, fpb_freq_cutoff*100, fbp_filter_padding); % parent folder to 'reco'
+% Interaction
 verbose = 1; % print information to standard output
 visualOutput = 0; % show images and plots during reconstruction
 interactive_determination_of_rot_axis = 0; % reconstruct slices with different offsets
-
 % Hardware / Software %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 poolsize = 28; % number of workers in parallel pool to be usedcdcdsc
 gpu_ind = 1; % GPU Device to use: gpuDevice(gpu_ind)
-gpu_thresh = 0.8; % Percentage of maximally used to available GPU memory
+gpu_thresh = 0.9; % Percentage of maximally used to available GPU memory
 link_data = 1; % ASTRA data objects become references to Matlab arrays.
 
 %% TODO %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -352,7 +353,8 @@ if read_flatcor(1)
     if isempty( read_flatcor_path )
         read_flatcor_path = flatcor_path;
     end
-    data_struct = dir( [read_flatcor_path, 'proj*.*'] );
+    % File names    
+    data_struct = dir( [read_flatcor_path filesep 'proj*.*'] );
     if isempty( data_struct )        
         fprintf('\n No flat corrected projections found! Switch to standard pre-processing.')
         read_flatcor = 0;
@@ -363,9 +365,7 @@ if read_flatcor(1)
             fprintf('\n Less projections available (%g) than demanded (%g)! Switch to standard pre-processing.', num_proj_read, num_proj_used )
             read_flatcor = 0;
         end
-    end
-    % File names
-    
+    end    
     PrintVerbose(verbose, '\n Read flat corrected projections.')
     if num_proj_read ~= num_proj_used
         fprintf('\n WARNING: Number of flat corrected projections read (%g) differs from number of projections to be processed (%g)!\n', num_proj_read, num_proj_used)
@@ -378,7 +378,7 @@ if read_flatcor(1)
     % Read flat corrected projections
     parfor nn = 1:num_proj_read
         filename = sprintf('%s%s', flatcor_path, proj_names_mat(nn, :));        
-        proj(:, :, nn) = read_image( filename )';
+        proj(:, :, nn) = fliplr( read_image( filename ) );
     end
     PrintVerbose(verbose, ' Time elapsed: %.1f s (%.2f min)', toc - t, ( toc - t ) / 60 )
     
