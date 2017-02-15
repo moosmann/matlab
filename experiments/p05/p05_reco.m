@@ -47,7 +47,7 @@ read_flatcor_path = '/asap3/petra3/gpfs/p05/2016/data/11001978/scratch_cc/c20160
 % Output %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 out_path = '/asap3/petra3/gpfs/p05/2016/data/11001978/scratch_cc/c20160803_001_pc_test'; % absolute path were output data will be stored. !!overwrites the write_to_scratch flag. if empty uses the beamtime directory and either 'processed' or 'scratch_cc'
 write_to_scratch = 0; % write to 'scratch_cc' instead of 'processed'
-write_flatcor = 1; % save preprocessed flat corrected projections
+write_flatcor = 0; % save preprocessed flat corrected projections
 write_phase_map = 0; % save phase maps (if phase retrieval is not 0)
 write_sino = 0; % save sinograms (after preprocessing & before FBP filtering and phase retrieval)
 write_sino_phase = 0; % save sinograms of phase maps
@@ -167,6 +167,17 @@ link_data = 1; % ASTRA data objects become references to Matlab arrays.
 % results in inconsitently retrieved low frequencies (large scale
 % variations) in the phase map. Using the 'linear' FBP filter instead of
 % 'Ram-Lak' can maybe reduce these artifacts (not tested).
+
+%% Set parameters via external call %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+if exist( 'external_parameter' ,'var')    
+    fields = fieldnames( external_parameter );    
+    for nn = 1:numel(fields)
+        var_name = fields{nn};
+        var_val = getfield(external_parameter, var_name );
+        assignin('base', var_name, var_val )
+    end
+    clear external_parameter;
+end
 
 %% Main %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 tic
