@@ -13,6 +13,8 @@ subvol_size = [-num_pix/2 num_pix/2 -num_pix/2 num_pix/2 -0.5 0.5];
 astra_pixel_size = 1;
 link_data = 1;
 rot_axis_tilt = 0;
+number_of_stds = 3;
+roi = 0.25;
 
 %% Main
 if isempty( slice )
@@ -36,5 +38,5 @@ vol = zeros(num_pix, num_pix, numel(offsets));
 % Backprojection
 for nn = 1:numel( offsets )
     offset = offsets(nn);
-    vol(:,:,nn) = astra_parallel3D( sino, angles, offset, subvol_shape, subvol_size, astra_pixel_size, link_data, rot_axis_tilt);
+    vol(:,:,nn) = FilterHisto(astra_parallel3D( sino, angles, offset, subvol_shape, subvol_size, astra_pixel_size, link_data, rot_axis_tilt), number_of_stds, roi);
 end

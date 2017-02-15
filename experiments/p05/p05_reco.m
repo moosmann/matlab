@@ -12,12 +12,12 @@
 %% PARAMETERS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %scan_path = pwd;
 scan_path = ...
+    '/asap3/petra3/gpfs/p05/2016/commissioning/c20160803_001_pc_test/raw/phase_600';
     '/asap3/petra3/gpfs/p05/2016/commissioning/c20160803_001_pc_test/raw/phase_1000'; %rot_axis_offset=7.5
-    '/asap3/petra3/gpfs/p05/2016/commissioning/c20160803_001_pc_test/raw/phase_1400'; %rot_axis_offset=19.5    
-    
+    '/asap3/petra3/gpfs/p05/2016/data/11001994/raw/szeb_41';    
+    '/asap3/petra3/gpfs/p05/2016/commissioning/c20160803_001_pc_test/raw/phase_1400'; %rot_axis_offset=19.5        
     '/asap3/petra3/gpfs/p05/2016/commissioning/c20160913_000_synload/raw/mg5gd_21_3w';
-    '/asap3/petra3/gpfs/p05/2016/commissioning/c20160803_001_pc_test/raw/we43_phase_030';
-        
+    '/asap3/petra3/gpfs/p05/2016/commissioning/c20160803_001_pc_test/raw/we43_phase_030';    
     '/asap3/petra3/gpfs/p05/2016/data/11001978/raw/mah_32_15R_top_occd800_withoutpaper'; % no rings in FS
     '/asap3/petra3/gpfs/p05/2016/data/11001978/raw/mah_30_15R_top_occd125_withoutpaper'; % no rings in FS
     '/asap3/petra3/gpfs/p05/2016/data/11001994/raw/szeb_23_00'; % rot_axis_offset 5.75;
@@ -42,17 +42,17 @@ scan_path = ...
     '/asap3/petra3/gpfs/p05/2016/commissioning/c20161024_000_xeno/raw/xeno_01_b';
 
 % Input %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-read_flatcor = 1; % Read flatfield-corrected images from disc. Skips preprocessing steps
+read_flatcor = 0; % Read flatfield-corrected images from disc. Skips preprocessing steps
 read_flatcor_path = '/asap3/petra3/gpfs/p05/2016/data/11001978/scratch_cc/c20160803_001_pc_test/phase_1000/flat_corrected'; % subfolder of 'flat_corrected' containing projections
 % Output %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 out_path = '/asap3/petra3/gpfs/p05/2016/data/11001978/scratch_cc/c20160803_001_pc_test'; % absolute path were output data will be stored. !!overwrites the write_to_scratch flag. if empty uses the beamtime directory and either 'processed' or 'scratch_cc'
 write_to_scratch = 0; % write to 'scratch_cc' instead of 'processed'
 write_flatcor = 1; % save preprocessed flat corrected projections
-write_phase_map = 1; % save phase maps (if phase retrieval is not 0)
+write_phase_map = 0; % save phase maps (if phase retrieval is not 0)
 write_sino = 0; % save sinograms (after preprocessing & before FBP filtering and phase retrieval)
 write_sino_phase = 0; % save sinograms of phase maps
 write_reco = 1; % save reconstructed slices (if do_tomo=1)
-parfolder = sprintf(''); % parent folder of 'reco', 'sino', and 'flat_corrected'
+parfolder = ''; % parent folder of 'reco', 'sino', and 'flat_corrected'
 subfolder_flatcor = ''; % subfolder of 'flat_corrected'
 subfolder_phase_map = ''; % subfolder of 'phase_map'
 subfolder_sino = ''; % subfolder of 'sino'
@@ -61,7 +61,7 @@ subfolder_reco = '';%sprintf('fbpFilt%s_ringFilt%uMedWid%u_bwFilt%ubwCutoff%u_ph
 bin = 1; % bin size: if 2 do 2 x 2 binning, if 1 do nothing
 proj_range = 1; % range of found projections to be used. if empty: all, if scalar: stride
 ref_range = []; % range of flat fields to be used: start:inc:end. if empty: all (equals 1). if scalar: stride
-num_angles = []; % number of angles. required if projections are missing. if empty: read from log file
+num_angles = []; % number of angles. if empty: read from log file
 darkFiltPixHot = 0.01; % Hot pixel filter parameter for dark fields, for details see 'FilterPixel'
 darkFiltPixDark = 0.005; % Dark pixel filter parameter for dark fields, for details see 'FilterPixel'
 refFiltPixHot = 0.01; % Hot pixel filter parameter for flat fields, for details see 'FilterPixel'
@@ -79,9 +79,9 @@ ring_filter = 1; % ring artifact filter
 ring_filter_median_width = 11;
 % Phase retrieval %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 do_phase_retrieval = 1;
-phase_retrieval_method = 'tie';'qpcut';%'qp' 'ctf' 'tie', 'qp2'
-phase_retrieval_reg_par = 3.5; % regularization parameter
-phase_retrieval_bin_filt = 0.17; % threshold for quasiparticle retrieval 'qp', 'qp2'
+phase_retrieval_method = 'qpcut'; %'qp' 'ctf' 'tie' 'qp2' 'tie'
+phase_retrieval_reg_par = 2.5; % regularization parameter
+phase_retrieval_bin_filt = 0.15; % threshold for quasiparticle retrieval 'qp', 'qp2'
 phase_retrieval_cutoff_frequ = 1 * pi; % in radian. frequency cutoff in Fourier space for 'qpcut' phase retrieval
 phase_padding = 0; % padding of intensities before phase retrieval
 energy = []; % in eV. if empty: read from log file
@@ -93,7 +93,7 @@ vol_shape = []; % shape of the volume to be reconstructed, either in absolute nu
 vol_size = []; % if empty, unit voxel size is assumed
 rot_angle_full = []; % in radians: empty ([]), full angle of rotation, or array of angles. if empty full rotation angles is determined automatically to pi or 2 pi
 rot_angle_offset = pi; % global rotation of reconstructed volume
-rot_axis_offset = [7.5];19.5;7.5;5.75; % if empty use automatic computation
+rot_axis_offset = [];19.5;7.5;5.75; % if empty use automatic computation
 rot_axis_pos = []; % if empty use automatic computation. either offset or pos has to be empty. can't use both
 rot_corr_area1 = [0.25 0.75]; % ROI to correlate projections at angles 0 & pi. Use [0.75 1] or so for scans with an excentric rotation axis
 rot_corr_area2 = [0.25 0.75]; % ROI to correlate projections at angles 0 & pi
@@ -106,10 +106,10 @@ butterworth_order = 1;
 butterworth_cutoff_frequ = 0.5;
 astra_pixel_size = 1; % size of a detector pixel: if different from one 'vol_size' needs to be ajusted 
 take_neg_log = []; % take negative logarithm. if empty, use 1 for attenuation contrast, 0 for phase contrast
-% Interaction
+% Interaction %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 verbose = 1; % print information to standard output
 visualOutput = 0; % show images and plots during reconstruction
-interactive_determination_of_rot_axis = 0; % reconstruct slices with different offsets
+interactive_determination_of_rot_axis = 1; % reconstruct slices with different offsets
 % Hardware / Software %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 poolsize = 28; % number of workers in parallel pool to be usedcdcdsc
 gpu_ind = 1; % GPU Device to use: gpuDevice(gpu_ind)
@@ -827,7 +827,8 @@ if do_tomo(1)
         fprintf( '\n\nENTER INTERACTIVE MODE' )
         % default range is centered at the given or calculated offset
         offset = rot_axis_offset + (-4:0.5:4);
-        fprintf( '\n default range of offsets centered at calulated offset %g:', rot_axis_offset)
+        fprintf( '\n calculated rotation axis offset : %g', rot_axis_offset_calc)
+        fprintf( '\n default range of offsets centered at offset %g:', rot_axis_offset)
         fprintf( '\n position     value')
         for nn = 1:numel(offset)
             fprintf( '\n %8u %9.2f', nn, offset(nn))
@@ -1047,13 +1048,15 @@ if do_tomo(1)
          fprintf(fid, 'energy : %g eV\n', energy);
          fprintf(fid, 'flat_field_correlation_area_1 : %u:%u:%u\n', flat_corr_area1(1), flat_corr_area1(2) - flat_corr_area1(1), flat_corr_area1(end));
          fprintf(fid, 'flat_field_correlation_area_2 : %u:%u:%u\n', flat_corr_area2(1), flat_corr_area2(2) - flat_corr_area2(1), flat_corr_area2(end));
-         fprintf(fid, 'min_max_of_all_darks : %6g %6g\n', dark_min, dark_max);
-         fprintf(fid, 'min_max_of_median_dark : %6g %6g\n', dark_med_min, dark_med_max);
-         fprintf(fid, 'min_max_of_all_flats : %6g %6g\n', flat_min, flat_max);
-         fprintf(fid, 'min_max_of_all_corrected_flats : %6g %6g\n', flat_min2, flat_max2);
-         fprintf(fid, 'min_max_of_all_raws :  %6g %6g\n', raw_min, raw_max);         
-         fprintf(fid, 'min_max_of_all_corrected_raws :  %6g %6g\n', raw_min2, raw_max2);
-         fprintf(fid, 'min_max_of_all_flat_corr_projs : %g %g \n', proj_min, proj_max);
+         if ~read_flatcor
+             fprintf(fid, 'min_max_of_all_darks : %6g %6g\n', dark_min, dark_max);
+             fprintf(fid, 'min_max_of_median_dark : %6g %6g\n', dark_med_min, dark_med_max);
+             fprintf(fid, 'min_max_of_all_flats : %6g %6g\n', flat_min, flat_max);
+             fprintf(fid, 'min_max_of_all_corrected_flats : %6g %6g\n', flat_min2, flat_max2);
+             fprintf(fid, 'min_max_of_all_raws :  %6g %6g\n', raw_min, raw_max);         
+             fprintf(fid, 'min_max_of_all_corrected_raws :  %6g %6g\n', raw_min2, raw_max2);
+             fprintf(fid, 'min_max_of_all_flat_corr_projs : %g %g \n', proj_min, proj_max);
+         end
          % Phase retrieval
          fprintf(fid, 'do_phase_retrieval : %u\n', do_phase_retrieval);
          fprintf(fid, 'phase_retrieval_method : %s\n', phase_retrieval_method);
