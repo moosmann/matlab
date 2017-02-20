@@ -1,16 +1,18 @@
-% P05 reconstruction pipeline. Preprocessing and tomographic
-% reconstruction.
+% P05 reconstruction pipeline. Preprocessing, filtering, phase retrieval,
+% and tomographic reconstruction.
 %
 % USAGE
-% Set parameters in PARAMETERS section and run script. For the
-% reconstruction of standard scans only 'scan_path'  has to be adjusted (or
-% change to scann folder and use % 'pwd', see below).
+% Set parameters in PARAMETERS / SETTINGS section below and run script.
 %
-% Written by Julian Moosmann.
-% First version: 2016-09-28. Last modifcation: 2017-02-10
+% Start script by pushing 'F5', clicking on 'Run' in the Editor tab, or
+% typing 'p05_reco_loop' in the Command Window. To loop over data sets
+% and/or parameters use 'p05_reco_loop'.
+%
+% Written by Julian Moosmann. First version: 2016-09-28. Last modifcation:
+% 2017-02-20
 
-%% PARAMETERS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%scan_path = pwd;
+%% PARAMETERS / SETTINGS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%scan_path = pwd; % Enter folder of data set under the raw directory and run script
 scan_path = ...
     '/asap3/petra3/gpfs/p05/2016/commissioning/c20160803_001_pc_test/raw/phase_600';
     '/asap3/petra3/gpfs/p05/2016/commissioning/c20160803_001_pc_test/raw/phase_1000'; %rot_axis_offset=7.5
@@ -40,25 +42,25 @@ scan_path = ...
     '/asap3/petra3/gpfs/p05/2016/data/11001464/raw/pnl_16_petrosia_c';
     '/asap3/petra3/gpfs/p05/2016/commissioning/c20160920_000_diana/raw/Mg-10Gd39_1w';
     '/asap3/petra3/gpfs/p05/2016/commissioning/c20161024_000_xeno/raw/xeno_01_b';
-
-% Input %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Input %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 read_flatcor = 0; % Read flatfield-corrected images from disc. Skips preprocessing steps
 read_flatcor_path = '/asap3/petra3/gpfs/p05/2016/data/11001978/scratch_cc/c20160803_001_pc_test/phase_1000/flat_corrected'; % subfolder of 'flat_corrected' containing projections
-% Output %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-out_path = '/asap3/petra3/gpfs/p05/2016/data/11001978/scratch_cc/c20160803_001_pc_test'; % absolute path were output data will be stored. !!overwrites the write_to_scratch flag. if empty uses the beamtime directory and either 'processed' or 'scratch_cc'
+% Output %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+out_path = '/gpfs/petra3/scratch/moosmanj'; % absolute path were output data will be stored. !!overwrites the write_to_scratch flag. if empty uses the beamtime directory and either 'processed' or 'scratch_cc'
+%out_path = '/asap3/petra3/gpfs/p05/2016/data/11001978/scratch_cc/c20160803_001_pc_test';
 write_to_scratch = 0; % write to 'scratch_cc' instead of 'processed'
 write_flatcor = 0; % save preprocessed flat corrected projections
 write_phase_map = 0; % save phase maps (if phase retrieval is not 0)
 write_sino = 0; % save sinograms (after preprocessing & before FBP filtering and phase retrieval)
 write_sino_phase = 0; % save sinograms of phase maps
-write_reco = 1; % save reconstructed slices (if do_tomo=1)
+write_reco = 0; % save reconstructed slices (if do_tomo=1)
 parfolder = ''; % parent folder of 'reco', 'sino', and 'flat_corrected'
 subfolder_flatcor = ''; % subfolder of 'flat_corrected'
 subfolder_phase_map = ''; % subfolder of 'phase_map'
 subfolder_sino = ''; % subfolder of 'sino'
 subfolder_reco = '';%sprintf('fbpFilt%s_ringFilt%uMedWid%u_bwFilt%ubwCutoff%u_phasePad%u_freqCutoff%2.0f_fbpPad%u', fbp_filter_type, ring_filter, ring_filter_median_width, butterworth_filter, 100*butterworth_cutoff_frequ, phase_padding, fpb_freq_cutoff*100, fbp_filter_padding); % parent folder to 'reco'
-% Preprocessing %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-bin = 1; % bin size: if 2 do 2 x 2 binning, if 1 do nothing
+% Preprocessing %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+bin = 4; % bin size: if 2 do 2 x 2 binning, if 1 do nothing
 proj_range = 1; % range of found projections to be used. if empty: all, if scalar: stride
 ref_range = []; % range of flat fields to be used: start:inc:end. if empty: all (equals 1). if scalar: stride
 num_angles = []; % number of angles. if empty: read from log file
@@ -77,8 +79,8 @@ flat_corr_area2 = [0.25 0.75]; %correlation area: proper index range or relative
 round_precision = 2; % precision when rounding pixel shifts
 ring_filter = 1; % ring artifact filter
 ring_filter_median_width = 11;
-% Phase retrieval %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-do_phase_retrieval = 1;
+% Phase retrieval %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+do_phase_retrieval = 0;
 phase_retrieval_method = 'qpcut'; %'qp' 'ctf' 'tie' 'qp2' 'tie'
 phase_retrieval_reg_par = 2.5; % regularization parameter
 phase_retrieval_bin_filt = 0.15; % threshold for quasiparticle retrieval 'qp', 'qp2'
@@ -87,8 +89,8 @@ phase_padding = 0; % padding of intensities before phase retrieval
 energy = []; % in eV. if empty: read from log file
 sample_detector_distance = []; % in m. if empty: read from log file
 eff_pixel_size = []; % in m. if empty: read from log file. effective pixel size =  detector pixel size / magnification
-% Tomography parameters %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-do_tomo = 1; % run tomographic reconstruction of volume
+% Tomography parameters %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+do_tomo = 0; % run tomographic reconstruction of volume
 vol_shape = []; % shape of the volume to be reconstructed, either in absolute number of voxels or in relative number w.r.t. the default volume which is given by the detector width and height
 vol_size = []; % if empty, unit voxel size is assumed
 rot_angle_full = []; % in radians: empty ([]), full angle of rotation, or array of angles. if empty full rotation angles is determined automatically to pi or 2 pi
@@ -106,33 +108,35 @@ butterworth_order = 1;
 butterworth_cutoff_frequ = 0.5;
 astra_pixel_size = 1; % size of a detector pixel: if different from one 'vol_size' needs to be ajusted 
 take_neg_log = []; % take negative logarithm. if empty, use 1 for attenuation contrast, 0 for phase contrast
-% Interaction %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Interaction %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 verbose = 1; % print information to standard output
 visualOutput = 0; % show images and plots during reconstruction
 interactive_determination_of_rot_axis = 1; % reconstruct slices with different offsets
-% Hardware / Software %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-poolsize = 28; % number of workers in parallel pool to be usedcdcdsc
+% Hardware / Software %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+poolsize = 0.9; % number of workers used in a parallel pool. if > 1: absolute number. if 0 < poolsize < 1: relative amount of all cores to be used
 gpu_ind = 1; % GPU Device to use: gpuDevice(gpu_ind)
 gpu_thresh = 0.9; % Percentage of maximally used to available GPU memory
+image_corr_gpu = 0; % experimental, slower than CPU: uses GPU to correlate images
 link_data = 1; % ASTRA data objects become references to Matlab arrays.
 
 %% TODO %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% TODO: redo naming scheme for phase tomos
-% TODO: adopt for missing images w.r.t. to img or tif
-% TODO: automatic determination of rot center: entropy type
-% TODO: vertical ROI reco
-% TODO: additional padding schemes for FBP filter
-% TODO: normalize proj with beam current for KIT camera and missing images
-% TODO: check offsets in projection correlation for rotation axis determination
 % TODO: projection stitching for excentric rotation axis scans
+% TODO: redo naming scheme for phase tomos
+% TODO: interactive loop over tomo slices for different phase retrieval parameter
+% TODO: automatic determination of rot center: entropy type
+% TODO: output file format option: 8-bit, 16-bit. Currently 32 bit tiff.
+% TODO: adopt for missing images w.r.t. to img or tif
+% TODO: normalize proj with beam current for KIT camera and missing images
+% TODO: vertical ROI reco
+% TODO: read image ROI and test for speed up
+% TODO: additional padding schemes for FBP filter
 % TODO: read sinograms option
 % TODO: set photometric tag for tif files w/o one, turn on respective warning
-% TODO: read image ROI and test for speed up
 % TODO: parallelize slice reconstruction using parpool and astra
-% TODO: output file format option: 8-bit, 16-bit. Currently 32 bit tiff.
+% TODO: GPU phase retrieval: parfor-loop requires memory managment
 % TODO: check attenutation values of reconstructed slice are consitent
 % TODO: median filter width of ring filter dependence on binning
-% TODO: GPU phase retrieval: parfor-loop requires memory managment
+% TODO: check offsets in projection correlation for rotation axis determination
 % TODO: delete files before writing data to a folder
 % TODO: log file location
 
@@ -169,13 +173,15 @@ link_data = 1; % ASTRA data objects become references to Matlab arrays.
 % 'Ram-Lak' can maybe reduce these artifacts (not tested).
 
 %% Set parameters via external call %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-if exist( 'external_parameter' ,'var')    
-    fields = fieldnames( external_parameter );    
+if exist( 'external_parameter' ,'var')
+    visualOutput = 0; 
+    interactive_determination_of_rot_axis = 0;
+    fields = fieldnames( external_parameter );
     for nn = 1:numel(fields)
         var_name = fields{nn};
         var_val = getfield(external_parameter, var_name );
         assignin('caller', var_name, var_val )
-    end
+    end    
     clear external_parameter;
 end
 
@@ -189,6 +195,11 @@ imsc1 = @(im) imsc( flipud( im' ) );
 astra_clear % if reco was aborted, ASTRA memory is not cleared
 if ~isempty( rot_axis_offset ) && ~isempty( rot_axis_pos )
     error('rot_axis_offset (%f) and rot_axis_pos (%f) cannot be used simultaneously. One must be empty.', rot_axis_offset, rot_axis_pos)
+end
+if do_tomo || image_corr_gpu
+    gpu = gpuDevice( gpu_ind );
+    reset( gpu );
+    gpu = gpuDevice( gpu_ind );
 end
 
 %% Input folder
@@ -205,6 +216,11 @@ if ~strcmp(raw_folder, 'raw')
 end
 PrintVerbose(verbose, '%s', scan_name)
 PrintVerbose(verbose, '\n scan_path:%s', scan_path)
+% Save scan path in file            
+filename = [userpath, filesep, 'experiments/p05/pathtolastscan'];
+fid = fopen( filename , 'w' );
+fprintf( fid, '%s', scan_path );
+fclose( fid );
 
 %% Output folder
 out_folder = 'processed'; 
@@ -353,6 +369,9 @@ end
 
 %% Start parallel CPU pool
 t = toc;
+if poolsize <= 1 && poolsize > 0
+    poolsize = max( floor( poolsize * feature('numCores') ), 1 );
+end
 PrintVerbose( poolsize > 1, '\nStart parallel pool of %u workers. ', poolsize)
 OpenParpool(poolsize);
 PrintVerbose( poolsize > 1, ' Time elapsed: %.1f s', toc-t)
@@ -579,14 +598,23 @@ elseif ~read_flatcor
         % Compute shift for each pair projection/flat field
         for ff = 1:num_ref_used
             flat_ff = flatroi(:,:,ff);
-            parfor pp = 1:num_proj_used
-                out = ImageCorrelation(projroi(:,:,pp), flat_ff, 0,0);                
-                xshift(pp, ff) = round( out.Xshift, round_precision );
-                yshift(pp, ff) = round( out.Yshift, round_precision) ; % relevant shift
-            end    
+            
+            if image_corr_gpu(1) % GPU, no parloop
+                for pp = 1:num_proj_used
+                    out = ImageCorrelation(projroi(:,:,pp), flat_ff, 0, 0, 1);
+                    xshift(pp, ff) = round( out.Xshift, round_precision );
+                    yshift(pp, ff) = round( out.Yshift, round_precision) ; % relevant shift
+                end                
+            else % CPU, parloop
+                parfor pp = 1:num_proj_used
+                    out = ImageCorrelation(projroi(:,:,pp), flat_ff, 0, 0, 0);
+                    xshift(pp, ff) = round( out.Xshift, round_precision );
+                    yshift(pp, ff) = round( out.Yshift, round_precision) ; % relevant shift
+                end
+            end            
         end       
         if visualOutput(1)
-            h2 = figure('Name', 'Corrlation of raw data and flat fields');
+            h2 = figure('Name', 'Correlation of raw data and flat fields');
             [~, yshift_min_pos] =  min ( abs( yshift), [], 2);
             [~, xshift_min_pos] =  min ( abs( xshift), [], 2);
             m = 1; n = 2;
@@ -650,7 +678,7 @@ elseif ~read_flatcor
         mask = proj_mean_med ./ proj_mean;      
         proj = bsxfun( @times, proj, mask);            
         PrintVerbose(verbose, ' Time elapsed: %.1f s (%.2f min)', toc-t, (toc-t)/60)
-        PrintVerbose( verbose, '\nring filter mask min/max: %f, %f', min( mask(:) ), max( mask(:) ) )
+        PrintVerbose( verbose, '\n ring filter mask min/max: %f, %f', min( mask(:) ), max( mask(:) ) )
         if visualOutput(1)
             sino = squeeze(proj(round(raw_im_shape_binned1/2),:,:));
             h3 = figure('Name', 'Sinogram and ring filter');
@@ -707,8 +735,8 @@ if do_tomo(1)
         else
             im1 = proj( rot_corr_area1, rot_corr_area2, 1);
             im2 = proj( rot_corr_area1, rot_corr_area2, num_proj_used);
-            [~, cm1] = ImageCorrelation( im1, im2); % large if full angle is  2 * pi
-            [~, cm2] = ImageCorrelation( im1, flipud(im2)); % large if full angle is pi
+            [~, cm1] = ImageCorrelation( im1, im2, 0, 0, image_corr_gpu); % large if full angle is  2 * pi
+            [~, cm2] = ImageCorrelation( im1, flipud(im2), 0, 0, image_corr_gpu); % large if full angle is pi
             if max( cm1(:) ) > max( cm2(:) )
                 rot_angle_full = 2 * pi;
             elseif max( cm1(:) ) < max( cm2(:) )
@@ -753,7 +781,7 @@ if do_tomo(1)
     im1 = proj( :, rot_corr_area2, ind1);
     im2 = flipud( proj( :, rot_corr_area2, ind2) );    
     PrintVerbose(verbose, '\n image correlation: #%g at index %g and angle %g pi and #%g at index %g and angle %g pi', proj_nums(ind1), ind1, val1 / pi, proj_nums(ind2), ind2, (val2 + pi) / pi )
-    out = ImageCorrelation( im1, im2, 0, 0);
+    out = ImageCorrelation( im1, im2, 0, 0, image_corr_gpu);
     xshift = round( out.Xshift, round_precision);
     yshift = round( out.Yshift, round_precision);    
     PrintVerbose(verbose, '\n relative shift: %g, %g', xshift, yshift)
@@ -814,8 +842,7 @@ if do_tomo(1)
     num_proj_used =  size( proj, 3);
     % GPU memory required for reconstruction
     rec_mem = ( raw_im_shape_binned1 * num_proj_used + vol_shape(1) * vol_shape(2) ) * 4;
-    % GPU memory limit
-    gpu = gpuDevice( gpu_ind );
+    % GPU memory limit    
     num_sli = floor( gpu_thresh * gpu.AvailableMemory / rec_mem );
     % slabs required
     num_slabs = ceil( vol_shape(3) / num_sli );
@@ -838,8 +865,8 @@ if do_tomo(1)
         fprintf( '\n\nENTER INTERACTIVE MODE' )
         % default range is centered at the given or calculated offset
         offset = rot_axis_offset + (-4:0.5:4);
-        fprintf( '\n calculated rotation axis offset : %g', rot_axis_offset_calc)
-        fprintf( '\n default range of offsets centered at offset %g:', rot_axis_offset)
+        fprintf( '\n calculated rotation axis offset : %.2f', rot_axis_offset_calc)
+        fprintf( '\n default range of offsets centered at offset %.2f:', rot_axis_offset)
         fprintf( '\n position     value')
         for nn = 1:numel(offset)
             fprintf( '\n %8u %9.2f', nn, offset(nn))
@@ -852,12 +879,12 @@ if do_tomo(1)
             nimplay(vr)            
             offset = input( '\nTYPE ROTATION AXIS OFFSET OR ENTER TO CONTINUE SCRIPT OR TYPE OFFSET RANGE AS [...] TO RE-RUN RECONSTRUCTIONS: ');
             if isempty( offset )
-                fprintf( ' new and old rotation axis offset : %g', rot_axis_offset)
+                fprintf( ' new and old rotation axis offset : %.2f', rot_axis_offset)
                 break
             elseif isscalar( offset )                             
-                fprintf( '\n old rotation axis offset : %g', rot_axis_offset)
+                fprintf( '\n old rotation axis offset : %.2f', rot_axis_offset)
                 rot_axis_offset = offset;
-                fprintf( '\n new rotation axis offset : %g', rot_axis_offset)
+                fprintf( '\n new rotation axis offset : %.2f', rot_axis_offset)
                 break
             else                
                 fprintf( '\n new offset range :')
@@ -884,7 +911,6 @@ if write_sino(1)
     PrintVerbose(verbose, ' done.')
     PrintVerbose(verbose, ' Time elapsed: %g s (%.2f min)', toc-t, (toc-t)/60)   
 end
-
 
 %% Phase retrieval %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 edp = [energy, sample_detector_distance, eff_pixel_size_binned];
@@ -1013,7 +1039,7 @@ if do_tomo(1)
             end
             CheckAndMakePath(save_path)
             
-            % Save reco path to reconstruction in file
+            % Save reco path and scan path in file
             filename = [userpath, filesep, 'experiments/p05/pathtolastreco'];
             fid = fopen( filename , 'w' );
             fprintf( fid, '%s', save_path );   

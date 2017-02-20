@@ -8,7 +8,6 @@ function OpenParpool(poolsize)
 %
 % OpenParpool(poolsize)
 
-
 %% Main %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % check if more than 1 worker is desired

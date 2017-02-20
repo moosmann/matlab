@@ -1,9 +1,12 @@
-function [out, CorMap] = ImageCorrelation(im1,im2,printInfo,showPlots)
+function [out, CorMap] = ImageCorrelation(im1, im2, printInfo, showPlots, use_gpu)
 %Find the relative movement of image im2 w.r.t. to im1 by means of
 %correlating the images. Thus rotation axis can be determined. Allows for
 %subpixel precsision.
 %
-% Written Julian Moosamnn, last modified 2013-09-05
+% Written Julian Moosamnn. Last modification: 2017-02-20, GPU support added
+
+% TODO: fix plotting option if axis is close to boundary and center of mass
+% region is too large
 
 %% Default arguments %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 if nargin < 3
@@ -11,6 +14,9 @@ if nargin < 3
 end
 if nargin < 4
     showPlots = 0;
+end
+if nargin < 5
+    use_gpu = 0;
 end
 
 %% Main %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -24,7 +30,12 @@ CenX = (dimx+1)/2;
 CenY = (dimy+1)/2;
 
 % Compute the correlation map of the two images.
-CorMap = fftshift(ifft2(fft2(im1).*fft2(rot90(im2,2))));
+if ~use_gpu
+    CorMap = fftshift(ifft2(fft2(im1).*fft2(rot90(im2,2))));
+else    
+    CorMap = fftshift( ifft2( fft2(gpuArray(im1)).*fft2(rot90(gpuArray(im2),2)), 'symmetric') );
+    clear im1 im2;
+end
 
 % Find the value and the (index) position of the maximum of the correlation map.
 [CorMapMaxVal, CorMapMaxInd] = max(CorMap(:));
@@ -64,10 +75,10 @@ end
 CorMaxPosX = CorMaxPosX + offsetX;
 CorMaxPosY = CorMaxPosY + offsetY;
 % Pixel shift of image 'im2' w.r.t. image 'im1'.
-out.Xshift = comX-CenX;
-out.Yshift = comY-CenY;
-out.HorizontalRotationAxisPosition = CenX/2+comX/2;
-out.VerticalRotationAxisPosition   = CenY/2+comY/2;
+out.Xshift = gather( comX - CenX );
+out.Yshift = gather( comY - CenY );
+out.HorizontalRotationAxisPosition = gather( CenX/2 + comX/2 );
+out.VerticalRotationAxisPosition   = gather( CenY/2 + comY/2 );
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Print results
 if printInfo
@@ -83,6 +94,7 @@ if showPlots
     % Halfwidth of the region around the computed correlation maximum which is
     % plotted.
     plotwidth = 14;
+    CorMap = gather( abs( CorMap ) );
     imtool(CorMap,[],'InitialMagnification','fit')
     imtool(CorMap(CorMaxPosX+(-plotwidth:plotwidth),CorMaxPosY+(-plotwidth:plotwidth)),[],'InitialMagnification','fit')
 end
