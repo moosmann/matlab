@@ -112,6 +112,7 @@ take_neg_log = []; % take negative logarithm. if empty, use 1 for attenuation co
 verbose = 1; % print information to standard output
 visualOutput = 0; % show images and plots during reconstruction
 interactive_determination_of_rot_axis = 1; % reconstruct slices with different offsets
+interactive_determination_of_rot_axis_slice = 0.5; % relative (in [0,1]) or absolute slice number (in (1, N])
 % Hardware / Software %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 poolsize = 0.9; % number of workers used in a parallel pool. if > 1: absolute number. if 0 < poolsize < 1: relative amount of all cores to be used
 gpu_ind = 1; % GPU Device to use: gpuDevice(gpu_ind)
@@ -121,7 +122,6 @@ link_data = 1; % ASTRA data objects become references to Matlab arrays.
 
 %% TODO %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % TODO: projection stitching for excentric rotation axis scans
-% TODO: redo naming scheme for phase tomos
 % TODO: interactive loop over tomo slices for different phase retrieval parameter
 % TODO: automatic determination of rot center: entropy type
 % TODO: output file format option: 8-bit, 16-bit. Currently 32 bit tiff.
@@ -172,7 +172,7 @@ link_data = 1; % ASTRA data objects become references to Matlab arrays.
 % variations) in the phase map. Using the 'linear' FBP filter instead of
 % 'Ram-Lak' can maybe reduce these artifacts (not tested).
 
-%% Set parameters via external call %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% Loop: set parameters if script is called by 'p05_reco_loop' %%%%%%%%%%%%
 if exist( 'external_parameter' ,'var')
     visualOutput = 0; 
     interactive_determination_of_rot_axis = 0;
@@ -874,7 +874,12 @@ if do_tomo(1)
         % Loop over offsets
         while ~isscalar( offset )
             pause(0.5)
-            slice = floor(raw_im_shape_binned2 / 2);
+            if interactive_determination_of_rot_axis_slice > 1
+                slice = interactive_determination_of_rot_axis_slice;
+            elseif interactive_determination_of_rot_axis_slice <= 1 && interactive_determination_of_rot_axis_slice >= 0
+                slice = round((raw_im_shape_binned2 - 1) * interactive_determination_of_rot_axis_slice + 1 );
+                %slice = floor(raw_im_shape_binned2 / 2);
+            end
             vr = find_rot_axis(proj, angles, offset, slice);
             nimplay(vr)            
             offset = input( '\nTYPE ROTATION AXIS OFFSET OR ENTER TO CONTINUE SCRIPT OR TYPE OFFSET RANGE AS [...] TO RE-RUN RECONSTRUCTIONS: ');

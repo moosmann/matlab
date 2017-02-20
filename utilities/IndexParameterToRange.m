@@ -8,11 +8,11 @@ function x = IndexParameterToRange(x, N)
 %
 % ARGUMENTS
 % x: 1D or 2D, float in [0,1] or integer in [1,N]. Relative or absolute
-% index/indices.
+% index/indices. if scalar, upper limit is 1-x or N-x, respectively.
 % N: scalar, integer. Maximum number of indices. Required for relative
 % indexing.
 %
-% Written by Julian Moosmann, 2016-12. Last version: 2016-12-05
+% Written by Julian Moosmann, 2016-12. Last version: 2017-02-20
 %
 % x = IndexParameterToRange(x, N)
 
@@ -35,7 +35,7 @@ end
 % Check if x has only 1 element    
 if numel_x == 1
     if x <= 1
-        x = [x, 1 -x];
+        x = [x, 1 - x];
     elseif x > 1
         x = [x, N - x];
     end
