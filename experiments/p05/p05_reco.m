@@ -9,16 +9,16 @@
 % and/or parameters use 'p05_reco_loop'.
 %
 % Written by Julian Moosmann. First version: 2016-09-28. Last modifcation:
-% 2017-02-20
+% 2017-02-21
 
 %% PARAMETERS / SETTINGS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %scan_path = pwd; % Enter folder of data set under the raw directory and run script
-scan_path = ...
+scan_path = ...        
     '/asap3/petra3/gpfs/p05/2016/commissioning/c20160803_001_pc_test/raw/phase_600';
-    '/asap3/petra3/gpfs/p05/2016/commissioning/c20160803_001_pc_test/raw/phase_1000'; %rot_axis_offset=7.5
-    '/asap3/petra3/gpfs/p05/2016/data/11001994/raw/szeb_41';    
+    '/asap3/petra3/gpfs/p05/2016/commissioning/c20160803_001_pc_test/raw/phase_1000'; %rot_axis_offset=7.5    
     '/asap3/petra3/gpfs/p05/2016/commissioning/c20160803_001_pc_test/raw/phase_1400'; %rot_axis_offset=19.5        
     '/asap3/petra3/gpfs/p05/2016/commissioning/c20160913_000_synload/raw/mg5gd_21_3w';
+    '/asap3/petra3/gpfs/p05/2016/data/11001994/raw/szeb_41';
     '/asap3/petra3/gpfs/p05/2016/commissioning/c20160803_001_pc_test/raw/we43_phase_030';    
     '/asap3/petra3/gpfs/p05/2016/data/11001978/raw/mah_32_15R_top_occd800_withoutpaper'; % no rings in FS
     '/asap3/petra3/gpfs/p05/2016/data/11001978/raw/mah_30_15R_top_occd125_withoutpaper'; % no rings in FS
@@ -60,10 +60,9 @@ subfolder_phase_map = ''; % subfolder of 'phase_map'
 subfolder_sino = ''; % subfolder of 'sino'
 subfolder_reco = '';%sprintf('fbpFilt%s_ringFilt%uMedWid%u_bwFilt%ubwCutoff%u_phasePad%u_freqCutoff%2.0f_fbpPad%u', fbp_filter_type, ring_filter, ring_filter_median_width, butterworth_filter, 100*butterworth_cutoff_frequ, phase_padding, fpb_freq_cutoff*100, fbp_filter_padding); % parent folder to 'reco'
 % Preprocessing %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-bin = 4; % bin size: if 2 do 2 x 2 binning, if 1 do nothing
-proj_range = 1; % range of found projections to be used. if empty: all, if scalar: stride
-ref_range = []; % range of flat fields to be used: start:inc:end. if empty: all (equals 1). if scalar: stride
-num_angles = []; % number of angles. if empty: read from log file
+bin = 4; % bin size: 1, 2, or 4
+proj_range = 2; % range of found projections to be used. if empty: all, if scalar: stride
+ref_range = 4; % range of flat fields to be used: start:inc:end. if empty: all (equals 1). if scalar: stride
 darkFiltPixHot = 0.01; % Hot pixel filter parameter for dark fields, for details see 'FilterPixel'
 darkFiltPixDark = 0.005; % Dark pixel filter parameter for dark fields, for details see 'FilterPixel'
 refFiltPixHot = 0.01; % Hot pixel filter parameter for flat fields, for details see 'FilterPixel'
@@ -111,7 +110,7 @@ take_neg_log = []; % take negative logarithm. if empty, use 1 for attenuation co
 % Interaction %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 verbose = 1; % print information to standard output
 visualOutput = 0; % show images and plots during reconstruction
-interactive_determination_of_rot_axis = 1; % reconstruct slices with different offsets
+interactive_determination_of_rot_axis = 0; % reconstruct slices with different offsets
 interactive_determination_of_rot_axis_slice = 0.5; % relative (in [0,1]) or absolute slice number (in (1, N])
 % Hardware / Software %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 poolsize = 0.9; % number of workers used in a parallel pool. if > 1: absolute number. if 0 < poolsize < 1: relative amount of all cores to be used
@@ -137,7 +136,8 @@ link_data = 1; % ASTRA data objects become references to Matlab arrays.
 % TODO: median filter width of ring filter dependence on binning
 % TODO: check offsets in projection correlation for rotation axis determination
 % TODO: delete files before writing data to a folder
-% TODO: log file location
+% TODO: log file location for non-tomo processing
+% TODO: inverse Gaussian filter for phase retrieval, VZC theorem
 
 %% Notes %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -171,7 +171,7 @@ link_data = 1; % ASTRA data objects become references to Matlab arrays.
 % variations) in the phase map. Using the 'linear' FBP filter instead of
 % 'Ram-Lak' can maybe reduce these artifacts (not tested).
 
-%% Loop: set parameters if script is called by 'p05_reco_loop' %%%%%%%%%%%%
+%% External call: parameters set by 'p05_reco_loop' %%%%%%%%%%%%%%%%%%%%%%%
 if exist( 'external_parameter' ,'var')
     visualOutput = 0; 
     interactive_determination_of_rot_axis = 0;
@@ -206,7 +206,6 @@ while scan_path(end) == filesep
     scan_path(end) = [];
 end
 [raw_path, scan_name] = fileparts(scan_path);
-PrintVerbose(verbose, '%s', scan_name)
 scan_path = [scan_path, filesep];
 [beamtime_path, raw_folder] = fileparts(raw_path);
 [~, beamtime_id] = fileparts(beamtime_path);
@@ -307,7 +306,7 @@ dark_nums = CellString2Vec( dark_names );
 num_dark = numel(dark_names);
 PrintVerbose(verbose, '\n number of darks found : %g', num_dark)
 
-% Projection to read
+% Projection range to read
 if isempty( proj_range )
     proj_range = 1;
 end
@@ -330,7 +329,7 @@ raw_im_shape_binned2 = raw_im_shape_binned(2);
 PrintVerbose(verbose, '\n raw image shape : %g  %g', raw_im_shape)
 PrintVerbose(verbose, '\n raw image shape binned : %g  %g', raw_im_shape_binned)
 
-%% Read par log
+%% P05 log-file
 str = dir( sprintf( '%s*scan.log', scan_path) );
 filename = sprintf( '%s/%s', str.folder, str.name);
 [par, cur, cam] = p05_log( filename );
@@ -358,13 +357,14 @@ if isempty( sample_detector_distance )
         sample_detector_distance = par.o_ccd_dist / 1000;
     end
 end
-if isempty( num_angles )
-    if isfield( par, 'n_angle' )
-        num_angles = par.n_angle;
-    elseif isfield( par, 'projections' )
-        num_angles = par.projections;
-    end
-end
+% if isempty( num_angles )
+%     if isfield( par, 'n_angle' )
+%         % Not used for EHD currently, n_angle = #(projections - 1), first angle: 0, last angle: 360
+%         num_angles = double( par.n_angle );
+%     elseif isfield( par, 'projections' )
+%         num_angles = double( par.projections );
+%     end
+% end
 
 %% Start parallel CPU pool
 t = toc;
@@ -575,7 +575,7 @@ elseif ~read_flatcor
     raw_min2 = min( proj(:) );
     raw_max2 = max( proj(:) );
     
-    %% Flat field correction
+    %% Flat field correction %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     
     % Flat field correction without correlation
     if ~correct_beam_shake
@@ -727,11 +727,16 @@ if do_tomo(1)
     rot_corr_area1 = IndexParameterToRange( rot_corr_area1, raw_im_shape_binned1 );
     rot_corr_area2 = IndexParameterToRange( rot_corr_area2, raw_im_shape_binned2 );
 
-    % Automatic determination of full rotation angle if rot_angle_full is empty
+    % Full rotation angle
     if isempty( rot_angle_full )
         if isfield( par, 'rotation')
+            % From log file
             rot_angle_full = par.rotation / 180 * pi;
+        elseif exist('cur', 'var') && isfield(cur, 'proj') && isfield( cur.proj, 'angle')
+            % from beam current log
+            rot_angle_full = (cur.proj(end).angle - cur.proj(1).angle) * pi /180; % KIT: , EHD: ok
         else
+            % Guess from correlation of projections
             im1 = proj( rot_corr_area1, rot_corr_area2, 1);
             im2 = proj( rot_corr_area1, rot_corr_area2, num_proj_used);
             [~, cm1] = ImageCorrelation( im1, im2, 0, 0, image_corr_gpu); % large if full angle is  2 * pi
@@ -741,35 +746,31 @@ if do_tomo(1)
             elseif max( cm1(:) ) < max( cm2(:) )
                 rot_angle_full = pi;
             else
-                error('Automatic determination of full angle of rotation via correlation of first and last (flipped) projection failed.')
+                error('Determination of full angle of rotation via correlation of first and last projection failed.')
             end
         end
     end    
     PrintVerbose(verbose, '\n full rotation angle: %g * pi', rot_angle_full / pi)
     if exist('cur', 'var') && isfield(cur, 'proj') && isfield( cur.proj, 'angle')
-        angles = [cur.proj.angle] / 180 * pi; % for KIT cam this includes missing angles
-        if strcmpi(cam, 'kit')
-            % drop angles where projections are missing
-            angles = angles(1 + proj_nums);
-        end
+        % for KIT cam this includes missing angles
+        angles = [cur.proj.angle] / 180 * pi; 
+        %if strcmpi(cam, 'kit')
+        % drop angles where projections are missing or proj_range is used
+        angles = angles(1 + proj_nums);
+    %end
     else
         if isfield( par, 'projections' )
-            num_proj = par.projections;
+            num_proj = double( par.projections );
         elseif isfield( par, 'n_angles' )
-            num_proj = par.n_angles;
-        end
-        %% CHECK: num_proj or num_proj - 1
-        angles = rot_angle_full * (0:num_proj - 1) / (num_proj - 1);
-    end
-% use above for img files and below for tiff files which accounts for missing images 
-%     if isempty( num_angles )
-%         angles = rot_angle_full * proj_nums / num_proj_used;
-%     else
-%         angles = rot_angle_full * proj_nums / num_angles;
-%     end
-%     else
-%         PrintVerbose(verbose, '\n  angular range:', max( angles ) - min( angles ))
-%     end
+            num_proj = double( par.n_angles );
+        end        
+        switch lower( cam )
+            case 'ehd'
+                angles = rot_angle_full * (0:num_proj - 1) / (num_proj - 1); % EHD: ok
+            case 'kit'
+                angles = rot_angle_full * (0:num_proj - 1) / num_proj; % KIT: ok if par.projections exist
+        end        
+    end    
     if numel( angles ) ~= num_proj_used
         error('Number of elements in array of angles (%g) unequal number of projections read (%g)', numel( angles ), num_proj_used)
     end
@@ -946,7 +947,7 @@ if do_phase_retrieval(1)
     PrintVerbose(verbose, '\nPhase retrieval.')
     
     % Retrieval
-    parfor nn = 1:num_proj_used
+    parfor nn = 1:size(proj, 3)
         % combined GPU and parfor usage requires memory management
         if phase_padding
             im = padarray( proj(:,:,nn), raw_im_shape_binned, 'symmetric', 'post' );
@@ -997,6 +998,12 @@ if do_tomo(1)
     end
     vol_min = NaN;
     vol_max = NaN;
+    angles_reco = angles;
+    num_proj_reco = numel( angles );
+    if isequal( angles(1), angles(end) )
+        angles_reco(end) = [];
+        num_proj_reco = numel( angles_reco );
+    end
     for nn = 1:num_slabs
 
         % Slice indices
@@ -1004,23 +1011,19 @@ if do_tomo(1)
         sli1 = min( [nn * num_sli, vol_shape(3)] );
 
         % Filter sinogram
-        PrintVerbose(verbose, '\n slab %g of %g: Filter sino: ', nn, num_slabs)
-        if fbp_filter_padding(1)
-            filt = iradonDesignFilter(fbp_filter_type, 2*raw_im_shape_binned1, fpb_freq_cutoff);
-        else
-            filt = iradonDesignFilter(fbp_filter_type, raw_im_shape_binned1, fpb_freq_cutoff);
-        end        
+        PrintVerbose(verbose, '\n slab %g of %g: Filter sino: ', nn, num_slabs)        
+        filt = iradonDesignFilter(fbp_filter_type, (1 + fbp_filter_padding) * raw_im_shape_binned1, fpb_freq_cutoff);       
         if butterworth_filter(1)
             [b, a] = butter(butterworth_order, butterworth_cutoff_frequ);
             bw = freqz(b, a, numel(filt) );
             filt = filt .* bw;
         end
         if fbp_filter_padding(1)
-            sino = padarray( NegLog(permute(proj(:,sli0:sli1,:), [1 3 2]), take_neg_log), [raw_im_shape_binned1 0 0], 'symmetric', 'post' );
+            sino = padarray( NegLog(permute(proj(:,sli0:sli1,1:num_proj_reco), [1 3 2]), take_neg_log), [raw_im_shape_binned1 0 0], 'symmetric', 'post' );
             sino = real( ifft( bsxfun(@times, fft( sino, [], 1), filt), [], 1, 'symmetric') );
             sino = sino(1:raw_im_shape_binned1,:,:);
         else
-            sino = real( ifft( bsxfun(@times, fft( NegLog(permute(proj(:,sli0:sli1,:), [1 3 2]), take_neg_log), [], 1), filt), [], 1, 'symmetric') );
+            sino = real( ifft( bsxfun(@times, fft( NegLog(permute(proj(:,sli0:sli1,1:num_proj_reco), [1 3 2]), take_neg_log), [], 1), filt), [], 1, 'symmetric') );
         end        
         PrintVerbose(verbose, 'done.')
 
@@ -1030,11 +1033,11 @@ if do_tomo(1)
         subvol_size = vol_size;
         subvol_size(5) = subvol_shape(3) / vol_shape(3) * vol_size(5);
         subvol_size(6) = subvol_shape(3) / vol_shape(3) * vol_size(6);
-        vol = astra_parallel3D( sino, rot_angle_offset + angles, rot_axis_offset, subvol_shape, subvol_size, astra_pixel_size, link_data, rot_axis_tilt);
+        vol = astra_parallel3D( sino, rot_angle_offset + angles_reco, rot_axis_offset, subvol_shape, subvol_size, astra_pixel_size, link_data, rot_axis_tilt);
         PrintVerbose(verbose, 'done.')
 
         % Save subvolume
-        if write_reco
+        if write_reco(1)
             PrintVerbose(verbose, ' Save slices:')
             if do_phase_retrieval(1)
                 save_path = reco_phase_path;
@@ -1063,7 +1066,7 @@ if do_tomo(1)
     PrintVerbose(verbose, ' Time elapsed: %.1f s (%.2f min)', toc-t, (toc-t)/60 )    
     
     % Write log file
-    if write_reco
+    if write_reco(1)
          logfile_name = sprintf( '%sreco.log', save_path);
          fid = fopen(logfile_name, 'w');
          fprintf(fid, 'scan_name : %s\n', scan_name);
