@@ -90,7 +90,7 @@ energy = []; % in eV. if empty: read from log file
 sample_detector_distance = []; % in m. if empty: read from log file
 eff_pixel_size = []; % in m. if empty: read from log file. effective pixel size =  detector pixel size / magnification
 % Tomography parameters %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-do_tomo = 0; % run tomographic reconstruction of volume
+do_tomo = 1; % run tomographic reconstruction of volume
 vol_shape = []; % shape of the volume to be reconstructed, either in absolute number of voxels or in relative number w.r.t. the default volume which is given by the detector width and height
 vol_size = []; % if empty, unit voxel size is assumed
 rot_angle_full = []; % in radians: empty ([]), full angle of rotation, or array of angles. if empty full rotation angles is determined automatically to pi or 2 pi
@@ -125,7 +125,6 @@ link_data = 1; % ASTRA data objects become references to Matlab arrays.
 % TODO: interactive loop over tomo slices for different phase retrieval parameter
 % TODO: automatic determination of rot center: entropy type
 % TODO: output file format option: 8-bit, 16-bit. Currently 32 bit tiff.
-% TODO: adopt for missing images w.r.t. to img or tif
 % TODO: normalize proj with beam current for KIT camera and missing images
 % TODO: vertical ROI reco
 % TODO: read image ROI and test for speed up
@@ -860,17 +859,14 @@ if do_tomo(1)
     PrintVerbose(verbose, '\n number of subvolume slabs: %g', num_slabs )
     PrintVerbose(verbose, '\n maximum number of slices per slab: %g', num_sli )
     
-    %% Check position of rotation axis
+    %% Determine rotation axis position
     if interactive_determination_of_rot_axis(1)
         fprintf( '\n\nENTER INTERACTIVE MODE' )
         % default range is centered at the given or calculated offset
         offset = rot_axis_offset + (-4:0.5:4);
-        fprintf( '\n calculated rotation axis offset : %.2f', rot_axis_offset_calc)
-        fprintf( '\n default range of offsets centered at offset %.2f:', rot_axis_offset)
-        fprintf( '\n position     value')
-        for nn = 1:numel(offset)
-            fprintf( '\n %8u %9.2f', nn, offset(nn))
-        end
+        fprintf( '\n rotation axis offset calculated : %.2f', rot_axis_offset_calc)
+        fprintf( '\n rotation axis offset used       : %.2f', rot_axis_offset)
+        
         % Loop over offsets
         while ~isscalar( offset )
             pause(0.5)
@@ -880,23 +876,26 @@ if do_tomo(1)
                 slice = round((raw_im_shape_binned2 - 1) * interactive_determination_of_rot_axis_slice + 1 );
                 %slice = floor(raw_im_shape_binned2 / 2);
             end
-            vr = find_rot_axis(proj, angles, offset, slice);
+            [vr, ~, m1, m2, m3, m4, m5, com] = find_rot_axis(proj, angles, offset, slice);
+            fprintf( '\n sinogram center of mass offset : %g', com - raw_im_shape_binned1)
+            
+            % Print image number, rotation axis values, and different metrics
+            fprintf( '\n image_no   rot_pos         m1         m2         m3         m4         m5')
+            for nn = 1:numel(offset)
+                fprintf( '\n %8u %9.2f %10.3g %10.3g %10.3g  %10.3g %10.3g', nn, offset(nn), m1(nn), m2(nn), m3(nn), m4(nn), m5(nn) )
+            end        
             nimplay(vr)            
             offset = input( '\nTYPE ROTATION AXIS OFFSET OR ENTER TO CONTINUE SCRIPT OR TYPE OFFSET RANGE AS [...] TO RE-RUN RECONSTRUCTIONS: ');
             if isempty( offset )
                 fprintf( ' new and old rotation axis offset : %.2f', rot_axis_offset)
                 break
             elseif isscalar( offset )                             
-                fprintf( '\n old rotation axis offset : %.2f', rot_axis_offset)
+                fprintf( ' old rotation axis offset : %.2f', rot_axis_offset)
                 rot_axis_offset = offset;
                 fprintf( '\n new rotation axis offset : %.2f', rot_axis_offset)
                 break
             else                
-                fprintf( '\n new offset range :')
-                fprintf( '\n position     value')
-                for nn = 1:numel(offset)
-                    fprintf( '\n %8u %9.2f', nn, offset(nn))
-                end                
+                fprintf( '\n new rotation axis positions and metrics :')
             end
         end
         rot_axis_pos = raw_im_shape_binned1 / 2 + rot_axis_offset;
