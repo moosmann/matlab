@@ -4,16 +4,17 @@
 % USAGE
 % Set parameters in PARAMETERS / SETTINGS section below and run script.
 %
-% Start script by pushing 'F5', clicking on 'Run' in the Editor tab, or
-% typing 'p05_reco_loop' in the Command Window. To loop over data sets
-% and/or parameters use 'p05_reco_loop'.
+% To start script: type 'F5' when focus is in the Editor windows, or click
+% 'Run' in the Editor tab, or type 'p05_reco_loop' and Enter in the Command
+% Window. To loop over data or parameter use 'p05_reco_loop'.
 %
 % Written by Julian Moosmann. First version: 2016-09-28. Last modifcation:
-% 2017-02-21
+% 2017-02-22
 
 %% PARAMETERS / SETTINGS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %scan_path = pwd; % Enter folder of data set under the raw directory and run script
-scan_path = ...        
+scan_path = ...
+    '/asap3/petra3/gpfs/p05/2016/commissioning/c20161024_000_xeno/raw/xeno_01_b';
     '/asap3/petra3/gpfs/p05/2016/commissioning/c20160803_001_pc_test/raw/phase_600';
     '/asap3/petra3/gpfs/p05/2016/commissioning/c20160803_001_pc_test/raw/phase_1000'; %rot_axis_offset=7.5    
     '/asap3/petra3/gpfs/p05/2016/commissioning/c20160803_001_pc_test/raw/phase_1400'; %rot_axis_offset=19.5        
@@ -40,29 +41,30 @@ scan_path = ...
     '/asap3/petra3/gpfs/p05/2016/data/11001978/raw/mah_15_57R';
     '/asap3/petra3/gpfs/p05/2016/data/11001978/raw/mah_10_13R_bottom';
     '/asap3/petra3/gpfs/p05/2016/data/11001464/raw/pnl_16_petrosia_c';
-    '/asap3/petra3/gpfs/p05/2016/commissioning/c20160920_000_diana/raw/Mg-10Gd39_1w';
-    '/asap3/petra3/gpfs/p05/2016/commissioning/c20161024_000_xeno/raw/xeno_01_b';
+    '/asap3/petra3/gpfs/p05/2016/commissioning/c20160920_000_diana/raw/Mg-10Gd39_1w';    
 % Input %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-read_flatcor = 0; % Read flatfield-corrected images from disc. Skips preprocessing steps
+read_flatcor = 0; % Read flatfield-corrected images from disc. Skips preprocessing
 read_flatcor_path = '/asap3/petra3/gpfs/p05/2016/data/11001978/scratch_cc/c20160803_001_pc_test/phase_1000/flat_corrected'; % subfolder of 'flat_corrected' containing projections
 % Output %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 out_path = '/gpfs/petra3/scratch/moosmanj'; % absolute path were output data will be stored. !!overwrites the write_to_scratch flag. if empty uses the beamtime directory and either 'processed' or 'scratch_cc'
 %out_path = '/asap3/petra3/gpfs/p05/2016/data/11001978/scratch_cc/c20160803_001_pc_test';
 write_to_scratch = 0; % write to 'scratch_cc' instead of 'processed'
 write_flatcor = 0; % save preprocessed flat corrected projections
-write_phase_map = 0; % save phase maps (if phase retrieval is not 0)
-write_sino = 0; % save sinograms (after preprocessing & before FBP filtering and phase retrieval)
-write_sino_phase = 0; % save sinograms of phase maps
-write_reco = 0; % save reconstructed slices (if do_tomo=1)
+write_phase_map = 1; % save phase maps (if phase retrieval is not 0)
+write_sino = 1; % save sinograms (after preprocessing & before FBP filtering and phase retrieval)
+write_sino_phase = 1; % save sinograms of phase maps
+write_reco = 1; % save reconstructed slices (if do_tomo=1)
 parfolder = ''; % parent folder of 'reco', 'sino', and 'flat_corrected'
 subfolder_flatcor = ''; % subfolder of 'flat_corrected'
 subfolder_phase_map = ''; % subfolder of 'phase_map'
 subfolder_sino = ''; % subfolder of 'sino'
 subfolder_reco = '';%sprintf('fbpFilt%s_ringFilt%uMedWid%u_bwFilt%ubwCutoff%u_phasePad%u_freqCutoff%2.0f_fbpPad%u', fbp_filter_type, ring_filter, ring_filter_median_width, butterworth_filter, 100*butterworth_cutoff_frequ, phase_padding, fpb_freq_cutoff*100, fbp_filter_padding); % parent folder to 'reco'
 % Preprocessing %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-bin = 4; % bin size: 1, 2, or 4
-proj_range = 2; % range of found projections to be used. if empty: all, if scalar: stride
-ref_range = 4; % range of flat fields to be used: start:inc:end. if empty: all (equals 1). if scalar: stride
+bin = 2; % projection binning factor: 1, 2, or 4
+do_stitching = 1; % stitch projection of 2 pi scan at rotation axis position
+stitching_method = 'sine'; % 'step': no interpolation, 'linear','sine': linear interpolation of overlap region. !!! adjust: correlation area
+proj_range = 1; % range of found projections to be used. if empty: all, if scalar: stride
+ref_range = 1; % range of flat fields to be used: start:inc:end. if empty: all (equals 1). if scalar: stride
 darkFiltPixHot = 0.01; % Hot pixel filter parameter for dark fields, for details see 'FilterPixel'
 darkFiltPixDark = 0.005; % Dark pixel filter parameter for dark fields, for details see 'FilterPixel'
 refFiltPixHot = 0.01; % Hot pixel filter parameter for flat fields, for details see 'FilterPixel'
@@ -79,12 +81,12 @@ round_precision = 2; % precision when rounding pixel shifts
 ring_filter = 1; % ring artifact filter
 ring_filter_median_width = 11;
 % Phase retrieval %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-do_phase_retrieval = 0;
-phase_retrieval_method = 'qpcut'; %'qp' 'ctf' 'tie' 'qp2' 'tie'
+do_phase_retrieval = 1;
+phase_retrieval_method = 'tie';'qpcut'; %'qp' 'ctf' 'tie' 'qp2'
 phase_retrieval_reg_par = 2.5; % regularization parameter
 phase_retrieval_bin_filt = 0.15; % threshold for quasiparticle retrieval 'qp', 'qp2'
 phase_retrieval_cutoff_frequ = 1 * pi; % in radian. frequency cutoff in Fourier space for 'qpcut' phase retrieval
-phase_padding = 0; % padding of intensities before phase retrieval
+phase_padding = 1; % padding of intensities before phase retrieval
 energy = []; % in eV. if empty: read from log file
 sample_detector_distance = []; % in m. if empty: read from log file
 eff_pixel_size = []; % in m. if empty: read from log file. effective pixel size =  detector pixel size / magnification
@@ -96,10 +98,10 @@ rot_angle_full = []; % in radians: empty ([]), full angle of rotation, or array 
 rot_angle_offset = pi; % global rotation of reconstructed volume
 rot_axis_offset = [];19.5;7.5;5.75; % if empty use automatic computation
 rot_axis_pos = []; % if empty use automatic computation. either offset or pos has to be empty. can't use both
-rot_corr_area1 = [0.25 0.75]; % ROI to correlate projections at angles 0 & pi. Use [0.75 1] or so for scans with an excentric rotation axis
-rot_corr_area2 = [0.25 0.75]; % ROI to correlate projections at angles 0 & pi
+rot_corr_area1 = [0.75 1]; % ROI to correlate projections at angles 0 & pi. Use [0.75 1] or so for scans with an excentric rotation axis
+rot_corr_area2 = [0.2 0.8]; % ROI to correlate projections at angles 0 & pi
 rot_axis_tilt = 0 * -0.1 / 180 * pi; % camera tilt w.r.t rotation axis
-fbp_filter_type = 'linear';'Ram-Lak';
+fbp_filter_type = 'Ram-Lak';'linear';
 fpb_freq_cutoff = 1; % Cut-off frequency in Fourier space of the above FBP filter
 fbp_filter_padding = 0; % symmetric padding for consistent boundary conditions
 butterworth_filter = 1; % use butterworth filter in addition to FBP filter
@@ -110,8 +112,8 @@ take_neg_log = []; % take negative logarithm. if empty, use 1 for attenuation co
 % Interaction %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 verbose = 1; % print information to standard output
 visualOutput = 0; % show images and plots during reconstruction
-interactive_determination_of_rot_axis = 0; % reconstruct slices with different offsets
-interactive_determination_of_rot_axis_slice = 0.5; % relative (in [0,1]) or absolute slice number (in (1, N])
+interactive_determination_of_rot_axis = 1; % reconstruct slices with different offsets
+interactive_determination_of_rot_axis_slice = 0.5; % slice number. if in [0,1]: relative, if in (1, N]: absolute
 % Hardware / Software %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 poolsize = 0.9; % number of workers used in a parallel pool. if > 1: absolute number. if 0 < poolsize < 1: relative amount of all cores to be used
 gpu_ind = 1; % GPU Device to use: gpuDevice(gpu_ind)
@@ -120,7 +122,7 @@ image_corr_gpu = 0; % experimental, slower than CPU: uses GPU to correlate image
 link_data = 1; % ASTRA data objects become references to Matlab arrays.
 
 %% TODO %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% TODO: projection stitching for excentric rotation axis scans
+% TODO: stitching: optimize and refactor, memory efficency, exponentian interpolatin method
 % TODO: interactive loop over tomo slices for different phase retrieval parameter
 % TODO: automatic determination of rot center: entropy type
 % TODO: output file format option: 8-bit, 16-bit. Currently 32 bit tiff.
@@ -138,6 +140,7 @@ link_data = 1; % ASTRA data objects become references to Matlab arrays.
 % TODO: delete files before writing data to a folder
 % TODO: log file location for non-tomo processing
 % TODO: inverse Gaussian filter for phase retrieval, VZC theorem
+% TODO: check calculated rotation axis offset when horizontal ROI is used for image correlation
 
 %% Notes %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -723,7 +726,7 @@ end
 
 %% Rotation axis position and tomgraphic reconstruction parameters %%%%%%%%
 if do_tomo(1)
-    t = toc;
+    t = toc;    
     rot_corr_area1 = IndexParameterToRange( rot_corr_area1, raw_im_shape_binned1 );
     rot_corr_area2 = IndexParameterToRange( rot_corr_area2, raw_im_shape_binned2 );
 
@@ -746,7 +749,7 @@ if do_tomo(1)
             elseif max( cm1(:) ) < max( cm2(:) )
                 rot_angle_full = pi;
             else
-                error('Determination of full angle of rotation via correlation of first and last projection failed.')
+                error('Determination of full angle of rotation from correlation of first and last projection not successful.')
             end
         end
     end    
@@ -754,10 +757,12 @@ if do_tomo(1)
     if exist('cur', 'var') && isfield(cur, 'proj') && isfield( cur.proj, 'angle')
         % for KIT cam this includes missing angles
         angles = [cur.proj.angle] / 180 * pi; 
-        %if strcmpi(cam, 'kit')
-        % drop angles where projections are missing or proj_range is used
-        angles = angles(1 + proj_nums);
-    %end
+        if strcmpi(cam, 'kit')
+            % drop angles where projections are missing
+            angles = angles(1 + proj_nums);
+        else
+            angles = angles(proj_range); 
+        end
     else
         if isfield( par, 'projections' )
             num_proj = double( par.projections );
@@ -778,12 +783,14 @@ if do_tomo(1)
     [val1, ind1] = min( abs( angles ));
     [val2, ind2] = min( abs( angles - pi ));
     % Correlate images
-    im1 = proj( :, rot_corr_area2, ind1);
-    im2 = flipud( proj( :, rot_corr_area2, ind2) );    
+%     im1 = proj( :, rot_corr_area2, ind1);
+%     im2 = flipud( proj( :, rot_corr_area2, ind2) );    
+    im1 = proj( rot_corr_area1, rot_corr_area2, ind1);
+    im2 = flipud( proj( rot_corr_area1, rot_corr_area2, ind2) );    
     PrintVerbose(verbose, '\n image correlation: #%g at index %g and angle %g pi and #%g at index %g and angle %g pi', proj_nums(ind1), ind1, val1 / pi, proj_nums(ind2), ind2, (val2 + pi) / pi )
     out = ImageCorrelation( im1, im2, 0, 0, image_corr_gpu);
-    xshift = round( out.Xshift, round_precision);
-    yshift = round( out.Yshift, round_precision);    
+    xshift = round( out.Xshift, round_precision) + rot_corr_area1(1) - 1;
+    yshift = round( out.Yshift, round_precision) + rot_corr_area2(1) - 1;    
     PrintVerbose(verbose, '\n relative shift: %g, %g', xshift, yshift)
     rot_axis_offset_calc = xshift / 2;
     rot_axis_pos_calc = raw_im_shape_binned1 / 2 + rot_axis_offset_calc;        
@@ -820,68 +827,29 @@ if do_tomo(1)
         drawnow 
         nimplay(cat(3, im1c',im2c'))
     end
-    
-    %% GPU slab sizes
-    if isempty( vol_shape )
-        % default volume given by the detector width and height
-        vol_shape = [raw_im_shape_binned1, raw_im_shape_binned1, raw_im_shape_binned2];
-    else            
-        if vol_shape(1) <=  1
-            vol_shape(1) = round( 1 + vol_shape(1) * (raw_im_shape_binned1 - 1) );
-        end
-        if vol_shape(2) <=  1
-            vol_shape(2) = round( 1 + vol_shape(2) * (raw_im_shape_binned1 - 1) );
-        end
-        if vol_shape(3) <=  1
-            vol_shape(3) = round( 1 + vol_shape(3) * (raw_im_shape_binned2 - 1) );
-        end
-    end
-    if isempty( vol_size )
-        vol_size = [-vol_shape(1)/2, vol_shape(1)/2, -vol_shape(2)/2, vol_shape(2)/2, -vol_shape(3)/2, vol_shape(3)/2];        
-    end
-    num_proj_used =  size( proj, 3);
-    % GPU memory required for reconstruction
-    rec_mem = ( raw_im_shape_binned1 * num_proj_used + vol_shape(1) * vol_shape(2) ) * 4;
-    % GPU memory limit    
-    num_sli = floor( gpu_thresh * gpu.AvailableMemory / rec_mem );
-    % slabs required
-    num_slabs = ceil( vol_shape(3) / num_sli );
-    % Readjust number slices to make all of similar size
-    num_sli = ceil(vol_shape(3) / num_slabs);
-    subvol_shape = [vol_shape(1:2), num_sli];
-    PrintVerbose(verbose, '\n rotation axis offset: %f', rot_axis_offset );
-    PrintVerbose(verbose, '\n rotation axis position: %f', rot_axis_pos );    
-    PrintVerbose(verbose, '\n shape of reconstruction volume: [%g, %g, %g]', vol_shape )
-    PrintVerbose(verbose, '\n shape of reconstruction subvolume: [%g, %g, %g]', subvol_shape )
-    PrintVerbose(verbose, '\n available gpu memory : %g MiB (%.2f%%) of %g MiB', gpu.AvailableMemory/10^6, 100*gpu.AvailableMemory/gpu.TotalMemory, gpu.TotalMemory/10^6)
-    PrintVerbose(verbose, '\n memory required for reconstruction of a single slice: %g MiB (estimate)', rec_mem / 1024^2 )
-    PrintVerbose(verbose, '\n memory of reconstructed volume: %g MiB', prod( vol_shape ) * 4 / 1024^2 )
-    PrintVerbose(verbose, '\n maximum memory of subvolume: %g MiB', prod( subvol_shape ) * 4 / 1024^2 )
-    PrintVerbose(verbose, '\n number of subvolume slabs: %g', num_slabs )
-    PrintVerbose(verbose, '\n maximum number of slices per slab: %g', num_sli )
-    
+
     %% Determine rotation axis position
     if interactive_determination_of_rot_axis(1)
         fprintf( '\n\nENTER INTERACTIVE MODE' )
         % default range is centered at the given or calculated offset
         offset = rot_axis_offset + (-4:0.5:4);
-        fprintf( '\n rotation axis offset calculated : %.2f', rot_axis_offset_calc)
-        fprintf( '\n rotation axis offset used       : %.2f', rot_axis_offset)
+        fprintf( '\n calculated rotation axis offset & position : %.2f, %.2f', rot_axis_offset_calc, rot_axis_pos_calc)
+        fprintf( '\n current rotation axis offset & position    : %.2f, %.2f', rot_axis_offset, rot_axis_pos)
         
         % Loop over offsets
         while ~isscalar( offset )
-            pause(0.5)
+            pause(0.2)
             if interactive_determination_of_rot_axis_slice > 1
                 slice = interactive_determination_of_rot_axis_slice;
             elseif interactive_determination_of_rot_axis_slice <= 1 && interactive_determination_of_rot_axis_slice >= 0
                 slice = round((raw_im_shape_binned2 - 1) * interactive_determination_of_rot_axis_slice + 1 );
                 %slice = floor(raw_im_shape_binned2 / 2);
             end
-            [vr, ~, m1, m2, m3, m4, m5, com] = find_rot_axis(proj, angles, offset, slice);
+            [vr, m1, m2, m3, m4, m5, com] = find_rot_axis(proj, angles, offset, slice);
             fprintf( '\n sinogram center of mass offset : %g', com - raw_im_shape_binned1)
             
             % Print image number, rotation axis values, and different metrics
-            fprintf( '\n image_no   rot_pos         m1         m2         m3         m4         m5')
+            fprintf( '\n image_no    offset         m1         m2         m3         m4         m5')
             for nn = 1:numel(offset)
                 fprintf( '\n %8u %9.2f %10.3g %10.3g %10.3g  %10.3g %10.3g', nn, offset(nn), m1(nn), m2(nn), m3(nn), m4(nn), m5(nn) )
             end        
@@ -901,6 +869,59 @@ if do_tomo(1)
         end
         rot_axis_pos = raw_im_shape_binned1 / 2 + rot_axis_offset;
     end
+end
+
+%% Stitch projections
+if do_stitching(1)
+    t = toc;
+    PrintVerbose(verbose, '\nStitch projections:')
+    if rot_angle_full < 1.9 * pi
+        error( 'full angle of rotation smaller than 2 pi: %g pi', rot_angle_full/pi)
+    end
+    % number of unstitched projections
+    num_proj = size( proj, 3);
+    % last projection within [0,pi)
+    [~, num_proj_sti] = min( abs(angles - pi));
+    % number of stitched projections
+    num_proj_sti = num_proj_sti - 1;
+    % index range of projections to be stitched
+    xl = 1:round(rot_axis_pos);
+    xr = 1:xl(end)-1;
+    im_shape_sti1 = numel( xl ) + numel( xr );
+    % Preallocation
+    proj_sti = zeros( im_shape_sti1 , raw_im_shape_binned2, num_proj_sti, 'single');    
+    for nn = 1:num_proj_sti
+        nn2 = mod(num_proj_sti + nn - 1, num_proj) + 1;        
+        im = zeros( im_shape_sti1, raw_im_shape_binned2);
+        switch lower( stitching_method )
+            case 'step'
+                im = cat(1, proj(xl,:,nn), flipud( proj(xr,:,nn2) ) );
+            case {'linear', 'sine'}
+                % overlap region
+                overlap = 2 * rot_axis_pos - raw_im_shape_binned1 : raw_im_shape_binned1;
+                % overlap ramp
+                x = (0:1/(numel(overlap)-1):1);
+                % 1D weight
+                w = ones(raw_im_shape_binned1, 1);
+                switch lower( stitching_method )
+                    case 'linear'
+                        w(overlap) = 1 - x;
+                    case 'sine'
+                        w(overlap) = 0.5 * cos(pi*x) + 0.5;
+                end                
+                % weighted projections
+                iml = bsxfun(@times, proj(:,:,nn), w);
+                imr = flipud( bsxfun(@times, proj(:,:,nn2), w ) );
+                % stitched projection
+                im(1:raw_im_shape_binned1,:) = iml;
+                im(end - raw_im_shape_binned1 + 1:end,:) = im(end - raw_im_shape_binned1 + 1:end,:) + imr;                
+        end                
+        proj_sti(:,:,nn) = im;
+    end
+    proj = proj_sti;
+    clear proj_sti;
+    angles = angles(1:num_proj_sti);
+    PrintVerbose(verbose, ' Time elapsed: %g .0f (%.2f min)', toc-t, (toc-t)/60)
 end
 
 %% Save sinograms
@@ -929,12 +950,10 @@ if do_phase_retrieval(1)
     end
     
     % Phase retrieval filter
-    if phase_padding(1)
-        [pf, pha_appendix] = PhaseFilter( phase_retrieval_method, 2*raw_im_shape_binned, edp, phase_retrieval_reg_par, phase_retrieval_bin_filt, phase_retrieval_cutoff_frequ, 'single');
-    else
-        [pf, pha_appendix] = PhaseFilter( phase_retrieval_method, raw_im_shape_binned, edp, phase_retrieval_reg_par, phase_retrieval_bin_filt, phase_retrieval_cutoff_frequ, 'single');
-    end
-    
+    im_shape = [size(proj,1) , size(proj,2)];
+    im_shape_pad = (1 + phase_padding) * im_shape;
+    [pf, pha_appendix] = PhaseFilter( phase_retrieval_method, im_shape_pad, edp, phase_retrieval_reg_par, phase_retrieval_bin_filt, phase_retrieval_cutoff_frequ, 'single');
+           
     % reco phase dir
     if isempty( subfolder_reco )
         reco_phase_path = [out_path, filesep, 'reco_phase', filesep, pha_appendix, filesep];
@@ -950,10 +969,10 @@ if do_phase_retrieval(1)
     parfor nn = 1:size(proj, 3)
         % combined GPU and parfor usage requires memory management
         if phase_padding
-            im = padarray( proj(:,:,nn), raw_im_shape_binned, 'symmetric', 'post' );
+            im = padarray( proj(:,:,nn), im_shape, 'symmetric', 'post' );
             %im = padarray( gpuArray( proj(:,:,nn) ), raw_im_shape_binned, 'post', 'symmetric' );
             im = -real( ifft2( pf .* fft2( im ) ) );
-            proj(:,:,nn) = im(1:raw_im_shape_binned1, 1:raw_im_shape_binned2);
+            proj(:,:,nn) = im(1:im_shape(1), 1:im_shape(2));
             %proj(:,:,nn) = gather( im(1:raw_im_shape_binned1, 1:raw_im_shape_binned2) );
         else
             proj(:,:,nn) = -real( ifft2( pf .* fft2( proj(:,:,nn) ) ) );
@@ -968,7 +987,7 @@ if do_phase_retrieval(1)
         PrintVerbose(verbose, '\nSave phase maps:')
         phase_map_path = [phase_map_path, pha_appendix, filesep];
         CheckAndMakePath( phase_map_path );
-        parfor nn = 1:num_proj_used
+        parfor nn = 1:size( proj, 3)
             filename = sprintf( '%sphase_%06u.tif', phase_map_path, nn);
             write32bitTIFfromSingle( filename, squeeze( rot90( proj( :, :, nn) ) ) )
         end
@@ -991,7 +1010,54 @@ if write_sino(1)
 end
 
 %% Tomographic reco
-if do_tomo(1)         
+if do_tomo(1)
+    
+    if do_stitching
+        rot_axis_offset_reco = 0;
+    else
+        rot_axis_offset_reco = rot_axis_offset;
+    end
+    
+    %% GPU slab sizes
+    if isempty( vol_shape )
+        % default volume given by the detector width and height
+        vol_shape1 = size( proj, 1);
+        vol_shape = [vol_shape1, vol_shape1, raw_im_shape_binned2];
+    else            
+        if vol_shape(1) <=  1
+            vol_shape(1) = round( 1 + vol_shape(1) * (vol_shape1 - 1) );
+        end
+        if vol_shape(2) <=  1
+            vol_shape(2) = round( 1 + vol_shape(2) * (vol_shape1 - 1) );
+        end
+        if vol_shape(3) <=  1
+            vol_shape(3) = round( 1 + vol_shape(3) * (raw_im_shape_binned2 - 1) );
+        end
+    end
+    if isempty( vol_size )
+        vol_size = [-vol_shape(1)/2, vol_shape(1)/2, -vol_shape(2)/2, vol_shape(2)/2, -vol_shape(3)/2, vol_shape(3)/2];        
+    end
+    num_proj_used =  size( proj, 3);
+    % GPU memory required for reconstruction
+    rec_mem = ( vol_shape1 * num_proj_used + vol_shape(1) * vol_shape(2) ) * 4;
+    % GPU memory limit    
+    num_sli = floor( gpu_thresh * gpu.AvailableMemory / rec_mem );
+    % slabs required
+    num_slabs = ceil( vol_shape(3) / num_sli );
+    % Readjust number slices to make all of similar size
+    num_sli = ceil(vol_shape(3) / num_slabs);
+    subvol_shape = [vol_shape(1:2), num_sli];
+    PrintVerbose(verbose, '\n rotation axis offset: %f', rot_axis_offset );
+    PrintVerbose(verbose, '\n rotation axis position: %f', rot_axis_pos );    
+    PrintVerbose(verbose, '\n shape of reconstruction volume: [%g, %g, %g]', vol_shape )
+    PrintVerbose(verbose, '\n shape of reconstruction subvolume: [%g, %g, %g]', subvol_shape )
+    PrintVerbose(verbose, '\n available gpu memory : %g MiB (%.2f%%) of %g MiB', gpu.AvailableMemory/10^6, 100*gpu.AvailableMemory/gpu.TotalMemory, gpu.TotalMemory/10^6)
+    PrintVerbose(verbose, '\n memory required for reconstruction of a single slice: %g MiB (estimate)', rec_mem / 1024^2 )
+    PrintVerbose(verbose, '\n memory of reconstructed volume: %g MiB', prod( vol_shape ) * 4 / 1024^2 )
+    PrintVerbose(verbose, '\n maximum memory of subvolume: %g MiB', prod( subvol_shape ) * 4 / 1024^2 )
+    PrintVerbose(verbose, '\n number of subvolume slabs: %g', num_slabs )
+    PrintVerbose(verbose, '\n maximum number of slices per slab: %g', num_sli )
+        
     PrintVerbose(verbose, '\nTomographic reconstruction of %u slabs:', num_slabs)
     if isempty( take_neg_log )
         take_neg_log = 1;
@@ -1012,16 +1078,16 @@ if do_tomo(1)
 
         % Filter sinogram
         PrintVerbose(verbose, '\n slab %g of %g: Filter sino: ', nn, num_slabs)        
-        filt = iradonDesignFilter(fbp_filter_type, (1 + fbp_filter_padding) * raw_im_shape_binned1, fpb_freq_cutoff);       
+        filt = iradonDesignFilter(fbp_filter_type, (1 + fbp_filter_padding) * vol_shape1, fpb_freq_cutoff);       
         if butterworth_filter(1)
             [b, a] = butter(butterworth_order, butterworth_cutoff_frequ);
             bw = freqz(b, a, numel(filt) );
             filt = filt .* bw;
         end
         if fbp_filter_padding(1)
-            sino = padarray( NegLog(permute(proj(:,sli0:sli1,1:num_proj_reco), [1 3 2]), take_neg_log), [raw_im_shape_binned1 0 0], 'symmetric', 'post' );
+            sino = padarray( NegLog(permute(proj(:,sli0:sli1,1:num_proj_reco), [1 3 2]), take_neg_log), [vol_shape1 0 0], 'symmetric', 'post' );
             sino = real( ifft( bsxfun(@times, fft( sino, [], 1), filt), [], 1, 'symmetric') );
-            sino = sino(1:raw_im_shape_binned1,:,:);
+            sino = sino(1:vol_shape1,:,:);
         else
             sino = real( ifft( bsxfun(@times, fft( NegLog(permute(proj(:,sli0:sli1,1:num_proj_reco), [1 3 2]), take_neg_log), [], 1), filt), [], 1, 'symmetric') );
         end        
@@ -1033,7 +1099,7 @@ if do_tomo(1)
         subvol_size = vol_size;
         subvol_size(5) = subvol_shape(3) / vol_shape(3) * vol_size(5);
         subvol_size(6) = subvol_shape(3) / vol_shape(3) * vol_size(6);
-        vol = astra_parallel3D( sino, rot_angle_offset + angles_reco, rot_axis_offset, subvol_shape, subvol_size, astra_pixel_size, link_data, rot_axis_tilt);
+        vol = astra_parallel3D( sino, rot_angle_offset + angles_reco, rot_axis_offset_reco, subvol_shape, subvol_size, astra_pixel_size, link_data, rot_axis_tilt);
         PrintVerbose(verbose, 'done.')
 
         % Save subvolume

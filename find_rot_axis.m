@@ -1,4 +1,21 @@
-function [vol, sino, m1, m2, m3, m4, m5, com] = find_rot_axis(proj, angles, offsets, slice, take_neg_log)
+function [vol, m1, m2, m3, m4, m5, com] = find_rot_axis(proj, angles, offsets, slice, take_neg_log)
+% Reconstruct slices from sinogram for a range of rotation axis positoin
+% offsets.
+%
+% RETURN
+% vol : 3D array. stack of slices with different rotation axis position
+% offsets
+% m1 : scalar. mean values
+% m2 : scalar. mean absolute value
+% m3 : scalar. mean non-negative values
+% m4 : scalar. mean of isotropic modulus of gradient
+% m5 : scalar. mean of Laplacian
+% com : scalar. mean center of mass of sinogram
+% 
+% Written by Julian Moosmann. Last modification: 2017-02-27
+%
+% [vol, m1, m2, m3, m4, m5, com] = find_rot_axis(proj, angles, offsets, slice, take_neg_log)
+
 
 %% Default arguments
 if nargin < 4
