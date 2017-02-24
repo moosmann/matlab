@@ -3,7 +3,7 @@
 userpath( fileparts( mfilename('fullpath') ) );    
 addpath( genpath( userpath ) );
 rmpath( genpath(  [userpath '/.git'] ) );
-rmpath( genpath(  [userpath '/test'] ) );
+%rmpath( genpath(  [userpath '/test'] ) );
 rmpath( genpath(  [userpath '/old'] ) );
 
 fprintf( 'HOSTNAME: %s\n', getenv('HOSTNAME') );

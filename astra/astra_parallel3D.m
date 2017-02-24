@@ -21,6 +21,9 @@ function vol = astra_parallel3D(sino, angles, rotation_axis_offset, vol_shape, v
 % of the data object and are not visible to the data object. Take care if 
 % using data links.
 %
+% For GPUs the only interpolation method available in ASTRA is the Josehp
+% kernel.
+%
 % Written by Julian Moosmann
 % First version: 2016-10-5. Last modification: 2016-10-26
 
@@ -50,6 +53,9 @@ if nargin < 8
 end
 
 %% Main %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% GPU
+astra_mex('set_gpu_index', 1:gpuDeviceCount);
 
 %% Detector geometry
 det_col_count = size( sino, 1);

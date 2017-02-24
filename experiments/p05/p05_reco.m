@@ -49,7 +49,7 @@ read_flatcor_path = '/asap3/petra3/gpfs/p05/2016/data/11001978/scratch_cc/c20160
 out_path = '/gpfs/petra3/scratch/moosmanj'; % absolute path were output data will be stored. !!overwrites the write_to_scratch flag. if empty uses the beamtime directory and either 'processed' or 'scratch_cc'
 %out_path = '/asap3/petra3/gpfs/p05/2016/data/11001978/scratch_cc/c20160803_001_pc_test';
 write_to_scratch = 0; % write to 'scratch_cc' instead of 'processed'
-write_flatcor = 0; % save preprocessed flat corrected projections
+write_flatcor = 1; % save preprocessed flat corrected projections
 write_phase_map = 1; % save phase maps (if phase retrieval is not 0)
 write_sino = 1; % save sinograms (after preprocessing & before FBP filtering and phase retrieval)
 write_sino_phase = 1; % save sinograms of phase maps
@@ -101,9 +101,9 @@ rot_axis_pos = []; % if empty use automatic computation. either offset or pos ha
 rot_corr_area1 = [0.75 1]; % ROI to correlate projections at angles 0 & pi. Use [0.75 1] or so for scans with an excentric rotation axis
 rot_corr_area2 = [0.2 0.8]; % ROI to correlate projections at angles 0 & pi
 rot_axis_tilt = 0 * -0.1 / 180 * pi; % camera tilt w.r.t rotation axis
-fbp_filter_type = 'Ram-Lak';'linear';
+fbp_filter_type = 'linear';'Ram-Lak';
 fpb_freq_cutoff = 1; % Cut-off frequency in Fourier space of the above FBP filter
-fbp_filter_padding = 0; % symmetric padding for consistent boundary conditions
+fbp_filter_padding = 1; % symmetric padding for consistent boundary conditions
 butterworth_filter = 1; % use butterworth filter in addition to FBP filter
 butterworth_order = 1;
 butterworth_cutoff_frequ = 0.5;
@@ -117,7 +117,7 @@ interactive_determination_of_rot_axis_slice = 0.5; % slice number. if in [0,1]: 
 % Hardware / Software %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 poolsize = 0.9; % number of workers used in a parallel pool. if > 1: absolute number. if 0 < poolsize < 1: relative amount of all cores to be used
 gpu_ind = 1; % GPU Device to use: gpuDevice(gpu_ind)
-gpu_thresh = 0.9; % Percentage of maximally used to available GPU memory
+gpu_thresh = 0.8; % Percentage of maximally used to available GPU memory
 image_corr_gpu = 0; % experimental, slower than CPU: uses GPU to correlate images
 link_data = 1; % ASTRA data objects become references to Matlab arrays.
 
@@ -360,14 +360,6 @@ if isempty( sample_detector_distance )
         sample_detector_distance = par.o_ccd_dist / 1000;
     end
 end
-% if isempty( num_angles )
-%     if isfield( par, 'n_angle' )
-%         % Not used for EHD currently, n_angle = #(projections - 1), first angle: 0, last angle: 360
-%         num_angles = double( par.n_angle );
-%     elseif isfield( par, 'projections' )
-%         num_angles = double( par.projections );
-%     end
-% end
 
 %% Start parallel CPU pool
 t = toc;
@@ -461,9 +453,9 @@ elseif ~read_flatcor
         filename = sprintf('%s%s', scan_path, ref_names_mat(nn, :));        
         flat(:, :, nn) = Binning( FilterPixel( read_image( filename ), [refFiltPixHot refFiltPixDark]), bin) / bin^2;        
         % Check for zeros        
-        nfz =  sum( sum( flat(:,:,nn) < 1 ) );
-        if nfz > 0
-            fprintf('\n WARNING: values of %u pixels of flat field no %u are lower than 1.', nfz, nn)            
+        num_zeros =  sum( sum( flat(:,:,nn) < 1 ) );
+        if num_zeros > 0
+            fprintf('\n WARNING: values of %u pixels of flat field no %u are lower than 1.', num_zeros, nn)            
         end        
     end
     % min/max values before dark field subtraction and ring normalization
@@ -476,12 +468,12 @@ elseif ~read_flatcor
     % Ring current normalization
     if norm_by_ring_current(1)
         if isequal( ref_nums, [cur.ref(ref_range).ind] )
-            sc = 100 ./ shiftdim( [cur.ref(ref_range).val], -1 );
-            flat = bsxfun( @times, flat, sc );
+            scale_factor = 100 ./ shiftdim( [cur.ref(ref_range).val], -1 );
+            flat = bsxfun( @times, flat, scale_factor );
             if visualOutput(1)
                 hrc = figure('Name', 'Ring current normalization');
                 subplot(1,2,1);
-                plot( sc(:) )
+                plot( scale_factor(:) )
                 axis equal tight square
                 title(sprintf('flats'))
                 drawnow
@@ -501,9 +493,9 @@ elseif ~read_flatcor
     flat_min2 = min( flat(:) );
     flat_max2 = max( flat(:) ); 
     
-    nfz =  sum( flat(:) < 1 );
-    if nfz > 0
-        fprintf('\n WARNING: flat field contains %u zeros', nfz)        
+    num_zeros =  sum( flat(:) < 1 );
+    if num_zeros > 0
+        fprintf('\n WARNING: flat field contains %u zeros', num_zeros)        
     end
         
     PrintVerbose(verbose, ' Time elapsed: %.1f s', toc-t)
@@ -551,12 +543,12 @@ elseif ~read_flatcor
     % Ring current normalization
     if norm_by_ring_current(1)
         if isequal( proj_nums, [cur.proj(proj_range).ind] )
-            sc = 100 ./ shiftdim( [cur.proj(proj_range).val], -1 );
-            proj = bsxfun( @times, proj, sc );            
+            scale_factor = 100 ./ shiftdim( [cur.proj(proj_range).val], -1 );
+            proj = bsxfun( @times, proj, scale_factor );            
             if visualOutput(1)
                 figure(hrc)
                 subplot(1,2,2);
-                plot( sc(:) )
+                plot( scale_factor(:) )
                 axis equal tight square
                 title(sprintf('projections'))
                 drawnow
@@ -952,7 +944,7 @@ if do_phase_retrieval(1)
     % Phase retrieval filter
     im_shape = [size(proj,1) , size(proj,2)];
     im_shape_pad = (1 + phase_padding) * im_shape;
-    [pf, pha_appendix] = PhaseFilter( phase_retrieval_method, im_shape_pad, edp, phase_retrieval_reg_par, phase_retrieval_bin_filt, phase_retrieval_cutoff_frequ, 'single');
+    [phase_filter, pha_appendix] = PhaseFilter( phase_retrieval_method, im_shape_pad, edp, phase_retrieval_reg_par, phase_retrieval_bin_filt, phase_retrieval_cutoff_frequ, 'single');
            
     % reco phase dir
     if isempty( subfolder_reco )
@@ -971,12 +963,12 @@ if do_phase_retrieval(1)
         if phase_padding
             im = padarray( proj(:,:,nn), im_shape, 'symmetric', 'post' );
             %im = padarray( gpuArray( proj(:,:,nn) ), raw_im_shape_binned, 'post', 'symmetric' );
-            im = -real( ifft2( pf .* fft2( im ) ) );
+            im = -real( ifft2( phase_filter .* fft2( im ) ) );
             proj(:,:,nn) = im(1:im_shape(1), 1:im_shape(2));
             %proj(:,:,nn) = gather( im(1:raw_im_shape_binned1, 1:raw_im_shape_binned2) );
         else
-            proj(:,:,nn) = -real( ifft2( pf .* fft2( proj(:,:,nn) ) ) );
-            %proj(:,:,nn) = gather( -real( ifft2( pf .* fft2( gpuArray( proj(:,:,nn) ) ) ) ) );
+            proj(:,:,nn) = -real( ifft2( phase_filter .* fft2( proj(:,:,nn) ) ) );
+            %proj(:,:,nn) = gather( -real( ifft2( phase_filter .* fft2( gpuArray( proj(:,:,nn) ) ) ) ) );
         end
     end
     PrintVerbose(verbose, ' Time elapsed: %g s (%.2f min)', toc-t, (toc-t)/60)
@@ -1012,7 +1004,7 @@ end
 %% Tomographic reco
 if do_tomo(1)
     
-    if do_stitching
+    if do_stitching(1)
         rot_axis_offset_reco = 0;
     else
         rot_axis_offset_reco = rot_axis_offset;
@@ -1036,10 +1028,9 @@ if do_tomo(1)
     end
     if isempty( vol_size )
         vol_size = [-vol_shape(1)/2, vol_shape(1)/2, -vol_shape(2)/2, vol_shape(2)/2, -vol_shape(3)/2, vol_shape(3)/2];        
-    end
-    num_proj_used =  size( proj, 3);
-    % GPU memory required for reconstruction
-    rec_mem = ( vol_shape1 * num_proj_used + vol_shape(1) * vol_shape(2) ) * 4;
+    end    
+    % GPU memory required for reconstruction of single slice
+    rec_mem = ( vol_shape1 * size( proj, 3) + vol_shape(1) * vol_shape(2) ) * 4;
     % GPU memory limit    
     num_sli = floor( gpu_thresh * gpu.AvailableMemory / rec_mem );
     % slabs required
@@ -1049,14 +1040,14 @@ if do_tomo(1)
     subvol_shape = [vol_shape(1:2), num_sli];
     PrintVerbose(verbose, '\n rotation axis offset: %f', rot_axis_offset );
     PrintVerbose(verbose, '\n rotation axis position: %f', rot_axis_pos );    
-    PrintVerbose(verbose, '\n shape of reconstruction volume: [%g, %g, %g]', vol_shape )
+    PrintVerbose(verbose, '\n max shape of reconstruction volume: [%g, %g, %g]', vol_shape )
     PrintVerbose(verbose, '\n shape of reconstruction subvolume: [%g, %g, %g]', subvol_shape )
     PrintVerbose(verbose, '\n available gpu memory : %g MiB (%.2f%%) of %g MiB', gpu.AvailableMemory/10^6, 100*gpu.AvailableMemory/gpu.TotalMemory, gpu.TotalMemory/10^6)
     PrintVerbose(verbose, '\n memory required for reconstruction of a single slice: %g MiB (estimate)', rec_mem / 1024^2 )
     PrintVerbose(verbose, '\n memory of reconstructed volume: %g MiB', prod( vol_shape ) * 4 / 1024^2 )
-    PrintVerbose(verbose, '\n maximum memory of subvolume: %g MiB', prod( subvol_shape ) * 4 / 1024^2 )
+    PrintVerbose(verbose, '\n max memory of subvolume: %g MiB', prod( subvol_shape ) * 4 / 1024^2 )
     PrintVerbose(verbose, '\n number of subvolume slabs: %g', num_slabs )
-    PrintVerbose(verbose, '\n maximum number of slices per slab: %g', num_sli )
+    PrintVerbose(verbose, '\n max number of slices per slab: %g', num_sli )
         
     PrintVerbose(verbose, '\nTomographic reconstruction of %u slabs:', num_slabs)
     if isempty( take_neg_log )
