@@ -1,4 +1,4 @@
-function nimplay(imstack,normGlobal,permuteOrder)
+function nimplay(imstack,normGlobal,permuteOrder, name)
 % Play stack of images (array) as video clip. Contrast is adapted by
 % normalizing the images before hand. Images have to be stacked along the
 % third dimension, otherwise use permuteOrder to rearrange stack dimensions.
@@ -18,6 +18,9 @@ if nargin < 2
 end
 if nargin < 3
     permuteOrder = 0;
+end
+if nargin < 4
+    name = '';
 end
 
 %% Permute stack
@@ -39,4 +42,8 @@ end
 %% Renormalize: subtract minimum, then divide by maximum-minimum.
 imstack = (imstack-armin)./(armax-armin);
 %% Play normalized image array as a clip.
-implay(imstack);
+h = implay(imstack);
+if isempty( name )
+    name = sprintf( 'volume shape: %u x %u x %u', size(imstack) );
+end
+set(h.Parent, 'Name', name)
