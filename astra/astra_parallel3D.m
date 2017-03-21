@@ -55,7 +55,7 @@ end
 %% Main %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % GPU
-astra_mex('set_gpu_index', 1:gpuDeviceCount);
+astra_mex('set_gpu_index', 0:gpuDeviceCount - 1);
 
 %% Detector geometry
 det_col_count = size( sino, 1);
