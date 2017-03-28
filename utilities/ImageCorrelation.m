@@ -1,100 +1,141 @@
-function [out, CorMap] = ImageCorrelation(im1, im2, printInfo, showPlots, use_gpu)
+function [out, map] = ImageCorrelation(im1, im2, verbose, show_plots, use_gpu, use_gradient, blur_images)
 %Find the relative movement of image im2 w.r.t. to im1 by means of
 %correlating the images. Thus rotation axis can be determined. Allows for
-%subpixel precsision.
+%subpixel precsision using the center of mass of a samll region centered
+%around the maximum of the correlation map.
 %
-% Written Julian Moosamnn. Last modification: 2017-02-20, GPU support added
+% Written Julian Moosamnn. Last modification: 2017-02-22, GPU support added
 
 % TODO: fix plotting option if axis is close to boundary and center of mass
 % region is too large
 
 %% Default arguments %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+if nargin < 1
+    nn = 21;
+    im1 = zeros(nn);
+    im1(10,9) = 1;
+end
+if nargin < 2
+    im2 = zeros(nn);
+    im2(10,10:11) = 1;
+end
 if nargin < 3
-    printInfo = 0;
+    verbose = 0;
 end
 if nargin < 4
-    showPlots = 0;
+    show_plots = 0;
 end
 if nargin < 5
     use_gpu = 0;
 end
+if nargin < 6
+    use_gradient = 0;
+end
+if nargin < 7
+    blur_images = 0;
+end
+%% Notes
+% Normalize: Don't do it. Make sure to have physical values in your
+% intensity map. Normalization does mess up center of mass computation.
 
 %% Main %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-% Halfwidth of the region around the maximum of the correlation map which
-% is used to compute the center of mass (COM) around this maximum peak.
-COMwidth = 4;
-[dimx, dimy] = size(im1);
-% Center of images
-CenX = (dimx+1)/2;
-CenY = (dimy+1)/2;
+% Maximum radius of region centered around the correlation map peak where
+% the centere of mass is calculated on
+radius = 5;
 
-% Compute the correlation map of the two images.
-if ~use_gpu
-    CorMap = fftshift(ifft2(fft2(im1).*fft2(rot90(im2,2))));
-else    
-    CorMap = fftshift( ifft2( fft2(gpuArray(im1)).*fft2(rot90(gpuArray(im2),2)), 'symmetric') );
-    clear im1 im2;
+% Image center
+[d1, d2] = size(im1);
+cen_1 = ( d1 + 1 ) / 2;
+cen_2 = ( d2 + 1 ) / 2;
+
+% GPU
+if use_gpu
+    im1 = gpuArray( im1 );
+    im2 = gpuArray( im2 );
 end
+
+% Blur
+if blur_images
+    im1 = FilterBlur( im1, [3 3], 10);
+    im2 = FilterBlur( im2, [3 3], 10);
+end
+
+%
+if use_gradient
+    l = 2;
+    [g1, g2] = gradient(im1);
+    im1 = abs(g1).^l + abs(g2).^l;
+    [g1, g2] = gradient(im2);
+    im2 = abs(g1).^l + abs(g2).^l;
+end
+
+% Correlation map
+map = fft2( im1 ) .* fft2( rot90(im2,2) );
+map = ifft2( map, 'symmetric' );
+map = fftshift( map );
+map = real( map );
 
 % Find the value and the (index) position of the maximum of the correlation map.
-[CorMapMaxVal, CorMapMaxInd] = max(CorMap(:));
+[val, ind] = max( map(:) );
 
 % Convert linear index to row and column subscripts
-[CorMaxPosX, CorMaxPosY] = ind2sub([dimx dimy],CorMapMaxInd);
+[pos_1, pos_2] = ind2sub( [d1 d2], ind);
 
 % Add 0.5 or 1 pixel to peak position for even or odd dimensions
-switch mod(dimx,2)
+switch mod( d1, 2)
     case 0
-        offsetX = 0.5;
+        offset_1 = 0.5;
     case 1
-        offsetX = 1;
+        offset_1 = 1;
 end
-switch mod(dimy,2)
+switch mod( d2, 2)
     case 0
-        offsetY = 0.5;
+        offset_2 = 0.5;
     case 1
-        offsetY = 1;
+        offset_2 = 1;
 end
 
-% Check if border of region which is used to compute COM is larger than image
-if CorMaxPosX > COMwidth && CorMaxPosY > COMwidth && (dimx-CorMaxPosX) > COMwidth && (dimy-CorMaxPosY) > COMwidth
-    % Region around the peak of the correlation map used to compute the COM of
-    % this peak.
-    CorMapRegion    = CorMap(CorMaxPosX+(-COMwidth:COMwidth),CorMaxPosY+(-COMwidth:COMwidth));
-    % Position of the COM around the peak of the correlation map.
-    % x-,y-coordinate-matrices needed to compute COM of the correlation map.
-    [mdy, mdx]   = meshgrid(1:dimy,1:dimx);
-    CorMapRegionSum = sum(CorMapRegion(:));
-    comX = sum(sum(mdx(CorMaxPosX+(-COMwidth:COMwidth),CorMaxPosY+(-COMwidth:COMwidth)).*CorMapRegion))/CorMapRegionSum+offsetX;
-    comY = sum(sum(mdy(CorMaxPosX+(-COMwidth:COMwidth),CorMaxPosY+(-COMwidth:COMwidth)).*CorMapRegion))/CorMapRegionSum+offsetY;
-else
-    comX = CorMaxPosX + offsetX;
-    comY = CorMaxPosY + offsetY;
+% Minimum radius
+radius_1 = min( [radius, pos_1 - 1, d1 - pos_1]);
+radius_2 = min( [radius, pos_2 - 1, d2 - pos_2]);
+
+% ROI centered at correlation map peadk for COM computation
+roi = map(pos_1 + (-radius_1:radius_1), pos_2 + (-radius_2:radius_2));
+
+% x-/y-coordinate-matrices 
+[mdy, mdx]   = meshgrid(1:d2,1:d1);
+
+% Total mass
+M = sum(roi(:));
+
+% Center of mass of ROI
+com_1 = sum(sum( mdx(pos_1 + (-radius_1:radius_1), pos_2 + (-radius_2:radius_2)) .* roi)) / M + offset_1;
+com_2 = sum(sum( mdy(pos_1 + (-radius_1:radius_1), pos_2 + (-radius_2:radius_2)) .* roi)) / M + offset_2;
+
+%pos_1 = pos_1 + offset_1;
+%pos_2 = pos_2 + offset_2;
+
+% Relative shift
+out.shift1 = gather( com_1 - cen_1 );
+out.shift2 = gather( com_2 - cen_2 );
+
+% Rotation axis position
+out.rot_axis_pos1 = gather( cen_1/2 + com_1/2 );
+out.rot_axis_pos2 = gather( cen_2/2 + com_2/2 );
+
+%% Print  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+if verbose
+    fprintf('image shape : %u x %u\n', d1, d2);
+    fprintf('image center : [%g %g].\n', cen_1, cen_2);
+    fprintf('correlation map peak : [%.2f %.2f], value: %g\n', pos_1, pos_2, val);
+    fprintf('center of mass of ROI within radi [%u %u] centered at peak: [%f %f]\n', radius_1, radius_2, com_1, com_2);
+    fprintf('relative shift : [%f %f].\n',out.shift1, out.shift2);
+    fprintf('rotation axis position : [%f, %f]\n', out.rot_axis_pos1, out.rot_axis_pos2);
 end
-CorMaxPosX = CorMaxPosX + offsetX;
-CorMaxPosY = CorMaxPosY + offsetY;
-% Pixel shift of image 'im2' w.r.t. image 'im1'.
-out.Xshift = gather( comX - CenX );
-out.Yshift = gather( comY - CenY );
-out.HorizontalRotationAxisPosition = gather( CenX/2 + comX/2 );
-out.VerticalRotationAxisPosition   = gather( CenY/2 + comY/2 );
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%% Print results
-if printInfo
-    fprintf('Image dimensions: %u x %u. (MATLAB notation: dimX x dimY, x-axis directing downwards.)\n',dimx,dimy);
-    fprintf('Image center: [%g %g].\n',CenX,CenY);
-    fprintf('Correlation map peak: [%.2f %.2f], value: %g.\n',CorMaxPosX,CorMaxPosY,CorMapMaxVal);
-    fprintf('Center of mass in the region +/- %u pixels around peak: [%f %f].\n',COMwidth,comX,comY);
-    fprintf('Vertical and horizontal shift of 2nd input image w.r.t. 1st input image: [%f %f].\n',out.Xshift,out.Yshift);
-    fprintf('Rotation axis position: %f (vertical rotation), %f (horizontal rotation)\n',out.VerticalRotationAxisPosition,out.HorizontalRotationAxisPosition);
-end
-%% Show plots
-if showPlots
-    % Halfwidth of the region around the computed correlation maximum which is
-    % plotted.
-    plotwidth = 14;
-    CorMap = gather( abs( CorMap ) );
-    imtool(CorMap,[],'InitialMagnification','fit')
-    imtool(CorMap(CorMaxPosX+(-plotwidth:plotwidth),CorMaxPosY+(-plotwidth:plotwidth)),[],'InitialMagnification','fit')
+%% Show plots 
+if show_plots    
+    map = gather( abs( map ) );    
+    h = imtool( map, [], 'InitialMagnification', 'fit');
+    set( h, 'Name', sprintf( 'Correlation map. peak : %u, %u. COM radi : %u, %u', pos_1, pos_2, radius_1, radius_2 ) )
 end
