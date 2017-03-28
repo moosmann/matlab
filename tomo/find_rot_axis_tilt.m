@@ -29,7 +29,7 @@ if nargin < 6
    take_neg_log = 1;
 end
 if nargin < 7
-    number_of_stds = 3;
+    number_of_stds = 4;
 end
 
 %% Main %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

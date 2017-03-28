@@ -30,7 +30,7 @@ if nargin < 6
    take_neg_log = 1;
 end
 if nargin < 7
-    number_of_stds = 3;
+    number_of_stds = 4;
 end
 
 %% Main %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -83,7 +83,7 @@ for nn = 1:numel( offsets )
     offset = offsets(nn);
     
     % Reco
-    im = FilterHisto(astra_parallel3D( permute( sino, [1 3 2]), angles, offset, subvol_shape, subvol_size, astra_pixel_size, link_data, tilt), number_of_stds, roi);    
+    im = FilterHisto(astra_parallel3D( permute( sino, [1 3 2]), angles, offset, subvol_shape, subvol_size, astra_pixel_size, link_data, tilt), number_of_stds, roi);
     vol(:,:,nn) = im;
     
     % Metrics on ROI

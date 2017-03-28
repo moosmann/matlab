@@ -16,21 +16,51 @@ function p05_reco_synchroload
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Parameter sets to loop over %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-nn = 1;
-para(nn).scan_path = '/asap3/petra3/gpfs/p05/2016/data/11001978/raw/mah_15_57R';
-para(nn).bin = 2;
-para(n).do_stitching = 0; 
-para(nn).proj_range = 1; 
-para(nn).ref_range = 1; 
-para(nn).do_phase_retrieval = 0;
-para(nn).do_tomo = 1;
-para(nn).rot_corr_area1 = [0.25 75];
+nn = 0;
+default.scan_path = '';
+default.bin = 2;
+default.excentric_rot_axis = 0;
+default.stitch_projections = 0; 
+default.proj_range = 1; 
+default.ref_range = 1; 
+default.do_phase_retrieval = 0;
+default.do_tomo = 1;
+default.crop_at_rot_axis = 0;
+default.rot_axis_offset = [];
+default.rot_axis_tilt = [];
+%default.rot_corr_area1 = [0.25 75];
 
-% nn = nn + 1;
-% para(nn).scan_path = '/asap3/petra3/gpfs/p05/2016/commissioning/c20160803_001_pc_test/raw/phase_1400';
-% para(nn).bin = 4;
-% para(nn).rot_axis_offset = 19.5;
-% para(nn).out_path = '/gpfs/petra3/scratch/moosmanj';
+nn = nn + 1;
+para(nn) = default;
+para(nn).excentric_rot_axis = 0;
+para(nn).scan_path = '/asap3/petra3/gpfs/p05/2016/data/11001978/raw/mah_15_57R';
+
+nn = nn + 1;
+para(nn) = default;
+para(nn).scan_path = '/asap3/petra3/gpfs/p05/2016/data/11001978/raw/mah_10_13R_top';
+para(nn).excentric_rot_axis = 1;
+para(nn).rot_axis_offset = 538.5;
+para(nn).rot_axis_tilt = -0.00264; % about -.15 degrees
+
+nn = nn + 1;
+para(nn) = default;
+para(nn).scan_path = '/asap3/petra3/gpfs/p05/2016/data/11001978/raw/mah_10_13R_bottom';
+para(nn).excentric_rot_axis = 1;
+para(nn).rot_axis_offset = 539;
+para(nn).rot_axis_tilt = -0.00264; % about -.15 degrees
+
+nn = nn + 1;
+para(nn) = default;
+para(nn).scan_path = '/asap3/petra3/gpfs/p05/2016/data/11001978/raw/mah_11_20R_top';
+para(nn).excentric_rot_axis = 1;
+para(nn).rot_axis_offset = 538.5;
+
+nn = nn + 1;
+para(nn) = default;
+para(nn).scan_path = '/asap3/petra3/gpfs/p05/2016/data/11001978/raw/mah_11_20R_bottom';
+para(nn).excentric_rot_axis = 1;
+para(nn).rot_axis_offset = 538.5;
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
