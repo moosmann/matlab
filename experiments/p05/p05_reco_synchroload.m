@@ -29,6 +29,7 @@ default.visualOutput = 0;
 default.scan_path = '';
 default.bin = 1;
 default.excentric_rot_axis = 0;
+default.crop_at_rot_axis = 0;
 default.stitch_projections = 0; 
 default.proj_range = 1; 
 default.ref_range = 1; 
@@ -39,7 +40,6 @@ default.phase_retrieval_bin_filt = 0.15;
 default.phase_retrieval_cutoff_frequ = 1 * pi; 
 default.phase_padding = 1; 
 default.do_tomo = 1;
-default.crop_at_rot_axis = 0;
 default.ring_filter = 1;
 default.rot_axis_offset = [];
 default.rot_axis_tilt = [];
@@ -63,36 +63,39 @@ para(nn) = default;
 para(nn).scan_path = [raw 'mah_01'];
 para(nn).excentric_rot_axis = 0;
 para(nn).rot_axis_offset = -135.75 / para(nn).bin;
-para(nn).rot_axis_tilt = -0.003; % about -.15 degrees
+para(nn).rot_axis_tilt = -0.003;
 
 nn = nn + 1;
 para(nn) = default;
 para(nn).scan_path = [raw 'mah_02'];
 para(nn).excentric_rot_axis = 0;
 para(nn).rot_axis_offset = -135.75 / para(nn).bin;
-para(nn).rot_axis_tilt = -0.003; % about -.15 degrees
+para(nn).rot_axis_tilt = -0.003;
 
+% corroded screw
 nn = nn + 1;
 para(nn) = default;
 para(nn).scan_path = [raw 'mah_03'];
 para(nn).excentric_rot_axis = 0;
 para(nn).rot_axis_offset = -135.75 / para(nn).bin;
-para(nn).rot_axis_tilt = -0.003; % about -.15 degrees
 
+% implant fresh
 nn = nn + 1;
 para(nn) = default;
 para(nn).scan_path = [raw 'mah_04'];
 para(nn).excentric_rot_axis = 0;
-para(nn).rot_axis_offset = -135.75 / para(nn).bin;
-para(nn).rot_axis_tilt = -0.003; % about -.15 degrees
+para(nn).rot_axis_offset = 627.75 / para(nn).bin;
+default.excentric_rot_axis = 1;
+default.crop_at_rot_axis = 1;
 
+% corroded screw
 nn = nn + 1;
 para(nn) = default;
 para(nn).scan_path = [raw 'mah_05'];
 para(nn).excentric_rot_axis = 0;
-para(nn).rot_axis_offset = -135.75 / para(nn).bin;
-para(nn).rot_axis_tilt = -0.003; % about -.15 degrees
-
+para(nn).rot_axis_offset = 2 / para(nn).bin;
+default.excentric_rot_axis = 0;
+default.crop_at_rot_axis = 0;
 
 nn = nn + 1;
 para(nn) = default;

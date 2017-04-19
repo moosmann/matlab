@@ -19,7 +19,7 @@ close all
 % INPUT %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %scan_path = pwd; % Enter folder of data set under the raw directory and run script
 scan_path = ...    
-    '/asap3/petra3/gpfs/p05/2016/data/11001978/raw/mah_02';
+    '/asap3/petra3/gpfs/p05/2016/data/11001978/raw/mah_05';
 
 '/asap3/petra3/gpfs/p05/2016/data/11001978/raw/mah_32_15R_top_occd800_withoutpaper'; % too much fringes, not enough coherence probably, using standard phase retrieval reco looks blurry
 '/asap3/petra3/gpfs/p05/2016/data/11001978/raw/mah_28_15R_bottom';
@@ -85,7 +85,7 @@ vol_shape = []; % shape of the volume to be reconstructed, either in absolute nu
 vol_size = []; % if empty, unit voxel size is assumed
 rot_angle_full = []; % in radians: empty ([]), full angle of rotation, or array of angles. if empty full rotation angles is determined automatically to pi or 2 pi
 rot_angle_offset = pi; % global rotation of reconstructed volume
-rot_axis_offset = -135.75; % if empty use automatic computation
+rot_axis_offset = -135.75 ; % if empty use automatic computation
 rot_axis_pos = []; % if empty use automatic computation. either offset or pos has to be empty. can't use both
 rot_corr_area1 = []; % ROI to correlate projections at angles 0 & pi. Use [0.75 1] or so for scans with an excentric rotation axis
 rot_corr_area2 = []; % ROI to correlate projections at angles 0 & pi
@@ -930,7 +930,9 @@ if do_tomo(1)
     end
     
     %% Determine rotation axis position
+    tint = 0;
     if interactive_determination_of_rot_axis(1)
+        tint = toc;
         fprintf( '\n\nENTER INTERACTIVE MODE' )
         fprintf( '\n number of pixels: %u', raw_im_shape_binned1)
         fprintf( '\n image center: %.1f', raw_im_shape_binned1 / 2)
@@ -945,7 +947,7 @@ if do_tomo(1)
         fprintf( '\n current rotation axis offset / position : %.2f, %.2f', rot_axis_offset, rot_axis_pos)
         fprintf( '\n calcul. rotation axis offset / position : %.2f, %.2f', rot_axis_offset_calc, rot_axis_pos_calc)
         fprintf( '\n default offset range : current ROT_AXIS_OFFSET + (-4:0.5:4)')
-        offset = input( '\n\nENTER RANGE OF ROTATION AXIS OFFSETS AS [...] (if empty use default range, if scalar skips interactive mode): ');
+        offset = input( '\n\nENTER RANGE OF ROTATION AXIS OFFSETS (if empty use default range, if scalar skips interactive mode): ');
         if isempty( offset )
             % default range is centered at the given or calculated offset
             offset = rot_axis_offset + (-4:0.5:4);
@@ -969,7 +971,7 @@ if do_tomo(1)
             nimplay(vol, 0, 0, 'OFFSET: sequence of reconstructed slices using different rotation axis offsets')
             
             % Input
-            offset = input( '\n\nENTER ROTATION AXIS OFFSET OR A RANGE OF OFFSETS AS [...] (if empty use current offset): ');
+            offset = input( '\n\nENTER ROTATION AXIS OFFSET OR A RANGE OF OFFSETS(if empty use current offset): ');
             if isempty( offset )
                 offset = rot_axis_offset;
             end
@@ -984,7 +986,7 @@ if do_tomo(1)
                 fprintf( '\n current rotation axis tilt : %g rad = %g deg', rot_axis_tilt, rot_axis_tilt * 180 / pi)
                 fprintf( '\n calcul. rotation axis tilt : %g rad = %g deg', rot_axis_tilt_calc, rot_axis_tilt_calc * 180 / pi)
                 fprintf( '\n default tilt range is : current ROT_AXIS_TILT + (-0.005:0.001:0.005)')
-                tilt = input( '\n\nENTER TILT OF ROTATION AXIS OR RANGE OF TILTS AS [...] (if empty use default):');        
+                tilt = input( '\n\nENTER TILT OF ROTATION AXIS OR RANGE OF TILTS (if empty use default):');        
                 if isempty( tilt )
                     % default range is centered at the given or calculated tilt
                     tilt = rot_axis_tilt + (-0.005:0.001:0.005);                    
@@ -1005,7 +1007,7 @@ if do_tomo(1)
                     nimplay(vol, 0, 0, 'TILT: sequence of reconstructed slices using different rotation axis tilts')
                     
                     % Input
-                    tilt = input( '\nENTER TILT OF ROTATION AXIS OR RANGE OF TILTS AS [...] (if empty use current tilt):');
+                    tilt = input( '\nENTER TILT OF ROTATION AXIS OR RANGE OF TILTS (if empty use current tilt):');
                     if isempty( tilt )
                         tilt = rot_axis_tilt;
                     end
@@ -1026,7 +1028,7 @@ if do_tomo(1)
                         tform_cur.T(1,2) = sin( 2 * rot_axis_tilt );
                         im2c_warped_cur =  imwarp(im2c, tform_cur, 'OutputView', imref2d(size(im1c)));
                         
-                        x = ceil( 2 * abs( sin(rot_axis_tilt) ) * max( size(im1c)) );
+                        x = ceil( 2 * abs( sin(rot_axis_tilt) ) * max( size(im1c)) ) + 2;
                         
                         fprintf( '\n current rotation axis tilt: %g rad = %g deg', rot_axis_tilt, rot_axis_tilt * 180 / pi)
                         fprintf( '\n calcul. rotation axis tilt: %g rad = %g deg', rot_axis_tilt_calc, rot_axis_tilt_calc * 180 / pi)                        
@@ -1038,7 +1040,9 @@ if do_tomo(1)
                         nimplay( cat(3, im1c(x:end-x,x:end-x)', im2c_warped_calc(x:end-x,x:end-x)'), 0, 0, name)
                                                                                                 
                         tilt = input( '\nENTER ROTATION AXIS TILT (if empty use current value): ');
-                        if ~isempty( tilt )
+                        if isempty( tilt )
+                            tilt = rot_axis_tilt;
+                        else
                             rot_axis_tilt = tilt;
                         end
                         
@@ -1056,7 +1060,7 @@ if do_tomo(1)
         fprintf( '\n rotation axis offset : %.2f', rot_axis_offset)        
         fprintf( '\n rotation axis position : %.2f', rot_axis_pos)        
         fprintf( '\n rotation axis tilt: %g rad = %g deg', rot_axis_tilt, rot_axis_tilt * 180 / pi)
-        
+        tint = toc - tint;
     end
         
     if visualOutput(1)
@@ -1288,34 +1292,46 @@ if do_tomo(1)
     end
     
     % Filter sinogram
-    PrintVerbose(verbose, ' Filter sino:' )
+    PrintVerbose(verbose, '\n Filter sino:' )
+    t2 = toc;
     filt = iradonDesignFilter(fbp_filter_type, (1 + fbp_filter_padding) * size( proj, 1), fpb_freq_cutoff);
     if butterworth_filter(1)
         [b, a] = butter(butterworth_order, butterworth_cutoff_frequ);
         bw = freqz(b, a, numel(filt) );
         filt = filt .* bw;
-    end    
-    if fbp_filter_padding(1)
-        proj_shape1 = size( proj, 1);
-        proj = padarray( NegLog(proj, take_neg_log), [size( proj, 1) 0 0], fbp_filter_padding_method, 'post' );
-        proj = real( ifft( bsxfun(@times, fft( proj, [], 1), filt), [], 1, 'symmetric') );
-        proj = proj(1:proj_shape1,:,:);
-    else
-        proj = real( ifft( bsxfun(@times, fft( NegLog( proj, take_neg_log), [], 1), filt), [], 1, 'symmetric') );
     end
-    pause(0.01)
-    PrintVerbose(verbose, 'done.')
     
+% old code:
+%     if fbp_filter_padding(1)
+%         proj_shape1 = size( proj, 1);
+%         proj = padarray( NegLog(proj, take_neg_log), [size( proj, 1) 0 0], fbp_filter_padding_method, 'post' );
+%         proj = real( ifft( bsxfun(@times, fft( proj, [], 1), filt), [], 1, 'symmetric') );
+%         proj = proj(1:proj_shape1,:,:);
+%     else
+%         proj = real( ifft( bsxfun(@times, fft( NegLog( proj, take_neg_log), [], 1), filt), [], 1, 'symmetric') );
+%     end
+% new code:
+    proj_shape1 = size( proj, 1);
+    parfor nn =  1:size( proj, 2)
+        im = proj(:,nn,:);
+        im = padarray( NegLog(im, take_neg_log), fbp_filter_padding * [proj_shape1 0 0], fbp_filter_padding_method, 'post' );        
+        im = real( ifft( bsxfun(@times, fft( im, [], 1), filt), [], 1, 'symmetric') );        
+        proj(:,nn,:) = im(1:proj_shape1,:,:);
+    end    
+    pause(0.01)
+    PrintVerbose(verbose, ' done in %.2f min.', (toc - t2) / 60)
+      
     if crop_at_rot_axis(1)
         % half weight pixel at rot axis pos as it is used twice
         proj( ceil(rot_axis_pos), :, :) = 0.5 * proj( ceil(rot_axis_pos), :, :) ;
     end
     
     % Backprojection
-    PrintVerbose(verbose, ' Backproject: ')
+    PrintVerbose(verbose, '\n Backproject:')
+    t2 = toc;
     vol = astra_parallel3D( permute(proj, [1 3 2]), rot_angle_offset + angles_reco, rot_axis_offset_reco, vol_shape, vol_size, astra_pixel_size, link_data, rot_axis_tilt);
-    pause(0.01)
-    PrintVerbose(verbose, ' done.')
+    pause(0.01)    
+    PrintVerbose(verbose, ' done in %.2f min.', (toc - t2) / 60)
     
     % Save volume
     if write_reco(1)        
@@ -1332,7 +1348,8 @@ if do_tomo(1)
         
         % Single precision: 32-bit float tiff        
         if write_float(1)
-            PrintVerbose(verbose, ' Write floats:')
+            PrintVerbose(verbose, '\n Write floats:')
+            t2 = toc;
             save_path = [reco_path 'float' filesep];
             CheckAndMakePath(save_path)
             parfor ii = 1:size( vol, 3)
@@ -1340,7 +1357,7 @@ if do_tomo(1)
                 write32bitTIFfromSingle( filename, vol( :, :, ii) )
             end
             pause(0.01)
-            PrintVerbose(verbose, ' done.')
+            PrintVerbose(verbose, ' done in %.2f min.', (toc - t2) / 60)
         end
         
         vol_min = min( vol(:) );
@@ -1368,33 +1385,36 @@ if do_tomo(1)
             
             % 16-bit tiff
             if write_16bit(1)
-                PrintVerbose(verbose, ' Write uint16:')    
+                PrintVerbose(verbose, '\n Write uint16:')
+                t2 = toc;
                 save_path = [reco_path 'uint16' filesep];
                 CheckAndMakePath(save_path)
                 parfor ii = 1:size( vol, 3)
                     filename = sprintf( '%sreco_%06u.tif', save_path, ii);
                     imwrite( uint16( (2^16 - 1) * vol( :, :, ii) ), filename );
                 end
-                pause(0.01)
-                PrintVerbose(verbose, ' done.')
+                pause(0.01)                
+                PrintVerbose(verbose, ' done in %.2f min.', (toc - t2) / 60)
             end
             
             % 8-bit tiff
             if write_8bit(1)
-                PrintVerbose(verbose, ' Write uint8:')
+                PrintVerbose(verbose, '\n Write uint8:')
+                t2 = toc;
                 save_path = [reco_path 'uint8' filesep];
                 CheckAndMakePath(save_path)
                 parfor ii = 1:size( vol, 3)
                     filename = sprintf( '%sreco_%06u.tif', save_path, ii);
                     imwrite( uint8( (2^8 - 1) * vol( :, :, ii) ), filename );
                 end
-                pause(0.01)
-                PrintVerbose(verbose, ' done.')
+                pause(0.01)                
+                PrintVerbose(verbose, ' done in %.2f min.', (toc - t2) / 60)
             end
             
             % 8-bit tiff binned
             if write_8bit_binned(1)
-                PrintVerbose(verbose, ' Write uint8 binned:')
+                PrintVerbose(verbose, '\n Write uint8 binned:')
+                t2 = toc;
                 save_path = [reco_path 'uint8_binned' filesep];
                 CheckAndMakePath(save_path)
                 for ii = 1:floor( size( vol, 3) / reco_bin )
@@ -1403,10 +1423,9 @@ if do_tomo(1)
                     im =  Binning( sum(vol( :, :, nn), 3 ), reco_bin) / reco_bin^3;
                     imwrite( uint8( (2^8 - 1) * im ), filename );
                 end
-                pause(0.01)
-                PrintVerbose(verbose, ' done.')
-            end
-            
+                pause(0.01)                
+                PrintVerbose(verbose, ' done in %.2f min.', (toc - t2) / 60)
+            end          
         end
     end
     
@@ -1498,7 +1517,8 @@ if do_tomo(1)
         PrintVerbose(verbose, '\n log file : %s', logfile_name)
     end
 end
-reset( gpu );
 
-PrintVerbose(verbose, '\nFinished. Total time elapsed: %g s (%.2f min)\n\n', toc, toc / 60 );
+%reset( gpu );
+PrintVerbose(verbose && interactive_mode, '\nTime elapsed in interactive mode: %g s (%.2f min)', tint, tint / 60 );
+PrintVerbose(verbose, '\nFinished. Total time elapsed: %g s (%.2f min)\n\n', toc - tint, (toc - tint) / 60 );
 % END %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
