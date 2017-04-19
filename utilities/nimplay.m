@@ -47,3 +47,6 @@ if isempty( name )
     name = sprintf( 'volume shape: %u x %u x %u', size(imstack) );
 end
 set(h.Parent, 'Name', name)
+drawnow
+pause(0.01)
+

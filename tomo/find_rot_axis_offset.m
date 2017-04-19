@@ -49,7 +49,7 @@ rot_axis_pos = offsets + num_pix / 2;
 l = max( max( rot_axis_pos) , max( abs( num_pix - rot_axis_pos ) ) );
 dz = ceil( sin( abs( tilt ) ) * l ); % maximum distance between sino plane and reco plane
 if slice - dz < 0 || slice + dz > d3
-    error( 'Inclination of reconstruciont plane exceeds sinogram volume. Choose a more central slice')
+    fprintf( '\nWARNING: Inclination of reconstruciont plane exceeds sinogram volume. Better choose a more central slice or a smaller tilts.')
 end
 
 % Slab

@@ -4,26 +4,27 @@
 % USAGE
 % Set parameters in PARAMETERS / SETTINGS section below and run script.
 %
-% To start script: type 'F5' when focus is in the Editor windows, or click
-% 'Run' in the Editor tab, or type 'p05_reco_loop' and Enter in the Command
-% Window. To loop over data or parameter use 'p05_reco_loop'.
+% How to start script:
+% - type 'F5' when focus is in the Editor windows
+% - click 'Run' in the Editor tab
+% - type 'p05_reco_loop' and Enter in the Command Window
+%
+% To loop over sets of data or parameters use 'p05_reco_loop'.
 %
 % Written by Julian Moosmann. First version: 2016-09-28. Last modifcation:
-% 2017-03-16
+% 2017-03-28
 
 %% PARAMETERS / SETTINGS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+close all
 % INPUT %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %scan_path = pwd; % Enter folder of data set under the raw directory and run script
-scan_path = ...
-    '/asap3/petra3/gpfs/p05/2016/data/11001978/raw/mah_11_20R_bottom';
-'/asap3/petra3/gpfs/p05/2016/data/11001978/raw/mah_36_1R_top';
-'/asap3/petra3/gpfs/p05/2016/data/11001978/raw/mah_28_15R_top';
+scan_path = ...    
+    '/asap3/petra3/gpfs/p05/2016/data/11001978/raw/mah_02';
+
+'/asap3/petra3/gpfs/p05/2016/data/11001978/raw/mah_32_15R_top_occd800_withoutpaper'; % too much fringes, not enough coherence probably, using standard phase retrieval reco looks blurry
 '/asap3/petra3/gpfs/p05/2016/data/11001978/raw/mah_28_15R_bottom';
-'/asap3/petra3/gpfs/p05/2016/data/11001978/raw/mah_24_50L_top_load';
-'/asap3/petra3/gpfs/p05/2016/data/11001978/raw/mah_16_57R_load';
-'/asap3/petra3/gpfs/p05/2016/data/11001978/raw/mah_15_57R';
-'/asap3/petra3/gpfs/p05/2016/data/11001978/raw/mah_32_15R_top_occd800_withoutpaper'; % no rings in FS
-'/asap3/petra3/gpfs/p05/2016/data/11001978/raw/mah_30_15R_top_occd125_withoutpaper'; % no rings in FS
+'/asap3/petra3/gpfs/p05/2016/commissioning/c20160920_000_diana/raw/Mg-10Gd39_1w';
+
 '/asap3/petra3/gpfs/p05/2016/commissioning/c20161024_000_xeno/raw/xeno_01_b';
 '/asap3/petra3/gpfs/p05/2016/commissioning/c20160803_001_pc_test/raw/phase_600';
 '/asap3/petra3/gpfs/p05/2016/commissioning/c20160803_001_pc_test/raw/phase_1000'; %rot_axis_offset=7.5
@@ -42,13 +43,12 @@ scan_path = ...
 '/asap3/petra3/gpfs/p05/2015/data/11001102/raw/hzg_wzb_mgag_38';
 '/asap3/petra3/gpfs/p05/2015/data/11001102/raw/hzg_wzb_mgag_02';
 '/asap3/petra3/gpfs/p05/2016/data/11001464/raw/pnl_16_petrosia_c';
-'/asap3/petra3/gpfs/p05/2016/commissioning/c20160920_000_diana/raw/Mg-10Gd39_1w';
 read_flatcor = 0; % Read flatfield-corrected images from disc. Skips preprocessing
-read_flatcor_path = '/asap3/petra3/gpfs/p05/2016/data/11001978/scratch_cc/c20160803_001_pc_test/phase_1000/flat_corrected'; % subfolder of 'flat_corrected' containing projections
+read_flatcor_path = ''; % subfolder of 'flat_corrected' containing projections
 % PREPROCESSING %%%%%%p%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-bin = 2; % projection binning factor: 1, 2, or 4
-excentric_rot_axis = 1; % off-centered rotation axis increasing FOV. -1: left, 0: centeerd, 1: right. influences rot_corr_area1
-crop_at_rot_axis = 1;
+bin = 1; % projection binning factor: 1, 2, or 4
+excentric_rot_axis = 0; % off-centered rotation axis increasing FOV. -1: left, 0: centeerd, 1: right. influences rot_corr_area1
+crop_at_rot_axis = 0;
 stitch_projections = 0; % stitch projection (for 2 pi scans) at rotation axis position. "doubles" number of voxels
 stitch_method = 'sine'; % 'step': no interpolation, 'linear','sine': linear interpolation of overlap region. !!! adjust: correlation area
 proj_range = 1; % range of found projections to be used. if empty: all, if scalar: stride
@@ -71,7 +71,7 @@ ring_filter = 1; % ring artifact filter
 ring_filter_median_width = 11;
 % Phase retrieval %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 do_phase_retrieval = 0;
-phase_retrieval_method = 'tie';'qpcut'; %'qp' 'ctf' 'tie' 'qp2'
+phase_retrieval_method = 'qp';'qpcut'; 'tie'; %'qp' 'ctf' 'tie' 'qp2' 'qpcut'
 phase_retrieval_reg_par = 2.5; % regularization parameter
 phase_retrieval_bin_filt = 0.15; % threshold for quasiparticle retrieval 'qp', 'qp2'
 phase_retrieval_cutoff_frequ = 1 * pi; % in radian. frequency cutoff in Fourier space for 'qpcut' phase retrieval
@@ -85,13 +85,13 @@ vol_shape = []; % shape of the volume to be reconstructed, either in absolute nu
 vol_size = []; % if empty, unit voxel size is assumed
 rot_angle_full = []; % in radians: empty ([]), full angle of rotation, or array of angles. if empty full rotation angles is determined automatically to pi or 2 pi
 rot_angle_offset = pi; % global rotation of reconstructed volume
-rot_axis_offset = 539; % if empty use automatic computation
+rot_axis_offset = -135.75; % if empty use automatic computation
 rot_axis_pos = []; % if empty use automatic computation. either offset or pos has to be empty. can't use both
 rot_corr_area1 = []; % ROI to correlate projections at angles 0 & pi. Use [0.75 1] or so for scans with an excentric rotation axis
 rot_corr_area2 = []; % ROI to correlate projections at angles 0 & pi
 rot_corr_gradient = 1; % use gradient of intensity maps if signal variations are too weak to correlate projections
-rot_axis_tilt = []; % in rad. camera tilt w.r.t rotation axis. if empty calculate from registration of projections at 0 and pi
-fbp_filter_type =  'Ram-Lak';'linear';
+rot_axis_tilt = -0.003; % in rad. camera tilt w.r.t rotation axis. if empty calculate from registration of projections at 0 and pi
+fbp_filter_type = 'Ram-Lak';'linear';
 fpb_freq_cutoff = 0.5; % Cut-off frequency in Fourier space of the above FBP filter
 fbp_filter_padding = 1; % symmetric padding for consistent boundary conditions
 fbp_filter_padding_method = 'symmetric';
@@ -105,32 +105,33 @@ out_path = '';% absolute path were output data will be stored. !!overwrites the 
 %out_path = '/gpfs/petra3/scratch/moosmanj';
 %out_path = '/asap3/petra3/gpfs/p05/2016/data/11001978/scratch_cc/c20160803_001_pc_test';
 write_to_scratch = 0; % write to 'scratch_cc' instead of 'processed'
-write_flatcor = 0; % save preprocessed flat corrected projections
-write_phase_map = 0; % save phase maps (if phase retrieval is not 0)
+write_flatcor = 1; % save preprocessed flat corrected projections
+write_phase_map = 1; % save phase maps (if phase retrieval is not 0)
 write_sino = 0; % save sinograms (after preprocessing & before FBP filtering and phase retrieval)
-write_sino_phase = 0; % save sinograms of phase maps
+write_sino_phase = 0; % save sinograms of phase mapsls
 write_reco = 1; % save reconstructed slices (if do_tomo=1)
 write_float = 1; % write single precision (32-bit float) tiff, currently for reco only
-write_8bit = 1; % write 8bit-tiff, currently for reco only
 write_16bit = 0; % write 8bit-tiff, currently for reco only
+write_8bit = 1; % write 8bit-tiff, currently for reco only
+write_8bit_binned = 1; % write binned 8bit-tiff, currently for reco only
+reco_bin = 2; % currently only 2x2x2 binning is implemented
 compression =  'std'; 'threshold';'histo'; % method of compression of dynamic range
 compression_std_num = 5; % dynamic range: mean(volume) +/- NUM* std(volume)
 compression_threshold = [-1 1]; % dynamic range: [MIN MAX]
-compression_histo = [0.05 0.05]; % [LOW HIGH]. dynamic range: lower (100*LOW)% and higher (100*HIGH)% of hisogram are filtered
-parfolder = 'crop_paddingSym_ramlak_cutOff0p5'; % parent folder of 'reco', 'sino', and 'flat_corrected'
+compression_histo = [0.05 0.05]; % [LOW HIGH]. crop dynamic range to values between (100*LOW)% and (100*HIGH)% of the original histogram
+parfolder = ''; % parent folder of 'reco', 'sino', and 'flat_corrected'
 subfolder_flatcor = ''; % subfolder of 'flat_corrected'
 subfolder_phase_map = ''; % subfolder of 'phase_map'
 subfolder_sino = ''; % subfolder of 'sino'
 subfolder_reco = '';%sprintf('fbpFilt%s_ringFilt%uMedWid%u_bwFilt%ubwCutoff%u_phasePad%u_freqCutoff%2.0f_fbpPad%u', fbp_filter_type, ring_filter, ring_filter_median_width, butterworth_filter, 100*butterworth_cutoff_frequ, phase_padding, fpb_freq_cutoff*100, fbp_filter_padding); % parent folder to 'reco'
 % INTERACTION %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 verbose = 1; % print information to standard output
-visualOutput = 0; % show images and plots during reconstruction
-interactive_determination_of_rot_axis = 0; % reconstruct slices with different offsets and tilts of the rotation axis
+visualOutput = 1; % show images and plots during reconstruction
+interactive_determination_of_rot_axis = 1; % reconstruct slices with different offsets and tilts of the rotation axis
 interactive_determination_of_rot_axis_slice = 0.5; % slice number. if in [0,1]: relative, if in (1, N]: absolute
 % HARDWARE / SOFTWARE %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 poolsize = 0.8; % number of workers used in a parallel pool. if > 1: absolute number. if 0 < poolsize < 1: relative amount of all cores to be used
-gpu_ind = 1; % GPU Device to use: gpuDevice(gpu_ind)
-image_corr_gpu = 0; % experimental, uses GPU to correlate images, slower than CPU due to overhead
+gpu_ind = 1; % GPU Device to use: gpuDevice(gpu_ind). obsolet for ASTRA
 link_data = 1; % ASTRA data objects become references to Matlab arrays.
 
 %% TODO %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -212,9 +213,6 @@ astra_clear % if reco was aborted, ASTRA memory is not cleared
 if ~isempty( rot_axis_offset ) && ~isempty( rot_axis_pos )
     error('rot_axis_offset (%f) and rot_axis_pos (%f) cannot be used simultaneously. One must be empty.', rot_axis_offset, rot_axis_pos)
 end
-gpu = gpuDevice( gpu_ind );
-reset( gpu );
-gpu = gpuDevice( gpu_ind );
 
 %% Input folder
 while scan_path(end) == filesep
@@ -283,6 +281,14 @@ else
     reco_path = [out_path, filesep, 'reco', filesep, subfolder_reco, filesep];
 end
 PrintVerbose(verbose, '\n reco_path : %s', reco_path)
+
+% Memory
+[mem_free, mem_avail, mem_total] = free_memory;
+PrintVerbose(verbose, '\n system memory: free, available, total : %.3g GiB, %.3g GiB, %.3g GiB', mem_free/1024^3, mem_avail/1024^3, mem_total/1024^3)
+gpu = gpuDevice( gpu_ind );
+reset( gpu );
+gpu = gpuDevice( gpu_ind );
+PrintVerbose(verbose, '\n gpu memory: available, total, percent : %.3g GiB, %.3g GiB, %.2f%%', gpu.AvailableMemory/1024^3, gpu.TotalMemory/1024^3, 100*gpu.AvailableMemory/gpu.TotalMemory)
 
 %% File names
 
@@ -597,8 +603,8 @@ elseif ~read_flatcor
         % Correlation ROI
         flat_corr_area1 = IndexParameterToRange(flat_corr_area1, raw_im_shape_binned(1));
         flat_corr_area2 = IndexParameterToRange(flat_corr_area2, raw_im_shape_binned(2));
-        flatroi = flat(flat_corr_area1, flat_corr_area2, :);
-        projroi = proj(flat_corr_area1, flat_corr_area2, :);
+        flat_roi = flat(flat_corr_area1, flat_corr_area2, :);
+        proj_roi = proj(flat_corr_area1, flat_corr_area2, :);
         flat_corr_shift_1 = zeros( num_proj_used, num_ref_used);
         flat_corr_shift_2 = zeros( num_proj_used, num_ref_used);
         d1_l1 = zeros( num_proj_used, num_ref_used);
@@ -607,42 +613,32 @@ elseif ~read_flatcor
         d2_l2 = d1_l1;
         % Compute shift for each pair projection/flat field
         for ff = 1:num_ref_used
-            flat_ff = flatroi(:,:,ff);
+            flat_ff = flat_roi(:,:,ff);
             
-            if image_corr_gpu(1) % GPU, no parloop
-                for pp = 1:num_proj_used
-                    out = ImageCorrelation(projroi(:,:,pp), flat_ff, 0, 0, 1);
-                    flat_corr_shift_1(pp,ff) = round( out.shift1, round_precision );
-                    flat_corr_shift_2(pp,ff) = round( out.shift2, round_precision) ; % relevant shift
-                end
-            else % CPU, parloop
-                switch correlation_method
-                    case 'cross'
-                        parfor pp = 1:num_proj_used
-                            out = ImageCorrelation(projroi(:,:,pp), flat_ff, 0, 0, 0, 1, 1);
-                            flat_corr_shift_1(pp,ff) = round( out.shift1, round_precision );
-                            flat_corr_shift_2(pp,ff) = round( out.shift2, round_precision) ; % relevant shift
-                        end
-                    case 'diff'
-                        parfor pp = 1:num_proj_used
-                            d1 =  abs( abs( projroi(:,:,pp) ) - abs( flat_ff ) ) ;
-                            d2 =  sqrt( abs(projroi(:,:,pp).^2 - flat_ff.^2) );
-                            d1_l1(pp,ff) = norm( d1(:), 1);
-                            d1_l2(pp,ff) = norm( d1(:), 2);
-                            d2_l1(pp,ff) = norm( d2(:), 1);
-                            d2_l2(pp,ff) = norm( d2(:), 2);
-                        end
-                end               
-            end
+            switch correlation_method
+                case 'cross'
+                    parfor pp = 1:num_proj_used
+                        out = ImageCorrelation(proj_roi(:,:,pp), flat_ff, 0, 0, 0, 1, 1);
+                        flat_corr_shift_1(pp,ff) = round( out.shift1, round_precision );
+                        flat_corr_shift_2(pp,ff) = round( out.shift2, round_precision) ; % relevant shift
+                    end
+                case 'diff'
+                    parfor pp = 1:num_proj_used
+                        d1 =  abs( abs( proj_roi(:,:,pp) ) - abs( flat_ff ) ) ;
+                        d2 =  sqrt( abs(proj_roi(:,:,pp).^2 - flat_ff.^2) );
+                        d1_l1(pp,ff) = norm( d1(:), 1);
+                        d1_l2(pp,ff) = norm( d1(:), 2);
+                        d2_l1(pp,ff) = norm( d2(:), 1);
+                        d2_l2(pp,ff) = norm( d2(:), 2);
+                    end
+            end            
         end
         
         if visualOutput(1)
             h2 = figure('Name', 'Correlation of raw data and flat fields');
             [~, flat_corr_shift_min_pos_x] =  min ( abs( flat_corr_shift_1), [], 2);
             [~, flat_corr_shift_min_pos_y] =  min ( abs( flat_corr_shift_2), [], 2);
-            
-            
-            
+                                    
             switch correlation_method
                 case 'cross'
                     m = 2; n = 1;
@@ -658,8 +654,8 @@ elseif ~read_flatcor
                     axis  tight
                     title(sprintf('minimal shift: horizontal (not used)'))
                 case 'diff'                    
-                    m = 2; n = 1;
-                    subplot(m,n,2);
+                    m = 1; n = 1;
+                    subplot(m,n,1);
                     f = @(x) normat( min( x, [], 2));
                     Y = f(d1_l2);
                     %Y = [f(d1_l1), f(d1_l2), f(d2_l1), f(d2_l2)];
@@ -667,8 +663,7 @@ elseif ~read_flatcor
                     %legend('anisotropic L1', 'anisotropic L2', 'isotropic L1', 'isotropic L2')
                     axis tight
                     title(sprintf('difference measures'))
-            end
-            
+            end            
             drawnow
         end
         
@@ -924,44 +919,54 @@ if do_tomo(1)
     [optimizer, metric] = imregconfig('monomodal');
     tform = imregtform(im2c, im1c, 'rigid', optimizer, metric);
     rot_axis_tilt_calc = asin( tform.T(1,2) ) / 2;
-    PrintVerbose(verbose, '\n calculated tilt of rotation axis : %g deg', rot_axis_tilt_calc * 180 / pi)
+    PrintVerbose(verbose, '\n calculated tilt of rotation axis : %g rad = %g deg', rot_axis_tilt_calc, rot_axis_tilt_calc * 180 / pi)
     if isempty( rot_axis_tilt )
-        rot_axis_tilt = rot_axis_tilt_calc;
-        PrintVerbose(verbose, '\n use calculated tilt of rotation axis')
+        if abs( rot_axis_pos_calc ) < 0.01 % 0.573 degree
+            rot_axis_tilt = rot_axis_tilt_calc;
+            PrintVerbose(verbose, '\n use calculated tilt of rotation axis')
+        else
+            rot_axis_tilt = 0;
+        end
     end
     
     %% Determine rotation axis position
     if interactive_determination_of_rot_axis(1)
         fprintf( '\n\nENTER INTERACTIVE MODE' )
-        % default range is centered at the given or calculated offset
-        offset = rot_axis_offset + (-4:0.5:4);
-        % default range is centered at the given or calculated tilt
-        tilt = rot_axis_tilt + (-0.005:0.001:0.005);
         fprintf( '\n number of pixels: %u', raw_im_shape_binned1)
         fprintf( '\n image center: %.1f', raw_im_shape_binned1 / 2)
-        fprintf( '\n calculated rotation axis offset & position : %.2f, %.2f', rot_axis_offset_calc, rot_axis_pos_calc)
-        fprintf( '\n current rotation axis offset & position    : %.2f, %.2f', rot_axis_offset, rot_axis_pos)
+        
+        if interactive_determination_of_rot_axis_slice > 1
+            slice = interactive_determination_of_rot_axis_slice;
+        elseif interactive_determination_of_rot_axis_slice <= 1 && interactive_determination_of_rot_axis_slice >= 0
+            slice = round((raw_im_shape_binned2 - 1) * interactive_determination_of_rot_axis_slice + 1 );
+        end
+        
+        fprintf( '\n\nOFFSET:' )
+        fprintf( '\n current rotation axis offset / position : %.2f, %.2f', rot_axis_offset, rot_axis_pos)
+        fprintf( '\n calcul. rotation axis offset / position : %.2f, %.2f', rot_axis_offset_calc, rot_axis_pos_calc)
+        fprintf( '\n default offset range : current ROT_AXIS_OFFSET + (-4:0.5:4)')
+        offset = input( '\n\nENTER RANGE OF ROTATION AXIS OFFSETS AS [...] (if empty use default range, if scalar skips interactive mode): ');
+        if isempty( offset )
+            % default range is centered at the given or calculated offset
+            offset = rot_axis_offset + (-4:0.5:4);
+        end                   
         
         % Loop over offsets
         while ~isscalar( offset )
-            if interactive_determination_of_rot_axis_slice > 1
-                slice = interactive_determination_of_rot_axis_slice;
-            elseif interactive_determination_of_rot_axis_slice <= 1 && interactive_determination_of_rot_axis_slice >= 0
-                slice = round((raw_im_shape_binned2 - 1) * interactive_determination_of_rot_axis_slice + 1 );
-            end
             
             % Reco
             [vol, m1, m2, m3, m4, m5] = find_rot_axis_offset(proj, angles, slice, offset, rot_axis_tilt, 1);
             
             % Print image number, rotation axis values, and different metrics
+            fprintf( '\n\nOFFSET:' )        
+            fprintf( '\n current rotation axis offset/position : %.2f, %.2f', rot_axis_offset, rot_axis_pos)
             fprintf( '\n image_no    offset         m1         m2         m3         m4         m5')
             for nn = 1:numel(offset)
                 fprintf( '\n %8u %9.2f %10.3g %10.3g %10.3g  %10.3g %10.3g', nn, offset(nn), m1(nn), m2(nn), m3(nn), m4(nn), m5(nn) )
             end
             
             % Play
-            nimplay(vol, 0, 0, 'OFFSET: reconstructed slice for different rotation axis offsets')
-            drawnow
+            nimplay(vol, 0, 0, 'OFFSET: sequence of reconstructed slices using different rotation axis offsets')
             
             % Input
             offset = input( '\n\nENTER ROTATION AXIS OFFSET OR A RANGE OF OFFSETS AS [...] (if empty use current offset): ');
@@ -975,10 +980,19 @@ if do_tomo(1)
                 fprintf( '\n new rotation axis offset : %.2f', rot_axis_offset)
                 
                 % Tilt
+                fprintf( '\n\nTILT:' ) 
+                fprintf( '\n current rotation axis tilt : %g rad = %g deg', rot_axis_tilt, rot_axis_tilt * 180 / pi)
+                fprintf( '\n calcul. rotation axis tilt : %g rad = %g deg', rot_axis_tilt_calc, rot_axis_tilt_calc * 180 / pi)
+                fprintf( '\n default tilt range is : current ROT_AXIS_TILT + (-0.005:0.001:0.005)')
+                tilt = input( '\n\nENTER TILT OF ROTATION AXIS OR RANGE OF TILTS AS [...] (if empty use default):');        
+                if isempty( tilt )
+                    % default range is centered at the given or calculated tilt
+                    tilt = rot_axis_tilt + (-0.005:0.001:0.005);                    
+                end
+                
                 while ~isscalar( tilt )
                     
                     % Print image number and rotation axis tilt
-                    fprintf( '\n current rotation axis tilt : %g', rot_axis_tilt)
                     fprintf( '\n image_no    tilt')
                     for nn = 1:numel(tilt)
                         fprintf( '\n %8u  %12g', nn, tilt(nn))
@@ -988,8 +1002,7 @@ if do_tomo(1)
                     vol = find_rot_axis_tilt( proj, angles, slice, offset, tilt, 1, 4);
                     
                     % Play
-                    nimplay(vol, 0, 0, 'TILT: reconstructed slice for different rotation axis tilts')
-                    drawnow
+                    nimplay(vol, 0, 0, 'TILT: sequence of reconstructed slices using different rotation axis tilts')
                     
                     % Input
                     tilt = input( '\nENTER TILT OF ROTATION AXIS OR RANGE OF TILTS AS [...] (if empty use current tilt):');
@@ -999,29 +1012,53 @@ if do_tomo(1)
                     
                     if isscalar( tilt )
                         rot_axis_tilt = tilt;
-                        offset = input( '\nENTER RANGE OF OFFSETS TO CONTINUE INTERACTIVE LOOP OR TYPE ENTER TO EXIT INTERACTIVE MODE: ');
-                    end
-                    if isempty( offset )
-                        offset = rot_axis_offset;
-                    end
-                    
+                                                                                               
+                        rot_axis_pos = raw_im_shape_binned1 / 2 + rot_axis_offset;
+                        
+                        % Compare projection at 0 pi and projection at 1 pi corrected for rotation axis tilt                        
+                        im1c = RotAxisSymmetricCropping( proj(:,rot_corr_area2,ind1), rot_axis_pos, 1);
+                        im2c = flipud(RotAxisSymmetricCropping( proj(:,rot_corr_area2,ind2) , rot_axis_pos, 1));
+                        [optimizer, metric] = imregconfig('monomodal');
+                        tform = imregtform(im2c, im1c, 'rigid', optimizer, metric);
+                        rot_axis_tilt_calc = asin( tform.T(1,2) ) / 2;
+                        im2c_warped_calc =  imwarp(im2c, tform, 'OutputView', imref2d(size(im1c)));
+                        tform_cur = tform;
+                        tform_cur.T(1,2) = sin( 2 * rot_axis_tilt );
+                        im2c_warped_cur =  imwarp(im2c, tform_cur, 'OutputView', imref2d(size(im1c)));
+                        
+                        x = ceil( 2 * abs( sin(rot_axis_tilt) ) * max( size(im1c)) );
+                        
+                        fprintf( '\n current rotation axis tilt: %g rad = %g deg', rot_axis_tilt, rot_axis_tilt * 180 / pi)
+                        fprintf( '\n calcul. rotation axis tilt: %g rad = %g deg', rot_axis_tilt_calc, rot_axis_tilt_calc * 180 / pi)                        
+                                                                        
+                        name = sprintf( 'projections at 0 and 180 degree. corrected. CURRENT rot axis tilt: %g, rot axis offset: %g', rot_axis_tilt, rot_axis_offset);
+                        nimplay( cat(3, im1c(x:end-x,x:end-x)', im2c_warped_cur(x:end-x,x:end-x)'), 0, 0, name)
+                                                
+                        name = sprintf( 'projections at 0 and 180 degree. corrected. CALCULATED rot axis tilt: %g, rot axis offset: %g', rot_axis_tilt_calc, rot_axis_offset);
+                        nimplay( cat(3, im1c(x:end-x,x:end-x)', im2c_warped_calc(x:end-x,x:end-x)'), 0, 0, name)
+                                                                                                
+                        tilt = input( '\nENTER ROTATION AXIS TILT (if empty use current value): ');
+                        if ~isempty( tilt )
+                            rot_axis_tilt = tilt;
+                        end
+                        
+                        offset = input( '\nENTER RANGE OF OFFSETS TO CONTINUE INTERACTIVE LOOP OR TYPE ENTER TO EXIT LOOP: ');
+                        if isempty( offset )
+                            offset = rot_axis_offset;
+                        end                    
+                    end                    
                 end
             end
         end
+             
         rot_axis_pos = raw_im_shape_binned1 / 2 + rot_axis_offset;
         fprintf( '\nEND OF INTERACTIVE MODE\n' )
+        fprintf( '\n rotation axis offset : %.2f', rot_axis_offset)        
+        fprintf( '\n rotation axis position : %.2f', rot_axis_pos)        
+        fprintf( '\n rotation axis tilt: %g rad = %g deg', rot_axis_tilt, rot_axis_tilt * 180 / pi)
+        
     end
-    
-    % Tilt of rotation axis
-    im1c = RotAxisSymmetricCropping( proj(:,rot_corr_area2,ind1), rot_axis_pos, 1);
-    im2c = flipud(RotAxisSymmetricCropping( proj(:,rot_corr_area2,ind2) , rot_axis_pos, 1));
-    [optimizer, metric] = imregconfig('monomodal');
-    tform = imregtform(im2c, im1c, 'rigid', optimizer, metric);
-    rot_axis_tilt_calc = asin( tform.T(1,2) ) / 2;
-    fprintf( '\n current tilt of rotation axis : %g rad = %g deg', rot_axis_tilt, rot_axis_tilt * 180 / pi)
-    fprintf( '\n calculated tilt of rotation axis : % rad = %g deg', rot_axis_tilt_calc, rot_axis_tilt_calc * 180 / pi)
-    im2c_warped =  imwarp(im2c, tform, 'OutputView', imref2d(size(im1c)));
-    
+        
     if visualOutput(1)
         h4 = figure('Name','Projections at 0 and pi cropped symmetrically to rotation center');
         n = 2; m = 2;
@@ -1038,7 +1075,7 @@ if do_tomo(1)
         title(sprintf('proj at pi'))
         colorbar
         
-        x = 4;
+        x = ceil(1 + 2 * abs( sin(rot_axis_tilt) ) * max( size(im1c)) );
         
         subplot(m, n, 3)
         imsc1( abs( im1c(x:end-x,x:end-x) - im2c(x:end-x,x:end-x) ) )
@@ -1047,22 +1084,13 @@ if do_tomo(1)
         colorbar
         
         subplot(m, n, 4)
-        im2c_warped =  imwarp(im2c, tform, 'OutputView',imref2d(size(im1c)));
-        imsc1( abs( im1c(x:end-x,x:end-x) - im2c_warped(x:end-x,x:end-x) ) )
+        im2c_warped_cur =  imwarp(im2c, tform, 'OutputView',imref2d(size(im1c)));
+        imsc1( abs( im1c(x:end-x,x:end-x) - im2c_warped_cur(x:end-x,x:end-x) ) )
         axis equal tight
         title(sprintf('difference corrected'))
         colorbar
         
-        drawnow
-        
-        name = sprintf( 'projections at 0 and 180 degree. rot axis tilt: %g, rot axis offset: %g', rot_axis_tilt_calc, rot_axis_offset);
-        nimplay( cat(3, im1c(x:end-x,x:end-x)', im2c(x:end-x,x:end-x)'), 0, 0, name)
-        drawnow
-        
-        name = sprintf( 'projections at 0 and 180 degree. Corrected. rot axis tilt: %g, rot axis offset: %g', rot_axis_tilt_calc, rot_axis_offset);
-        nimplay( cat(3, im1c(x:end-x,x:end-x)', im2c_warped(x:end-x,x:end-x)'), 0, 0, name)
-        drawnow        
-        
+        drawnow              
     end
 end
 
@@ -1113,6 +1141,7 @@ if stitch_projections(1)
         end
         proj_sti(:,:,nn) = im;
     end
+    pause(0.01)
     proj = proj_sti;
     clear proj_sti;
     angles = angles(1:num_proj_sti);
@@ -1120,7 +1149,7 @@ if stitch_projections(1)
 end
 
 %% Crop projection at rotation axis position to avoid oversampling
-if crop_at_rot_axis(1)
+if crop_at_rot_axis(1)    
     proj( ceil(rot_axis_pos) + 1:end, :, :) = [];
     if isempty( vol_shape )                
         vol_shape = [raw_im_shape_binned1, raw_im_shape_binned1, raw_im_shape_binned2];        
@@ -1137,6 +1166,7 @@ if write_sino(1)
         filename = sprintf( '%ssino_%06u.tif', sino_path, nn);
         write32bitTIFfromSingle( filename, squeeze( proj( :, nn, :) )' )
     end
+    pause(0.01)
     PrintVerbose(verbose, ' done.')
     PrintVerbose(verbose, ' Time elapsed: %g s (%.2f min)', toc-t, (toc-t)/60)
 end
@@ -1177,6 +1207,7 @@ if do_phase_retrieval(1)
         proj(:,:,nn) = im(1:im_shape(1), 1:im_shape(2));
         %proj(:,:,nn) = gather( im(1:raw_im_shape_binned1, 1:raw_im_shape_binned2) );
     end
+    pause(0.01)
     PrintVerbose(verbose, ' Time elapsed: %g s (%.2f min)', toc-t, (toc-t)/60)
     
     % Save phase maps
@@ -1189,6 +1220,7 @@ if do_phase_retrieval(1)
             filename = sprintf( '%sphase_%06u.tif', phase_map_path, nn);
             write32bitTIFfromSingle( filename, squeeze( rot90( proj( :, :, nn) ) ) )
         end
+        pause(0.01)
         PrintVerbose(verbose, ' Time elapsed: %g s (%.2f min)', toc-t, (toc-t)/60)
     end
 end
@@ -1203,6 +1235,7 @@ if write_sino_phase(1)
         filename = sprintf( '%ssino_%06u.tif', sino_phase_path, nn);
         write32bitTIFfromSingle( filename, squeeze( proj( :, nn, :) )' )
     end
+    pause(0.01)
     PrintVerbose(verbose, ' done.')
     PrintVerbose(verbose, ' Time elapsed: %g s (%.2f min)', toc-t, (toc-t)/60)
 end
@@ -1239,8 +1272,7 @@ if do_tomo(1)
     end
     PrintVerbose(verbose, '\n rotation axis offset: %f', rot_axis_offset );
     PrintVerbose(verbose, '\n rotation axis position: %f', rot_axis_pos );
-    PrintVerbose(verbose, '\n shape reconstructed volume: [%g, %g, %g]', vol_shape )
-    PrintVerbose(verbose, '\n available gpu memory : %g MiB (%.2f%%) of %g MiB', gpu.AvailableMemory/10^6, 100*gpu.AvailableMemory/gpu.TotalMemory, gpu.TotalMemory/10^6)
+    PrintVerbose(verbose, '\n shape reconstructed volume: [%g, %g, %g]', vol_shape )    
     
     PrintVerbose(verbose, '\nTomographic reconstruction:')
     if isempty( take_neg_log )
@@ -1271,11 +1303,18 @@ if do_tomo(1)
     else
         proj = real( ifft( bsxfun(@times, fft( NegLog( proj, take_neg_log), [], 1), filt), [], 1, 'symmetric') );
     end
+    pause(0.01)
     PrintVerbose(verbose, 'done.')
+    
+    if crop_at_rot_axis(1)
+        % half weight pixel at rot axis pos as it is used twice
+        proj( ceil(rot_axis_pos), :, :) = 0.5 * proj( ceil(rot_axis_pos), :, :) ;
+    end
     
     % Backprojection
     PrintVerbose(verbose, ' Backproject: ')
     vol = astra_parallel3D( permute(proj, [1 3 2]), rot_angle_offset + angles_reco, rot_axis_offset_reco, vol_shape, vol_size, astra_pixel_size, link_data, rot_axis_tilt);
+    pause(0.01)
     PrintVerbose(verbose, ' done.')
     
     % Save volume
@@ -1300,6 +1339,7 @@ if do_tomo(1)
                 filename = sprintf( '%sreco_%06u.tif', save_path, ii);
                 write32bitTIFfromSingle( filename, vol( :, :, ii) )
             end
+            pause(0.01)
             PrintVerbose(verbose, ' done.')
         end
         
@@ -1307,7 +1347,7 @@ if do_tomo(1)
         vol_max = max( vol(:) );
         
         % Compression of dynamic range
-        if write_8bit || write_16bit
+        if write_8bit || write_16bit || write_8bit_binned
             
             % Compression method
             switch compression
@@ -1335,20 +1375,38 @@ if do_tomo(1)
                     filename = sprintf( '%sreco_%06u.tif', save_path, ii);
                     imwrite( uint16( (2^16 - 1) * vol( :, :, ii) ), filename );
                 end
+                pause(0.01)
                 PrintVerbose(verbose, ' done.')
             end
             
             % 8-bit tiff
             if write_8bit(1)
-                PrintVerbose(verbose, ' Write uint8:')    
+                PrintVerbose(verbose, ' Write uint8:')
                 save_path = [reco_path 'uint8' filesep];
                 CheckAndMakePath(save_path)
                 parfor ii = 1:size( vol, 3)
                     filename = sprintf( '%sreco_%06u.tif', save_path, ii);
                     imwrite( uint8( (2^8 - 1) * vol( :, :, ii) ), filename );
                 end
-                 PrintVerbose(verbose, ' done.')
-            end       
+                pause(0.01)
+                PrintVerbose(verbose, ' done.')
+            end
+            
+            % 8-bit tiff binned
+            if write_8bit_binned(1)
+                PrintVerbose(verbose, ' Write uint8 binned:')
+                save_path = [reco_path 'uint8_binned' filesep];
+                CheckAndMakePath(save_path)
+                for ii = 1:floor( size( vol, 3) / reco_bin )
+                    filename = sprintf( '%sreco_%06u.tif', save_path, ii);
+                    nn = 1 + reco_bin * (ii - 1) + (0:reco_bin - 1);
+                    im =  Binning( sum(vol( :, :, nn), 3 ), reco_bin) / reco_bin^3;
+                    imwrite( uint8( (2^8 - 1) * im ), filename );
+                end
+                pause(0.01)
+                PrintVerbose(verbose, ' done.')
+            end
+            
         end
     end
     
@@ -1356,7 +1414,7 @@ if do_tomo(1)
     
     %% Log file
     if write_reco(1)
-        logfile_name = sprintf( '%sreco.log', save_path);
+        logfile_name = sprintf( '%sreco.log', reco_path);
         fid = fopen(logfile_name, 'w');
         fprintf(fid, 'scan_name : %s\n', scan_name);
         fprintf(fid, 'beamtime_id : %s\n', beamtime_id);
@@ -1379,6 +1437,7 @@ if do_tomo(1)
         fprintf(fid, 'effective_pixel_size_mu : %g\n', eff_pixel_size * 1e6);
         fprintf(fid, 'effective_pixel_size_binned_mu : %g\n', eff_pixel_size_binned * 1e6);
         fprintf(fid, 'energy : %g eV\n', energy);
+        fprintf(fid, 'sample_detector_distance : %f m\n', sample_detector_distance);
         fprintf(fid, 'flat_field_correlation_area_1 : %u:%u:%u\n', flat_corr_area1(1), flat_corr_area1(2) - flat_corr_area1(1), flat_corr_area1(end));
         fprintf(fid, 'flat_field_correlation_area_2 : %u:%u:%u\n', flat_corr_area2(1), flat_corr_area2(2) - flat_corr_area2(1), flat_corr_area2(end));
         if ~read_flatcor
@@ -1397,6 +1456,10 @@ if do_tomo(1)
         fprintf(fid, 'phase_retrieval_binary_filter_threshold : %f\n', phase_retrieval_bin_filt);
         fprintf(fid, 'phase_padding : %u\n', phase_padding);
         % Rotation
+        fprintf(fid, 'excentric_rot_axis : %f\n', excentric_rot_axis);
+        fprintf(fid, 'crop_at_rot_axis : %f\n', crop_at_rot_axis);
+        fprintf(fid, 'stitch_projections : %u\n', stitch_projections);        
+        fprintf(fid, 'stitch_method : %s\n', stitch_method );
         fprintf(fid, 'rotation_angle_full_rad : %f\n', rot_angle_full);
         fprintf(fid, 'rotation_angle_offset_rad : %f\n', rot_angle_offset);
         fprintf(fid, 'rotation_axis_offset_calculated : %f\n', rot_axis_offset_calc);
@@ -1408,10 +1471,14 @@ if do_tomo(1)
         fprintf(fid, 'raw_image_binned_center : %f\n', raw_im_shape_binned1 / 2);
         fprintf(fid, 'rotation_correlation_area_1 : %u:%u:%u\n', rot_corr_area1(1), rot_corr_area1(2) - rot_corr_area1(1), rot_corr_area1(end));
         fprintf(fid, 'rotation_correlation_area_2 : %u:%u:%u\n', rot_corr_area2(1), rot_corr_area2(2) - rot_corr_area2(1), rot_corr_area2(end));
+        fprintf(fid, 'interactive_determination_of_rot_axis : %u\n', interactive_determination_of_rot_axis);        
         % FBP
         fprintf(fid, 'use_ring_filter : %u\n', ring_filter);
         fprintf(fid, 'ring_filter_median_width : %u\n', ring_filter_median_width);
-        fprintf(fid, 'fbp_filter : %s\n', fbp_filter_type);
+        fprintf(fid, 'fbp_filter_type : %s\n', fbp_filter_type);
+        fprintf(fid, 'fpb_freq_cutoff : %f\n', fpb_freq_cutoff);
+        fprintf(fid, 'fbp_filter_padding : %u\n', fbp_filter_padding);
+        fprintf(fid, 'fbp_filter_padding_method : %s\n', fbp_filter_padding_method);        
         fprintf(fid, 'use_butterworth_filter : %u\n', butterworth_filter);
         fprintf(fid, 'butterworth_order : %u\n', butterworth_order);
         fprintf(fid, 'butterworth_cutoff_frequency : %f\n', butterworth_cutoff_frequ);
@@ -1419,9 +1486,14 @@ if do_tomo(1)
         fprintf(fid, 'take_negative_logarithm : %u\n', take_neg_log);
         fprintf(fid, 'gpu_name : %s\n', gpu.Name);
         fprintf(fid, 'min_max_of_all_slices : %g %g\n', vol_min, vol_max);
-        %fprintf(fid, ' : \n', );
-        fprintf(fid, 'full_reconstruction_time_s : %.1f\n', toc);
+        fprintf(fid, 'write_float : %u\n', write_float);
+        fprintf(fid, 'write_16bit : %g\n', write_16bit);        
+        fprintf(fid, 'write_8bit : %u\n', write_8bit);
+        fprintf(fid, 'write_8bit_binned : %u\n', write_8bit_binned);
+        fprintf(fid, 'reco_bin : %u\n', reco_bin);      
+        fprintf(fid, 'full_reconstruction_time : %.1f s\n', toc);
         fprintf(fid, 'date : %s', datetime);
+        %fprintf(fid, ' : \n', );
         fclose(fid);
         PrintVerbose(verbose, '\n log file : %s', logfile_name)
     end
