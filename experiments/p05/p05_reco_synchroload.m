@@ -51,13 +51,15 @@ default.write_sino = 0;
 default.write_sino_phase = 0; 
 default.write_reco = 1; 
 default.write_float = 1; 
-default.write_8bit = 1;
+default.write_float_binned = 1; 
+default.write_8bit = 0;
 default.write_8bit_binned = 1;
 default.write_16bit = 0; 
 %default.rot_corr_area1 = [0.25 75];
 
 %% Data sets %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+% corroded screw
 nn = nn + 1;
 para(nn) = default;
 para(nn).scan_path = [raw 'mah_01'];
@@ -65,37 +67,46 @@ para(nn).excentric_rot_axis = 0;
 para(nn).rot_axis_offset = -135.75 / para(nn).bin;
 para(nn).rot_axis_tilt = -0.003;
 
+% corroded screw
 nn = nn + 1;
 para(nn) = default;
 para(nn).scan_path = [raw 'mah_02'];
 para(nn).excentric_rot_axis = 0;
-para(nn).rot_axis_offset = -135.75 / para(nn).bin;
-para(nn).rot_axis_tilt = -0.003;
 
 % corroded screw
 nn = nn + 1;
 para(nn) = default;
 para(nn).scan_path = [raw 'mah_03'];
-para(nn).excentric_rot_axis = 0;
-para(nn).rot_axis_offset = -135.75 / para(nn).bin;
 
 % implant fresh
 nn = nn + 1;
 para(nn) = default;
 para(nn).scan_path = [raw 'mah_04'];
-para(nn).excentric_rot_axis = 0;
+para(nn).excentric_rot_axis = 1;
+para(nn).crop_at_rot_axis = 1;
 para(nn).rot_axis_offset = 627.75 / para(nn).bin;
-default.excentric_rot_axis = 1;
-default.crop_at_rot_axis = 1;
 
 % corroded screw
 nn = nn + 1;
 para(nn) = default;
 para(nn).scan_path = [raw 'mah_05'];
 para(nn).excentric_rot_axis = 0;
+para(nn).crop_at_rot_axis = 0;
 para(nn).rot_axis_offset = 2 / para(nn).bin;
-default.excentric_rot_axis = 0;
-default.crop_at_rot_axis = 0;
+
+% corroded screw
+nn = nn + 1;
+para(nn) = default;
+para(nn).scan_path = [raw 'mah_06_Mg10G_004'];
+para(nn).excentric_rot_axis = 0;
+para(nn).crop_at_rot_axis = 0;
+para(nn).rot_axis_offset = 5 / para(nn).bin;
+
+
+
+% 'mah_07_bone_in_formalin'
+% 'mah_08_corrosion_cell_A'
+% 'mah_08_corrosion_cell_B'
 
 nn = nn + 1;
 para(nn) = default;
@@ -287,5 +298,6 @@ if nums ~= 0
         p05_reco
         
     end
-    fprintf( '\nRECONSTRUCTION LOOP FINISHED \n')
+    fprintf( '\nRECONSTRUCTION LOOP FINISHED')
 end
+fprintf('\n')

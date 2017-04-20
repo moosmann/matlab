@@ -19,7 +19,7 @@ close all
 % INPUT %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %scan_path = pwd; % Enter folder of data set under the raw directory and run script
 scan_path = ...    
-    '/asap3/petra3/gpfs/p05/2016/data/11001978/raw/mah_05';
+    '/asap3/petra3/gpfs/p05/2016/data/11001978/raw/mah_06_Mg10G_004';
 
 '/asap3/petra3/gpfs/p05/2016/data/11001978/raw/mah_32_15R_top_occd800_withoutpaper'; % too much fringes, not enough coherence probably, using standard phase retrieval reco looks blurry
 '/asap3/petra3/gpfs/p05/2016/data/11001978/raw/mah_28_15R_bottom';
@@ -110,7 +110,8 @@ write_phase_map = 1; % save phase maps (if phase retrieval is not 0)
 write_sino = 0; % save sinograms (after preprocessing & before FBP filtering and phase retrieval)
 write_sino_phase = 0; % save sinograms of phase mapsls
 write_reco = 1; % save reconstructed slices (if do_tomo=1)
-write_float = 1; % write single precision (32-bit float) tiff, currently for reco only
+write_float = 1; % write single precision (32-bit float) tiff
+write_float_binned = 1; % write binned single precision (32-bit float) tiff
 write_16bit = 0; % write 8bit-tiff, currently for reco only
 write_8bit = 1; % write 8bit-tiff, currently for reco only
 write_8bit_binned = 1; % write binned 8bit-tiff, currently for reco only
@@ -995,9 +996,9 @@ if do_tomo(1)
                 while ~isscalar( tilt )
                     
                     % Print image number and rotation axis tilt
-                    fprintf( '\n image_no    tilt')
+                    fprintf( '\n image_no    tilt/rad  tilt/')
                     for nn = 1:numel(tilt)
-                        fprintf( '\n %8u  %12g', nn, tilt(nn))
+                        fprintf( '\n %8u  %12g  %12g', nn, tilt(nn), tilt(nn)/pi*180)
                     end
                     
                     % Reco
@@ -1360,6 +1361,22 @@ if do_tomo(1)
             PrintVerbose(verbose, ' done in %.2f min.', (toc - t2) / 60)
         end
         
+        % Binned single precision: 32-bit float tiff
+        if write_float_binned(1)
+            PrintVerbose(verbose, '\n Write float binned:')
+            t2 = toc;
+            save_path = [reco_path 'float_binned' filesep];
+            CheckAndMakePath(save_path)
+            for ii = 1:floor( size( vol, 3) / reco_bin )
+                filename = sprintf( '%sreco_%06u.tif', save_path, ii);
+                nn = 1 + reco_bin * (ii - 1) + (0:reco_bin - 1);                
+                im = Binning( sum(vol( :, :, nn), 3 ), reco_bin) / reco_bin^3;
+                write32bitTIFfromSingle( filename, im )
+            end
+            pause(0.01)
+            PrintVerbose(verbose, ' done in %.2f min.', (toc - t2) / 60)
+        end
+        
         vol_min = min( vol(:) );
         vol_max = max( vol(:) );
         
@@ -1519,6 +1536,7 @@ if do_tomo(1)
 end
 
 %reset( gpu );
-PrintVerbose(verbose && interactive_mode, '\nTime elapsed in interactive mode: %g s (%.2f min)', tint, tint / 60 );
-PrintVerbose(verbose, '\nFinished. Total time elapsed: %g s (%.2f min)\n\n', toc - tint, (toc - tint) / 60 );
+PrintVerbose(verbose, '\nFinished.')
+PrintVerbose(verbose && interactive_determination_of_rot_axis, '\nTime elapsed in interactive mode: %g s (%.2f min)', tint, tint / 60 );
+PrintVerbose(verbose, '\nTime elapsed for computation: %g s (%.2f min)\n\n', toc - tint, (toc - tint) / 60 );
 % END %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
