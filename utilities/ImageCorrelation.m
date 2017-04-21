@@ -74,7 +74,7 @@ end
 map = fft2( im1 ) .* fft2( rot90(im2,2) );
 map = ifft2( map, 'symmetric' );
 map = fftshift( map );
-map = real( map );
+map = abs( map );
 
 % Find the value and the (index) position of the maximum of the correlation map.
 [val, ind] = max( map(:) );

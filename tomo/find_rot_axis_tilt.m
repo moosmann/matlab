@@ -1,4 +1,4 @@
-function [vol, m1, m2, m3, m4, m5] = find_rot_axis_tilt(proj, angles, slice, offset, tilts, take_neg_log, number_of_stds)
+function [vol, m1, m2, m3, m4, m5] = find_rot_axis_tilt(proj, angles, slice, offset, tilts, take_neg_log, number_of_stds, vol_shape)
 % Reconstruct slices from a single sinogram using a range of rotation axis
 % tilts.
 %
@@ -10,10 +10,9 @@ function [vol, m1, m2, m3, m4, m5] = find_rot_axis_tilt(proj, angles, slice, off
 % m4 : scalar. mean of isotropic modulus of gradient
 % m5 : scalar. mean of Laplacian
 % 
-% Written by Julian Moosmann. Last modification: 2017-03-21
+% Written by Julian Moosmann. Last modification: 2017-04-20
 %
-% [vol, m1, m2, m3, m4, m5, com] = find_rot_axis(proj, angles, offset, slice, take_neg_log)
-
+% [vol, m1, m2, m3, m4, m5] = find_rot_axis_tilt(proj, angles, slice, offset, tilts, take_neg_log, number_of_stds, vol_shape)
 
 %% Default arguments %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 if nargin < 3
@@ -31,18 +30,22 @@ end
 if nargin < 7
     number_of_stds = 4;
 end
+if nargin < 8
+    vol_shape = [];
+end
 
 %% Main %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-num_pix = size(proj, 1);
-subvol_shape = [num_pix, num_pix, 1];
-subvol_size = [-num_pix/2 num_pix/2 -num_pix/2 num_pix/2 -0.5 0.5];
+
+[num_pix, num_row, num_slices] = size( proj );
+if isempty( vol_shape )
+    vol_shape = [num_pix, num_pix, 1];
+else
+    vol_shape(3) = 1;
+end
+vol_size = [-num_pix/2 num_pix/2 -num_pix/2 num_pix/2 -0.5 0.5];
 astra_pixel_size = 1;
 link_data = 1;
-
 roi = 0.25;
-
-%% Main
-[num_pix, num_row, num_slices] = size( proj );
 if isempty( slice )
     slice = round( num_row / 2 );
 end
@@ -92,7 +95,7 @@ for nn = 1:numel( tilts )
     tilt = tilts(nn);
     
     % Reco
-    im = FilterHisto(astra_parallel3D( permute( sino, [1 3 2]), angles, offset, subvol_shape, subvol_size, astra_pixel_size, link_data, tilt), number_of_stds, roi);    
+    im = FilterHisto(astra_parallel3D( permute( sino, [1 3 2]), angles, offset, vol_shape, vol_size, astra_pixel_size, link_data, tilt), number_of_stds, roi);    
     vol(:,:,nn) = im;
     
     % Metrics on ROI

@@ -1,4 +1,4 @@
-function [vol, m1, m2, m3, m4, m5] = find_rot_axis_offset(proj, angles, slice, offsets, tilt, take_neg_log, number_of_stds)
+function [vol, m1, m2, m3, m4, m5] = find_rot_axis_offset(proj, angles, slice, offsets, tilt, take_neg_log, number_of_stds, vol_shape)
 % Reconstruct slices from sinogram for a range of rotation axis positoin
 % offsets.
 %
@@ -11,10 +11,9 @@ function [vol, m1, m2, m3, m4, m5] = find_rot_axis_offset(proj, angles, slice, o
 % m4 : scalar. mean of isotropic modulus of gradient
 % m5 : scalar. mean of Laplacian
 % 
-% Written by Julian Moosmann. Last modification: 2017-03-17
+% Written by Julian Moosmann. Last modification: 2017-04-20
 %
-% [vol, m1, m2, m3, m4, m5, com] = find_rot_axis(proj, angles, offsets, slice, take_neg_log)
-
+% [vol, m1, m2, m3, m4, m5] = find_rot_axis_offset(proj, angles, slice, offsets, tilt, take_neg_log, number_of_stds, vol_shape)
 
 %% Default arguments %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 if nargin < 3
@@ -32,11 +31,18 @@ end
 if nargin < 7
     number_of_stds = 4;
 end
+if nargin < 8
+    vol_shape = [];
+end
 
 %% Main %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-[num_pix, num_row, d3] = size( proj );
-subvol_shape = [num_pix, num_pix, 1];
-subvol_size = [-num_pix/2 num_pix/2 -num_pix/2 num_pix/2 -0.5 0.5];
+[num_pix, num_row, num_slices] = size( proj );
+if isempty( vol_shape )
+    vol_shape = [num_pix, num_pix, 1];
+else
+    vol_shape(3) = 1;
+end
+vol_size = [-num_pix/2 num_pix/2 -num_pix/2 num_pix/2 -0.5 0.5];
 astra_pixel_size = 1;
 link_data = 1;
 roi = 0.25;
@@ -48,7 +54,7 @@ end
 rot_axis_pos = offsets + num_pix / 2;
 l = max( max( rot_axis_pos) , max( abs( num_pix - rot_axis_pos ) ) );
 dz = ceil( sin( abs( tilt ) ) * l ); % maximum distance between sino plane and reco plane
-if slice - dz < 0 || slice + dz > d3
+if slice - dz < 0 || slice + dz > num_slices
     fprintf( '\nWARNING: Inclination of reconstruciont plane exceeds sinogram volume. Better choose a more central slice or a smaller tilts.')
 end
 
@@ -83,7 +89,7 @@ for nn = 1:numel( offsets )
     offset = offsets(nn);
     
     % Reco
-    im = FilterHisto(astra_parallel3D( permute( sino, [1 3 2]), angles, offset, subvol_shape, subvol_size, astra_pixel_size, link_data, tilt), number_of_stds, roi);
+    im = FilterHisto(astra_parallel3D( permute( sino, [1 3 2]), angles, offset, vol_shape, vol_size, astra_pixel_size, link_data, tilt), number_of_stds, roi);
     vol(:,:,nn) = im;
     
     % Metrics on ROI

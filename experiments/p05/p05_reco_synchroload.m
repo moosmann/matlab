@@ -11,7 +11,7 @@ function p05_reco_synchroload(nums)
 % Start loop by pushing 'F5', clicking on 'Run' in the Editor tab, or
 % typing 'p05_reco_loop' in the Command Window.
 %
-% Written by Julian Moosmann. First version: 2017-02-15. Last: 2017-02-20
+% Written by Julian Moosmann. First version: 2017-02-15. Last: 2017-04-24
 
 if nargin < 1
     nums = 0;
@@ -52,10 +52,9 @@ default.write_sino_phase = 0;
 default.write_reco = 1; 
 default.write_float = 1; 
 default.write_float_binned = 1; 
-default.write_8bit = 0;
+default.write_8bit = 1;
 default.write_8bit_binned = 1;
 default.write_16bit = 0; 
-%default.rot_corr_area1 = [0.25 75];
 
 %% Data sets %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -63,7 +62,6 @@ default.write_16bit = 0;
 nn = nn + 1;
 para(nn) = default;
 para(nn).scan_path = [raw 'mah_01'];
-para(nn).excentric_rot_axis = 0;
 para(nn).rot_axis_offset = -135.75 / para(nn).bin;
 para(nn).rot_axis_tilt = -0.003;
 
@@ -71,12 +69,15 @@ para(nn).rot_axis_tilt = -0.003;
 nn = nn + 1;
 para(nn) = default;
 para(nn).scan_path = [raw 'mah_02'];
-para(nn).excentric_rot_axis = 0;
+para(nn).rot_axis_offset = -135.75 / para(nn).bin;
+para(nn).rot_axis_tilt = -0.003;
 
 % corroded screw
 nn = nn + 1;
 para(nn) = default;
 para(nn).scan_path = [raw 'mah_03'];
+para(nn).rot_axis_offset = -135.75 / para(nn).bin;
+para(nn).rot_axis_tilt = -0.003;
 
 % implant fresh
 nn = nn + 1;
@@ -84,29 +85,44 @@ para(nn) = default;
 para(nn).scan_path = [raw 'mah_04'];
 para(nn).excentric_rot_axis = 1;
 para(nn).crop_at_rot_axis = 1;
-para(nn).rot_axis_offset = 627.75 / para(nn).bin;
+para(nn).rot_axis_offset = 628 / para(nn).bin;
+para(nn).rot_axis_tilt = -0.003;
+%para(nn).vol_shape = [2155 2155 1050];
 
 % corroded screw
 nn = nn + 1;
 para(nn) = default;
 para(nn).scan_path = [raw 'mah_05'];
-para(nn).excentric_rot_axis = 0;
-para(nn).crop_at_rot_axis = 0;
 para(nn).rot_axis_offset = 2 / para(nn).bin;
+para(nn).rot_axis_tilt = -0.003;
 
 % corroded screw
 nn = nn + 1;
 para(nn) = default;
 para(nn).scan_path = [raw 'mah_06_Mg10G_004'];
-para(nn).excentric_rot_axis = 0;
-para(nn).crop_at_rot_axis = 0;
 para(nn).rot_axis_offset = 5 / para(nn).bin;
+para(nn).rot_axis_tilt = -0.003;
 
+% implant fresh formalin
+nn = nn + 1;
+para(nn) = default;
+para(nn).scan_path = [raw 'mah_07_bone_in_formalin'];
+para(nn).rot_axis_offset = 2 / para(nn).bin;
+para(nn).rot_axis_tilt = -0.003;
 
+% corrosion cell
+nn = nn + 1;
+para(nn) = default;
+para(nn).scan_path = [raw 'mah_08_corrosion_cell_A'];
+para(nn).rot_axis_offset = -3.5 / para(nn).bin;
+para(nn).rot_axis_tilt = -0.003;
 
-% 'mah_07_bone_in_formalin'
-% 'mah_08_corrosion_cell_A'
-% 'mah_08_corrosion_cell_B'
+% corrosion cell
+nn = nn + 1;
+para(nn) = default;
+para(nn).scan_path = [raw 'mah_08_corrosion_cell_B'];
+para(nn).rot_axis_offset = -2 / para(nn).bin;
+para(nn).rot_axis_tilt = -0.003;
 
 nn = nn + 1;
 para(nn) = default;

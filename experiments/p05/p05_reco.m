@@ -12,19 +12,18 @@
 % To loop over sets of data or parameters use 'p05_reco_loop'.
 %
 % Written by Julian Moosmann. First version: 2016-09-28. Last modifcation:
-% 2017-03-28
+% 2017-04-21
 
 %% PARAMETERS / SETTINGS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 close all
 % INPUT %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %scan_path = pwd; % Enter folder of data set under the raw directory and run script
 scan_path = ...    
-    '/asap3/petra3/gpfs/p05/2016/data/11001978/raw/mah_06_Mg10G_004';
+    '/asap3/petra3/gpfs/p05/2016/data/11001978/raw/mah_straw_01';
 
 '/asap3/petra3/gpfs/p05/2016/data/11001978/raw/mah_32_15R_top_occd800_withoutpaper'; % too much fringes, not enough coherence probably, using standard phase retrieval reco looks blurry
 '/asap3/petra3/gpfs/p05/2016/data/11001978/raw/mah_28_15R_bottom';
 '/asap3/petra3/gpfs/p05/2016/commissioning/c20160920_000_diana/raw/Mg-10Gd39_1w';
-
 '/asap3/petra3/gpfs/p05/2016/commissioning/c20161024_000_xeno/raw/xeno_01_b';
 '/asap3/petra3/gpfs/p05/2016/commissioning/c20160803_001_pc_test/raw/phase_600';
 '/asap3/petra3/gpfs/p05/2016/commissioning/c20160803_001_pc_test/raw/phase_1000'; %rot_axis_offset=7.5
@@ -81,15 +80,15 @@ sample_detector_distance = []; % in m. if empty: read from log file
 eff_pixel_size = []; % in m. if empty: read from log file. effective pixel size =  detector pixel size / magnification
 % Tomography parameters %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 do_tomo = 1; % run tomographic reconstruction of volume
-vol_shape = []; % shape of the volume to be reconstructed, either in absolute number of voxels or in relative number w.r.t. the default volume which is given by the detector width and height
+vol_shape = [];%[2155 2155 1050]; % shape of the volume to be reconstructed, either in absolute number of voxels or in relative number w.r.t. the default volume which is given by the detector width and height
 vol_size = []; % if empty, unit voxel size is assumed
 rot_angle_full = []; % in radians: empty ([]), full angle of rotation, or array of angles. if empty full rotation angles is determined automatically to pi or 2 pi
 rot_angle_offset = pi; % global rotation of reconstructed volume
-rot_axis_offset = -135.75 ; % if empty use automatic computation
+rot_axis_offset = [] ; % if empty use automatic computation
 rot_axis_pos = []; % if empty use automatic computation. either offset or pos has to be empty. can't use both
 rot_corr_area1 = []; % ROI to correlate projections at angles 0 & pi. Use [0.75 1] or so for scans with an excentric rotation axis
 rot_corr_area2 = []; % ROI to correlate projections at angles 0 & pi
-rot_corr_gradient = 1; % use gradient of intensity maps if signal variations are too weak to correlate projections
+rot_corr_gradient = 0; % use gradient of intensity maps if signal variations are too weak to correlate projections
 rot_axis_tilt = -0.003; % in rad. camera tilt w.r.t rotation axis. if empty calculate from registration of projections at 0 and pi
 fbp_filter_type = 'Ram-Lak';'linear';
 fpb_freq_cutoff = 0.5; % Cut-off frequency in Fourier space of the above FBP filter
@@ -113,10 +112,10 @@ write_reco = 1; % save reconstructed slices (if do_tomo=1)
 write_float = 1; % write single precision (32-bit float) tiff
 write_float_binned = 1; % write binned single precision (32-bit float) tiff
 write_16bit = 0; % write 8bit-tiff, currently for reco only
-write_8bit = 1; % write 8bit-tiff, currently for reco only
-write_8bit_binned = 1; % write binned 8bit-tiff, currently for reco only
+write_8bit = 0; % write 8bit-tiff, currently for reco only
+write_8bit_binned = 0; % write binned 8bit-tiff, currently for reco only
 reco_bin = 2; % currently only 2x2x2 binning is implemented
-compression =  'std'; 'threshold';'histo'; % method of compression of dynamic range
+compression = 'full'; 'std'; 'threshold';'histo'; % method of compression of dynamic range
 compression_std_num = 5; % dynamic range: mean(volume) +/- NUM* std(volume)
 compression_threshold = [-1 1]; % dynamic range: [MIN MAX]
 compression_histo = [0.05 0.05]; % [LOW HIGH]. crop dynamic range to values between (100*LOW)% and (100*HIGH)% of the original histogram
@@ -897,8 +896,9 @@ if do_tomo(1)
     end
     % Correlation
     out = ImageCorrelation( im1, im2, 0, 0, 0);
-    rot_corr_shift_x = round( out.shift1, round_precision) + rot_corr_area1(1) - 1;
-    rot_corr_shift_y = round( out.shift2, round_precision) + rot_corr_area2(1) - 1;
+    % relative shift
+    rot_corr_shift_x = round( out.shift1, round_precision) + rot_corr_area1(1) + (rot_corr_area1(end) - raw_im_shape_binned1) - 1;
+    rot_corr_shift_y = round( out.shift2, round_precision) + rot_corr_area2(1) + (rot_corr_area1(end) - raw_im_shape_binned1) - 1;
     PrintVerbose(verbose, '\n relative shift: %g, %g', rot_corr_shift_x, rot_corr_shift_y)
     rot_axis_offset_calc = rot_corr_shift_x / 2;
     rot_axis_pos_calc = raw_im_shape_binned1 / 2 + rot_axis_offset_calc;
@@ -1022,14 +1022,23 @@ if do_tomo(1)
                         im1c = RotAxisSymmetricCropping( proj(:,rot_corr_area2,ind1), rot_axis_pos, 1);
                         im2c = flipud(RotAxisSymmetricCropping( proj(:,rot_corr_area2,ind2) , rot_axis_pos, 1));
                         [optimizer, metric] = imregconfig('monomodal');
-                        tform = imregtform(im2c, im1c, 'rigid', optimizer, metric);
-                        rot_axis_tilt_calc = asin( tform.T(1,2) ) / 2;
-                        im2c_warped_calc =  imwarp(im2c, tform, 'OutputView', imref2d(size(im1c)));
-                        tform_cur = tform;
-                        tform_cur.T(1,2) = sin( 2 * rot_axis_tilt );
+                        tform_calc = imregtform(im2c, im1c, 'rigid', optimizer, metric);
+                        rot_axis_tilt_calc = asin( tform_calc.T(1,2) ) / 2;
+                        im2c_warped_calc =  imwarp(im2c, tform_calc, 'OutputView', imref2d(size(im1c)));
+                              
+                        tform_cur = tform_calc;
+                        %tform_cur.Dimensionality = 2;
+                        tform_cur.T = [cos( 2 * rot_axis_tilt ) sin( 2 * rot_axis_tilt ) 0; ...
+                                      -sin( 2 * rot_axis_tilt ) cos( 2 * rot_axis_tilt ) 0 ; ...
+                                      tform_calc.T(3,1) tform_calc.T(3,2) 1];
+                                      %0 0 1];
+                                      
                         im2c_warped_cur =  imwarp(im2c, tform_cur, 'OutputView', imref2d(size(im1c)));
                         
                         x = ceil( 2 * abs( sin(rot_axis_tilt) ) * max( size(im1c)) ) + 2;
+                        
+                        im2c_warped_cur(im2c_warped_cur == 0) = mean2( im2c );
+                        im2c_warped_calc(im2c_warped_calc == 0) = mean2( im2c );                        
                         
                         fprintf( '\n current rotation axis tilt: %g rad = %g deg', rot_axis_tilt, rot_axis_tilt * 180 / pi)
                         fprintf( '\n calcul. rotation axis tilt: %g rad = %g deg', rot_axis_tilt_calc, rot_axis_tilt_calc * 180 / pi)                        
@@ -1089,7 +1098,7 @@ if do_tomo(1)
         colorbar
         
         subplot(m, n, 4)
-        im2c_warped_cur =  imwarp(im2c, tform, 'OutputView',imref2d(size(im1c)));
+        im2c_warped_cur =  imwarp(im2c, tform_calc, 'OutputView',imref2d(size(im1c)));
         imsc1( abs( im1c(x:end-x,x:end-x) - im2c_warped_cur(x:end-x,x:end-x) ) )
         axis equal tight
         title(sprintf('difference corrected'))
@@ -1385,7 +1394,12 @@ if do_tomo(1)
             
             % Compression method
             switch compression
+                case 'full'
+                    % use the full dynamic range of the data
+                    vol = (vol - vol_min) ./ (vol_max - vol_min);
                 case 'std'
+                    % use the dynamic range within several standar
+                    % deviations around the mean value of the data
                     vol_mean = mean( vol(:) );
                     vol_std = std( vol(:) );
                     tlow = vol_mean - compression_std_num * vol_std;
@@ -1394,10 +1408,13 @@ if do_tomo(1)
                     vol(vol > thigh) = thigh;
                     % Normalize volume
                     vol = (vol - tlow) / (thigh - tlow);
-                case 'histo'
-                    vol = ( vol - compression_threshold(1) ) / ( compression_threshold(2) - compression_threshold(1) );
                 case 'threshold'
+                    % use dyanmic range within given lower and upper
+                    % thresholds
                     vol = ( vol - compression_threshold(1) ) / ( compression_threshold(2) - compression_threshold(1) );
+                case 'histo'
+                    % crop dynamic range using histogram
+                    %% TODO
             end
             
             % 16-bit tiff
@@ -1536,7 +1553,8 @@ if do_tomo(1)
 end
 
 %reset( gpu );
-PrintVerbose(verbose, '\nFinished.')
+
 PrintVerbose(verbose && interactive_determination_of_rot_axis, '\nTime elapsed in interactive mode: %g s (%.2f min)', tint, tint / 60 );
-PrintVerbose(verbose, '\nTime elapsed for computation: %g s (%.2f min)\n\n', toc - tint, (toc - tint) / 60 );
+PrintVerbose(verbose, '\nTime elapsed for computation: %g s (%.2f min)', toc - tint, (toc - tint) / 60 );
+PrintVerbose(verbose, '\nFINISHED: %s\n', scan_name)
 % END %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
