@@ -18,17 +18,18 @@
 close all
 % INPUT %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %scan_path = pwd; % Enter folder of data set under the raw directory and run script
-scan_path = ...    
-    '/asap3/petra3/gpfs/p05/2016/data/11001978/raw/mah_straw_01';
-
+scan_path = ...
+    '/asap3/petra3/gpfs/p05/2016/data/11001978/raw/mah_straw_2_00';
 '/asap3/petra3/gpfs/p05/2016/data/11001978/raw/mah_32_15R_top_occd800_withoutpaper'; % too much fringes, not enough coherence probably, using standard phase retrieval reco looks blurry
 '/asap3/petra3/gpfs/p05/2016/data/11001978/raw/mah_28_15R_bottom';
 '/asap3/petra3/gpfs/p05/2016/commissioning/c20160920_000_diana/raw/Mg-10Gd39_1w';
+'/asap3/petra3/gpfs/p05/2016/commissioning/c20160913_000_synload/raw/mg5gd_21_3w';
 '/asap3/petra3/gpfs/p05/2016/commissioning/c20161024_000_xeno/raw/xeno_01_b';
 '/asap3/petra3/gpfs/p05/2016/commissioning/c20160803_001_pc_test/raw/phase_600';
 '/asap3/petra3/gpfs/p05/2016/commissioning/c20160803_001_pc_test/raw/phase_1000'; %rot_axis_offset=7.5
 '/asap3/petra3/gpfs/p05/2016/commissioning/c20160803_001_pc_test/raw/phase_1400'; %rot_axis_offset=19.5
 '/asap3/petra3/gpfs/p05/2016/commissioning/c20160803_001_pc_test/raw/we43_phase_030';
+
 '/asap3/petra3/gpfs/p05/2016/data/11001994/raw/szeb_41';
 '/asap3/petra3/gpfs/p05/2016/data/11001994/raw/szeb_23_00'; % rot_axis_offset 5.75;
 '/asap3/petra3/gpfs/p05/2016/data/11001994/raw/szeb_23_01'; % Nothobranchius furzeri
@@ -37,7 +38,7 @@ scan_path = ...
 '/asap3/petra3/gpfs/p05/2016/data/11001994/raw/szeb_13_09'; % dead
 '/asap3/petra3/gpfs/p05/2016/data/11001994/raw/szeb_07_00'; % strong movement
 '/asap3/petra3/gpfs/p05/2016/data/11001994/raw/szeb_13_00';
-'/asap3/petra3/gpfs/p05/2016/commissioning/c20160913_000_synload/raw/mg5gd_21_3w';
+
 '/asap3/petra3/gpfs/p05/2015/data/11001102/raw/hzg_wzb_mgag_14';
 '/asap3/petra3/gpfs/p05/2015/data/11001102/raw/hzg_wzb_mgag_38';
 '/asap3/petra3/gpfs/p05/2015/data/11001102/raw/hzg_wzb_mgag_02';
@@ -50,8 +51,8 @@ excentric_rot_axis = 0; % off-centered rotation axis increasing FOV. -1: left, 0
 crop_at_rot_axis = 0;
 stitch_projections = 0; % stitch projection (for 2 pi scans) at rotation axis position. "doubles" number of voxels
 stitch_method = 'sine'; % 'step': no interpolation, 'linear','sine': linear interpolation of overlap region. !!! adjust: correlation area
-proj_range = 1; % range of found projections to be used. if empty: all, if scalar: stride
-ref_range = 1; % range of flat fields to be used: start:inc:end. if empty: all (equals 1). if scalar: stride
+proj_range = 1; % range of projections to be used (from all that are found). if empty: all, if scalar: stride
+ref_range = 1; % range of flat fields to be used (from all that are found). start:incr:end. if empty: all (equals 1). if scalar: stride
 darkFiltPixHot = 0.01; % Hot pixel filter parameter for dark fields, for details see 'FilterPixel'
 darkFiltPixDark = 0.005; % Dark pixel filter parameter for dark fields, for details see 'FilterPixel'
 refFiltPixHot = 0.01; % Hot pixel filter parameter for flat fields, for details see 'FilterPixel'
@@ -59,8 +60,8 @@ refFiltPixDark = 0.005; % Dark pixel filter parameter for flat fields, for detai
 projFiltPixHot = 0.01; % Hot pixel filter parameter for projections, for details see 'FilterPixel'
 projFiltPixDark = 0.005; % Dark pixel filter parameter for projections, for details see 'FilterPixel'
 correlate_proj_with_flat = 1;%  correlate flat fields and projection to correct beam shaking
-correlation_method = 'diff';'cross'; % method for correlation. 'diff': difference measure, seems to be more robust. 'cross': cross-correlation
-corr_cross_max_pixelshift = 0; % maximum pixelshift allowed for 'cross'-correlation method: if 0 use the best match (i.e. the one with the least shift), if > 0 uses all flats with shifts smaller than corr_cross_max_pixelshift
+correlation_method =  'diff';'cross'; % method for correlation. 'diff': difference measure (preferred), 'cross': cross-correlation
+corr_cross_max_pixelshift = 0.25; % maximum pixelshift allowed for 'cross'-correlation method: if 0 use the best match (i.e. the one with the least shift), if > 0 uses all flats with shifts smaller than corr_cross_max_pixelshift
 corr_max_nflats = 3; % number of flat fields used for average/median of flats. for 'cross'-correlation its the maximum number
 norm_by_ring_current = 1; % normalize flat fields and projections by ring current
 flat_corr_area1 = [1 floor(100/bin)]; % correlation area: index vector or relative/absolute position of [first pix, last pix]
@@ -188,6 +189,13 @@ link_data = 1; % ASTRA data objects become references to Matlab arrays.
 % results in inconsitently retrieved low frequencies (large scale
 % variations) in the phase map. Using the 'linear' FBP filter instead of
 % 'Ram-Lak' can maybe reduce these artifacts (not tested).
+
+% Correlation of projections and flat fields:
+% Compared to the simple differencing method, the cross correlation method
+% is very likely to give non-optimal results since is more sensitive to
+% small-scale features, such as those stemming from contimation of the beam
+% from the scintllator, diamond window, etc, and less sensitive to
+% variations on a larger scale.
 
 %% External call: parameters set by 'p05_reco_loop' %%%%%%%%%%%%%%%%%%%%%%%
 if exist( 'external_parameter' ,'var')
@@ -429,7 +437,7 @@ elseif ~read_flatcor
     %% Dark field
     t = toc;
     PrintVerbose(verbose, '\nProcessing dark fields.')
-    dark = zeros( [raw_im_shape_binned, num_dark], 'single');
+    darks = zeros( [raw_im_shape_binned, num_dark], 'single');
     parfor nn = 1:num_dark
         filename = sprintf('%s%s', scan_path, dark_names{nn});
         im = single( read_image( filename ) );
@@ -441,11 +449,11 @@ elseif ~read_flatcor
         im_mean = mean( im(:) );
         im_std = std( im(:) );
         im( im > im_mean + 4*im_std) = im_mean;
-        dark(:, :, nn) = Binning( FilterPixel( im, [darkFiltPixHot darkFiltPixDark]), bin) / bin^2;
+        darks(:, :, nn) = Binning( FilterPixel( im, [darkFiltPixHot darkFiltPixDark]), bin) / bin^2;
     end
-    dark_min = min( dark(:) );
-    dark_max = max( dark(:) );
-    dark = squeeze( median(dark, 3) );
+    dark_min = min( darks(:) );
+    dark_max = max( darks(:) );
+    dark = squeeze( median(darks, 3) );
     dark_med_min = min( dark(:) );
     dark_med_max = max( dark(:) );
     PrintVerbose(verbose, ' Time elapsed: %.1f s', toc-t)
@@ -618,7 +626,7 @@ elseif ~read_flatcor
             switch correlation_method
                 case 'cross'
                     parfor pp = 1:num_proj_used
-                        out = ImageCorrelation(proj_roi(:,:,pp), flat_ff, 0, 0, 0, 1, 1);
+                        out = ImageCorrelation(proj_roi(:,:,pp), flat_ff, 0, 0, 0, 0, 1);
                         flat_corr_shift_1(pp,ff) = round( out.shift1, round_precision );
                         flat_corr_shift_2(pp,ff) = round( out.shift2, round_precision) ; % relevant shift
                     end
@@ -647,12 +655,12 @@ elseif ~read_flatcor
                     Y = abs(arrayfun(@(x) (flat_corr_shift_2(x,flat_corr_shift_min_pos_y(x))), 1:num_proj_used));
                     plot(Y, '.')
                     axis  tight
-                    title(sprintf('minimal absolute shift along 2nd axis'))
+                    title(sprintf('minimal absolute vertical shift along rotation axis'))
                     
                     subplot(m,n,2);
                     plot( arrayfun(@(x) (flat_corr_shift_1(x,flat_corr_shift_min_pos_x(x))), 1:num_proj_used) ,'.')
                     axis  tight
-                    title(sprintf('minimal shift: horizontal (not used)'))
+                    title(sprintf('minimal absolute horizontal shift (unused)'))
                 case 'diff'                    
                     m = 1; n = 1;
                     subplot(m,n,1);
@@ -730,7 +738,7 @@ elseif ~read_flatcor
         end
         
         PrintVerbose(verbose, ' Time elapsed: %.1f s (%.2f min)', toc - t, ( toc - t ) / 60 )
-        if corr_cross_max_pixelshift > 0
+        if strcmp( correlation_method, 'cross') && corr_cross_max_pixelshift > 0
             PrintVerbose(verbose, '\n number of flats used per projection: [mean, min, max] = [%g, %g, %g]', mean( nflats ), min( nflats ), max( nflats) )
         end
     end
@@ -933,10 +941,14 @@ if do_tomo(1)
     %% Determine rotation axis position
     tint = 0;
     if interactive_determination_of_rot_axis(1)
-        tint = toc;
+        tint = toc;        
         fprintf( '\n\nENTER INTERACTIVE MODE' )
         fprintf( '\n number of pixels: %u', raw_im_shape_binned1)
         fprintf( '\n image center: %.1f', raw_im_shape_binned1 / 2)
+        
+        fra_take_neg_log = 1;
+        fra_number_of_stds = 4;
+        fra_vol_shape = [];
         
         if interactive_determination_of_rot_axis_slice > 1
             slice = interactive_determination_of_rot_axis_slice;
@@ -958,14 +970,17 @@ if do_tomo(1)
         while ~isscalar( offset )
             
             % Reco
-            [vol, m1, m2, m3, m4, m5] = find_rot_axis_offset(proj, angles, slice, offset, rot_axis_tilt, 1);
+            [vol, m] = find_rot_axis_offset(proj, angles, slice, offset, rot_axis_tilt, fra_take_neg_log, fra_number_of_stds, fra_vol_shape);
             
             % Print image number, rotation axis values, and different metrics
             fprintf( '\n\nOFFSET:' )        
-            fprintf( '\n current rotation axis offset/position : %.2f, %.2f', rot_axis_offset, rot_axis_pos)
-            fprintf( '\n image_no    offset         m1         m2         m3         m4         m5')
+            fprintf( '\n current rotation axis offset/position : %.2f, %.2f\n', rot_axis_offset, rot_axis_pos)
+            fprintf( '%11s', 'image no.', 'offset', m.name)
             for nn = 1:numel(offset)
-                fprintf( '\n %8u %9.2f %10.3g %10.3g %10.3g  %10.3g %10.3g', nn, offset(nn), m1(nn), m2(nn), m3(nn), m4(nn), m5(nn) )
+                fprintf( '\n%11u%11.2f', nn, offset(nn))
+                for mnn = 1:numel(m)
+                    fprintf( '%11.3g', m(mnn).val(nn) )
+                end                                
             end
             
             % Play
@@ -995,15 +1010,18 @@ if do_tomo(1)
                 
                 while ~isscalar( tilt )
                     
-                    % Print image number and rotation axis tilt
-                    fprintf( '\n image_no    tilt/rad  tilt/')
-                    for nn = 1:numel(tilt)
-                        fprintf( '\n %8u  %12g  %12g', nn, tilt(nn), tilt(nn)/pi*180)
-                    end
-                    
                     % Reco
-                    vol = find_rot_axis_tilt( proj, angles, slice, offset, tilt, 1, 4);
-                    
+                    [vol, m] = find_rot_axis_tilt( proj, angles, slice, offset, tilt, fra_take_neg_log, fra_number_of_stds, fra_vol_shape);
+                                        
+                    % Print image number and rotation axis tilt
+                    fprintf( '%11s', 'image no.', 'tilt/rad', 'tilt/deg', m.name )
+                    for nn = 1:numel(tilt)
+                        fprintf( '\n%11u%11g%11g', nn, tilt(nn), tilt(nn)/pi*180 )
+                        for mnn = 1:numel(m)
+                            fprintf( '%11.3g', m(mnn).val(nn) )
+                        end
+                    end
+                                    
                     % Play
                     nimplay(vol, 0, 0, 'TILT: sequence of reconstructed slices using different rotation axis tilts')
                     
@@ -1516,11 +1534,11 @@ if do_tomo(1)
         fprintf(fid, 'rotation_angle_full_rad : %f\n', rot_angle_full);
         fprintf(fid, 'rotation_angle_offset_rad : %f\n', rot_angle_offset);
         fprintf(fid, 'rotation_axis_offset_calculated : %f\n', rot_axis_offset_calc);
-        fprintf(fid, 'rotation_axis_offset_used : %f\n', rot_axis_offset);
+        fprintf(fid, 'rotation_axis_offset : %f\n', rot_axis_offset);
         fprintf(fid, 'rotation_axis_position_calculated : %f\n', rot_axis_pos_calc);
-        fprintf(fid, 'rotation_axis_position_used : %f\n', rot_axis_pos);
+        fprintf(fid, 'rotation_axis_position : %f\n', rot_axis_pos);
         fprintf(fid, 'rotation_axis_tilt_calculated : %f\n', rot_axis_tilt_calc);
-        fprintf(fid, 'rotation_axis_tilt_used : %f\n', rot_axis_tilt);
+        fprintf(fid, 'rotation_axis_tilt : %f\n', rot_axis_tilt);
         fprintf(fid, 'raw_image_binned_center : %f\n', raw_im_shape_binned1 / 2);
         fprintf(fid, 'rotation_correlation_area_1 : %u:%u:%u\n', rot_corr_area1(1), rot_corr_area1(2) - rot_corr_area1(1), rot_corr_area1(end));
         fprintf(fid, 'rotation_correlation_area_2 : %u:%u:%u\n', rot_corr_area2(1), rot_corr_area2(2) - rot_corr_area2(1), rot_corr_area2(end));
@@ -1556,5 +1574,5 @@ end
 
 PrintVerbose(verbose && interactive_determination_of_rot_axis, '\nTime elapsed in interactive mode: %g s (%.2f min)', tint, tint / 60 );
 PrintVerbose(verbose, '\nTime elapsed for computation: %g s (%.2f min)', toc - tint, (toc - tint) / 60 );
-PrintVerbose(verbose, '\nFINISHED: %s\n', scan_name)
+PrintVerbose(verbose, '\nFINISHED: %s\n\n', scan_name)
 % END %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

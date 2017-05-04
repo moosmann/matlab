@@ -33,6 +33,7 @@ default.crop_at_rot_axis = 0;
 default.stitch_projections = 0; 
 default.proj_range = 1; 
 default.ref_range = 1; 
+default.correlation_method =  'diff';
 default.do_phase_retrieval = 0;
 default.phase_retrieval_method = 'tie';'qp';'qpcut';
 default.phase_retrieval_reg_par = 2.5; 
@@ -294,6 +295,76 @@ nn = nn + 1;
 para(nn) = para(nn - 1);
 para(nn).scan_path = [ raw 'mah_42_9R_top'];
 
+% Straw: no proper reco possible due to movment
+
+% corroded screw: movement
+nn = nn + 1;
+para(nn) = default;
+para(nn).scan_path = [raw 'mah_straw_01'];
+para(nn).rot_axis_offset = 2 / para(nn).bin;
+para(nn).rot_axis_tilt = -0.003;
+
+% corroded screw: movement
+nn = nn + 1;
+para(nn) = default;
+para(nn).scan_path = [raw 'mah_straw_02'];
+para(nn).rot_axis_offset = -1.5 / para(nn).bin;
+para(nn).rot_axis_tilt = -0.003;
+
+% corroded screw
+nn = nn + 1;
+para(nn) = default;
+para(nn).scan_path = [raw 'mah_straw_03'];
+para(nn).rot_axis_offset = -1.25 / para(nn).bin;
+para(nn).rot_axis_tilt = -0.0027;
+% time-varying bright spots: for nn=1:40,imsc(flat(0+(1:400),0+(1:200),nn)',[000 9000]),pause(1),end
+
+% corroded screw
+nn = nn + 1;
+para(nn) = default;
+para(nn).scan_path = [raw 'mah_straw_04'];
+para(nn).rot_axis_offset = -1.75 / para(nn).bin;
+para(nn).rot_axis_tilt = -0.003;
+
+% corroded screw
+nn = nn + 1;
+para(nn) = default;
+para(nn).scan_path = [raw 'mah_straw_05'];
+para(nn).rot_axis_offset = -2.5 / para(nn).bin;
+para(nn).rot_axis_tilt = -0.0025;
+
+% corroded screw
+nn = nn + 1;
+para(nn) = default;
+para(nn).scan_path = [raw 'mah_straw_06'];
+para(nn).rot_axis_offset = -0 / para(nn).bin;
+para(nn).rot_axis_tilt = -0.003;
+
+% corroded screw
+nn = nn + 1;
+para(nn) = default;
+para(nn).scan_path = [raw 'mah_straw_2_00'];
+para(nn).rot_axis_offset = -0.25 / para(nn).bin;
+para(nn).rot_axis_tilt = -0.003;
+
+% corroded screw
+nn = nn + 1;
+para(nn) = default;
+para(nn).scan_path = [raw 'mah_straw_2_00'];
+para(nn).rot_axis_offset = -0.25 / para(nn).bin;
+para(nn).rot_axis_tilt = -0.003;
+para(nn).bin = 2;
+para(nn).parfolder = 'bin2';
+para(nn).write_float_binned = 0;
+para(nn).write_8bit_binned = 0;
+
+% corroded screw
+nn = nn + 1;
+para(nn) = default;
+para(nn).scan_path = [raw 'mah_straw_2_01'];
+para(nn).rot_axis_offset = -0 / para(nn).bin;
+para(nn).rot_axis_tilt = -0.003;
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 fprintf( '\nDATA SETS:')
@@ -310,7 +381,7 @@ if nums ~= 0
         
         external_parameter = para(num);
         [~, name] = fileparts( external_parameter.scan_path );
-        fprintf('\nRECONSTRUCTION OF DATA SET numsBER : %u : %s', num, name )
+        fprintf('\nRECONSTRUCTION OF DATA SET NUMBER : %u : %s\n', num, name )
         p05_reco
         
     end
