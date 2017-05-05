@@ -1,28 +1,42 @@
-function im = MaskingDisc(im,radFac,maskVal)
-% Keep central disc with radius 'radFac'*size(im,1) and set the region
-% outside of the disk to the mean within the disc.
+function im = MaskingDisc( im, radial_fraction, value)
+% Keep central ellipse within the 'radial_fraction' of the largest ellipse
+% fitting within the rectangular image and set the region outside of this
+% ellipse to the mean within the disc or to 'value'.
 %
 % im: 2D-matrix
-% radFac: scalar in [0 1]. default 0.95. defines the radius of the disc
+% radial_fraction: scalar in [0 1]. default: 0.95. defines the radius of the
+% disc to be keep as a fraction of the largest ellipsis that fits within the
+% rectangular image
+% value : scalar or []. default: []. if [] uses the mean of disc
 %
-% Written by Julian Moosmann, last version2014-01-30
+% Written by Julian Moosmann, last version:2017-04-05
 %
-% im = MaskingDisc(im,radFac) 
+% im = MaskingDisc( im, radial_fraction, value) 
 
+%% Default arguments %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+if nargin < 1
+    im = rand( 10, 14 );
+end
 if nargin < 2
-    radFac = 0.95;
+    radial_fraction = 0.95;
 end
 if nargin < 3
-    maskVal = [];
+    value = [];
 end
 
-[x,y] = meshgrid(-size(im,2)/2:size(im,2)/2-1,-size(im,1)/2:size(im,1)/2-1);
+%% Main %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+[x, y] = meshgrid(-size(im,2)/2:size(im,2)/2-1,-size(im,1)/2:size(im,1)/2-1);
 
-m = sqrt(x.^2+y.^2) < radFac*size(im,1)/2;
+x = x - (x(1,1)+x(1,end))/2;
+y = y - (y(1,1)+y(end,1))/2;
 
-if isempty(maskVal)
-    % set maskVal to inner mean
-    maskVal = sum(im(:).*m(:))/sum(m(:));
+m = sqrt((x/x(1,end)).^2 + (y/y(end,1)).^2);
+
+m = m < radial_fraction;
+
+if isempty(value)
+    % set value to inner mean
+    value = sum(im(:).*m(:))/sum(m(:));
 end
 
-im = m.*im + (1-m)*maskVal;
+im = m.*im + (1-m)*value;
