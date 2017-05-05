@@ -111,11 +111,11 @@ cl_counter = 1;
 while 1
     c = textscan( fid, '%s', 1, 'Delimiter', {'\n', '\r'} );
     s = c{1}{1};
-    if ~strcmpi( s(1), '*')
+    if ~isempty( s ) && ~strcmpi( s(1), '*')
         cl{1}{cl_counter} = s;
         cl_counter = cl_counter + 1;
     end
-    if strcmpi( c{1}{1}(1:6), '/PETRA' )
+    if ~isempty( c{1}{1} ) && strcmpi( c{1}{1}(1:6), '/PETRA' )
         c_break = c;
         break
     end
