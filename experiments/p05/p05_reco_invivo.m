@@ -1,4 +1,4 @@
-function p05_reco_ringartifacts(nums)
+function p05_reco_invivo(nums)
 % Script to loop over parameter sets related to paramters of scritp
 % 'p05_reco'. Set parameters to loop over as elements of the structure
 % array 'para' below. Fieldnames of 'para' MUST match the names of
@@ -14,7 +14,7 @@ function p05_reco_ringartifacts(nums)
 % Written by Julian Moosmann. First version: 2017-02-15. Last: 2017-04-24
 
 if nargin < 1
-    nums = 1;
+    nums = 0;
 end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -22,9 +22,11 @@ end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %% Default %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+raw = '/asap3/petra3/gpfs/p05/2016/data/11001994/raw/';
 nn = 0;
-default.interactive_determination_of_rot_axis = 1;
-default.visualOutput = 1;
+default.interactive_determination_of_rot_axis = 0;
+default.visualOutput = 0;
+default.scan_path = '';
 default.raw_bin = 1;
 default.excentric_rot_axis = 0;
 default.crop_at_rot_axis = 0;
@@ -32,39 +34,44 @@ default.stitch_projections = 0;
 default.proj_range = 1; 
 default.ref_range = 1; 
 default.correlation_method =  'diff';
-default.flat_corr_area1 = [1 floor(100/raw_bin)]; % correlation area: index vector or relative/absolute position of [first pix, last pix]
-default.flat_corr_area2 = [0.2 0.8]; %correlation area: index vector or relative/absolute position of [first pix, last pix]
-default.do_phase_retrieval = 0;
+default.do_phase_retrieval = 1;
+default.phase_retrieval_method = 'tie';'qp';'qpcut';
+default.phase_retrieval_reg_par = 2.5; 
+default.phase_retrieval_bin_filt = 0.15; 
+default.phase_retrieval_cutoff_frequ = 1 * pi; 
+default.phase_padding = 1; 
 default.do_tomo = 1;
 default.ring_filter = 1;
 default.rot_axis_offset = [];
-default.rot_axis_tilt = 0;
+default.rot_axis_tilt = [];
 default.parfolder = '';
 default.write_to_scratch = 0;
-default.write_flatcor = 0;
+default.write_flatcor = 1;
 default.write_phase_map = 0; 
 default.write_sino = 0; 
 default.write_sino_phase = 0; 
 default.write_reco = 1; 
 default.write_float = 1; 
 default.write_float_binned = 1; 
-default.write_8bit = 0;
+default.write_8bit = 1;
 default.write_8bit_binned = 1;
 default.write_16bit = 0; 
 
 %% Data sets %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-% corroded screw
+'/asap3/petra3/gpfs/p05/2016/data/11001994/raw/szeb_23_00'; % rot_axis_offset 5.75;
+'/asap3/petra3/gpfs/p05/2016/data/11001994/raw/szeb_23_01'; % Nothobranchius furzeri
+'/asap3/petra3/gpfs/p05/2016/data/11001994/raw/szeb_23_00'; % Nothobranchius furzeri; bewegung
+'/asap3/petra3/gpfs/p05/2016/data/11001994/raw/szeb_13_00'; % no conspicuous movement artifacts, but cell shape are unclear and nuclei not visible
+'/asap3/petra3/gpfs/p05/2016/data/11001994/raw/szeb_13_09'; % dead
+'/asap3/petra3/gpfs/p05/2016/data/11001994/raw/szeb_07_00'; % strong movement
+'/asap3/petra3/gpfs/p05/2016/data/11001994/raw/szeb_13_00';
+
 nn = nn + 1;
 para(nn) = default;
-para(nn).scan_path = '/asap3/petra3/gpfs/p05/2017/data/11002845/raw/ste_03_g4l_aa';
-para(nn).parfolder = 'jm';
-para(nn).out_path = '/asap3/petra3/gpfs/p05/2017/data/11002845/processed/ste_03_g4l';
-para(nn).rot_axis_offset = -3.6/ para(nn).raw_bin;
-para(nn).flat_corr_area1 = [1 floor(100/raw_bin)]; 
-para(nn).flat_corr_area2 = [0.1 0.7]; %correlation area: index vector or relative/absolute position of [first pix, last pix]
-
-%para(nn).rot_axis_tilt = 0;
+para(nn).scan_path = [raw 'szeb_41'];
+para(nn).rot_axis_offset = 0 / para(nn).raw_bin;
+para(nn).rot_axis_tilt = 0;
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

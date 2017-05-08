@@ -32,6 +32,8 @@ end
 if nargin < 8
     vol_shape = [];
 end
+mask_rad = 0.95;
+mask_val = 0;
 
 %% Main %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 [num_pix, num_row, ~] = size( proj );
@@ -53,7 +55,7 @@ rot_axis_pos = offsets + num_pix / 2;
 l = max( max( rot_axis_pos) , max( abs( num_pix - rot_axis_pos ) ) );
 dz = ceil( sin( abs( tilt ) ) * l ); % maximum distance between sino plane and reco plane
 if slice - dz < 0 || slice + dz > num_row
-    fprintf( '\nWARNING: Inclination of reconstruction plane exceeds sinogram volume. Better choose a more central slice or a smaller tilts.')
+    fprintf( '\nWARNING: Inclination of reconstruction plane, slice %u, exceeds sinogram volume. Better choose a more central slice or a smaller tilts.', slice)
 end
 
 % Slab
@@ -85,7 +87,7 @@ m(7).name = 'entropy-ML';
 % Preallocation
 vol = zeros(num_pix, num_pix, numel(offsets));
 for nn = 1:numel(m)
-    m(nn).val = zeros(1, numel(offsets));
+    m(nn).val = zeros( numel(offsets), 1);
 end
 
 % Backprojection
@@ -98,7 +100,7 @@ for nn = 1:numel( offsets )
     
     %% Metrics    
     % mean
-    im = double( im );
+    im = double( MaskingDisc( im, mask_rad, mask_val) );
     m(1).val(nn) = mean2( im );
     % mean abs
     m(2).val(nn) = mean2( abs( im ) );
@@ -110,11 +112,12 @@ for nn = 1:numel( offsets )
     % laplacian
     m(5).val(nn) = mean2( del2( im ) );
     % entropy
-    p = histcounts( im(:), 2^14 );
-    p = p(p>0) / sum( p );
+    p = histcounts( im(:) );
+    p = p(p>0);
+    p = p / sum( p );
     m(6).val(nn) = -sum( p .* log2( p ) );
     % entropy built-in
-    m(7).val(nn) = entropy( im );
+    m(7).val(nn) = -entropy( im );
 
 end
 

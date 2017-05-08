@@ -27,7 +27,7 @@ nn = 0;
 default.interactive_determination_of_rot_axis = 0;
 default.visualOutput = 0;
 default.scan_path = '';
-default.bin = 1;
+default.raw_bin = 1;
 default.excentric_rot_axis = 0;
 default.crop_at_rot_axis = 0;
 default.stitch_projections = 0; 
@@ -63,21 +63,21 @@ default.write_16bit = 0;
 nn = nn + 1;
 para(nn) = default;
 para(nn).scan_path = [raw 'mah_01'];
-para(nn).rot_axis_offset = -135.75 / para(nn).bin;
+para(nn).rot_axis_offset = -135.75 / para(nn).raw_bin;
 para(nn).rot_axis_tilt = -0.003;
 
 % corroded screw
 nn = nn + 1;
 para(nn) = default;
 para(nn).scan_path = [raw 'mah_02'];
-para(nn).rot_axis_offset = -135.75 / para(nn).bin;
+para(nn).rot_axis_offset = -135.75 / para(nn).raw_bin;
 para(nn).rot_axis_tilt = -0.003;
 
 % corroded screw
 nn = nn + 1;
 para(nn) = default;
 para(nn).scan_path = [raw 'mah_03'];
-para(nn).rot_axis_offset = -135.75 / para(nn).bin;
+para(nn).rot_axis_offset = -135.75 / para(nn).raw_bin;
 para(nn).rot_axis_tilt = -0.003;
 
 % implant fresh
@@ -86,7 +86,7 @@ para(nn) = default;
 para(nn).scan_path = [raw 'mah_04'];
 para(nn).excentric_rot_axis = 1;
 para(nn).crop_at_rot_axis = 1;
-para(nn).rot_axis_offset = 628 / para(nn).bin;
+para(nn).rot_axis_offset = 628 / para(nn).raw_bin;
 para(nn).rot_axis_tilt = -0.003;
 %para(nn).vol_shape = [2155 2155 1050];
 
@@ -94,42 +94,42 @@ para(nn).rot_axis_tilt = -0.003;
 nn = nn + 1;
 para(nn) = default;
 para(nn).scan_path = [raw 'mah_05'];
-para(nn).rot_axis_offset = 2 / para(nn).bin;
+para(nn).rot_axis_offset = 2 / para(nn).raw_bin;
 para(nn).rot_axis_tilt = -0.003;
 
 % corroded screw
 nn = nn + 1;
 para(nn) = default;
 para(nn).scan_path = [raw 'mah_06_Mg10G_004'];
-para(nn).rot_axis_offset = 5 / para(nn).bin;
+para(nn).rot_axis_offset = 5 / para(nn).raw_bin;
 para(nn).rot_axis_tilt = -0.003;
 
 % implant fresh formalin
 nn = nn + 1;
 para(nn) = default;
 para(nn).scan_path = [raw 'mah_07_bone_in_formalin'];
-para(nn).rot_axis_offset = 2 / para(nn).bin;
+para(nn).rot_axis_offset = 2 / para(nn).raw_bin;
 para(nn).rot_axis_tilt = -0.003;
 
 % corrosion cell
 nn = nn + 1;
 para(nn) = default;
 para(nn).scan_path = [raw 'mah_08_corrosion_cell_A'];
-para(nn).rot_axis_offset = -3.5 / para(nn).bin;
+para(nn).rot_axis_offset = -3.5 / para(nn).raw_bin;
 para(nn).rot_axis_tilt = -0.003;
 
 % corrosion cell
 nn = nn + 1;
 para(nn) = default;
 para(nn).scan_path = [raw 'mah_08_corrosion_cell_B'];
-para(nn).rot_axis_offset = -2 / para(nn).bin;
+para(nn).rot_axis_offset = -2 / para(nn).raw_bin;
 para(nn).rot_axis_tilt = -0.003;
 
 nn = nn + 1;
 para(nn) = default;
 para(nn).scan_path = [raw 'mah_10_13R_top'];
 para(nn).excentric_rot_axis = 1;
-para(nn).rot_axis_offset = 1078 / para(nn).bin;
+para(nn).rot_axis_offset = 1078 / para(nn).raw_bin;
 para(nn).rot_axis_tilt = -0.00267; % about -.15 degrees
 
 nn = nn + 1;
@@ -155,7 +155,7 @@ para(nn) = para(nn - 1);
 para(nn).scan_path = [ raw 'mah_15_57R'];
 para(nn).excentric_rot_axis = 0;
 para(nn).crop_at_rot_axis = 0;
-para(nn).rot_axis_offset = -2.5 / para(nn).bin;
+para(nn).rot_axis_offset = -2.5 / para(nn).raw_bin;
 para(nn).rot_axis_tilt = -0.0028;
 para(nn).do_phase_retrieval = 0;
 
@@ -164,7 +164,7 @@ para(nn) = para(nn - 1);
 para(nn).scan_path = [ raw 'mah_15_57R'];
 para(nn).excentric_rot_axis = 0;
 para(nn).crop_at_rot_axis = 0;
-para(nn).rot_axis_offset = -2.5 / para(nn).bin;
+para(nn).rot_axis_offset = -2.5 / para(nn).raw_bin;
 para(nn).rot_axis_tilt = -0.0028;
 para(nn).do_phase_retrieval = 1;
 
@@ -231,48 +231,48 @@ para(nn).do_phase_retrieval = 0;
 nn = nn + 1;
 para(nn) = para(nn - 1);
 para(nn).scan_path = [ raw 'mah_30_15R_top_occd125_withoutpaper'];
-para(nn).rot_axis_offset = -3.5 / para(nn).bin;
+para(nn).rot_axis_offset = -3.5 / para(nn).raw_bin;
 para(nn).rot_axis_tilt = -0.003;
 para(nn).do_phase_retrieval = 1;
 
 nn = nn + 1;
 para(nn) = para(nn - 1);
 para(nn).scan_path = [ raw 'mah_32_15R_top_occd800_withoutpaper'];
-para(nn).rot_axis_offset = -79.0 / para(nn).bin;
+para(nn).rot_axis_offset = -79.0 / para(nn).raw_bin;
 para(nn).rot_axis_tilt = -0.002;
 para(nn).do_phase_retrieval = 1;
 
 nn = nn + 1;
 para(nn) = para(nn - 1);
 para(nn).scan_path = [ raw 'mah_33_50L_occd400_bottom'];
-para(nn).rot_axis_offset = -40 / para(nn).bin;
+para(nn).rot_axis_offset = -40 / para(nn).raw_bin;
 para(nn).rot_axis_tilt = 0.00137;
 para(nn).do_phase_retrieval = 1;
 
 nn = nn + 1;
 para(nn) = para(nn - 1);
 para(nn).scan_path = [ raw 'mah_33_50L_occd400_top'];
-para(nn).rot_axis_offset = 5 / para(nn).bin;
+para(nn).rot_axis_offset = 5 / para(nn).raw_bin;
 para(nn).rot_axis_tilt = 0.00135;
 para(nn).do_phase_retrieval = 1;
 
 nn = nn + 1;
 para(nn) = para(nn - 1);
 para(nn).scan_path = [ raw 'mah_35_1R_bottom'];
-para(nn).rot_axis_offset = 2 / para(nn).bin;
+para(nn).rot_axis_offset = 2 / para(nn).raw_bin;
 para(nn).rot_axis_tilt = 0.00158;
 para(nn).do_phase_retrieval = 0;
 
 nn = nn + 1;
 para(nn) = para(nn - 1);
 para(nn).scan_path = [ raw 'mah_36_1R_top'];
-para(nn).rot_axis_offset = 2 / para(nn).bin;
+para(nn).rot_axis_offset = 2 / para(nn).raw_bin;
 para(nn).rot_axis_tilt = 0.00158;
 
 nn = nn + 1;
 para(nn) = para(nn - 1);
 para(nn).scan_path = [ raw 'mah_37_10R_bottom'];
-para(nn).rot_axis_offset = 0 / para(nn).bin;
+para(nn).rot_axis_offset = 0 / para(nn).raw_bin;
 para(nn).rot_axis_tilt = 0.00158;
 
 nn = nn + 1;
@@ -301,21 +301,21 @@ para(nn).scan_path = [ raw 'mah_42_9R_top'];
 nn = nn + 1;
 para(nn) = default;
 para(nn).scan_path = [raw 'mah_straw_01'];
-para(nn).rot_axis_offset = 2 / para(nn).bin;
+para(nn).rot_axis_offset = 2 / para(nn).raw_bin;
 para(nn).rot_axis_tilt = -0.003;
 
 % corroded screw: movement
 nn = nn + 1;
 para(nn) = default;
 para(nn).scan_path = [raw 'mah_straw_02'];
-para(nn).rot_axis_offset = -1.5 / para(nn).bin;
+para(nn).rot_axis_offset = -1.5 / para(nn).raw_bin;
 para(nn).rot_axis_tilt = -0.003;
 
 % corroded screw
 nn = nn + 1;
 para(nn) = default;
 para(nn).scan_path = [raw 'mah_straw_03'];
-para(nn).rot_axis_offset = -1.25 / para(nn).bin;
+para(nn).rot_axis_offset = -1.25 / para(nn).raw_bin;
 para(nn).rot_axis_tilt = -0.0027;
 % time-varying bright spots: for nn=1:40,imsc(flat(0+(1:400),0+(1:200),nn)',[000 9000]),pause(1),end
 
@@ -323,37 +323,37 @@ para(nn).rot_axis_tilt = -0.0027;
 nn = nn + 1;
 para(nn) = default;
 para(nn).scan_path = [raw 'mah_straw_04'];
-para(nn).rot_axis_offset = -1.75 / para(nn).bin;
+para(nn).rot_axis_offset = -1.75 / para(nn).raw_bin;
 para(nn).rot_axis_tilt = -0.003;
 
 % corroded screw
 nn = nn + 1;
 para(nn) = default;
 para(nn).scan_path = [raw 'mah_straw_05'];
-para(nn).rot_axis_offset = -2.5 / para(nn).bin;
+para(nn).rot_axis_offset = -2.5 / para(nn).raw_bin;
 para(nn).rot_axis_tilt = -0.0025;
 
 % corroded screw
 nn = nn + 1;
 para(nn) = default;
 para(nn).scan_path = [raw 'mah_straw_06'];
-para(nn).rot_axis_offset = -0 / para(nn).bin;
+para(nn).rot_axis_offset = -0 / para(nn).raw_bin;
 para(nn).rot_axis_tilt = -0.003;
 
 % corroded screw
 nn = nn + 1;
 para(nn) = default;
 para(nn).scan_path = [raw 'mah_straw_2_00'];
-para(nn).rot_axis_offset = -0.25 / para(nn).bin;
+para(nn).rot_axis_offset = -0.4 / para(nn).raw_bin;
 para(nn).rot_axis_tilt = -0.003;
 
 % corroded screw
 nn = nn + 1;
 para(nn) = default;
 para(nn).scan_path = [raw 'mah_straw_2_00'];
-para(nn).rot_axis_offset = -0.25 / para(nn).bin;
+para(nn).rot_axis_offset = -0.4 / para(nn).raw_bin;
 para(nn).rot_axis_tilt = -0.003;
-para(nn).bin = 2;
+para(nn).raw_bin = 2;
 para(nn).parfolder = 'bin2';
 para(nn).write_float_binned = 0;
 para(nn).write_8bit_binned = 0;
@@ -362,7 +362,7 @@ para(nn).write_8bit_binned = 0;
 nn = nn + 1;
 para(nn) = default;
 para(nn).scan_path = [raw 'mah_straw_2_01'];
-para(nn).rot_axis_offset = -0 / para(nn).bin;
+para(nn).rot_axis_offset = -0 / para(nn).raw_bin;
 para(nn).rot_axis_tilt = -0.003;
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

@@ -12,13 +12,14 @@
 % To loop over sets of data or parameters use 'p05_reco_loop'.
 %
 % Written by Julian Moosmann. First version: 2016-09-28. Last modifcation:
-% 2017-04-21
+% 2017-05-08
 
 %% PARAMETERS / SETTINGS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 close all
 % INPUT %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %scan_path = pwd; % Enter folder of data set under the raw directory and run script
 scan_path = ...
+    '/asap3/petra3/gpfs/p05/2017/data/11003135/raw/ivo_trans1_006';
     '/asap3/petra3/gpfs/p05/2016/data/11001978/raw/mah_straw_2_00';
 '/asap3/petra3/gpfs/p05/2016/data/11001978/raw/mah_32_15R_top_occd800_withoutpaper'; % too much fringes, not enough coherence probably, using standard phase retrieval reco looks blurry
 '/asap3/petra3/gpfs/p05/2016/data/11001978/raw/mah_28_15R_bottom';
@@ -30,15 +31,6 @@ scan_path = ...
 '/asap3/petra3/gpfs/p05/2016/commissioning/c20160803_001_pc_test/raw/phase_1400'; %rot_axis_offset=19.5
 '/asap3/petra3/gpfs/p05/2016/commissioning/c20160803_001_pc_test/raw/we43_phase_030';
 
-'/asap3/petra3/gpfs/p05/2016/data/11001994/raw/szeb_41';
-'/asap3/petra3/gpfs/p05/2016/data/11001994/raw/szeb_23_00'; % rot_axis_offset 5.75;
-'/asap3/petra3/gpfs/p05/2016/data/11001994/raw/szeb_23_01'; % Nothobranchius furzeri
-'/asap3/petra3/gpfs/p05/2016/data/11001994/raw/szeb_23_00'; % Nothobranchius furzeri; bewegung
-'/asap3/petra3/gpfs/p05/2016/data/11001994/raw/szeb_13_00'; % no conspicuous movement artifacts, but cell shape are unclear and nuclei not visible
-'/asap3/petra3/gpfs/p05/2016/data/11001994/raw/szeb_13_09'; % dead
-'/asap3/petra3/gpfs/p05/2016/data/11001994/raw/szeb_07_00'; % strong movement
-'/asap3/petra3/gpfs/p05/2016/data/11001994/raw/szeb_13_00';
-
 '/asap3/petra3/gpfs/p05/2015/data/11001102/raw/hzg_wzb_mgag_14';
 '/asap3/petra3/gpfs/p05/2015/data/11001102/raw/hzg_wzb_mgag_38';
 '/asap3/petra3/gpfs/p05/2015/data/11001102/raw/hzg_wzb_mgag_02';
@@ -46,10 +38,10 @@ scan_path = ...
 read_flatcor = 0; % Read flatfield-corrected images from disc. Skips preprocessing
 read_flatcor_path = ''; % subfolder of 'flat_corrected' containing projections
 % PREPROCESSING %%%%%%p%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-bin = 1; % projection binning factor: 1, 2, or 4
-excentric_rot_axis = 0; % off-centered rotation axis increasing FOV. -1: left, 0: centeerd, 1: right. influences rot_corr_area1
-crop_at_rot_axis = 0;
-stitch_projections = 0; % stitch projection (for 2 pi scans) at rotation axis position. "doubles" number of voxels
+raw_bin = 1; % projection binning factor: 1, 2, or 4
+excentric_rot_axis = 1; % off-centered rotation axis increasing FOV. -1: left, 0: centeerd, 1: right. influences rot_corr_area1
+crop_at_rot_axis = 1;
+stitch_projections = 1; % stitch projection (for 2 pi scans) at rotation axis position. "doubles" number of voxels
 stitch_method = 'sine'; % 'step': no interpolation, 'linear','sine': linear interpolation of overlap region. !!! adjust: correlation area
 proj_range = 1; % range of projections to be used (from all that are found). if empty: all, if scalar: stride
 ref_range = 1; % range of flat fields to be used (from all that are found). start:incr:end. if empty: all (equals 1). if scalar: stride
@@ -64,14 +56,14 @@ correlation_method =  'diff';'cross'; % method for correlation. 'diff': differen
 corr_cross_max_pixelshift = 0.25; % maximum pixelshift allowed for 'cross'-correlation method: if 0 use the best match (i.e. the one with the least shift), if > 0 uses all flats with shifts smaller than corr_cross_max_pixelshift
 corr_max_nflats = 3; % number of flat fields used for average/median of flats. for 'cross'-correlation its the maximum number
 norm_by_ring_current = 1; % normalize flat fields and projections by ring current
-flat_corr_area1 = [1 floor(100/bin)]; % correlation area: index vector or relative/absolute position of [first pix, last pix]
+flat_corr_area1 = [1 floor(100/raw_bin)]; % correlation area: index vector or relative/absolute position of [first pix, last pix]
 flat_corr_area2 = [0.2 0.8]; %correlation area: index vector or relative/absolute position of [first pix, last pix]
 round_precision = 2; % precision when rounding pixel shifts
 ring_filter = 1; % ring artifact filter
 ring_filter_median_width = 11;
 % Phase retrieval %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-do_phase_retrieval = 0;
-phase_retrieval_method = 'qp';'qpcut'; 'tie'; %'qp' 'ctf' 'tie' 'qp2' 'qpcut'
+do_phase_retrieval = 1;
+phase_retrieval_method = 'tie';'qp';'qpcut'; 'tie'; %'qp' 'ctf' 'tie' 'qp2' 'qpcut'
 phase_retrieval_reg_par = 2.5; % regularization parameter
 phase_retrieval_bin_filt = 0.15; % threshold for quasiparticle retrieval 'qp', 'qp2'
 phase_retrieval_cutoff_frequ = 1 * pi; % in radian. frequency cutoff in Fourier space for 'qpcut' phase retrieval
@@ -90,7 +82,7 @@ rot_axis_pos = []; % if empty use automatic computation. either offset or pos ha
 rot_corr_area1 = []; % ROI to correlate projections at angles 0 & pi. Use [0.75 1] or so for scans with an excentric rotation axis
 rot_corr_area2 = []; % ROI to correlate projections at angles 0 & pi
 rot_corr_gradient = 0; % use gradient of intensity maps if signal variations are too weak to correlate projections
-rot_axis_tilt = -0.003; % in rad. camera tilt w.r.t rotation axis. if empty calculate from registration of projections at 0 and pi
+rot_axis_tilt = -0.000; % in rad. camera tilt w.r.t rotation axis. if empty calculate from registration of projections at 0 and pi
 fbp_filter_type = 'Ram-Lak';'linear';
 fpb_freq_cutoff = 0.5; % Cut-off frequency in Fourier space of the above FBP filter
 fbp_filter_padding = 1; % symmetric padding for consistent boundary conditions
@@ -120,43 +112,44 @@ compression = 'full'; 'std'; 'threshold';'histo'; % method of compression of dyn
 compression_std_num = 5; % dynamic range: mean(volume) +/- NUM* std(volume)
 compression_threshold = [-1 1]; % dynamic range: [MIN MAX]
 compression_histo = [0.05 0.05]; % [LOW HIGH]. crop dynamic range to values between (100*LOW)% and (100*HIGH)% of the original histogram
-parfolder = ''; % parent folder of 'reco', 'sino', and 'flat_corrected'
+parfolder = 'jm'; % parent folder of 'reco', 'sino', and 'flat_corrected'
 subfolder_flatcor = ''; % subfolder of 'flat_corrected'
 subfolder_phase_map = ''; % subfolder of 'phase_map'
 subfolder_sino = ''; % subfolder of 'sino'
 subfolder_reco = '';%sprintf('fbpFilt%s_ringFilt%uMedWid%u_bwFilt%ubwCutoff%u_phasePad%u_freqCutoff%2.0f_fbpPad%u', fbp_filter_type, ring_filter, ring_filter_median_width, butterworth_filter, 100*butterworth_cutoff_frequ, phase_padding, fpb_freq_cutoff*100, fbp_filter_padding); % parent folder to 'reco'
 % INTERACTION %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 verbose = 1; % print information to standard output
-visualOutput = 1; % show images and plots during reconstruction
+visualOutput = 0; % show images and plots during reconstruction
 interactive_determination_of_rot_axis = 1; % reconstruct slices with different offsets and tilts of the rotation axis
-interactive_determination_of_rot_axis_slice = 0.5; % slice number. if in [0,1]: relative, if in (1, N]: absolute
+interactive_determination_of_rot_axis_slice = 0.5; % slice number, default: 0.5. if in [0,1): relative, if in (1, N]: absolute
 % HARDWARE / SOFTWARE %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 poolsize = 0.8; % number of workers used in a parallel pool. if > 1: absolute number. if 0 < poolsize < 1: relative amount of all cores to be used
 gpu_ind = 1; % GPU Device to use: gpuDevice(gpu_ind). obsolet for ASTRA
 link_data = 1; % ASTRA data objects become references to Matlab arrays.
 
 %% TODO %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% TODO: flat/proj correlation: clean up
-% TODO: large data set management: parloop, memory, etc
-% TODO: stitching: optimize and refactor, memory efficency, exponentian interpolation method
-% TODO: interactive loop over tomo slices for different phase retrieval parameter
-% TODO: automatic determination of rot center: entropy type
-% TODO: output file format option: 8-bit, 16-bit. Currently 32 bit tiff.
-% TODO: normalize proj with beam current for KIT camera and missing images
-% TODO: vertical ROI reco
-% TODO: read image ROI and test for speed up
-% TODO: additional padding schemes for FBP filter
-% TODO: read sinograms option
-% TODO: set photometric tag for tif files w/o one, turn on respective warning
-% TODO: parallelize slice reconstruction using parpool and astra
-% TODO: GPU phase retrieval: parfor-loop requires memory managment
+% TODO: correlate flat fields before flat field correction
+% TODO: make interactive rot_axis_tilt optional
 % TODO: check attenutation values of reconstructed slice are consitent
+% TODO: large data set management: parloop, memory, etc
+% TODO: stitching: optimize and refactor, memory efficency, interpolation method
+% TODO: interactive loop over tomo slices for different phase retrieval parameter
+% TODO: automatic determination of rot center
+% TODO: output file format option: 8-bit, 16-bit. Currently 32 bit tiff.
+% TODO: normalize proj with beam current for KIT camera AND missing images
+% TODO: vertical ROI reco
+% TODO: read image ROI only, test for speed impprovement
+% TODO: additional padding schemes for FBP filter
+% TODO: read sinogram option
+% TODO: set photometric tag for tif files w/o one, turn on respective warning
+% TODO: parallelize slice reconstruction using parpool and astra?
+% TODO: GPU phase retrieval: parfor-loop requires memory managment
 % TODO: median filter width of ring filter dependence on binning
-% TODO: check offsets in projection correlation for rotation axis determination
+% TODO: check offset: proj correlation for rotation axis determination
+% TODO: check offset: flat/proj correlation 
 % TODO: delete files before writing data to a folder
 % TODO: log file location for non-tomo processing
 % TODO: inverse Gaussian filter for phase retrieval, VZC theorem
-% TODO: check calculated rotation axis offset when horizontal ROI is used for image correlation
 
 %% Notes %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -196,6 +189,10 @@ link_data = 1; % ASTRA data objects become references to Matlab arrays.
 % small-scale features, such as those stemming from contimation of the beam
 % from the scintllator, diamond window, etc, and less sensitive to
 % variations on a larger scale.
+
+% Entropy-type determination of rotation axis position
+% Empirically, this does not work for excentric rotation axis positions and
+% stitchted projections.
 
 %% External call: parameters set by 'p05_reco_loop' %%%%%%%%%%%%%%%%%%%%%%%
 if exist( 'external_parameter' ,'var')
@@ -352,7 +349,7 @@ PrintVerbose(verbose, '\n projection range used : first:stride:last =  %g:%g:%g'
 filename = sprintf('%s%s', scan_path, dark_names{1});
 im = read_image( filename );
 raw_im_shape = size( im );
-raw_im_shape_binned = floor( raw_im_shape / bin );
+raw_im_shape_binned = floor( raw_im_shape / raw_bin );
 raw_im_shape_binned1 = raw_im_shape_binned(1);
 raw_im_shape_binned2 = raw_im_shape_binned(2);
 PrintVerbose(verbose, '\n raw image shape : %g  %g', raw_im_shape)
@@ -378,7 +375,7 @@ if isempty( eff_pixel_size )
         eff_pixel_size = par.ccd_pixsize / par.magn * 1e-3 ;
     end
 end
-eff_pixel_size_binned = bin * eff_pixel_size;
+eff_pixel_size_binned = raw_bin * eff_pixel_size;
 if isempty( sample_detector_distance )
     if isfield( par, 'camera_distance')
         sample_detector_distance = par.camera_distance / 1000;
@@ -449,7 +446,7 @@ elseif ~read_flatcor
         im_mean = mean( im(:) );
         im_std = std( im(:) );
         im( im > im_mean + 4*im_std) = im_mean;
-        darks(:, :, nn) = Binning( FilterPixel( im, [darkFiltPixHot darkFiltPixDark]), bin) / bin^2;
+        darks(:, :, nn) = Binning( FilterPixel( im, [darkFiltPixHot darkFiltPixDark]), raw_bin) / raw_bin^2;
     end
     dark_min = min( darks(:) );
     dark_max = max( darks(:) );
@@ -477,7 +474,7 @@ elseif ~read_flatcor
     % Parallel loop
     parfor nn = 1:num_ref_used
         filename = sprintf('%s%s', scan_path, ref_names_mat(nn, :));
-        flat(:, :, nn) = Binning( FilterPixel( read_image( filename ), [refFiltPixHot refFiltPixDark]), bin) / bin^2;
+        flat(:, :, nn) = Binning( FilterPixel( read_image( filename ), [refFiltPixHot refFiltPixDark]), raw_bin) / raw_bin^2;
         % Check for zeros
         num_zeros =  sum( sum( flat(:,:,nn) < 1 ) );
         if num_zeros > 0
@@ -546,7 +543,7 @@ elseif ~read_flatcor
     if visualOutput(1)
         figure(h1)
         filename = sprintf('%s%s', scan_path, img_names_mat(1, :));
-        raw1 = Binning( FilterPixel( read_image( filename ), [projFiltPixHot, projFiltPixDark]), bin) / bin^2;
+        raw1 = Binning( FilterPixel( read_image( filename ), [projFiltPixHot, projFiltPixDark]), raw_bin) / raw_bin^2;
         subplot(2,2,3)
         imsc1( raw1 )
         axis equal tight
@@ -558,7 +555,7 @@ elseif ~read_flatcor
     % Read raw projections
     parfor nn = 1:num_proj_used
         filename = sprintf('%s%s', scan_path, img_names_mat(nn, :));
-        proj(:, :, nn) = Binning( FilterPixel( read_image( filename ), [projFiltPixHot, projFiltPixDark]), bin) / bin^2;
+        proj(:, :, nn) = Binning( FilterPixel( read_image( filename ), [projFiltPixHot, projFiltPixDark]), raw_bin) / raw_bin^2;
     end
     raw_min = min( proj(:) );
     raw_max = max( proj(:) );
@@ -955,6 +952,7 @@ if do_tomo(1)
         elseif interactive_determination_of_rot_axis_slice <= 1 && interactive_determination_of_rot_axis_slice >= 0
             slice = round((raw_im_shape_binned2 - 1) * interactive_determination_of_rot_axis_slice + 1 );
         end
+        fprintf( '\n slice : %u', slice)
         
         fprintf( '\n\nOFFSET:' )
         fprintf( '\n current rotation axis offset / position : %.2f, %.2f', rot_axis_offset, rot_axis_pos)
@@ -970,18 +968,43 @@ if do_tomo(1)
         while ~isscalar( offset )
             
             % Reco
-            [vol, m] = find_rot_axis_offset(proj, angles, slice, offset, rot_axis_tilt, fra_take_neg_log, fra_number_of_stds, fra_vol_shape);
+            [vol, metrics_offset] = find_rot_axis_offset(proj, angles, slice, offset, rot_axis_tilt, fra_take_neg_log, fra_number_of_stds, fra_vol_shape);
+            
+            % Metric minima
+            [~, min_pos] = min(cell2mat({metrics_offset(:).val}));
+            [~, max_pos] = max(cell2mat({metrics_offset(:).val}));
             
             % Print image number, rotation axis values, and different metrics
-            fprintf( '\n\nOFFSET:' )        
+            fprintf( '\n\nOFFSET:' )
             fprintf( '\n current rotation axis offset/position : %.2f, %.2f\n', rot_axis_offset, rot_axis_pos)
-            fprintf( '%11s', 'image no.', 'offset', m.name)
+            fprintf( '%11s', 'image no.', 'offset', metrics_offset.name)
             for nn = 1:numel(offset)
-                fprintf( '\n%11u%11.2f', nn, offset(nn))
-                for mnn = 1:numel(m)
-                    fprintf( '%11.3g', m(mnn).val(nn) )
-                end                                
+                if offset(nn) == rot_axis_offset
+                    cprintf( 'Green', sprintf('\n%11u%11.2f', nn, offset(nn)))
+                else
+                    cprintf( 'Black', '\n%11u%11.2f', nn, offset(nn))
+                end
+                
+                for mm = 1:numel(metrics_offset)
+                    if min_pos(mm) == nn
+                        cprintf( 'Red', '%11.3g', metrics_offset(mm).val(nn) )
+                    elseif max_pos(mm) == nn
+                        cprintf( 'Blue', '%11.3g', metrics_offset(mm).val(nn) )
+                    else
+                        cprintf( 'Black', '%11.3g', metrics_offset(mm).val(nn) )
+                    end
+                end
             end
+            
+            % Plot metrics
+            h_rot_off = figure('Name', 'OFFSET: metrics');
+            x = [1:4 6:7];
+            Y = cell2mat({metrics_offset(x).val});
+            plot( offset, Y, '-+');
+            axis tight
+            legend( metrics_offset(x).name)            
+            title(sprintf('metric VS rotation axis offset'))
+            drawnow            
             
             % Play
             nimplay(vol, 0, 0, 'OFFSET: sequence of reconstructed slices using different rotation axis offsets')
@@ -1011,17 +1034,42 @@ if do_tomo(1)
                 while ~isscalar( tilt )
                     
                     % Reco
-                    [vol, m] = find_rot_axis_tilt( proj, angles, slice, offset, tilt, fra_take_neg_log, fra_number_of_stds, fra_vol_shape);
-                                        
+                    [vol, metrics_tilt] = find_rot_axis_tilt( proj, angles, slice, offset, tilt, fra_take_neg_log, fra_number_of_stds, fra_vol_shape);
+                    
+                    % Metric minima
+                    [~, min_pos] = min(cell2mat({metrics_tilt(:).val}));
+                    [~, max_pos] = max(cell2mat({metrics_tilt(:).val}));
+                    
                     % Print image number and rotation axis tilt
-                    fprintf( '%11s', 'image no.', 'tilt/rad', 'tilt/deg', m.name )
+                    fprintf( '%11s', 'image no.', 'tilt/rad', 'tilt/deg', metrics_tilt.name )
                     for nn = 1:numel(tilt)
-                        fprintf( '\n%11u%11g%11g', nn, tilt(nn), tilt(nn)/pi*180 )
-                        for mnn = 1:numel(m)
-                            fprintf( '%11.3g', m(mnn).val(nn) )
+                        if tilt(nn) == rot_axis_tilt
+                            cprintf( 'Green', sprintf( '\n%11u%11g%11g', nn, tilt(nn), tilt(nn)/pi*180 ) )
+                        else
+                            cprintf( 'Black', sprintf( '\n%11u%11g%11g', nn, tilt(nn), tilt(nn)/pi*180 ) )
+                        end                        
+                        for mm = 1:numel(metrics_tilt)
+                            if min_pos(mm) == nn
+                                cprintf( 'Red', '%11.3g', metrics_tilt(mm).val(nn) )
+                            elseif max_pos(mm) == nn
+                                cprintf( 'Blue', '%11.3g', metrics_tilt(mm).val(nn) )
+                            else
+                                cprintf( 'Black', '%11.3g', metrics_tilt(mm).val(nn) )
+                            end
                         end
                     end
-                                    
+                    
+                    % Plot metrics
+                    h_rot_tilt = figure('Name', 'TILT: metrics');
+                    x = 6:7;
+                    Y = cell2mat({metrics_tilt(x).val});
+                    plot( tilt, Y, '-+');
+                    axis tight
+                    legend( metrics_tilt(x).name)
+                    title(sprintf('metric VS rotation axis tilt'))
+                    drawnow
+                    
+                    
                     % Play
                     nimplay(vol, 0, 0, 'TILT: sequence of reconstructed slices using different rotation axis tilts')
                     
@@ -1093,7 +1141,8 @@ if do_tomo(1)
         
     if visualOutput(1)
         h4 = figure('Name','Projections at 0 and pi cropped symmetrically to rotation center');
-        n = 2; m = 2;
+        n = 2; 
+        m = 2;
         
         subplot(m, n, 1)
         imsc1( im1c )
@@ -1504,7 +1553,7 @@ if do_tomo(1)
         fprintf(fid, 'proj_range : %u:%u:%u\n', proj_range(1), proj_range(2) - proj_range(1), proj_range(end) );
         fprintf(fid, 'raw_image_shape : %u %u\n', raw_im_shape);
         fprintf(fid, 'raw_image_shape_binned : %u %u\n', raw_im_shape_binned);
-        fprintf(fid, 'binning_factor : %u\n', bin);
+        fprintf(fid, 'raw_binning_factor : %u\n', raw_bin);
         fprintf(fid, 'effective_pixel_size_mu : %g\n', eff_pixel_size * 1e6);
         fprintf(fid, 'effective_pixel_size_binned_mu : %g\n', eff_pixel_size_binned * 1e6);
         fprintf(fid, 'energy : %g eV\n', energy);
