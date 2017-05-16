@@ -1,4 +1,4 @@
-function p05_reco_synchroload(nums, doreco)
+function p05_reco_synchroload2016nov(nums, doreco)
 
 if nargin < 1
     nums = [];
@@ -45,57 +45,8 @@ default.write_8bit_binned = 1;
 default.write_16bit = 0; 
 
 %% Data sets %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%% 2017 May
-raw = '/asap3/petra3/gpfs/p05/2017/data/11003950/raw/';
-
-nn = nn + 1;para(nn) = default;para(nn).scan_path = [raw 'syn01_48L_PEEK_12w_b'];
-nn = nn + 1;para(nn) = default;para(nn).scan_path = [raw 'syn01_48L_PEEK_12w_c'];
-nn = nn + 1;para(nn) = default;para(nn).scan_path = [raw 'syn02_46R_PEEK_12w_a'];
-nn = nn + 1;para(nn) = default;para(nn).scan_path = [raw 'syn02_46R_PEEK_12w_b'];
-nn = nn + 1;para(nn) = default;para(nn).scan_path = [raw 'syn03_12R_PEEK_12w_a'];
-nn = nn + 1;para(nn) = default;para(nn).scan_path = [raw 'syn03_12R_PEEK_12w_b'];
-nn = nn + 1;para(nn) = default;para(nn).scan_path = [raw 'syn04_30R_PEEK_8w_a'];
-nn = nn + 1;para(nn) = default;para(nn).scan_path = [raw 'syn04_30R_PEEK_8w_b'];
-nn = nn + 1;para(nn) = default;para(nn).scan_path = [raw 'syn05_41R_PEEK_12w_a'];
-nn = nn + 1;para(nn) = default; para(nn).scan_path = [raw 'syn11_53R_Mg5Gd_12w_load_broken'];
-nn = nn + 1;para(nn) = default; para(nn).scan_path = [raw 'syn13_55L_Mg10Gd_12w_load_00'];
-nn = nn + 1;para(nn) = default; para(nn).scan_path = [raw 'syn13_55L_Mg10Gd_12w_load_02'];
-nn = nn + 1;para(nn) = default; para(nn).scan_path = [raw 'syn13_55L_Mg10Gd_12w_load_04'];para(nn).ref_range = [1:135, 137:162];
-nn = nn + 1;para(nn) = default; para(nn).scan_path = [raw 'syn13_55L_Mg10Gd_12w_load_06'];
-nn = nn + 1;para(nn) = default; para(nn).scan_path = [raw 'syn13_55L_Mg10Gd_12w_load_08'];
-nn = nn + 1;para(nn) = default; para(nn).scan_path = [raw 'syn13_55L_Mg10Gd_12w_load_10'];
-nn = nn + 1;para(nn) = default; para(nn).scan_path = [raw 'syn13_55L_Mg10Gd_12w_load_12'];
-nn = nn + 1;para(nn) = default; para(nn).scan_path = [raw 'syn13_55L_Mg10Gd_12w_load_14'];
-nn = nn + 1;para(nn) = default; para(nn).scan_path = [raw 'syn13_55L_Mg10Gd_12w_load_16'];
-nn = nn + 1;para(nn) = default; para(nn).scan_path = [raw 'syn13_55L_Mg10Gd_12w_load_18'];
-nn = nn + 1;para(nn) = default; para(nn).scan_path = [raw 'syn13_55L_Mg10Gd_12w_load_20'];
-nn = nn + 1;para(nn) = default; para(nn).scan_path = [raw 'syn13_55L_Mg10Gd_12w_load_22'];
-nn = nn + 1;para(nn) = default; para(nn).scan_path = [raw 'syn13_55L_Mg10Gd_12w_load_24_noload'];
-nn = nn + 1;para(nn) = default; para(nn).scan_path = [raw 'syn14_48L_PEEK_12w_a'];
-nn = nn + 1;para(nn) = default; para(nn).scan_path = [raw 'syn14_48L_PEEK_12w_b'];
-nn = nn + 1;para(nn) = default; para(nn).scan_path = [raw 'syn15_29R_PEEK_8w_a'];
-nn = nn + 1;para(nn) = default; para(nn).scan_path = [raw 'syn15_29R_PEEK_8w_b'];
-nn = nn + 1;para(nn) = default; para(nn).scan_path = [raw 'syn16_43R_PEEK_12w_a'];
-nn = nn + 1;para(nn) = default; para(nn).scan_path = [raw 'syn16_43R_PEEK_12w_b'];
-nn = nn + 1;para(nn) = default; para(nn).scan_path = [raw 'syn17_25R_PEEK_8w_a'];
-
-% Radio after load increase before tomography
-nn = nn + 1;para(nn) = default; para(nn).scan_path = [raw 'syn13_55L_Mg10Gd_12w_load_01'];para(nn).do_tomo = 0;
-nn = nn + 1;para(nn) = default; para(nn).scan_path = [raw 'syn13_55L_Mg10Gd_12w_load_03'];para(nn).do_tomo = 0;
-nn = nn + 1;para(nn) = default; para(nn).scan_path = [raw 'syn13_55L_Mg10Gd_12w_load_05'];para(nn).do_tomo = 0;
-nn = nn + 1;para(nn) = default; para(nn).scan_path = [raw 'syn13_55L_Mg10Gd_12w_load_07'];para(nn).do_tomo = 0;
-nn = nn + 1;para(nn) = default; para(nn).scan_path = [raw 'syn13_55L_Mg10Gd_12w_load_09'];para(nn).do_tomo = 0;
-nn = nn + 1;para(nn) = default; para(nn).scan_path = [raw 'syn13_55L_Mg10Gd_12w_load_11'];para(nn).do_tomo = 0;
-nn = nn + 1;para(nn) = default; para(nn).scan_path = [raw 'syn13_55L_Mg10Gd_12w_load_13'];para(nn).do_tomo = 0;
-nn = nn + 1;para(nn) = default; para(nn).scan_path = [raw 'syn13_55L_Mg10Gd_12w_load_15'];para(nn).do_tomo = 0;
-nn = nn + 1;para(nn) = default; para(nn).scan_path = [raw 'syn13_55L_Mg10Gd_12w_load_17'];para(nn).do_tomo = 0;
-nn = nn + 1;para(nn) = default; para(nn).scan_path = [raw 'syn13_55L_Mg10Gd_12w_load_19'];para(nn).do_tomo = 0;
-nn = nn + 1;para(nn) = default; para(nn).scan_path = [raw 'syn13_55L_Mg10Gd_12w_load_21'];para(nn).do_tomo = 0;
-
-
-%% 2016 November
-
 raw = '/asap3/petra3/gpfs/p05/2016/data/11001978/raw/';
+
 % corroded screw
 nn = nn + 1;para(nn) = default;para(nn).scan_path = [raw 'mah_01'];
 para(nn).rot_axis_offset = -135.75 / para(nn).raw_bin;

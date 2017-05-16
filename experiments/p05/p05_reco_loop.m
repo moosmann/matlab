@@ -1,4 +1,4 @@
-function p05_reco_loop
+function p05_reco_loop(nums, doreco, para)
 % Script to loop over parameter sets related to paramters of scritp
 % 'p05_reco'. Set parameters to loop over as elements of the structure
 % array 'para' below. Fieldnames of 'para' MUST match the names of
@@ -11,25 +11,44 @@ function p05_reco_loop
 % Start loop by pushing 'F5', clicking on 'Run' in the Editor tab, or
 % typing 'p05_reco_loop' in the Command Window.
 %
-% Written by Julian Moosmann. First version: 2017-02-15. Last: 2017-02-20
+% Written by Julian Moosmann. First version: 2017-02-15. Last: 2017-05-16
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%% Parameter sets to loop over %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-para(1).scan_path = '/asap3/petra3/gpfs/p05/2016/data/11001994/raw/szeb_41';    
-para(1).bin = 4;
-para(1).out_path = '/gpfs/petra3/scratch/moosmanj';
-
-para(2).scan_path = '/asap3/petra3/gpfs/p05/2016/commissioning/c20160803_001_pc_test/raw/phase_1400';
-para(2).bin = 4;
-para(2).rot_axis_offset = 19.5;
-para(2).out_path = '/gpfs/petra3/scratch/moosmanj';
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-% Loop over all parameter sets
-for nn = 1:numel( para )    
-    external_parameter = para(nn);    
-    p05_reco    
+if nargin < 1
+    nums = [];
 end
+if nargin < 2
+    doreco = 1;
+end
+
+%% Main %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+fprintf( '\nDATA SETS:')
+for nn = 1:numel( para)
+    [~, name] = fileparts( para(nn).scan_path );
+    fprintf('\n%3u : %s', nn, name )
+end
+
+if ~isempty(nums)
+    fprintf( '\n\nTO BE RECONSTRUCTED:')
+    for nn = 1:numel( nums )
+        num = nums(nn);
+        external_parameter = para(num);
+        [~, name] = fileparts( external_parameter.scan_path );
+        fprintf('\n%3u : %s', num, name )                
+    end
+end
+
+% Loop over parameter sets
+if ~isempty( nums ) && doreco 
+    fprintf( '\n\nSTART LOOPING \n')
+    for nn = 1:numel( nums )
+        num = nums(nn);
+        
+        external_parameter = para(num);
+        [~, name] = fileparts( external_parameter.scan_path );
+        fprintf('\nRECONSTRUCTION OF DATA SET NUMBER : %u : %s\n', num, name )
+        
+        p05_reco                
+    end
+    fprintf( '\nRECONSTRUCTION LOOP FINISHED')
+end
+fprintf('\n')

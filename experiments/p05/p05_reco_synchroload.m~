@@ -1,6 +1,19 @@
 function p05_reco_synchroload(nums, doreco)
+% Script to loop over parameter sets related to paramters of scritp
+% 'p05_reco'. Set parameters to loop over as elements of the structure
+% array 'para' below. Fieldnames of 'para' MUST match the names of
+% parameters in 'p05_reco'.
+%
+% Visual output ('visualOutput') and user interaction
+% ('interactive_determination_of_rot_axis') are turned off by default if
+% not set otherwise.
+%
+% Start loop by pushing 'F5', clicking on 'Run' in the Editor tab, or
+% typing 'p05_reco_loop' in the Command Window.
+%
+% Written by Julian Moosmann. First version: 2017-02-15. Last: 2017-04-24
 
-if nargin < 1
+if nargin < 0
     nums = [];
 end
 if nargin < 2
@@ -79,18 +92,18 @@ nn = nn + 1;para(nn) = default; para(nn).scan_path = [raw 'syn16_43R_PEEK_12w_a'
 nn = nn + 1;para(nn) = default; para(nn).scan_path = [raw 'syn16_43R_PEEK_12w_b'];
 nn = nn + 1;para(nn) = default; para(nn).scan_path = [raw 'syn17_25R_PEEK_8w_a'];
 
-% Radio after load increase before tomography
+% Radio
 nn = nn + 1;para(nn) = default; para(nn).scan_path = [raw 'syn13_55L_Mg10Gd_12w_load_01'];para(nn).do_tomo = 0;
 nn = nn + 1;para(nn) = default; para(nn).scan_path = [raw 'syn13_55L_Mg10Gd_12w_load_03'];para(nn).do_tomo = 0;
 nn = nn + 1;para(nn) = default; para(nn).scan_path = [raw 'syn13_55L_Mg10Gd_12w_load_05'];para(nn).do_tomo = 0;
 nn = nn + 1;para(nn) = default; para(nn).scan_path = [raw 'syn13_55L_Mg10Gd_12w_load_07'];para(nn).do_tomo = 0;
-nn = nn + 1;para(nn) = default; para(nn).scan_path = [raw 'syn13_55L_Mg10Gd_12w_load_09'];para(nn).do_tomo = 0;
-nn = nn + 1;para(nn) = default; para(nn).scan_path = [raw 'syn13_55L_Mg10Gd_12w_load_11'];para(nn).do_tomo = 0;
-nn = nn + 1;para(nn) = default; para(nn).scan_path = [raw 'syn13_55L_Mg10Gd_12w_load_13'];para(nn).do_tomo = 0;
-nn = nn + 1;para(nn) = default; para(nn).scan_path = [raw 'syn13_55L_Mg10Gd_12w_load_15'];para(nn).do_tomo = 0;
-nn = nn + 1;para(nn) = default; para(nn).scan_path = [raw 'syn13_55L_Mg10Gd_12w_load_17'];para(nn).do_tomo = 0;
-nn = nn + 1;para(nn) = default; para(nn).scan_path = [raw 'syn13_55L_Mg10Gd_12w_load_19'];para(nn).do_tomo = 0;
-nn = nn + 1;para(nn) = default; para(nn).scan_path = [raw 'syn13_55L_Mg10Gd_12w_load_21'];para(nn).do_tomo = 0;
+nn = nn + 1;para(nn) = default; para(nn).scan_path = [raw 'syn13_55L_Mg10Gd_12w_load_07'];para(nn).do_tomo = 0;
+nn = nn + 1;para(nn) = default; para(nn).scan_path = [raw 'syn13_55L_Mg10Gd_12w_load_07'];para(nn).do_tomo = 0;
+nn = nn + 1;para(nn) = default; para(nn).scan_path = [raw 'syn13_55L_Mg10Gd_12w_load_07'];para(nn).do_tomo = 0;
+nn = nn + 1;para(nn) = default; para(nn).scan_path = [raw 'syn13_55L_Mg10Gd_12w_load_07'];para(nn).do_tomo = 0;
+nn = nn + 1;para(nn) = default; para(nn).scan_path = [raw 'syn13_55L_Mg10Gd_12w_load_07'];para(nn).do_tomo = 0;
+nn = nn + 1;para(nn) = default; para(nn).scan_path = [raw 'syn13_55L_Mg10Gd_12w_load_07'];para(nn).do_tomo = 0;
+nn = nn + 1;para(nn) = default; para(nn).scan_path = [raw 'syn13_55L_Mg10Gd_12w_load_07'];para(nn).do_tomo = 0;
 
 
 %% 2016 November
@@ -396,4 +409,36 @@ para(nn).rot_axis_tilt = -0.003;
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-p05_reco_loop( nums, doreco, para)
+fprintf( '\nDATA SETS:')
+for nn = 1:numel( para)
+    [~, name] = fileparts( para(nn).scan_path );
+    fprintf('\n%3u : %s', nn, name )
+end
+
+if ~isempty(nums)
+    fprintf( '\n\nTO BE RECONSTRUCTED:')
+    for nn = 1:numel( nums )
+        num = nums(nn);
+        external_parameter = para(num);
+        [~, name] = fileparts( external_parameter.scan_path );
+        fprintf('\n%3u : %s', num, name )                
+    end
+end
+
+% Loop over parameter sets
+if doreco
+    fprintf( '\n\nSTART LOOPING \n')
+    for nn = 1:numel( nums )
+        num = nums(nn);
+        
+        external_parameter = para(num);
+        [~, name] = fileparts( external_parameter.scan_path );
+        fprintf('\nRECONSTRUCTION OF DATA SET NUMBER : %u : %s\n', num, name )
+        
+        p05_reco
+        
+        
+    end
+    fprintf( '\nRECONSTRUCTION LOOP FINISHED')
+end
+fprintf('\n')

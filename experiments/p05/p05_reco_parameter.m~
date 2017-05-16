@@ -1,0 +1,8 @@
+classdef p05_reco_parameter
+    properties
+        scan_path
+    end
+    properties
+        astra.use     
+    end
+end
