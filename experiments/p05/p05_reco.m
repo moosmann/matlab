@@ -20,15 +20,10 @@ close all
 %scan_path = pwd; % Enter folder of data set under the raw directory and run script
 scan_path = ...
     '/asap3/petra3/gpfs/p05/2017/data/11003950/raw/syn13_55L_Mg10Gd_12w_load_18';
-    '/asap3/petra3/gpfs/p05/2017/data/11003950/raw/syn11_53R_Mg5Gd_12w_load_broken';
-    '/asap3/petra3/gpfs/p05/2017/data/11003950/raw/syn01_48L_PEEK_12w_c';
-    '/asap3/petra3/gpfs/p05/2017/data/11003950/raw/syn01_48L_PEEK_12w_b';
-    '/asap3/petra3/gpfs/p05/2016/data/11001978/raw/mah_straw_2_00';
 '/asap3/petra3/gpfs/p05/2016/data/11001978/raw/mah_32_15R_top_occd800_withoutpaper'; % too much fringes, not enough coherence probably, using standard phase retrieval reco looks blurry
 '/asap3/petra3/gpfs/p05/2016/data/11001978/raw/mah_28_15R_bottom';
 '/asap3/petra3/gpfs/p05/2016/commissioning/c20160920_000_diana/raw/Mg-10Gd39_1w';
 '/asap3/petra3/gpfs/p05/2016/commissioning/c20160913_000_synload/raw/mg5gd_21_3w';
-
 '/asap3/petra3/gpfs/p05/2016/commissioning/c20160803_001_pc_test/raw/phase_600';
 '/asap3/petra3/gpfs/p05/2016/commissioning/c20160803_001_pc_test/raw/phase_1000'; %rot_axis_offset=7.5
 '/asap3/petra3/gpfs/p05/2016/commissioning/c20160803_001_pc_test/raw/phase_1400'; %rot_axis_offset=19.5
@@ -43,7 +38,7 @@ read_flatcor_path = ''; % subfolder of 'flat_corrected' containing projections
 % PREPROCESSING %%%%%%p%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 raw_bin = 1; % projection binning factor: 1, 2, or 4
 excentric_rot_axis = 0; % off-centered rotation axis increasing FOV. -1: left, 0: centeerd, 1: right. influences rot_corr_area1
-crop_at_rot_axis = 0; % do not use in combination with crop_at_rot_axis
+crop_at_rot_axis = 0; % do not use in combination with ???
 stitch_projections = 0; % stitch projection (for 2 pi scans) at rotation axis position. "doubles" number of voxels
 stitch_method = 'sine'; % 'step': no interpolation, 'linear','sine': linear interpolation of overlap region. !!! adjust: correlation area
 proj_range = 1; % range of projections to be used (from all that are found). if empty: all, if scalar: stride
@@ -54,10 +49,10 @@ refFiltPixHot = 0.01; % Hot pixel filter parameter for flat fields, for details 
 refFiltPixDark = 0.005; % Dark pixel filter parameter for flat fields, for details see 'FilterPixel'
 projFiltPixHot = 0.01; % Hot pixel filter parameter for projections, for details see 'FilterPixel'
 projFiltPixDark = 0.005; % Dark pixel filter parameter for projections, for details see 'FilterPixel'
-correlate_proj_with_flat = 1;%  correlate flat fields and projection to correct beam shaking
-correlation_method = 'ssim-ml'; 'diff';'cross';'ssim';'std';'entropy'; % method for correlation. 'diff': difference measure (preferred), 'cross': cross-correlation
-corr_cross_max_pixelshift = 0.25; % maximum pixelshift allowed for 'cross'-correlation method: if 0 use the best match (i.e. the one with the least shift), if > 0 uses all flats with shifts smaller than corr_cross_max_pixelshift
-corr_max_nflats = 3; % number of flat fields used for average/median of flats. for 'cross'-correlation its the maximum number
+correlate_proj_flat = 1;%  correlate flat fields and projection to correct beam shaking
+correlation_method = 'ssim-ml'; 'diff';'shift';'ssim';'std';'entropy';'cov';'cross'; % method for correlation. 'diff': difference measure (preferred), 'shift': computes relative shift using image cross-correlation
+corr_shift_max_pixelshift = 0.25; % maximum pixelshift allowed for 'shift'-correlation method: if 0 use the best match (i.e. the one with the least shift), if > 0 uses all flats with shifts smaller than corr_shift_max_pixelshift
+corr_num_flats = 3; % number of flat fields used for average/median of flats. for 'shift'-correlation its the maximum number
 norm_by_ring_current = 1; % normalize flat fields and projections by ring current
 flat_corr_area1 = [1 floor(100/raw_bin)]; % correlation area: index vector or relative/absolute position of [first pix, last pix]
 flat_corr_area2 = [0.2 0.8]; %correlation area: index vector or relative/absolute position of [first pix, last pix]
@@ -75,7 +70,7 @@ energy = []; % in eV. if empty: read from log file
 sample_detector_distance = []; % in m. if empty: read from log file
 eff_pixel_size = []; % in m. if empty: read from log file. effective pixel size =  detector pixel size / magnification
 % Tomography parameters %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-do_tomo = 1; % run tomographic reconstruction
+do_tomo = 0; % run tomographic reconstruction
 vol_shape = [];% shape of the volume to be reconstructed, either in absolute number of voxels or in relative number w.r.t. the default volume which is given by the detector width and height
 vol_size = []; % if empty, unit voxel size is assumed
 rot_angle_full = []; % in radians: empty ([]), full angle of rotation, or array of angles. if empty full rotation angles is determined automatically to pi or 2 pi
@@ -122,12 +117,11 @@ subfolder_sino = ''; % subfolder of 'sino'
 subfolder_reco = '';%sprintf('fbpFilt%s_ringFilt%uMedWid%u_bwFilt%ubwCutoff%u_phasePad%u_freqCutoff%2.0f_fbpPad%u', fbp_filter_type, ring_filter, ring_filter_median_width, butterworth_filter, 100*butterworth_cutoff_frequ, phase_padding, fpb_freq_cutoff*100, fbp_filter_padding); % parent folder to 'reco'
 % INTERACTION %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 verbose = 1; % print information to standard output
-visualOutput = 0; % show images and plots during reconstruction
+visualOutput = 1; % show images and plots during reconstruction
 interactive_determination_of_rot_axis = 0; % reconstruct slices with different offsets and tilts of the rotation axis
 interactive_determination_of_rot_axis_slice = 0.5; % slice number, default: 0.5. if in [0,1): relative, if in (1, N]: absolute
 % HARDWARE / SOFTWARE %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-poolsize = 0.8; % number of workers used in a parallel pool. if > 1: absolute number. if 0 < poolsize < 1: relative amount of all cores to be used
-gpu_ind = 1; % GPU Device to use: gpuDevice(gpu_ind). obsolet for ASTRA
+poolsize = 0.85; % number of workers used in a parallel pool. if > 1: absolute number. if 0 < poolsize < 1: relative amount of all cores to be used
 link_data = 1; % ASTRA data objects become references to Matlab arrays.
 
 %% TODO %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -154,6 +148,7 @@ link_data = 1; % ASTRA data objects become references to Matlab arrays.
 % TODO: delete files before writing data to a folder
 % TODO: log file location for non-tomo processing
 % TODO: inverse Gaussian filter for phase retrieval, VZC theorem
+% TODO: flat-flat correlation and averaging before proj-flat correlation
 
 %% Notes %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -195,8 +190,8 @@ link_data = 1; % ASTRA data objects become references to Matlab arrays.
 % variations on a larger scale.
 
 % Entropy-type determination of rotation axis position
-% Empirically, this does not work for excentric rotation axis positions and
-% stitchted projections.
+% Empirically, this does not work well for excentric rotation axis positions and
+% stitchted projections. To be tested
 
 %% External call: parameters set by 'p05_reco_loop' %%%%%%%%%%%%%%%%%%%%%%%
 if exist( 'external_parameter' ,'var')
@@ -300,10 +295,12 @@ PrintVerbose(verbose, '\n reco_path : %s', reco_path)
 % Memory
 [mem_free, mem_avail, mem_total] = free_memory;
 PrintVerbose(verbose, '\n system memory: free, available, total : %.3g GiB, %.3g GiB, %.3g GiB', mem_free/1024^3, mem_avail/1024^3, mem_total/1024^3)
-gpu = gpuDevice( gpu_ind );
-reset( gpu );
-gpu = gpuDevice( gpu_ind );
-PrintVerbose(verbose, '\n gpu memory: available, total, percent : %.3g GiB, %.3g GiB, %.2f%%', gpu.AvailableMemory/1024^3, gpu.TotalMemory/1024^3, 100*gpu.AvailableMemory/gpu.TotalMemory)
+for ii = 1:gpuDeviceCount
+    gpu = gpuDevice( ii );
+    reset( gpu );
+    gpu = gpuDevice( ii );
+    PrintVerbose(verbose, '\n gpu %u : memory: available, total, percent : %.3g GiB, %.3g GiB, %.2f%%', ii, gpu.AvailableMemory/1024^3, gpu.TotalMemory/1024^3, 100*gpu.AvailableMemory/gpu.TotalMemory)
+end
 
 %% File names
 
@@ -613,14 +610,14 @@ elseif ~read_flatcor
     %% Flat field correction %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     
     % Flat field correction without correlation
-    if ~correlate_proj_with_flat
+    if ~correlate_proj_flat
         flat_m = median(flat, 3);
         proj = bsxfun( @times, proj, flat_m);
     end
     PrintVerbose(verbose, ' Time elapsed: %.1f s (%.2f min)', toc - t, ( toc - t ) / 60 )
     
     % Correlate shifted flat fields
-    if correlate_proj_with_flat
+    if correlate_proj_flat
         PrintVerbose(verbose, '\nCorrect beam shake.')
         % Correlation ROI
         flat_corr_area1 = IndexParameterToRange(flat_corr_area1, raw_im_shape_binned(1));
@@ -635,15 +632,19 @@ elseif ~read_flatcor
         c_diff2_l2 = c_diff1_l1;
         c_std = zeros( num_proj_used, num_ref_used);
         c_ent = c_std;
-        c_cov = c_std;    
+        c_cov = c_std;
+        c_corr = c_std;
         c_ssim = c_std;
-        c_ssim_ml = c_std;        
+        c_ssim_ml = c_std;
+        c_l = c_std;
+        c_c = c_std;
+        c_s = c_std;
         % Compute shift for each pair projection/flat field
         for ff = 1:num_ref_used
             flat_ff = flat_roi(:,:,ff);
             
             switch correlation_method
-                case 'cross'
+                case 'shift'
                     parfor pp = 1:num_proj_used
                         % (p^*)(-x) ** f(x): cross correlation equals
                         % convolution of complex conjugate of p(-x), i.e.
@@ -652,7 +653,7 @@ elseif ~read_flatcor
                         flat_corr_shift_1(pp,ff) = round( out.shift1, round_precision );
                         flat_corr_shift_2(pp,ff) = round( out.shift2, round_precision) ; % relevant shift
                     end
-                case {'diff', 'std', 'entropy', 'ssim', 'ssim-ml', 'cov'}
+                case {'diff', 'std', 'entropy', 'ssim', 'ssim-ml', 'cov', 'corr'}
                     parfor pp = 1:num_proj_used
                         % projection
                         p = proj_roi(:,:,pp); 
@@ -668,7 +669,7 @@ elseif ~read_flatcor
                         d2 =  sqrt( abs( p.^2 - f.^2) );
                         
                         % ratio
-                        c =  p ./ f ;
+                        r =  p ./ f ;
                         
                         % measures
                         % difference: anisotropic L1
@@ -680,21 +681,22 @@ elseif ~read_flatcor
                         % difference: isotropic L2
                         c_diff2_l2(pp,ff) = norm( d2(:), 2);                                                
                         % std: standard deviation of ratio
-                        c_std(pp,ff) = std(c(:));
+                        c_std(pp,ff) = std2( r );
                         % entropy of ratio
-                        c_ent(pp,ff) = entropy( double(c) );
-                        % cov: covariance
-                        %% check
-                        cov_pf = mean2( ( p - p_mean ) .* (f - f_mean ) ) / ( p_std * f_std );
-                        c_cov(pp,ff) = -cov_pf;
+                        c_ent(pp,ff) = entropy( double(r) );
+                        % cov: cross covariance
+                        cov_pf = mean2( ( p - p_mean ) .* (f - f_mean ) );
+                        c_cov(pp,ff) = - cov_pf;
+                        % corr: cross correlation
+                        c_corr(pp,ff) = - cov_pf / ( p_std * f_std )
                         % ssim: tructural similarity index
-                        c1 = 0.01 * L;
-                        c2 = 0.03 * L;
+                        c1 = ( 0.01 * L )^2;
+                        c2 = ( 0.03 * L )^2;
                         c3 = c2 / 2;
-                        l = ( 2 * p_mean * f_mean + c1 ) / ( p_mean^2 + f_mean^2 + c1 );
-                        c = ( 2 * p_std * f_std + c2) / ( p_std^2 + f_std^2 + c2);
-                        s = ( cov_pf + c3) / ( p_std*f_std + c3 );
-                        c_ssim(pp,ff) = - l * c * s;
+                        c_l(pp,ff) = ( 2 * p_mean * f_mean + c1 ) / ( p_mean^2 + f_mean^2 + c1 );
+                        c_c(pp,ff) = ( 2 * p_std * f_std + c2) / ( p_std^2 + f_std^2 + c2);
+                        c_s(pp,ff) = ( cov_pf + c3) / ( p_std*f_std + c3 );
+                        c_ssim(pp,ff) = - c_l(pp,ff) * c_c(pp,ff) * c_s(pp,ff);
                         % ssim-ml: structural similarity index using Matlab
                         c_ssim_ml(pp,ff) = - ssim( proj_roi(:,:,pp), f ); %'DynamicRange', 'uint16'
                     end
@@ -711,6 +713,8 @@ elseif ~read_flatcor
                             corr_mat = normat( c_ssim_ml );
                         case 'cov'
                             corr_mat = normat( c_cov );
+                        case 'corr'
+                            corr_mat = normat( c_corr );
                     end
             end
         end
@@ -721,7 +725,7 @@ elseif ~read_flatcor
             [~, flat_corr_shift_min_pos_y] =  min ( abs( flat_corr_shift_2), [], 2);
                                     
             switch correlation_method
-                case 'cross'
+                case 'shift'
                     m = 2; n = 1;
                     
                     subplot(m,n,1);
@@ -735,39 +739,48 @@ elseif ~read_flatcor
                     axis  tight
                     title(sprintf('minimal absolute horizontal shift (unused)'))
                                    
-                case {'diff', 'std', 'entropy', 'ssim', 'ssim-ml', 'cov'}
-                    m = 1; n = 1;
+                case {'diff', 'std', 'entropy', 'ssim', 'ssim-ml', 'cov', 'corr'}
+                    m = 2; n = 1;
                     subplot(m,n,1);
                     %f = @(x) normat( min( x, [], 2));                    
                     f = @(x) normat(x(1,:))';
-                    Y = [f(c_diff1_l2), f(c_std), f(c_ent), f(c_cov), f(c_ssim), f(c_ssim_ml)];
+                    Y = [f(c_diff1_l2), f(c_std), f(c_ent), f(c_cov), f(c_corr), f(c_ssim), f(c_ssim_ml)];
                     %Y = [f(c_diff1_l1), f(c_diff1_l2), f(c_diff2_l1), f(c_diff2_l2)];
                     plot( Y, '-' )
-                    legend('iso diff L2', 'ratio std dev', 'ratio entropy', 'cov', 'ssim', 'ssim-ml' )
+                    legend('iso diff L2', 'ratio std dev', 'ratio entropy', 'cov', 'corr', 'ssim', 'ssim-ml' )
                     %legend('anisotropic L1', 'anisotropic L2', 'isotropic L1', 'isotropic L2')
                     axis tight
-                    title(sprintf('correlation measures: projection #1'))                    
+                    title(sprintf('correlation measures: projection #1'))
+                  
+                    
+                    subplot(m,n,2);
+                    f = @(x) normat(x(1,:))';
+                    Y = [ f(c_ssim), f(-c_l), f(-c_c), f(-c_s) ];
+                    plot( Y, '-' )
+                    legend('ssim', 'luminance', 'contrast', 'structure' )
+                    axis tight
+                    title(sprintf('SSIM and components: projection #1'))                 
             end            
             drawnow
         end
         
         switch correlation_method
-            case {'diff', 'std', 'entropy', 'ssim', 'ssim-ml', 'cov'}
+            case {'diff', 'std', 'entropy', 'ssim', 'ssim-ml', 'cov', 'corr'}
                 % single: best match
-                if corr_max_nflats == 1                    
-                    corr_cross_max_pixelshift = 0;
+                if corr_num_flats == 1                    
+                    corr_shift_max_pixelshift = 0;
                     
                     [~, pos] = min( abs( corr_mat ), [], 2 );
                     parfor nn = 1:num_proj_used
                         proj(:, :, nn) = proj(:, :, nn) ./ flat(:, :, pos(nn));
                     end
                     
-                    % multi: best matches
-                elseif corr_max_nflats > 1                                        
+                % multi: best matches
+                elseif corr_num_flats > 1                                        
                     % positions with smallest absolute difference values
-                    val = zeros( num_proj_used, corr_max_nflats );
+                    val = zeros( num_proj_used, corr_num_flats );
                     pos = val;
-                    for nn = 1:corr_max_nflats
+                    for nn = 1:corr_num_flats
                         [val(:,nn), pos(:,nn)] = min( abs( corr_mat ), [], 2 );
                         for mm = 1:num_proj_used
                             corr_mat(mm,pos(mm,nn)) = inf;
@@ -781,23 +794,23 @@ elseif ~read_flatcor
                     end
                 end
                 
-            case 'cross'
+            case 'shift'
                 % best match
-                if corr_cross_max_pixelshift == 0
+                if corr_shift_max_pixelshift == 0
                     corr_mat = flat_corr_shift_2;
                     [~, pos] = min( abs( corr_mat ), [], 2 );
                     parfor nn = 1:num_proj_used
                         proj(:, :, nn) = proj(:, :, nn) ./ flat(:, :, pos(nn));
                     end
                     
-                    % use all flats which are shifted less pixels than corr_cross_max_pixelshift
-                elseif corr_cross_max_pixelshift > 0
+                    % use all flats which are shifted less pixels than corr_shift_max_pixelshift
+                elseif corr_shift_max_pixelshift > 0
                     nflats = zeros(1, num_proj_used);
                     parfor nn = 1:num_proj_used
                         vec = 1:num_ref_used;
-                        flat_ind = vec( abs( flat_corr_shift_2(nn, :) ) < corr_cross_max_pixelshift );
-                        if numel( flat_ind ) > corr_max_nflats
-                            flat_ind( corr_max_nflats + 1:end ) = [];
+                        flat_ind = vec( abs( flat_corr_shift_2(nn, :) ) < corr_shift_max_pixelshift );
+                        if numel( flat_ind ) > corr_num_flats
+                            flat_ind( corr_num_flats + 1:end ) = [];
                         end
                         if isempty( flat_ind )
                             [~, flat_ind] = min( abs( flat_corr_shift_2(nn, :) ) );
@@ -806,12 +819,12 @@ elseif ~read_flatcor
                         proj(:, :, nn) = proj(:, :, nn) ./ squeeze( mean( flat(:, :, flat_ind), 3) );
                     end
                 else
-                    error('Value of maximum shift (%g) is not >= 0', corr_cross_max_pixelshift)
+                    error('Value of maximum shift (%g) is not >= 0', corr_shift_max_pixelshift)
                 end
         end
         
         PrintVerbose(verbose, ' Time elapsed: %.1f s (%.2f min)', toc - t, ( toc - t ) / 60 )
-        if strcmp( correlation_method, 'cross') && corr_cross_max_pixelshift > 0
+        if strcmp( correlation_method, 'shift') && corr_shift_max_pixelshift > 0
             PrintVerbose(verbose, '\n number of flats used per projection: [mean, min, max] = [%g, %g, %g]', mean( nflats ), min( nflats ), max( nflats) )
         end
     end
