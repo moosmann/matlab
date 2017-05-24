@@ -36,16 +36,15 @@ imStd  = std(im(:));
 fprintf('Size: %u x %u. ',dimx,dimy)
 %% Padding
 if PaddingFactor > 0
-    im = padarray(im,[ ceil(PaddingFactor*dimx/2), ceil(PaddingFactor*dimy/2)],'symmetric','pre');
-    im = padarray(im,[floor(PaddingFactor*dimx/2),floor(PaddingFactor*dimy/2)],'symmetric','post');
-    fprintf('Padded size: %u x %u. ',size(im)) 
+    im = padarray( im, [ PaddingFactor * dimx, PaddingFactor * dimy ], 'symmetric', 'post');    
+    fprintf('\nPadded size: %u x %u. ',size(im)) 
 end
 %% Subtract mean
 if subtractMean > 0
-    fprintf('Substract mean: %g. ',imMean)
+    fprintf('\nSubstract mean: %g',imMean)
     im = im - mean(im(:));
 else
-    fprintf('No substraction of mean. ')
+    fprintf('\nNo substraction of mean')
 end
 %% FT of image
 switch fftdir
@@ -58,12 +57,12 @@ switch fftdir
 end
 %% fftshift
 if doFFTshift > 0
-    fprintf('Do fftshift.\n')
+    fprintf('\nDo fftshift')
     im = fftshift(im);
     fprintf('Show: log( 10^(-%g) + abs( fftshift( fft2(im) ) ) )\n',epsilon)
 else
-    fprintf('No fftshift.\n')
-    fprintf('Show: log( 10^(-%g) + abs( fft2(im) ) )\n',epsilon)
+    fprintf('\nNo fftshift')
+    fprintf('\nShow: log( 10^(-%g) + abs( fft2(im) ) )\n',epsilon)
 end
 if ~PaddingFactor
     fprintf('No Padding. ')

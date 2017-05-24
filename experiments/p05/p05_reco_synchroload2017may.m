@@ -1,10 +1,13 @@
-function p05_reco_synchroload2017may(nums, doreco)
+function p05_reco_synchroload2017may(nums, doreco, print_field)
 
 if nargin < 1
     nums = [];
 end
 if nargin < 2
-    doreco = 1;
+    doreco = 0;
+end
+if nargin < 3
+    print_field = '';
 end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Parameter sets to loop over %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -13,6 +16,9 @@ end
 %% Default %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 nn = 0;
 default.visualOutput = 0;
+default.interactive_determination_of_rot_axis = 0;
+default.interactive_determination_of_rot_axis_tilt = 0;
+default.raw_roi = [];
 default.scan_path = '';
 default.raw_bin = 1;
 default.excentric_rot_axis = 0;
@@ -30,7 +36,7 @@ default.phase_padding = 1;
 default.do_tomo = 1;
 default.ring_filter = 1;
 default.rot_axis_offset = [];
-default.rot_axis_tilt = [];
+default.rot_axis_tilt = 0.001;
 default.parfolder = '';
 default.write_to_scratch = 0;
 default.write_flatcor = 1;
@@ -47,7 +53,7 @@ default.write_16bit = 0;
 %% Data sets %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% 2017 May
 raw = '/asap3/petra3/gpfs/p05/2017/data/11003950/raw/';
-
+default.raw_roi = [265 1464];
 nn = nn + 1;para(nn) = default;para(nn).scan_path = [raw 'syn01_48L_PEEK_12w_b'];
 nn = nn + 1;para(nn) = default;para(nn).scan_path = [raw 'syn01_48L_PEEK_12w_c'];
 nn = nn + 1;para(nn) = default;para(nn).scan_path = [raw 'syn02_46R_PEEK_12w_a'];
@@ -71,6 +77,7 @@ nn = nn + 1;para(nn) = default; para(nn).scan_path = [raw 'syn13_55L_Mg10Gd_12w_
 nn = nn + 1;para(nn) = default; para(nn).scan_path = [raw 'syn13_55L_Mg10Gd_12w_load_20'];
 nn = nn + 1;para(nn) = default; para(nn).scan_path = [raw 'syn13_55L_Mg10Gd_12w_load_22'];
 nn = nn + 1;para(nn) = default; para(nn).scan_path = [raw 'syn13_55L_Mg10Gd_12w_load_24_noload'];
+default.raw_roi = [1211 2410];
 nn = nn + 1;para(nn) = default; para(nn).scan_path = [raw 'syn14_48L_PEEK_12w_a'];
 nn = nn + 1;para(nn) = default; para(nn).scan_path = [raw 'syn14_48L_PEEK_12w_b'];
 nn = nn + 1;para(nn) = default; para(nn).scan_path = [raw 'syn15_29R_PEEK_8w_a'];
@@ -78,6 +85,7 @@ nn = nn + 1;para(nn) = default; para(nn).scan_path = [raw 'syn15_29R_PEEK_8w_b']
 nn = nn + 1;para(nn) = default; para(nn).scan_path = [raw 'syn16_43R_PEEK_12w_a'];
 nn = nn + 1;para(nn) = default; para(nn).scan_path = [raw 'syn16_43R_PEEK_12w_b'];
 nn = nn + 1;para(nn) = default; para(nn).scan_path = [raw 'syn17_25R_PEEK_8w_a'];
+default.raw_roi = [];
 
 % Radio after load increase before tomography
 nn = nn + 1;para(nn) = default; para(nn).scan_path = [raw 'syn13_55L_Mg10Gd_12w_load_01'];para(nn).do_tomo = 0;
@@ -92,6 +100,51 @@ nn = nn + 1;para(nn) = default; para(nn).scan_path = [raw 'syn13_55L_Mg10Gd_12w_
 nn = nn + 1;para(nn) = default; para(nn).scan_path = [raw 'syn13_55L_Mg10Gd_12w_load_19'];para(nn).do_tomo = 0;
 nn = nn + 1;para(nn) = default; para(nn).scan_path = [raw 'syn13_55L_Mg10Gd_12w_load_21'];para(nn).do_tomo = 0;
 
+nn = nn + 1;para(nn) = default; para(nn).scan_path = [raw 'syn13_55L_Mg10Gd_12w_load_00'];
+para(nn).raw_bin = 1;
+para(nn).do_phase_retrieval = 1;
+para(nn).phase_retrieval_method = 'tie';
+para(nn).phase_retrieval_reg_par = 2.5; 
+para(nn).phase_retrieval_bin_filt = 0.15; 
+para(nn).phase_retrieval_cutoff_frequ = 1 * pi; 
+para(nn).phase_padding = 1; 
+para(nn).write_8bit = 1;
+para(nn).write_8bit_binned = 1;
+
+nn = nn + 1;para(nn) = para(nn-1);
+para(nn).phase_retrieval_reg_par = 1.5; 
+
+nn = nn + 1;para(nn) = para(nn-1);
+para(nn).phase_retrieval_reg_par = 3.5; 
+
+nn = nn + 1;para(nn) = para(nn-1); 
+para(nn).phase_retrieval_method = 'qp';
+para(nn).phase_retrieval_reg_par = 2.5; 
+
+nn = nn + 1;para(nn) = para(nn-1); 
+para(nn).phase_retrieval_method = 'qpcut';
+
+% CPD straw II
+default.raw_roi = [ 211 1420];
+nn = nn + 1;para(nn) = default; para(nn).scan_path = [raw 'syn22_77L_Mg5Gd_8w_a'];
+nn = nn + 1;para(nn) = default; para(nn).scan_path = [raw 'syn22_77L_Mg5Gd_8w_b'];
+nn = nn + 1;para(nn) = default; para(nn).scan_path = [raw 'syn22_80L_Mg5Gd_8w_a'];
+nn = nn + 1;para(nn) = default; para(nn).scan_path = [raw 'syn22_80L_Mg5Gd_8w_b'];
+nn = nn + 1;para(nn) = default; para(nn).scan_path = [raw 'syn22_87L_Mg5Gd_4w_a'];
+nn = nn + 1;para(nn) = default; para(nn).scan_path = [raw 'syn22_87L_Mg5Gd_4w_b'];
+nn = nn + 1;para(nn) = default; para(nn).scan_path = [raw 'syn22_88R_Mg5Gd_4w_a'];
+nn = nn + 1;para(nn) = default; para(nn).scan_path = [raw 'syn22_88R_Mg5Gd_4w_b'];
+nn = nn + 1;para(nn) = default; para(nn).scan_path = [raw 'syn22_99L_Mg5Gd_4w_a'];
+nn = nn + 1;para(nn) = default; para(nn).scan_path = [raw 'syn22_99L_Mg5Gd_4w_b'];
+para(nn).visualOutput = 1;
+para(nn).interactive_determination_of_rot_axis = 1;
+para(nn).interactive_determination_of_rot_axis_tilt = 1;
+% CPD straw II:top
+nn = nn + 1;para(nn) = default; para(nn).scan_path = [raw 'syn23_28R_PEEK_8w_a'];
+nn = nn + 1;para(nn) = default; para(nn).scan_path = [raw 'syn23_28R_PEEK_8w_b'];
+
+%default.raw_roi = [ ];
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-p05_reco_loop( nums, doreco, para)
+p05_reco_loop( nums, doreco, print_field, para)

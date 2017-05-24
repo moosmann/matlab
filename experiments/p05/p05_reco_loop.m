@@ -1,4 +1,4 @@
-function p05_reco_loop(nums, doreco, para)
+function p05_reco_loop(nums, doreco, print_field, para)
 % Script to loop over parameter sets related to paramters of scritp
 % 'p05_reco'. Set parameters to loop over as elements of the structure
 % array 'para' below. Fieldnames of 'para' MUST match the names of
@@ -13,11 +13,15 @@ function p05_reco_loop(nums, doreco, para)
 %
 % Written by Julian Moosmann. First version: 2017-02-15. Last: 2017-05-16
 
+%% Default arguments %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 if nargin < 1
     nums = [];
 end
 if nargin < 2
     doreco = 1;
+end
+if nargin < 3
+    print_field = '';
 end
 
 %% Main %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -33,7 +37,25 @@ if ~isempty(nums)
         num = nums(nn);
         external_parameter = para(num);
         [~, name] = fileparts( external_parameter.scan_path );
-        fprintf('\n%3u : %s', num, name )                
+        if ~isempty(print_field)
+            if nn == 1
+                fprintf( '\n' )
+            end
+            if iscell(print_field)
+                fprintf('%3u : %s\n', num, name )
+                for mm = 1:numel( print_field )                    
+                    fprintf( '        %s = ', print_field{mm})
+                    disp( external_parameter.(print_field{mm}) )
+                end
+            else
+                fprintf('%3u : %s', num, name )
+                fprintf( ', %s = ', print_field)
+                disp( external_parameter.(print_field) )
+            end
+            
+        else
+            fprintf('\n%3u : %s', num, name )
+        end
     end
 end
 
@@ -45,7 +67,7 @@ if ~isempty( nums ) && doreco
         
         external_parameter = para(num);
         [~, name] = fileparts( external_parameter.scan_path );
-        fprintf('\nRECONSTRUCTION OF DATA SET NUMBER : %u : %s\n', num, name )
+        fprintf('\nRECONSTRUCTION OF DATA SET NUMBER %u : %s\n', num, name )
         
         p05_reco                
     end

@@ -1,10 +1,13 @@
-function p05_reco_synchroload2016nov(nums, doreco)
+function p05_reco_synchroload2016nov(nums, doreco, print_field)
 
 if nargin < 1
     nums = [];
 end
 if nargin < 2
     doreco = 1;
+end
+if nargin < 3
+    print_field = '';
 end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Parameter sets to loop over %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -40,8 +43,8 @@ default.write_sino_phase = 0;
 default.write_reco = 1; 
 default.write_float = 1; 
 default.write_float_binned = 1; 
-default.write_8bit = 1;
-default.write_8bit_binned = 1;
+default.write_8bit = 0;
+default.write_8bit_binned = 0;
 default.write_16bit = 0; 
 
 %% Data sets %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -347,4 +350,4 @@ para(nn).rot_axis_tilt = -0.003;
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-p05_reco_loop( nums, doreco, para)
+p05_reco_loop( nums, doreco, print_field, para)
