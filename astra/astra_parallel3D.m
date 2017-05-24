@@ -1,4 +1,4 @@
-function vol = astra_parallel3D(sino, angles, rotation_axis_offset, vol_shape, vol_size, pixel_size, link_data, tilt)
+function vol = astra_parallel3D(sino, angles, rotation_axis_offset, vol_shape, vol_size, pixel_size, link_data, tilt, gpu_index)
 % Parallel backprojection of 2D or 3D sinograms using ASTRA's
 % parallel 3D geometry with vector notation. 
 %
@@ -20,14 +20,22 @@ function vol = astra_parallel3D(sino, angles, rotation_axis_offset, vol_shape, v
 % Changes by ASTRA are visible to MATLAB. Changes by MATLAB creates a copy
 % of the data object and are not visible to the data object. Take care if 
 % using data links.
+% tilt: scalar, tilt of rotation axis perpendicular to the beam. this accounts for
+% a rotation of the camera
+% gpu_index: scalar, MATLAB index of GPU device to use. default: [], uses
+% all available GPUs. Matlab index notation starts from 1, ASTRA index
+% starts from 0. Here, MATLAB index notation is used.
 %
 % For GPUs the only interpolation method available in ASTRA is the Josehp
 % kernel.
 %
 % Written by Julian Moosmann
-% First version: 2016-10-5. Last modification: 2016-10-26
+% First version: 2016-10-5. Last modification: 2017-05-20
 
 %% TODO: test double precision support
+%% TODO: tilt w.r.t. beam direction (laminography)
+%% TODO: proper Ram-Lak filter for tilted axis
+%% TODO: check normalization factor pi / (2 * # angles)
 
 %% Default arguments %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 if nargin < 2
@@ -51,11 +59,18 @@ end
 if nargin < 8
     tilt = 0;
 end
+if nargin < 9
+    gpu_index = [];
+end
 
 %% Main %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % GPU
-astra_mex('set_gpu_index', 0:gpuDeviceCount - 1);
+if isempty( gpu_index )
+    astra_mex('set_gpu_index', 0:gpuDeviceCount - 1);
+else
+    astra_mex('set_gpu_index', gpu_index - 1);
+end
 
 %% Detector geometry
 det_col_count = size( sino, 1);
