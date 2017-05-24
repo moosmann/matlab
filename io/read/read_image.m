@@ -1,4 +1,4 @@
-function im = read_image(filename, filetype)
+function im = read_image(filename, filetype, roi)
 % Reads 'tif', 'img', 'dar', 'ref', and 'edf' images and all the files
 % MATLAB's imread function can read without additional arguments than file
 % format.
@@ -14,6 +14,11 @@ function im = read_image(filename, filetype)
 if nargin < 2
     filetype = '';
 end
+if nargin < 3
+    roi = [];
+end
+
+%% TODO: roi support for edf and tiff files
 
 %% Main %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 warning( 'off', 'MATLAB:imagesci:rtifc:missingPhotometricTag');
@@ -31,7 +36,8 @@ switch lower( filetype )
     case {'tif', 'tiff'}
         im = imread( filename, 'tif' )';
     case {'img', 'dar', 'ref'}
-        im = read_dat( filename );
+        %im = read_dat( filename, roi );
+        im = read_dat_jm( filename, roi );
     otherwise
         im = imread( filename, filetype )';
 end

@@ -9,7 +9,7 @@
 % History: Written by Tilman Donath, 7.1.2007 
 %
 %  22.1.2009, Tilman Donath: Debugged the file selection
-%
+% Modified by Julian Moosmann, 2017-05-20
 
 
 function [data] = read_dat(filename)
@@ -34,7 +34,7 @@ end
 % Read header and interprete
 header = fgets(fid);
 
-pos = findstr('_', header);
+pos = strfind(header, '_');
 if (numel(pos) < 3) 
     error('Wrong header information.');
 end
@@ -46,11 +46,17 @@ type = header((pos(2) + 1):(pos(3) - 1));
 if (numel(pos) < (3 + ndim)) 
     error('Wrong header information.');
 end
-si=[];
-for i_dim = 0:(ndim - 1)
-    thisdim = str2double(header((pos(3 + i_dim) + 1):(pos(3 + i_dim + 1) - 1)));
-    si = [si, thisdim];
+
+% si=[];
+% for i_dim = 0:(ndim - 1)
+%     thisdim = str2double(header((pos(3 + i_dim) + 1):(pos(3 + i_dim + 1) - 1)));
+%     si = [si, thisdim];
+% end
+si = zeros(1,2);
+for i_dim = 0:(ndim - 1)    
+    si(i_dim+1) = str2double(header((pos(3 + i_dim) + 1):(pos(3 + i_dim + 1) - 1)));
 end
+
 % Header information by user included
 % if (numel(pos) > (3 + ndim))
 %     header_info = header((pos(3 + ndim) + 1):(numel(header) - 1));
@@ -75,7 +81,7 @@ end
 %fwrite(fid, data, cl);
 %[data, count] = fread(fid, inf, cl);
 %STATUS = fseek(fid, 1, 'cof') 
-data = fread(fid, inf, [cl '=>' cl]);
+[data, cnt] = fread(fid, inf, [cl '=>' cl]);
 
 % Close the file
 fclose(fid);
