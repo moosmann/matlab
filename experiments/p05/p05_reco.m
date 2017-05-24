@@ -18,8 +18,9 @@
 close all
 % INPUT %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %scan_path = pwd; % Enter folder of data set under the raw directory and run script
-scan_path = ...
-    '/asap3/petra3/gpfs/p05/2017/data/11003950/raw/syn13_55L_Mg10Gd_12w_load_18';
+scan_path = ...        
+'/asap3/petra3/gpfs/p05/2017/data/11003950/raw/syn01_48L_PEEK_12w_b';
+'/asap3/petra3/gpfs/p05/2017/data/11003950/raw/syn13_55L_Mg10Gd_12w_load_00';
 '/asap3/petra3/gpfs/p05/2016/data/11001978/raw/mah_32_15R_top_occd800_withoutpaper'; % too much fringes, not enough coherence probably, using standard phase retrieval reco looks blurry
 '/asap3/petra3/gpfs/p05/2016/data/11001978/raw/mah_28_15R_bottom';
 '/asap3/petra3/gpfs/p05/2016/commissioning/c20160920_000_diana/raw/Mg-10Gd39_1w';
@@ -33,12 +34,13 @@ scan_path = ...
 '/asap3/petra3/gpfs/p05/2015/data/11001102/raw/hzg_wzb_mgag_02';
 '/asap3/petra3/gpfs/p05/2016/data/11001464/raw/pnl_16_petrosia_c';
 '/asap3/petra3/gpfs/p05/2016/commissioning/c20161024_000_xeno/raw/xeno_01_b';
-read_flatcor = 0; % Read flatfield-corrected images from disc. Skips preprocessing
+read_flatcor = 0; % read flatfield-corrected images from disc, skips preprocessing
 read_flatcor_path = ''; % subfolder of 'flat_corrected' containing projections
-% PREPROCESSING %%%%%%p%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% PREPROCESSING %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+raw_roi = [201 1410]; % vertical roi for dat. skips first raw_roi(1)-1 lines, reads until raw_roi(2)
 raw_bin = 1; % projection binning factor: 1, 2, or 4
 excentric_rot_axis = 0; % off-centered rotation axis increasing FOV. -1: left, 0: centeerd, 1: right. influences rot_corr_area1
-crop_at_rot_axis = 0; % do not use in combination with ???
+crop_at_rot_axis = 0; % recommended for scans with excentric rotation axis when no projection stitching is done
 stitch_projections = 0; % stitch projection (for 2 pi scans) at rotation axis position. "doubles" number of voxels
 stitch_method = 'sine'; % 'step': no interpolation, 'linear','sine': linear interpolation of overlap region. !!! adjust: correlation area
 proj_range = 1; % range of projections to be used (from all that are found). if empty: all, if scalar: stride
@@ -56,7 +58,7 @@ corr_num_flats = 3; % number of flat fields used for average/median of flats. fo
 norm_by_ring_current = 1; % normalize flat fields and projections by ring current
 flat_corr_area1 = [1 floor(100/raw_bin)]; % correlation area: index vector or relative/absolute position of [first pix, last pix]
 flat_corr_area2 = [0.2 0.8]; %correlation area: index vector or relative/absolute position of [first pix, last pix]
-round_precision = 2; % precision when rounding pixel shifts
+decimal_round_precision = 2; % precision when rounding pixel shifts
 ring_filter = 1; % ring artifact filter
 ring_filter_median_width = 11;
 % Phase retrieval %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -70,7 +72,7 @@ energy = []; % in eV. if empty: read from log file
 sample_detector_distance = []; % in m. if empty: read from log file
 eff_pixel_size = []; % in m. if empty: read from log file. effective pixel size =  detector pixel size / magnification
 % Tomography parameters %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-do_tomo = 0; % run tomographic reconstruction
+do_tomo = 1; % run tomographic reconstruction
 vol_shape = [];% shape of the volume to be reconstructed, either in absolute number of voxels or in relative number w.r.t. the default volume which is given by the detector width and height
 vol_size = []; % if empty, unit voxel size is assumed
 rot_angle_full = []; % in radians: empty ([]), full angle of rotation, or array of angles. if empty full rotation angles is determined automatically to pi or 2 pi
@@ -92,8 +94,6 @@ astra_pixel_size = 1; % size of a detector pixel: if different from one 'vol_siz
 take_neg_log = []; % take negative logarithm. if empty, use 1 for attenuation contrast, 0 for phase contrast
 % Output %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 out_path = '';% absolute path were output data will be stored. !!overwrites the write_to_scratch flag. if empty uses the beamtime directory and either 'processed' or 'scratch_cc'
-%out_path = '/gpfs/petra3/scratch/moosmanj';
-%out_path = '/asap3/petra3/gpfs/p05/2016/data/11001978/scratch_cc/c20160803_001_pc_test';
 write_to_scratch = 0; % write to 'scratch_cc' instead of 'processed'
 write_flatcor = 1; % save preprocessed flat corrected projections
 write_phase_map = 1; % save phase maps (if phase retrieval is not 0)
@@ -110,34 +110,34 @@ compression = 'full'; 'std'; 'threshold';'histo'; % method of compression of dyn
 compression_std_num = 5; % dynamic range: mean(volume) +/- NUM* std(volume)
 compression_threshold = [-1 1]; % dynamic range: [MIN MAX]
 compression_histo = [0.05 0.05]; % [LOW HIGH]. crop dynamic range to values between (100*LOW)% and (100*HIGH)% of the original histogram
-parfolder = ''; % parent folder of 'reco', 'sino', and 'flat_corrected'
-subfolder_flatcor = ''; % subfolder of 'flat_corrected'
-subfolder_phase_map = ''; % subfolder of 'phase_map'
-subfolder_sino = ''; % subfolder of 'sino'
-subfolder_reco = '';%sprintf('fbpFilt%s_ringFilt%uMedWid%u_bwFilt%ubwCutoff%u_phasePad%u_freqCutoff%2.0f_fbpPad%u', fbp_filter_type, ring_filter, ring_filter_median_width, butterworth_filter, 100*butterworth_cutoff_frequ, phase_padding, fpb_freq_cutoff*100, fbp_filter_padding); % parent folder to 'reco'
+parfolder = ''; % parent folder for 'reco', 'sino', 'phase', and 'flat_corrected'
+subfolder_flatcor = ''; % subfolder in 'flat_corrected'
+subfolder_phase_map = ''; % subfolder in 'phase_map'
+subfolder_sino = ''; % subfolder in 'sino'
+subfolder_reco = ''; % subfolder in 'reco'
 % INTERACTION %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 verbose = 1; % print information to standard output
 visualOutput = 1; % show images and plots during reconstruction
-interactive_determination_of_rot_axis = 0; % reconstruct slices with different offsets and tilts of the rotation axis
+interactive_determination_of_rot_axis = 1; % reconstruct slices with different rotation axis offsets
+interactive_determination_of_rot_axis_tilt = 1; % reconstruct slices with different offset AND tilts of the rotation axis
 interactive_determination_of_rot_axis_slice = 0.5; % slice number, default: 0.5. if in [0,1): relative, if in (1, N]: absolute
 % HARDWARE / SOFTWARE %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-poolsize = 0.85; % number of workers used in a parallel pool. if > 1: absolute number. if 0 < poolsize < 1: relative amount of all cores to be used
+poolsize = 0.80; % number of workers used in a parallel pool. if > 1: absolute number. if 0 < poolsize < 1: relative amount of all cores to be used
 link_data = 1; % ASTRA data objects become references to Matlab arrays.
+gpu_ind = []; % GPU Device index to use, Matlab notation: index starts from 1. default: [], uses all
 
 %% TODO %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% TODO: exclude crop_at_rot_axis with stitch_projections
-% TODO: test and optimize SSIM
-% TODO: correlate flat fields before flat field correction
-% TODO: make interactive rot_axis_tilt optional
+% TODO: check proj-flat correlation measure for absolute values
+% TODO: check crop_at_rot_axis option with stitch_projections, etc
+% TODO: SSIM: include Gaussian blur filter, test
 % TODO: check attenutation values of reconstructed slice are consitent
 % TODO: large data set management: parloop, memory, etc
 % TODO: stitching: optimize and refactor, memory efficency, interpolation method
 % TODO: interactive loop over tomo slices for different phase retrieval parameter
 % TODO: automatic determination of rot center
-% TODO: output file format option: 8-bit, 16-bit. Currently 32 bit tiff.
+% TODO: output file format option: 8-bit, 16-bit for all saved images
 % TODO: normalize proj with beam current for KIT camera AND missing images
-% TODO: vertical ROI reco
-% TODO: read image ROI only, test for speed impprovement
+% TODO: raw vertical ROI for tiff images (KIT camera)
 % TODO: additional padding schemes for FBP filter
 % TODO: read sinogram option
 % TODO: set photometric tag for tif files w/o one, turn on respective warning
@@ -146,9 +146,9 @@ link_data = 1; % ASTRA data objects become references to Matlab arrays.
 % TODO: check offset: proj correlation for rotation axis determination
 % TODO: check offset: flat/proj correlation 
 % TODO: delete files before writing data to a folder
-% TODO: log file location for non-tomo processing
 % TODO: inverse Gaussian filter for phase retrieval, VZC theorem
 % TODO: flat-flat correlation and averaging before proj-flat correlation
+% TODO: proj-flat correlation: take negative logarithm or not?
 
 %% Notes %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -295,11 +295,14 @@ PrintVerbose(verbose, '\n reco_path : %s', reco_path)
 % Memory
 [mem_free, mem_avail, mem_total] = free_memory;
 PrintVerbose(verbose, '\n system memory: free, available, total : %.3g GiB, %.3g GiB, %.3g GiB', mem_free/1024^3, mem_avail/1024^3, mem_total/1024^3)
-for ii = 1:gpuDeviceCount
-    gpu = gpuDevice( ii );
-    reset( gpu );
-    gpu = gpuDevice( ii );
-    PrintVerbose(verbose, '\n gpu %u : memory: available, total, percent : %.3g GiB, %.3g GiB, %.2f%%', ii, gpu.AvailableMemory/1024^3, gpu.TotalMemory/1024^3, 100*gpu.AvailableMemory/gpu.TotalMemory)
+if isempty( gpu_ind )
+   gpu_ind = 1:gpuDeviceCount;
+end
+for nn = gpu_ind
+    %gpu = gpuDevice( nn );
+    %reset( gpu );
+    gpu = gpuDevice( nn );
+    PrintVerbose(verbose, '\n gpu %u : memory: available, total, percent : %.3g GiB, %.3g GiB, %.2f%%', nn, gpu.AvailableMemory/1024^3, gpu.TotalMemory/1024^3, 100*gpu.AvailableMemory/gpu.TotalMemory)
 end
 
 %% File names
@@ -354,25 +357,21 @@ PrintVerbose(verbose, '\n projection range used : first:stride:last =  %g:%g:%g'
 
 %% Image shape and ROI
 filename = sprintf('%s%s', scan_path, dark_names{1});
-im = read_image( filename );
-raw_im_shape = size( im );
+im_raw = read_image( filename );
+raw_im_shape_raw = size( im_raw );
+im_roi = read_image( filename, '', raw_roi );
+raw_im_shape = size( im_roi );
 raw_im_shape_binned = floor( raw_im_shape / raw_bin );
 raw_im_shape_binned1 = raw_im_shape_binned(1);
 raw_im_shape_binned2 = raw_im_shape_binned(2);
-PrintVerbose(verbose, '\n raw image shape : %g  %g', raw_im_shape)
+PrintVerbose(verbose, '\n raw image shape : %g  %g', raw_im_shape_raw)
+PrintVerbose(verbose, '\n raw image shape roi : %g  %g', raw_im_shape)
 PrintVerbose(verbose, '\n raw image shape binned : %g  %g', raw_im_shape_binned)
 
 %% P05 log-file
 str = dir( sprintf( '%s*scan.log', scan_path) );
 filename = sprintf( '%s/%s', str.folder, str.name);
 [par, cur, cam] = p05_log( filename );
-% Dynamic range
-switch lower( cam )
-    case 'kit'
-        L = 2^12;
-    case 'ehd'
-        L = 2^16;
-end
 if isempty( energy )
     if isfield( par, 'Energy' )
         energy = par.Energy;
@@ -451,7 +450,7 @@ elseif ~read_flatcor
     darks = zeros( [raw_im_shape_binned, num_dark], 'single');
     parfor nn = 1:num_dark
         filename = sprintf('%s%s', scan_path, dark_names{nn});
-        im = single( read_image( filename ) );
+        im = single( read_image( filename, '', raw_roi) );
         % Remove large outliers. Assume Poisson distribtion at large lambda
         % is approximately a Gaussian distribution and set all value above
         % mean + 4 * std (99.994 of values lie within 4 std). Due to
@@ -488,7 +487,7 @@ elseif ~read_flatcor
     % Parallel loop
     parfor nn = 1:num_ref_used
         filename = sprintf('%s%s', scan_path, ref_names_mat(nn, :));
-        flat(:, :, nn) = Binning( FilterPixel( read_image( filename ), [refFiltPixHot refFiltPixDark]), raw_bin) / raw_bin^2;
+        flat(:, :, nn) = Binning( FilterPixel( read_image( filename, '', raw_roi ), [refFiltPixHot refFiltPixDark]), raw_bin) / raw_bin^2;
         % Check for zeros
         num_zeros =  sum( sum( flat(:,:,nn) < 1 ) );
         if num_zeros > 0
@@ -557,11 +556,11 @@ elseif ~read_flatcor
     if visualOutput(1)
         figure(h1)
         filename = sprintf('%s%s', scan_path, img_names_mat(1, :));
-        raw1 = Binning( FilterPixel( read_image( filename ), [projFiltPixHot, projFiltPixDark]), raw_bin) / raw_bin^2;
+        raw1 = Binning( FilterPixel( read_image( filename, '', raw_roi ), [projFiltPixHot, projFiltPixDark]), raw_bin) / raw_bin^2;
         subplot(2,2,3)
         imsc1( raw1 )
         axis equal tight
-        title(sprintf('raw projection #1'))
+        title(sprintf('raw projection #1 (roi)'))
         drawnow
         colorbar
     end
@@ -569,7 +568,7 @@ elseif ~read_flatcor
     % Read raw projections
     parfor nn = 1:num_proj_used
         filename = sprintf('%s%s', scan_path, img_names_mat(nn, :));
-        proj(:, :, nn) = Binning( FilterPixel( read_image( filename ), [projFiltPixHot, projFiltPixDark]), raw_bin) / raw_bin^2;
+        proj(:, :, nn) = Binning( FilterPixel( read_image( filename, '', raw_roi ), [projFiltPixHot, projFiltPixDark]), raw_bin) / raw_bin^2;
     end
     raw_min = min( proj(:) );
     raw_max = max( proj(:) );
@@ -616,9 +615,10 @@ elseif ~read_flatcor
     end
     PrintVerbose(verbose, ' Time elapsed: %.1f s (%.2f min)', toc - t, ( toc - t ) / 60 )
     
-    % Correlate shifted flat fields
+    % Correlate flat fields
     if correlate_proj_flat
-        PrintVerbose(verbose, '\nCorrect beam shake.')
+        PrintVerbose(verbose, '\nCorrelate projections and flat-fields.')
+        t = toc;
         % Correlation ROI
         flat_corr_area1 = IndexParameterToRange(flat_corr_area1, raw_im_shape_binned(1));
         flat_corr_area2 = IndexParameterToRange(flat_corr_area2, raw_im_shape_binned(2));
@@ -650,10 +650,19 @@ elseif ~read_flatcor
                         % convolution of complex conjugate of p(-x), i.e.
                         % rot180(p) and f(x)
                         out = ImageCorrelation(proj_roi(:,:,pp), flat_ff, 0, 0, 0, 0, 1);
-                        flat_corr_shift_1(pp,ff) = round( out.shift1, round_precision );
-                        flat_corr_shift_2(pp,ff) = round( out.shift2, round_precision) ; % relevant shift
+                        flat_corr_shift_1(pp,ff) = round( out.shift1, decimal_round_precision );
+                        flat_corr_shift_2(pp,ff) = round( out.shift2, decimal_round_precision) ; % relevant shift
                     end
                 case {'diff', 'std', 'entropy', 'ssim', 'ssim-ml', 'cov', 'corr'}
+                    % Dynamic range of camera for SSIM
+%                     switch lower( cam )
+%                         case 'kit'
+%                             L = 2^12;
+%                         case 'ehd'
+%                             L = 2^16;
+%                     end
+                    %L = round(max(max(flat_roi(:)),max(flat_roi(:))) - min(min(flat_roi(:)),min(flat_roi(:))));
+                    L = 1;
                     parfor pp = 1:num_proj_used
                         % projection
                         p = proj_roi(:,:,pp); 
@@ -694,30 +703,15 @@ elseif ~read_flatcor
                         c2 = ( 0.03 * L )^2;
                         c3 = c2 / 2;
                         c_l(pp,ff) = ( 2 * p_mean * f_mean + c1 ) / ( p_mean^2 + f_mean^2 + c1 );
-                        c_c(pp,ff) = ( 2 * p_std * f_std + c2) / ( p_std^2 + f_std^2 + c2);
-                        c_s(pp,ff) = ( cov_pf + c3) / ( p_std*f_std + c3 );
+                        c_c(pp,ff) = ( 2 * p_std * f_std + c2 ) / ( p_std^2 + f_std^2 + c2 );
+                        c_s(pp,ff) = ( cov_pf + c3) / ( p_std * f_std + c3 );
                         c_ssim(pp,ff) = - c_l(pp,ff) * c_c(pp,ff) * c_s(pp,ff);
                         % ssim-ml: structural similarity index using Matlab
                         c_ssim_ml(pp,ff) = - ssim( proj_roi(:,:,pp), f ); %'DynamicRange', 'uint16'
                     end
-                    switch correlation_method
-                        case 'diff'
-                            corr_mat = normat( c_diff1_l2 );
-                        case 'std'
-                            corr_mat = normat( c_std );
-                        case 'entropy'
-                            corr_mat = normat( c_ent );
-                        case 'ssim'
-                            corr_mat = normat( c_ssim );
-                        case 'ssim-ml'
-                            corr_mat = normat( c_ssim_ml );
-                        case 'cov'
-                            corr_mat = normat( c_cov );
-                        case 'corr'
-                            corr_mat = normat( c_corr );
-                    end
             end
         end
+        PrintVerbose(verbose, ' Time elapsed: %.1f s (%.2f min)', toc - t, ( toc - t ) / 60 )
         
         if visualOutput(1)
             h2 = figure('Name', 'Correlation of raw data and flat fields');
@@ -759,39 +753,63 @@ elseif ~read_flatcor
                     plot( Y, '-' )
                     legend('ssim', 'luminance', 'contrast', 'structure' )
                     axis tight
-                    title(sprintf('SSIM and components: projection #1'))                 
+                    title(sprintf('SSIM and components: projection #1'))
+                    
+                    
+                    [c_diff1_l2_val,c_diff1_l2_pos] = sort( c_diff1_l2, 2 );
+                    [c_std_val,c_std_pos] = sort( c_std, 2 );    
+                    [c_ent_val,c_ent_pos] = sort( c_ent, 2 );                        
+                    [c_cov_val,c_cov_pos] = sort( c_cov, 2 );
+                    [c_corr_val,c_corr_pos] = sort( c_corr, 2 );    
+                    [c_ssim_val,c_ssim_pos] = sort( c_ssim, 2 );
+                    [c_ssim_ml_val,c_ssim_ml_pos] = sort( c_ssim_ml, 2 );
+                    
+%                     pp = 1;
+%                     nn = 20;
+%                     pos = c_ent_pos(pp,1:nn);
+%                     f = permute(flat_roi(:,:,pos), [2 1 3]);
+%                     f = f(:,:);
+%                     c = repmat( permute( proj_roi(:,:,pp) ,[2 1 3] ), [1 nn] ) ./ f;                    
+%                     
+                            
+                            
+                            
+                            
+                            
+                            
             end            
             drawnow
         end
         
+        PrintVerbose(verbose, '\nFlat- and dark-field correction.')
+        t = toc;
         switch correlation_method
             case {'diff', 'std', 'entropy', 'ssim', 'ssim-ml', 'cov', 'corr'}
-                % single: best match
-                if corr_num_flats == 1                    
-                    corr_shift_max_pixelshift = 0;
-                    
-                    [~, pos] = min( abs( corr_mat ), [], 2 );
-                    parfor nn = 1:num_proj_used
-                        proj(:, :, nn) = proj(:, :, nn) ./ flat(:, :, pos(nn));
-                    end
-                    
-                % multi: best matches
-                elseif corr_num_flats > 1                                        
-                    % positions with smallest absolute difference values
-                    val = zeros( num_proj_used, corr_num_flats );
-                    pos = val;
-                    for nn = 1:corr_num_flats
-                        [val(:,nn), pos(:,nn)] = min( abs( corr_mat ), [], 2 );
-                        for mm = 1:num_proj_used
-                            corr_mat(mm,pos(mm,nn)) = inf;
-                        end
-                    end
-                    
-                    % Flat field correction
-                    parfor nn = 1:num_proj_used
-                        flat_ind = pos(nn,:);
-                        proj(:, :, nn) = proj(:, :, nn) ./ squeeze( mean( flat(:, :, flat_ind), 3) );
-                    end
+                switch correlation_method
+                    case 'diff'
+                        corr_mat = c_diff1_l2;
+                    case 'std'
+                        corr_mat = c_std;
+                    case 'entropy'
+                        corr_mat = c_ent;
+                    case 'ssim'
+                        corr_mat = c_ssim;
+                    case 'ssim-ml'
+                        corr_mat = c_ssim_ml;
+                    case 'cov'
+                        corr_mat = c_cov;
+                    case 'corr'
+                        corr_mat = c_corr;
+                end                
+                [corr_mat_val, corr_mat_pos] = sort( normat( corr_mat ), 2);
+                % Save correlation matrix
+                CheckAndMakePath( flatcor_path )
+                save( sprintf( '%s/corr_mat_val.mat', flatcor_path), 'corr_mat_val' )
+                save( sprintf( '%s/corr_mat_pos.mat', flatcor_path), 'corr_mat_pos' )
+                flat_ind = corr_mat_pos(:,1:corr_num_flats);
+                % Flat field correction
+                parfor nn = 1:num_proj_used                    
+                    proj(:, :, nn) = proj(:, :, nn) ./ squeeze( mean( flat(:, :, flat_ind(nn,:)), 3) );
                 end
                 
             case 'shift'
@@ -895,7 +913,7 @@ elseif ~read_flatcor
             filename = sprintf('%sproj_%06u.tif', flatcor_path, nn );
             write32bitTIFfromSingle(filename, rot90( proj(:, :, nn) ) );
         end
-        PrintVerbose(verbose, ' Time elapsed: %g .0f (%.2f min)', toc-t, (toc-t)/60)
+        PrintVerbose(verbose, ' Time elapsed: %.1f (%.2f min)', toc-t, (toc-t)/60)
     end
 end
 
@@ -905,6 +923,7 @@ if do_phase_retrieval(1)
         take_neg_log = 0;
     end
 end
+tint = 0;
 if do_tomo(1)
     t = toc;
     
@@ -991,8 +1010,8 @@ if do_tomo(1)
     % Correlation
     out = ImageCorrelation( im1, im2, 0, 0, 0);
     % relative shift
-    rot_corr_shift_x = round( out.shift1, round_precision) + rot_corr_area1(1) + (rot_corr_area1(end) - raw_im_shape_binned1) - 1;
-    rot_corr_shift_y = round( out.shift2, round_precision) + rot_corr_area2(1) + (rot_corr_area1(end) - raw_im_shape_binned1) - 1;
+    rot_corr_shift_x = round( out.shift1, decimal_round_precision) + rot_corr_area1(1) + (rot_corr_area1(end) - raw_im_shape_binned1) - 1;
+    rot_corr_shift_y = round( out.shift2, decimal_round_precision) + rot_corr_area2(1) + (rot_corr_area1(end) - raw_im_shape_binned1) - 1;
     PrintVerbose(verbose, '\n relative shift: %g, %g', rot_corr_shift_x, rot_corr_shift_y)
     rot_axis_offset_calc = rot_corr_shift_x / 2;
     rot_axis_pos_calc = raw_im_shape_binned1 / 2 + rot_axis_offset_calc;
@@ -1108,6 +1127,8 @@ if do_tomo(1)
                 fprintf( ' old rotation axis offset : %.2f', rot_axis_offset)
                 rot_axis_offset = offset;
                 fprintf( '\n new rotation axis offset : %.2f', rot_axis_offset)
+
+               if interactive_determination_of_rot_axis_tilt(1)
                 
                 % Tilt
                 fprintf( '\n\nTILT:' ) 
@@ -1217,6 +1238,9 @@ if do_tomo(1)
                         end                    
                     end                    
                 end
+                else
+                    rot_axis_tilt = 0;
+                end
             end
         end
              
@@ -1254,6 +1278,10 @@ if do_tomo(1)
         colorbar
         
         subplot(m, n, 4)
+        
+        %% tform_cal or tform_cur
+        [optimizer, metric] = imregconfig('monomodal');
+        tform_calc = imregtform(im2c, im1c, 'rigid', optimizer, metric);
         im2c_warped_cur =  imwarp(im2c, tform_calc, 'OutputView',imref2d(size(im1c)));
         imsc1( abs( im1c(x:end-x,x:end-x) - im2c_warped_cur(x:end-x,x:end-x) ) )
         axis equal tight
@@ -1315,11 +1343,11 @@ if stitch_projections(1)
     proj = proj_sti;
     clear proj_sti;
     angles = angles(1:num_proj_sti);
-    PrintVerbose(verbose, ' Time elapsed: %g .0f (%.2f min)', toc-t, (toc-t)/60)
+    PrintVerbose(verbose, ' Time elapsed: %.1f (%.2f min)', toc-t, (toc-t)/60)
 end
 
 %% Crop projection at rotation axis position to avoid oversampling
-if crop_at_rot_axis(1)    
+if abs( excentric_rot_axis(1) ) && crop_at_rot_axis(1)
     proj( ceil(rot_axis_pos) + 1:end, :, :) = [];
     if isempty( vol_shape )                
         vol_shape = [raw_im_shape_binned1, raw_im_shape_binned1, raw_im_shape_binned2];        
@@ -1496,7 +1524,7 @@ if do_tomo(1)
     % Backprojection
     PrintVerbose(verbose, '\n Backproject:')
     t2 = toc;
-    vol = astra_parallel3D( permute(proj, [1 3 2]), rot_angle_offset + angles_reco, rot_axis_offset_reco, vol_shape, vol_size, astra_pixel_size, link_data, rot_axis_tilt);
+    vol = astra_parallel3D( permute(proj, [1 3 2]), rot_angle_offset + angles_reco, rot_axis_offset_reco, vol_shape, vol_size, astra_pixel_size, link_data, rot_axis_tilt, gpu_ind);
     pause(0.01)    
     PrintVerbose(verbose, ' done in %.2f min.', (toc - t2) / 60)
     
@@ -1519,9 +1547,9 @@ if do_tomo(1)
             t2 = toc;
             save_path = [reco_path 'float' filesep];
             CheckAndMakePath(save_path)
-            parfor ii = 1:size( vol, 3)
-                filename = sprintf( '%sreco_%06u.tif', save_path, ii);
-                write32bitTIFfromSingle( filename, vol( :, :, ii) )
+            parfor nn = 1:size( vol, 3)
+                filename = sprintf( '%sreco_%06u.tif', save_path, nn);
+                write32bitTIFfromSingle( filename, vol( :, :, nn) )
             end
             pause(0.01)
             PrintVerbose(verbose, ' done in %.2f min.', (toc - t2) / 60)
@@ -1621,95 +1649,105 @@ if do_tomo(1)
     end
     
     PrintVerbose(verbose, ' Time elapsed: %.1f s (%.2f min)', toc-t, (toc-t)/60 )
-    
-    %% Log file
-    if write_reco(1)
-        logfile_name = sprintf( '%sreco.log', reco_path);
-        fid = fopen(logfile_name, 'w');
-        fprintf(fid, 'scan_name : %s\n', scan_name);
-        fprintf(fid, 'beamtime_id : %s\n', beamtime_id);
-        fprintf(fid, 'scan_path : %s\n', scan_path);
-        fprintf(fid, 'reco_path : %s\n', save_path);
-        fprintf(fid, 'MATLAB notation, index of first element: 1, range: first:stride:last\n');
-        fprintf(fid, 'MATLAB version : %s\n', version);
-        fprintf(fid, 'platform : %s\n', computer);
-        fprintf(fid, 'camera : %s\n', cam);
-        fprintf(fid, 'num_dark_found : %u\n', num_dark);
-        fprintf(fid, 'num_ref_found : %u\n', num_ref_found);
-        fprintf(fid, 'num_ref_used : %u\n', num_ref_used);
-        fprintf(fid, 'ref_range : %u:%u:%u\n', ref_range(1), ref_range(2) - ref_range(1), ref_range(end) );
-        fprintf(fid, 'num_proj_found : %u\n', num_proj_found);
-        fprintf(fid, 'num_proj_used : %u\n', num_proj_used);
-        fprintf(fid, 'proj_range : %u:%u:%u\n', proj_range(1), proj_range(2) - proj_range(1), proj_range(end) );
-        fprintf(fid, 'raw_image_shape : %u %u\n', raw_im_shape);
-        fprintf(fid, 'raw_image_shape_binned : %u %u\n', raw_im_shape_binned);
-        fprintf(fid, 'raw_binning_factor : %u\n', raw_bin);
-        fprintf(fid, 'effective_pixel_size_mu : %g\n', eff_pixel_size * 1e6);
-        fprintf(fid, 'effective_pixel_size_binned_mu : %g\n', eff_pixel_size_binned * 1e6);
-        fprintf(fid, 'energy : %g eV\n', energy);
-        fprintf(fid, 'sample_detector_distance : %f m\n', sample_detector_distance);
-        fprintf(fid, 'flat_field_correlation_area_1 : %u:%u:%u\n', flat_corr_area1(1), flat_corr_area1(2) - flat_corr_area1(1), flat_corr_area1(end));
-        fprintf(fid, 'flat_field_correlation_area_2 : %u:%u:%u\n', flat_corr_area2(1), flat_corr_area2(2) - flat_corr_area2(1), flat_corr_area2(end));
-        if ~read_flatcor
-            fprintf(fid, 'min_max_of_all_darks : %6g %6g\n', dark_min, dark_max);
-            fprintf(fid, 'min_max_of_median_dark : %6g %6g\n', dark_med_min, dark_med_max);
-            fprintf(fid, 'min_max_of_all_flats : %6g %6g\n', flat_min, flat_max);
-            fprintf(fid, 'min_max_of_all_corrected_flats : %6g %6g\n', flat_min2, flat_max2);
-            fprintf(fid, 'min_max_of_all_raws :  %6g %6g\n', raw_min, raw_max);
-            fprintf(fid, 'min_max_of_all_corrected_raws :  %6g %6g\n', raw_min2, raw_max2);
-            fprintf(fid, 'min_max_of_all_flat_corr_projs : %g %g \n', proj_min, proj_max);
-        end
-        % Phase retrieval
-        fprintf(fid, 'do_phase_retrieval : %u\n', do_phase_retrieval);
-        fprintf(fid, 'phase_retrieval_method : %s\n', phase_retrieval_method);
-        fprintf(fid, 'phase_retrieval_regularisation_parameter : %f\n', phase_retrieval_reg_par);
-        fprintf(fid, 'phase_retrieval_binary_filter_threshold : %f\n', phase_retrieval_bin_filt);
-        fprintf(fid, 'phase_padding : %u\n', phase_padding);
-        % Rotation
-        fprintf(fid, 'excentric_rot_axis : %f\n', excentric_rot_axis);
-        fprintf(fid, 'crop_at_rot_axis : %f\n', crop_at_rot_axis);
-        fprintf(fid, 'stitch_projections : %u\n', stitch_projections);        
-        fprintf(fid, 'stitch_method : %s\n', stitch_method );
-        fprintf(fid, 'rotation_angle_full_rad : %f\n', rot_angle_full);
-        fprintf(fid, 'rotation_angle_offset_rad : %f\n', rot_angle_offset);
-        fprintf(fid, 'rotation_axis_offset_calculated : %f\n', rot_axis_offset_calc);
-        fprintf(fid, 'rotation_axis_offset : %f\n', rot_axis_offset);
-        fprintf(fid, 'rotation_axis_position_calculated : %f\n', rot_axis_pos_calc);
-        fprintf(fid, 'rotation_axis_position : %f\n', rot_axis_pos);
-        fprintf(fid, 'rotation_axis_tilt_calculated : %f\n', rot_axis_tilt_calc);
-        fprintf(fid, 'rotation_axis_tilt : %f\n', rot_axis_tilt);
-        fprintf(fid, 'raw_image_binned_center : %f\n', raw_im_shape_binned1 / 2);
-        fprintf(fid, 'rotation_correlation_area_1 : %u:%u:%u\n', rot_corr_area1(1), rot_corr_area1(2) - rot_corr_area1(1), rot_corr_area1(end));
-        fprintf(fid, 'rotation_correlation_area_2 : %u:%u:%u\n', rot_corr_area2(1), rot_corr_area2(2) - rot_corr_area2(1), rot_corr_area2(end));
-        fprintf(fid, 'interactive_determination_of_rot_axis : %u\n', interactive_determination_of_rot_axis);        
-        % FBP
-        fprintf(fid, 'use_ring_filter : %u\n', ring_filter);
-        fprintf(fid, 'ring_filter_median_width : %u\n', ring_filter_median_width);
-        fprintf(fid, 'fbp_filter_type : %s\n', fbp_filter_type);
-        fprintf(fid, 'fpb_freq_cutoff : %f\n', fpb_freq_cutoff);
-        fprintf(fid, 'fbp_filter_padding : %u\n', fbp_filter_padding);
-        fprintf(fid, 'fbp_filter_padding_method : %s\n', fbp_filter_padding_method);        
-        fprintf(fid, 'use_butterworth_filter : %u\n', butterworth_filter);
-        fprintf(fid, 'butterworth_order : %u\n', butterworth_order);
-        fprintf(fid, 'butterworth_cutoff_frequency : %f\n', butterworth_cutoff_frequ);
-        fprintf(fid, 'astra_pixel_size : %f\n', astra_pixel_size);
-        fprintf(fid, 'take_negative_logarithm : %u\n', take_neg_log);
-        fprintf(fid, 'gpu_name : %s\n', gpu.Name);
-        fprintf(fid, 'min_max_of_all_slices : %g %g\n', vol_min, vol_max);
-        fprintf(fid, 'write_float : %u\n', write_float);
-        fprintf(fid, 'write_16bit : %g\n', write_16bit);        
-        fprintf(fid, 'write_8bit : %u\n', write_8bit);
-        fprintf(fid, 'write_8bit_binned : %u\n', write_8bit_binned);
-        fprintf(fid, 'reco_bin : %u\n', reco_bin);      
-        fprintf(fid, 'full_reconstruction_time : %.1f s\n', toc);
-        fprintf(fid, 'date : %s', datetime);
-        %fprintf(fid, ' : \n', );
-        fclose(fid);
-        PrintVerbose(verbose, '\n log file : %s', logfile_name)
-    end
 end
-
-%reset( gpu );
+    
+%% Log file
+if write_reco(1)
+    logfile_path = reco_path;
+else
+    logfile_path = out_path;
+end
+logfile_name = sprintf( '%sreco.log', logfile_path);
+fid = fopen( logfile_name, 'w');
+fprintf(fid, 'scan_name : %s\n', scan_name);
+fprintf(fid, 'beamtime_id : %s\n', beamtime_id);
+fprintf(fid, 'scan_path : %s\n', scan_path);
+fprintf(fid, 'reco_path : %s\n', save_path);
+fprintf(fid, 'MATLAB notation, index of first element: 1, range: first:stride:last\n');
+fprintf(fid, 'MATLAB version : %s\n', version);
+fprintf(fid, 'platform : %s\n', computer);
+fprintf(fid, 'camera : %s\n', cam);
+fprintf(fid, 'num_dark_found : %u\n', num_dark);
+fprintf(fid, 'num_ref_found : %u\n', num_ref_found);
+fprintf(fid, 'num_ref_used : %u\n', num_ref_used);
+fprintf(fid, 'ref_range : %u:%u:%u\n', ref_range(1), ref_range(2) - ref_range(1), ref_range(end) );
+fprintf(fid, 'num_proj_found : %u\n', num_proj_found);
+fprintf(fid, 'num_proj_used : %u\n', num_proj_used);
+fprintf(fid, 'proj_range : %u:%u:%u\n', proj_range(1), proj_range(2) - proj_range(1), proj_range(end) );
+fprintf(fid, 'raw_image_shape_raw : %u %u\n', raw_im_shape_raw);
+fprintf(fid, 'raw_roi : %u %u\n', raw_roi);
+fprintf(fid, 'raw_image_shape : %u %u\n', raw_im_shape);
+fprintf(fid, 'raw_image_shape_binned : %u %u\n', raw_im_shape_binned);
+fprintf(fid, 'raw_binning_factor : %u\n', raw_bin);
+fprintf(fid, 'effective_pixel_size : %g micron\n', eff_pixel_size * 1e6);
+fprintf(fid, 'effective_pixel_size_binned : %g micron\n', eff_pixel_size_binned * 1e6);
+fprintf(fid, 'energy : %g eV\n', energy);
+fprintf(fid, 'sample_detector_distance : %f m\n', sample_detector_distance);
+fprintf(fid, 'norm_by_ring_current : %u\n', norm_by_ring_current);
+fprintf(fid, 'proj_flat_correlation_method : %s\n', correlation_method);
+fprintf(fid, 'proj_flat_correlation_num_flats : %u\n', corr_num_flats);
+fprintf(fid, 'flat_field_correlation_area_1 : %u:%u:%u\n', flat_corr_area1(1), flat_corr_area1(2) - flat_corr_area1(1), flat_corr_area1(end));
+fprintf(fid, 'flat_field_correlation_area_2 : %u:%u:%u\n', flat_corr_area2(1), flat_corr_area2(2) - flat_corr_area2(1), flat_corr_area2(end));
+if ~read_flatcor
+    fprintf(fid, 'min_max_of_all_darks : %6g %6g\n', dark_min, dark_max);
+    fprintf(fid, 'min_max_of_median_dark : %6g %6g\n', dark_med_min, dark_med_max);
+    fprintf(fid, 'min_max_of_all_flats : %6g %6g\n', flat_min, flat_max);
+    fprintf(fid, 'min_max_of_all_corrected_flats : %6g %6g\n', flat_min2, flat_max2);
+    fprintf(fid, 'min_max_of_all_raws :  %6g %6g\n', raw_min, raw_max);
+    fprintf(fid, 'min_max_of_all_corrected_raws :  %6g %6g\n', raw_min2, raw_max2);
+    fprintf(fid, 'min_max_of_all_flat_corr_projs : %g %g \n', proj_min, proj_max);
+end
+% Phase retrieval
+fprintf(fid, 'do_phase_retrieval : %u\n', do_phase_retrieval);
+fprintf(fid, 'phase_retrieval_method : %s\n', phase_retrieval_method);
+fprintf(fid, 'phase_retrieval_regularisation_parameter : %f\n', phase_retrieval_reg_par);
+fprintf(fid, 'phase_retrieval_binary_filter_threshold : %f\n', phase_retrieval_bin_filt);
+fprintf(fid, 'phase_retrieval_cutoff_frequ : %f pi\n', phase_retrieval_cutoff_frequ / pi);
+fprintf(fid, 'phase_padding : %u\n', phase_padding);
+% Volume
+fprintf(fid, 'volume_shape : %u %u %u\n', vol_shape(1), vol_shape(2), vol_shape(3));
+fprintf(fid, 'volume_size : %u %u %u\n', vol_size(1), vol_size(2), vol_size(3), vol_size(4), vol_size(5), vol_size(6));
+% Rotation
+fprintf(fid, 'excentric_rot_axis : %f\n', excentric_rot_axis);
+fprintf(fid, 'crop_at_rot_axis : %f\n', crop_at_rot_axis);
+fprintf(fid, 'stitch_projections : %u\n', stitch_projections);
+fprintf(fid, 'stitch_method : %s\n', stitch_method );
+fprintf(fid, 'rotation_angle_full_rad : %f\n', rot_angle_full);
+fprintf(fid, 'rotation_angle_offset_rad : %f\n', rot_angle_offset);
+fprintf(fid, 'rotation_axis_offset_calculated : %f\n', rot_axis_offset_calc);
+fprintf(fid, 'rotation_axis_offset : %f\n', rot_axis_offset);
+fprintf(fid, 'rotation_axis_position_calculated : %f\n', rot_axis_pos_calc);
+fprintf(fid, 'rotation_axis_position : %f\n', rot_axis_pos);
+fprintf(fid, 'rotation_axis_tilt_calculated : %f\n', rot_axis_tilt_calc);
+fprintf(fid, 'rotation_axis_tilt : %f\n', rot_axis_tilt);
+fprintf(fid, 'raw_image_binned_center : %f\n', raw_im_shape_binned1 / 2);
+fprintf(fid, 'rotation_correlation_area_1 : %u:%u:%u\n', rot_corr_area1(1), rot_corr_area1(2) - rot_corr_area1(1), rot_corr_area1(end));
+fprintf(fid, 'rotation_correlation_area_2 : %u:%u:%u\n', rot_corr_area2(1), rot_corr_area2(2) - rot_corr_area2(1), rot_corr_area2(end));
+fprintf(fid, 'interactive_determination_of_rot_axis : %u\n', interactive_determination_of_rot_axis);
+% FBP
+fprintf(fid, 'ring_filter : %u\n', ring_filter);
+fprintf(fid, 'ring_filter_median_width : %u\n', ring_filter_median_width);
+fprintf(fid, 'fbp_filter_type : %s\n', fbp_filter_type);
+fprintf(fid, 'fpb_freq_cutoff : %f\n', fpb_freq_cutoff);
+fprintf(fid, 'fbp_filter_padding : %u\n', fbp_filter_padding);
+fprintf(fid, 'fbp_filter_padding_method : %s\n', fbp_filter_padding_method);
+fprintf(fid, 'butterworth_filter : %u\n', butterworth_filter);
+fprintf(fid, 'butterworth_order : %u\n', butterworth_order);
+fprintf(fid, 'butterworth_cutoff_frequency : %f\n', butterworth_cutoff_frequ);
+fprintf(fid, 'astra_pixel_size : %f\n', astra_pixel_size);
+fprintf(fid, 'take_negative_logarithm : %u\n', take_neg_log);
+fprintf(fid, 'gpu_name : %s\n', gpu.Name);
+fprintf(fid, 'min_max_of_all_slices : %g %g\n', vol_min, vol_max);
+fprintf(fid, 'write_float : %u\n', write_float);
+fprintf(fid, 'write_16bit : %g\n', write_16bit);
+fprintf(fid, 'write_8bit : %u\n', write_8bit);
+fprintf(fid, 'write_8bit_binned : %u\n', write_8bit_binned);
+fprintf(fid, 'reco_bin : %u\n', reco_bin);
+fprintf(fid, 'full_reconstruction_time : %.1f s\n', toc);
+fprintf(fid, 'date_of_reconstruction : %s', datetime);
+%fprintf(fid, ' : \n', );
+fclose(fid);
+PrintVerbose(verbose, '\n log file : %s', logfile_name)
 
 PrintVerbose(verbose && interactive_determination_of_rot_axis, '\nTime elapsed in interactive mode: %g s (%.2f min)', tint, tint / 60 );
 PrintVerbose(verbose, '\nTime elapsed for computation: %g s (%.2f min)', toc - tint, (toc - tint) / 60 );
