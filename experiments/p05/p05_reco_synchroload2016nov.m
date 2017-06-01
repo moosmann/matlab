@@ -4,7 +4,7 @@ if nargin < 1
     nums = [];
 end
 if nargin < 2
-    doreco = 1;
+    doreco = 0;
 end
 if nargin < 3
     print_field = '';
@@ -17,6 +17,7 @@ end
 nn = 0;
 default.visualOutput = 0;
 default.scan_path = '';
+default.raw_roi = [];
 default.raw_bin = 1;
 default.excentric_rot_axis = 0;
 default.crop_at_rot_axis = 0;
@@ -32,6 +33,7 @@ default.phase_retrieval_cutoff_frequ = 1 * pi;
 default.phase_padding = 1; 
 default.do_tomo = 1;
 default.ring_filter = 1;
+default.ring_filter_method = 'wavelet-fft'; 'jm';
 default.rot_axis_offset = [];
 default.rot_axis_tilt = [];
 default.parfolder = '';
@@ -43,27 +45,59 @@ default.write_sino_phase = 0;
 default.write_reco = 1; 
 default.write_float = 1; 
 default.write_float_binned = 1; 
-default.write_8bit = 0;
-default.write_8bit_binned = 0;
+default.write_8bit = 1;
+default.write_8bit_binned = 1;
 default.write_16bit = 0; 
+default.dec_levels = 6;
+default.wname = 'db30';
+default.sigma = 2.4;
 
 %% Data sets %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 raw = '/asap3/petra3/gpfs/p05/2016/data/11001978/raw/';
+
+%% Ring filter test section
+
+nn = nn + 1;para(nn) = default;para(nn).scan_path = [raw 'mah_01'];
+para(nn).raw_roi = [293 1492];
+para(nn).rot_axis_offset = -135.5 / para(nn).raw_bin;
+para(nn).rot_axis_tilt = -0.003;
+para(nn).write_sino = 1;
+para(nn).ring_filter_method = 'wavelet-fft';
+para(nn).parfolder = ['test_ringfilt_' para(nn).ring_filter_method];
+
+nn = nn + 1;para(nn) = para(nn-1);
+para(nn).dec_levels = 6;
+para(nn).wname = 'db30';
+para(nn).parfolder = sprintf( 'test_ringfilt_%s_%s_decNum%u', para(nn).ring_filter_method, para(nn).wname, para(nn).dec_levels );
+
+nn = nn + 1;para(nn) = para(nn-1);
+para(nn).ring_filter_method = 'jm';
+para(nn).parfolder = ['test_ringfilt_' para(nn).ring_filter_method];
+
+nn = nn + 1;para(nn) = para(nn-1);
+para(nn).ring_filter = 0;        
+para(nn).ring_filter_method = 'none';
+para(nn).parfolder = ['test_ringfilt_' para(nn).ring_filter_method];
+
+%% Regular
 
 % corroded screw
 nn = nn + 1;para(nn) = default;para(nn).scan_path = [raw 'mah_01'];
 para(nn).rot_axis_offset = -135.75 / para(nn).raw_bin;
 para(nn).rot_axis_tilt = -0.003;
+para(nn).write_sino = 1; 
 
 % corroded screw
 nn = nn + 1;para(nn) = default;para(nn).scan_path = [raw 'mah_02'];
 para(nn).rot_axis_offset = -135.75 / para(nn).raw_bin;
 para(nn).rot_axis_tilt = -0.003;
+para(nn).write_sino = 1; 
 
 % corroded screw
 nn = nn + 1;para(nn) = default;para(nn).scan_path = [raw 'mah_03'];
 para(nn).rot_axis_offset = -135.75 / para(nn).raw_bin;
 para(nn).rot_axis_tilt = -0.003;
+para(nn).write_sino = 1; 
 
 % implant fresh
 nn = nn + 1;para(nn) = default;para(nn).scan_path = [raw 'mah_04'];
@@ -79,6 +113,7 @@ para(nn) = default;
 para(nn).scan_path = [raw 'mah_05'];
 para(nn).rot_axis_offset = 2 / para(nn).raw_bin;
 para(nn).rot_axis_tilt = -0.003;
+para(nn).write_sino = 1; 
 
 % corroded screw
 nn = nn + 1;
@@ -329,17 +364,8 @@ para(nn) = default;
 para(nn).scan_path = [raw 'mah_straw_2_00'];
 para(nn).rot_axis_offset = -0.4 / para(nn).raw_bin;
 para(nn).rot_axis_tilt = -0.003;
+para(nn).write_sino = 1; 
 
-% corroded screw
-nn = nn + 1;
-para(nn) = default;
-para(nn).scan_path = [raw 'mah_straw_2_00'];
-para(nn).rot_axis_offset = -0.4 / para(nn).raw_bin;
-para(nn).rot_axis_tilt = -0.003;
-para(nn).raw_bin = 2;
-para(nn).parfolder = 'bin2';
-para(nn).write_float_binned = 0;
-para(nn).write_8bit_binned = 0;
 
 % corroded screw
 nn = nn + 1;
@@ -347,6 +373,7 @@ para(nn) = default;
 para(nn).scan_path = [raw 'mah_straw_2_01'];
 para(nn).rot_axis_offset = -0 / para(nn).raw_bin;
 para(nn).rot_axis_tilt = -0.003;
+para(nn).write_sino = 1; 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

@@ -18,7 +18,7 @@ if nargin < 1
     nums = [];
 end
 if nargin < 2
-    doreco = 1;
+    doreco = 0;
 end
 if nargin < 3
     print_field = '';
@@ -43,16 +43,21 @@ if ~isempty(nums)
             end
             if iscell(print_field)
                 fprintf('%3u : %s\n', num, name )
-                for mm = 1:numel( print_field )                    
-                    fprintf( '        %s = ', print_field{mm})
-                    disp( external_parameter.(print_field{mm}) )
+                for mm = 1:numel( print_field )
+                    fn = print_field{mm};
+                    fprintf( '        %s = ', fn)
+                    out = external_parameter.(fn);
+                    if isempty( out )
+                        fprintf( '\n' )                        
+                    else
+                        disp( out )
+                    end
                 end
             else
                 fprintf('%3u : %s', num, name )
                 fprintf( ', %s = ', print_field)
                 disp( external_parameter.(print_field) )
             end
-            
         else
             fprintf('\n%3u : %s', num, name )
         end
