@@ -18,13 +18,14 @@
 close all
 % INPUT %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %scan_path = pwd; % Enter folder of data set under the raw directory and run script
-scan_path = ...        
+scan_path = ...
+    '/asap3/petra3/gpfs/p05/2016/commissioning/c20160913_000_synload/raw/mg5gd_02_1w';
+    '/asap3/petra3/gpfs/p05/2017/data/11003950/raw/syn13_55L_Mg10Gd_12w_load_00';     
 '/asap3/petra3/gpfs/p05/2017/data/11003950/raw/syn01_48L_PEEK_12w_b';
-'/asap3/petra3/gpfs/p05/2017/data/11003950/raw/syn13_55L_Mg10Gd_12w_load_00';
 '/asap3/petra3/gpfs/p05/2016/data/11001978/raw/mah_32_15R_top_occd800_withoutpaper'; % too much fringes, not enough coherence probably, using standard phase retrieval reco looks blurry
-'/asap3/petra3/gpfs/p05/2016/data/11001978/raw/mah_28_15R_bottom';
 '/asap3/petra3/gpfs/p05/2016/commissioning/c20160920_000_diana/raw/Mg-10Gd39_1w';
 '/asap3/petra3/gpfs/p05/2016/commissioning/c20160913_000_synload/raw/mg5gd_21_3w';
+
 '/asap3/petra3/gpfs/p05/2016/commissioning/c20160803_001_pc_test/raw/phase_600';
 '/asap3/petra3/gpfs/p05/2016/commissioning/c20160803_001_pc_test/raw/phase_1000'; %rot_axis_offset=7.5
 '/asap3/petra3/gpfs/p05/2016/commissioning/c20160803_001_pc_test/raw/phase_1400'; %rot_axis_offset=19.5
@@ -37,7 +38,7 @@ scan_path = ...
 read_flatcor = 0; % read flatfield-corrected images from disc, skips preprocessing
 read_flatcor_path = ''; % subfolder of 'flat_corrected' containing projections
 % PREPROCESSING %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-raw_roi = [201 1410]; % vertical roi for dat. skips first raw_roi(1)-1 lines, reads until raw_roi(2)
+raw_roi = []; % vertical roi for binary dat files. skips first raw_roi(1)-1 lines, reads until raw_roi(2)
 raw_bin = 1; % projection binning factor: 1, 2, or 4
 excentric_rot_axis = 0; % off-centered rotation axis increasing FOV. -1: left, 0: centeerd, 1: right. influences rot_corr_area1
 crop_at_rot_axis = 0; % recommended for scans with excentric rotation axis when no projection stitching is done
@@ -60,7 +61,11 @@ flat_corr_area1 = [1 floor(100/raw_bin)]; % correlation area: index vector or re
 flat_corr_area2 = [0.2 0.8]; %correlation area: index vector or relative/absolute position of [first pix, last pix]
 decimal_round_precision = 2; % precision when rounding pixel shifts
 ring_filter = 1; % ring artifact filter
+ring_filter_method = 'jm';'wavelet-fft'; 
 ring_filter_median_width = 11;
+dec_levels = 6;
+wname = 'db30';'db25';
+sigma = 2.4;
 % Phase retrieval %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 do_phase_retrieval = 0;
 phase_retrieval_method = 'tie';'qp';'qpcut'; 'tie'; %'qp' 'ctf' 'tie' 'qp2' 'qpcut'
@@ -96,21 +101,21 @@ take_neg_log = []; % take negative logarithm. if empty, use 1 for attenuation co
 out_path = '';% absolute path were output data will be stored. !!overwrites the write_to_scratch flag. if empty uses the beamtime directory and either 'processed' or 'scratch_cc'
 write_to_scratch = 0; % write to 'scratch_cc' instead of 'processed'
 write_flatcor = 1; % save preprocessed flat corrected projections
-write_phase_map = 1; % save phase maps (if phase retrieval is not 0)
+write_phase_map = 0; % save phase maps (if phase retrieval is not 0)
 write_sino = 0; % save sinograms (after preprocessing & before FBP filtering and phase retrieval)
 write_sino_phase = 0; % save sinograms of phase mapsls
 write_reco = 1; % save reconstructed slices (if do_tomo=1)
 write_float = 1; % write single precision (32-bit float) tiff
 write_float_binned = 1; % write binned single precision (32-bit float) tiff
 write_16bit = 0; % write 8bit-tiff, currently for reco only
-write_8bit = 1; % write 8bit-tiff, currently for reco only
-write_8bit_binned = 1; % write binned 8bit-tiff, currently for reco only
-reco_bin = 2; % currently only 2x2x2 binning is implemented
+write_8bit = 0; % write 8bit-tiff, currently for reco only
+write_8bit_binned = 0; % write binned 8bit-tiff, currently for reco only
+reco_bin = 2; % currently only 2 x 2 x 2 binning is implemented
 compression = 'full'; 'std'; 'threshold';'histo'; % method of compression of dynamic range
 compression_std_num = 5; % dynamic range: mean(volume) +/- NUM* std(volume)
 compression_threshold = [-1 1]; % dynamic range: [MIN MAX]
 compression_histo = [0.05 0.05]; % [LOW HIGH]. crop dynamic range to values between (100*LOW)% and (100*HIGH)% of the original histogram
-parfolder = ''; % parent folder for 'reco', 'sino', 'phase', and 'flat_corrected'
+parfolder = 'test_ringfilt_jm'; % parent folder for 'reco', 'sino', 'phase', and 'flat_corrected'
 subfolder_flatcor = ''; % subfolder in 'flat_corrected'
 subfolder_phase_map = ''; % subfolder in 'phase_map'
 subfolder_sino = ''; % subfolder in 'sino'
@@ -127,6 +132,8 @@ link_data = 1; % ASTRA data objects become references to Matlab arrays.
 gpu_ind = []; % GPU Device index to use, Matlab notation: index starts from 1. default: [], uses all
 
 %% TODO %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% TODO: PLot & parameter option for wavelet-fft fing filter
+% TODO: Improve FilterStripesCombinedWaveletFFT
 % TODO: check proj-flat correlation measure for absolute values
 % TODO: check crop_at_rot_axis option with stitch_projections, etc
 % TODO: SSIM: include Gaussian blur filter, test
@@ -193,6 +200,8 @@ gpu_ind = []; % GPU Device index to use, Matlab notation: index starts from 1. d
 % Empirically, this does not work well for excentric rotation axis positions and
 % stitchted projections. To be tested
 
+% Ring artefact filter '
+
 %% External call: parameters set by 'p05_reco_loop' %%%%%%%%%%%%%%%%%%%%%%%
 if exist( 'external_parameter' ,'var')
     visualOutput = 0;
@@ -210,7 +219,7 @@ end
 tic
 PrintVerbose(verbose, 'Start reconstruction of ')
 warning( 'off', 'MATLAB:imagesci:rtifc:missingPhotometricTag');
-cdscandir = cd(scan_path);
+cdscandir = cd( scan_path );
 NameCellToMat = @(name_cell) reshape(cell2mat(name_cell), [numel(name_cell{1}), numel(name_cell)])';
 imsc1 = @(im) imsc( flipud( im' ) );
 astra_clear % if reco was aborted, ASTRA memory is not cleared
@@ -295,14 +304,14 @@ PrintVerbose(verbose, '\n reco_path : %s', reco_path)
 % Memory
 [mem_free, mem_avail, mem_total] = free_memory;
 PrintVerbose(verbose, '\n system memory: free, available, total : %.3g GiB, %.3g GiB, %.3g GiB', mem_free/1024^3, mem_avail/1024^3, mem_total/1024^3)
-if isempty( gpu_ind )
-   gpu_ind = 1:gpuDeviceCount;
-end
-for nn = gpu_ind
-    %gpu = gpuDevice( nn );
-    %reset( gpu );
-    gpu = gpuDevice( nn );
-    PrintVerbose(verbose, '\n gpu %u : memory: available, total, percent : %.3g GiB, %.3g GiB, %.2f%%', nn, gpu.AvailableMemory/1024^3, gpu.TotalMemory/1024^3, 100*gpu.AvailableMemory/gpu.TotalMemory)
+if ~exist( 'external_parameter' ,'var')
+    if isempty( gpu_ind )
+        gpu_ind = 1:gpuDeviceCount;
+    end
+    for nn = gpu_ind
+        gpu = gpuDevice( nn );
+        PrintVerbose(verbose, '\n gpu %u : memory: available, total, percent : %.3g GiB, %.3g GiB, %.2f%%', nn, gpu.AvailableMemory/1024^3, gpu.TotalMemory/1024^3, 100*gpu.AvailableMemory/gpu.TotalMemory)
+    end
 end
 
 %% File names
@@ -356,7 +365,7 @@ PrintVerbose(verbose, '\n number of projections used : %g', num_proj_used)
 PrintVerbose(verbose, '\n projection range used : first:stride:last =  %g:%g:%g', proj_range(1), proj_range(2) - proj_range(1), proj_range(end))
 
 %% Image shape and ROI
-filename = sprintf('%s%s', scan_path, dark_names{1});
+filename = sprintf('%s%s', scan_path, ref_names{1});
 im_raw = read_image( filename );
 raw_im_shape_raw = size( im_raw );
 im_roi = read_image( filename, '', raw_roi );
@@ -396,15 +405,18 @@ if isempty( sample_detector_distance )
         sample_detector_distance = par.o_ccd_dist / 1000;
     end
 end
+PrintVerbose( verbose, '\n energy : %g keV', energy )
+PrintVerbose( verbose, '\n distance sample dector : %g mm', sample_detector_distance * 1000 )
+PrintVerbose( verbose, '\n effective pixel size : %g micron',  eff_pixel_size * 1e6)
 
 %% Start parallel CPU pool
 t = toc;
 if poolsize <= 1 && poolsize > 0
     poolsize = max( floor( poolsize * feature('numCores') ), 1 );
 end
-PrintVerbose( poolsize > 1, '\nStart parallel pool of %u workers. ', poolsize)
+PrintVerbose( verbose && (poolsize > 1), '\nStart parallel pool of %u workers. ', poolsize)
 OpenParpool(poolsize);
-PrintVerbose( poolsize > 1, ' Time elapsed: %.1f s', toc-t)
+PrintVerbose( verbose && (poolsize > 1), ' Time elapsed: %.1f s', toc-t)
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Read flat corrected projection
@@ -755,7 +767,7 @@ elseif ~read_flatcor
                     axis tight
                     title(sprintf('SSIM and components: projection #1'))
                     
-                    
+                    % sorted measures: position and values
                     [c_diff1_l2_val,c_diff1_l2_pos] = sort( c_diff1_l2, 2 );
                     [c_std_val,c_std_pos] = sort( c_std, 2 );    
                     [c_ent_val,c_ent_pos] = sort( c_ent, 2 );                        
@@ -764,18 +776,7 @@ elseif ~read_flatcor
                     [c_ssim_val,c_ssim_pos] = sort( c_ssim, 2 );
                     [c_ssim_ml_val,c_ssim_ml_pos] = sort( c_ssim_ml, 2 );
                     
-%                     pp = 1;
-%                     nn = 20;
-%                     pos = c_ent_pos(pp,1:nn);
-%                     f = permute(flat_roi(:,:,pos), [2 1 3]);
-%                     f = f(:,:);
-%                     c = repmat( permute( proj_roi(:,:,pp) ,[2 1 3] ), [1 nn] ) ./ f;                    
-%                     
-                            
-                            
-                            
-                            
-                            
+
                             
             end            
             drawnow
@@ -861,43 +862,87 @@ elseif ~read_flatcor
     if ring_filter(1)
         t = toc;
         PrintVerbose(verbose, '\nFilter ring artifacts.')
-        yy = round(raw_im_shape_binned2/2);
-        sino = squeeze( proj(:,yy,:) );
-        proj_mean = mean( proj, 3);
-        proj_mean_med = medfilt2( proj_mean, [ring_filter_median_width, 1], 'symmetric' );
-        mask = proj_mean_med ./ proj_mean;
-        proj = bsxfun( @times, proj, mask);
-        PrintVerbose(verbose, ' Time elapsed: %.1f s (%.2f min)', toc-t, (toc-t)/60)
-        PrintVerbose( verbose, '\n ring filter mask min/max: %f, %f', min( mask(:) ), max( mask(:) ) )
-        if visualOutput(1)
+        switch lower( ring_filter_method )
             
-            h3 = figure('Name', 'Sinogram and ring filter');
-            
-            subplot(2,2,1)
-            imsc( sino' )
-            axis equal tight
-            title(sprintf('sino unfiltered, y = %u', yy))
-            colorbar %('Location', 'southoutside')
-            
-            subplot(2,2,2)
-            imsc( abs( squeeze( proj(:,yy,:) ) - sino )' )
-            axis equal tight
-            title(sprintf('|sino filt - sino|, y = %u', yy))
-            colorbar %('Location', 'southoutside')
-            
-            subplot(2,2,3)
-            imsc1( proj_mean )
-            axis equal tight
-            title(sprintf('mean projection'))
-            colorbar %('Location', 'southoutside')
-            
-            subplot(2,2,4)
-            imsc1( FilterHisto( mask, 5 ) )
-            axis equal tight
-            title(sprintf('mask for normalization'))
-            colorbar %('Location', 'southoutside')
-            
-            drawnow
+            % Combined wavelet-FFT filter to remove ring artrifacts
+            case 'wavelet-fft'                
+                sino_nn = round( size( proj, 2) / 2 );
+                sino_unfilt = squeeze( proj(:,sino_nn,:) )';
+                parfor nn = 1:size( proj, 2)
+                    sino = squeeze( proj(:,nn,:) )';
+                    [d2, d1] = size( sino );
+                    sino = FilterStripesCombinedWaveletFFT( sino, dec_levels, wname, sigma )';
+                    sino = sino( 1:d1, 1:d2 );
+                    proj(:,nn,:) = sino;
+                end
+                PrintVerbose(verbose, ' Time elapsed: %.1f s (%.2f min)', toc-t, (toc-t)/60)
+               
+                if visualOutput(1)
+                    
+                    h3 = figure('Name', 'Sinogram and ring filter');
+                    
+                    subplot(3,1,1)
+                    imsc( sino_unfilt )
+                    axis equal tight
+                    title(sprintf('sino unfiltered, y = %u', sino_nn))
+                    colorbar 
+
+                    subplot(3,1,2)
+                    imsc( squeeze( proj(:,sino_nn,:) )' )
+                    axis equal tight
+                    title(sprintf('sino filtered, y = %u', sino_nn))
+                    colorbar
+                    
+                    subplot(3,1,3)
+                    imsc( ( squeeze( proj(:,sino_nn,:) )' - sino_unfilt ) )
+                    axis equal tight
+                    title(sprintf('sino filt - sino, y = %u', sino_nn))
+                    colorbar
+                    
+                    drawnow
+                end
+                
+            % Simple ring artifact removal filter
+            case 'jm'
+                % Idea: 
+                yy = round( raw_im_shape_binned2 / 2 );
+                sino = squeeze( proj(:,yy,:) );
+                proj_mean = mean( proj, 3);
+                proj_mean_med = medfilt2( proj_mean, [ring_filter_median_width, 1], 'symmetric' );
+                mask = proj_mean_med ./ proj_mean;
+                proj = bsxfun( @times, proj, mask);
+                PrintVerbose(verbose, ' Time elapsed: %.1f s (%.2f min)', toc-t, (toc-t)/60)
+                PrintVerbose( verbose, '\n ring filter mask min/max: %f, %f', min( mask(:) ), max( mask(:) ) )
+                if visualOutput(1)
+                    
+                    h3 = figure('Name', 'Sinogram and ring filter');
+                    
+                    subplot(2,2,1)
+                    imsc( sino' )
+                    axis equal tight
+                    title(sprintf('sino unfiltered, y = %u', yy))
+                    colorbar %('Location', 'southoutside')
+                    
+                    subplot(2,2,2)
+                    imsc( ( squeeze( proj(:,yy,:) ) - sino )' )
+                    axis equal tight
+                    title(sprintf('sino filt - sino, y = %u', yy))
+                    colorbar %('Location', 'southoutside')
+                    
+                    subplot(2,2,3)
+                    imsc1( proj_mean )
+                    axis equal tight
+                    title(sprintf('mean projection'))
+                    colorbar %('Location', 'southoutside')
+                    
+                    subplot(2,2,4)
+                    imsc1( FilterHisto( mask, 5 ) )
+                    axis equal tight
+                    title(sprintf('mask for normalization'))
+                    colorbar %('Location', 'southoutside')
+                    
+                    drawnow
+                end
         end
     end
     proj_min = min( proj(:) );
@@ -1246,12 +1291,13 @@ if do_tomo(1)
              
         rot_axis_pos = raw_im_shape_binned1 / 2 + rot_axis_offset;
         fprintf( '\nEND OF INTERACTIVE MODE\n' )
-        fprintf( '\n rotation axis offset : %.2f', rot_axis_offset)        
-        fprintf( '\n rotation axis position : %.2f', rot_axis_pos)        
-        fprintf( '\n rotation axis tilt: %g rad = %g deg', rot_axis_tilt, rot_axis_tilt * 180 / pi)
+   
         tint = toc - tint;
-    end
-        
+    end   
+    PrintVerbose(verbose, '\n rotation axis offset: %f', rot_axis_offset );
+    PrintVerbose(verbose, '\n rotation axis position: %f', rot_axis_pos );
+    PrintVerbose(verbose, '\n rotation axis tilt: %g rad = %g deg', rot_axis_tilt, rot_axis_tilt * 180 / pi)
+       
     if visualOutput(1)
         h4 = figure('Name','Projections at 0 and pi cropped symmetrically to rotation center');
         n = 2; 
@@ -1469,8 +1515,6 @@ if do_tomo(1)
     if isempty( vol_size )
         vol_size = [-vol_shape(1)/2, vol_shape(1)/2, -vol_shape(2)/2, vol_shape(2)/2, -vol_shape(3)/2, vol_shape(3)/2];
     end
-    PrintVerbose(verbose, '\n rotation axis offset: %f', rot_axis_offset );
-    PrintVerbose(verbose, '\n rotation axis position: %f', rot_axis_pos );
     PrintVerbose(verbose, '\n shape reconstructed volume: [%g, %g, %g]', vol_shape )    
     
     PrintVerbose(verbose, '\nTomographic reconstruction:')
@@ -1511,6 +1555,7 @@ if do_tomo(1)
         im = proj(:,nn,:);
         im = padarray( NegLog(im, take_neg_log), fbp_filter_padding * [proj_shape1 0 0], fbp_filter_padding_method, 'post' );        
         im = real( ifft( bsxfun(@times, fft( im, [], 1), filt), [], 1, 'symmetric') );        
+        %im = real( ifft( bsxfun(@times, fft( im, [], 1), filt), [], 1) );        
         proj(:,nn,:) = im(1:proj_shape1,:,:);
     end    
     pause(0.01)
@@ -1706,14 +1751,14 @@ fprintf(fid, 'phase_retrieval_cutoff_frequ : %f pi\n', phase_retrieval_cutoff_fr
 fprintf(fid, 'phase_padding : %u\n', phase_padding);
 % Volume
 fprintf(fid, 'volume_shape : %u %u %u\n', vol_shape(1), vol_shape(2), vol_shape(3));
-fprintf(fid, 'volume_size : %u %u %u\n', vol_size(1), vol_size(2), vol_size(3), vol_size(4), vol_size(5), vol_size(6));
+fprintf(fid, 'volume_size : %f %f %f %f %f %f\n', vol_size(1), vol_size(2), vol_size(3), vol_size(4), vol_size(5), vol_size(6));
 % Rotation
-fprintf(fid, 'excentric_rot_axis : %f\n', excentric_rot_axis);
-fprintf(fid, 'crop_at_rot_axis : %f\n', crop_at_rot_axis);
+fprintf(fid, 'excentric_rot_axis : %i\n', excentric_rot_axis);
+fprintf(fid, 'crop_at_rot_axis : %u\n', crop_at_rot_axis);
 fprintf(fid, 'stitch_projections : %u\n', stitch_projections);
 fprintf(fid, 'stitch_method : %s\n', stitch_method );
-fprintf(fid, 'rotation_angle_full_rad : %f\n', rot_angle_full);
-fprintf(fid, 'rotation_angle_offset_rad : %f\n', rot_angle_offset);
+fprintf(fid, 'rotation_angle_full_rad : %f * pi\n', rot_angle_full / pi);
+fprintf(fid, 'rotation_angle_offset_rad : %f * pi\n', rot_angle_offset / pi);
 fprintf(fid, 'rotation_axis_offset_calculated : %f\n', rot_axis_offset_calc);
 fprintf(fid, 'rotation_axis_offset : %f\n', rot_axis_offset);
 fprintf(fid, 'rotation_axis_position_calculated : %f\n', rot_axis_pos_calc);
@@ -1726,6 +1771,7 @@ fprintf(fid, 'rotation_correlation_area_2 : %u:%u:%u\n', rot_corr_area2(1), rot_
 fprintf(fid, 'interactive_determination_of_rot_axis : %u\n', interactive_determination_of_rot_axis);
 % FBP
 fprintf(fid, 'ring_filter : %u\n', ring_filter);
+fprintf(fid, 'ring_filter_method : %s\n', ring_filter_method);
 fprintf(fid, 'ring_filter_median_width : %u\n', ring_filter_median_width);
 fprintf(fid, 'fbp_filter_type : %s\n', fbp_filter_type);
 fprintf(fid, 'fpb_freq_cutoff : %f\n', fpb_freq_cutoff);
