@@ -31,6 +31,8 @@ end
 if nargin < 8
     vol_shape = [];
 end
+mask_rad = 0.95;
+mask_val = 0;
 
 %% Main %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -96,9 +98,9 @@ for nn = 1:numel( tilts )
     im = astra_parallel3D( permute( sino, [1 3 2]), angles, offset, vol_shape, vol_size, astra_pixel_size, link_data, tilt);
     vol(:,:,nn) = FilterHisto(im, number_of_stds, filter_histo_roi);
     
-    %% Metrics    
+    %% Metrics        
+    im = double( MaskingDisc( im, mask_rad, mask_val) ) * 2^16;
     % mean
-    im = double( MaskingDisc(im, 0.95) );
     m(1).val(nn) = mean2( im );
     % mean abs
     m(2).val(nn) = mean2( abs( im ) );
@@ -108,10 +110,11 @@ for nn = 1:numel( tilts )
     [g1, g2] = gradient(im);
     m(4).val(nn) = mean2( sqrt( g1.^2 + g2.^2 ) );
     % laplacian
-    m(5).val(nn) = mean2( del2( im ) );
+    m(5).val(nn) = mean2( abs( del2( im ) ) );
     % entropy
     p = histcounts( im(:) );
-    p = p(p>0) / sum( p );
+    p = p(p>0);
+    p = p / sum( p );
     m(6).val(nn) = -sum( p .* log2( p ) );
     % entropy built-in
     m(7).val(nn) = -entropy( im );

@@ -99,8 +99,8 @@ for nn = 1:numel( offsets )
     vol(:,:,nn) = FilterHisto(im, number_of_stds, filter_histo_roi);
     
     %% Metrics    
-    % mean
-    im = double( MaskingDisc( im, mask_rad, mask_val) );
+    im = double( MaskingDisc( im, mask_rad, mask_val) ) * 2^16;
+    % mean    
     m(1).val(nn) = mean2( im );
     % mean abs
     m(2).val(nn) = mean2( abs( im ) );
@@ -110,7 +110,7 @@ for nn = 1:numel( offsets )
     [g1, g2] = gradient(im);
     m(4).val(nn) = mean2( sqrt( g1.^2 + g2.^2 ) );
     % laplacian
-    m(5).val(nn) = mean2( del2( im ) );
+    m(5).val(nn) = mean2( abs( del2( im ) ) );
     % entropy
     p = histcounts( im(:) );
     p = p(p>0);

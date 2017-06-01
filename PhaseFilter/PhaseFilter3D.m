@@ -1,16 +1,16 @@
-function [phaseFilter,phaseAppendix] = PhaseFilter3D(Method,imSize,EnergyDistancePixelsize,RegPar,BinaryFilterThreshold,outputPrecision)
+function [phaseFilter,phaseAppendix] = PhaseFilter3D(Method,vol_shape,EnergyDistancePixelsize,RegPar,BinaryFilterThreshold,outputPrecision)
 % Phase filter for reconstruction of the real refractive index decrement
 % 'delta' on a tomographic volume. Parameters as in 'PhaseFilter'.
 %
 % Written by Julian Moosmann, last version: 2013-11-13
 %
-% [phaseFilter,phaseAppendix] = PhaseFilter3D(Method,imSize,EnergyDistancePixelsize,RegPar,BinaryFilterThreshold,outputPrecision)
+% [phaseFilter,phaseAppendix] = PhaseFilter3D(Method,vol_shape,EnergyDistancePixelsize,RegPar,BinaryFilterThreshold,outputPrecision)
 
 if nargin < 1
     Method = 'tie';
 end
 if nargin < 2
-    imSize = [1024 1024 1024];
+    vol_shape = [1024 1024 1024];
 end
 if nargin < 3
     EnergyDistancePixelsize = [30e3 .4 1e-6];
@@ -35,9 +35,9 @@ ArgPrefac = 2*pi*lambda*Distance/Pixelsize^2;
 
 % %% Fourier coordinates.
 % % 1D
-% xi  = FrequencyVector(imSize(2),outputPrecision,1);
-% eta = FrequencyVector(imSize(1),outputPrecision,1);
-% zeta = FrequencyVector(imSize(3),outputPrecision,1);
+% xi  = FrequencyVector(vol_shape(2),outputPrecision,1);
+% eta = FrequencyVector(vol_shape(1),outputPrecision,1);
+% zeta = FrequencyVector(vol_shape(3),outputPrecision,1);
 % % 3D
 % [sinArg, sinxiquad, zeta]  = meshgrid(xi,eta,zeta);
 % % Function on 2D
@@ -45,11 +45,11 @@ ArgPrefac = 2*pi*lambda*Distance/Pixelsize^2;
 
 %% Fourier space variables
 % 1D
-xi1(:,1,1) = FrequencyVector(imSize(1),outputPrecision,1);
-xi2(1,:,1) = FrequencyVector(imSize(2),outputPrecision,1);
-xi3(1,1,:) = FrequencyVector(imSize(3),outputPrecision,1);
+xi1(:,1,1) = FrequencyVector(vol_shape(1),outputPrecision,1);
+xi2(1,:,1) = FrequencyVector(vol_shape(2),outputPrecision,1);
+xi3(1,1,:) = FrequencyVector(vol_shape(3),outputPrecision,1);
 % 3D
-sinArg = ArgPrefac*(repmat(xi1,[1 imSize(2) imSize(3)]).^2 + repmat(xi2,[imSize(1) 1 imSize(3)]).^2 + repmat(xi3,[imSize(1) imSize(2) 1]).^2)/2;
+sinArg = ArgPrefac*(repmat(xi1,[1 vol_shape(2) vol_shape(3)]).^2 + repmat(xi2,[vol_shape(1) 1 vol_shape(3)]).^2 + repmat(xi3,[vol_shape(1) vol_shape(2) 1]).^2)/2;
 
 %% Filter %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 switch lower(Method)
