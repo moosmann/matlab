@@ -25,7 +25,6 @@ scan_path = ...
 '/asap3/petra3/gpfs/p05/2016/data/11001978/raw/mah_32_15R_top_occd800_withoutpaper'; % too much fringes, not enough coherence probably, using standard phase retrieval reco looks blurry
 '/asap3/petra3/gpfs/p05/2016/commissioning/c20160920_000_diana/raw/Mg-10Gd39_1w';
 '/asap3/petra3/gpfs/p05/2016/commissioning/c20160913_000_synload/raw/mg5gd_21_3w';
-
 '/asap3/petra3/gpfs/p05/2016/commissioning/c20160803_001_pc_test/raw/phase_600';
 '/asap3/petra3/gpfs/p05/2016/commissioning/c20160803_001_pc_test/raw/phase_1000'; %rot_axis_offset=7.5
 '/asap3/petra3/gpfs/p05/2016/commissioning/c20160803_001_pc_test/raw/phase_1400'; %rot_axis_offset=19.5
@@ -61,9 +60,9 @@ flat_corr_area1 = [1 floor(100/raw_bin)]; % correlation area: index vector or re
 flat_corr_area2 = [0.2 0.8]; %correlation area: index vector or relative/absolute position of [first pix, last pix]
 decimal_round_precision = 2; % precision when rounding pixel shifts
 ring_filter = 1; % ring artifact filter
-ring_filter_method = 'jm';'wavelet-fft'; 
+ring_filter_method = 'wavelet-fft'; 'jm';
 ring_filter_median_width = 11;
-dec_levels = 6;
+dec_levels = 2:6;
 wname = 'db30';'db25';
 sigma = 2.4;
 % Phase retrieval %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -115,7 +114,7 @@ compression = 'full'; 'std'; 'threshold';'histo'; % method of compression of dyn
 compression_std_num = 5; % dynamic range: mean(volume) +/- NUM* std(volume)
 compression_threshold = [-1 1]; % dynamic range: [MIN MAX]
 compression_histo = [0.05 0.05]; % [LOW HIGH]. crop dynamic range to values between (100*LOW)% and (100*HIGH)% of the original histogram
-parfolder = 'test_ringfilt_jm'; % parent folder for 'reco', 'sino', 'phase', and 'flat_corrected'
+parfolder = 'test_ringfilt_wavelet-fft'; % parent folder for 'reco', 'sino', 'phase', and 'flat_corrected'
 subfolder_flatcor = ''; % subfolder in 'flat_corrected'
 subfolder_phase_map = ''; % subfolder in 'phase_map'
 subfolder_sino = ''; % subfolder in 'sino'

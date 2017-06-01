@@ -27,12 +27,12 @@ function [im_filt] = FilterStripesCombinedWaveletFFT(im, dec_levels, wname, sigm
 %% TODO: add direction option
 
 %% Default arguments %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-if nargin < 3
+if nargin < 1
     im = zeros(100,100);
     im(10:4:end-9) = 1;
 end
 if nargin < 2
-    dec_levels = 2:5;
+    dec_levels = 1:7;
 end
 if nargin < 3
    wname = 'db25'; 
