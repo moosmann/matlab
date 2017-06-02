@@ -23,8 +23,6 @@ scan_path = ...
     '/asap3/petra3/gpfs/p05/2017/data/11003950/raw/syn13_55L_Mg10Gd_12w_load_00';     
 '/asap3/petra3/gpfs/p05/2017/data/11003950/raw/syn01_48L_PEEK_12w_b';
 '/asap3/petra3/gpfs/p05/2016/data/11001978/raw/mah_32_15R_top_occd800_withoutpaper'; % too much fringes, not enough coherence probably, using standard phase retrieval reco looks blurry
-'/asap3/petra3/gpfs/p05/2016/commissioning/c20160920_000_diana/raw/Mg-10Gd39_1w';
-'/asap3/petra3/gpfs/p05/2016/commissioning/c20160913_000_synload/raw/mg5gd_21_3w';
 '/asap3/petra3/gpfs/p05/2016/commissioning/c20160803_001_pc_test/raw/phase_600';
 '/asap3/petra3/gpfs/p05/2016/commissioning/c20160803_001_pc_test/raw/phase_1000'; %rot_axis_offset=7.5
 '/asap3/petra3/gpfs/p05/2016/commissioning/c20160803_001_pc_test/raw/phase_1400'; %rot_axis_offset=19.5
@@ -60,8 +58,8 @@ flat_corr_area1 = [1 floor(100/raw_bin)]; % correlation area: index vector or re
 flat_corr_area2 = [0.2 0.8]; %correlation area: index vector or relative/absolute position of [first pix, last pix]
 decimal_round_precision = 2; % precision when rounding pixel shifts
 ring_filter = 1; % ring artifact filter
-ring_filter_method = 'wavelet-fft'; 'jm';
-ring_filter_median_width = 11;
+ring_filter_method = 'jm';'wavelet-fft'; 
+ring_filter_median_width = [3 11 21 31 39];11;
 dec_levels = 2:6;
 wname = 'db30';'db25';
 sigma = 2.4;
@@ -99,7 +97,7 @@ take_neg_log = []; % take negative logarithm. if empty, use 1 for attenuation co
 % Output %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 out_path = '';% absolute path were output data will be stored. !!overwrites the write_to_scratch flag. if empty uses the beamtime directory and either 'processed' or 'scratch_cc'
 write_to_scratch = 0; % write to 'scratch_cc' instead of 'processed'
-write_flatcor = 1; % save preprocessed flat corrected projections
+write_flatcor = 0; % save preprocessed flat corrected projections
 write_phase_map = 0; % save phase maps (if phase retrieval is not 0)
 write_sino = 0; % save sinograms (after preprocessing & before FBP filtering and phase retrieval)
 write_sino_phase = 0; % save sinograms of phase mapsls
@@ -114,7 +112,7 @@ compression = 'full'; 'std'; 'threshold';'histo'; % method of compression of dyn
 compression_std_num = 5; % dynamic range: mean(volume) +/- NUM* std(volume)
 compression_threshold = [-1 1]; % dynamic range: [MIN MAX]
 compression_histo = [0.05 0.05]; % [LOW HIGH]. crop dynamic range to values between (100*LOW)% and (100*HIGH)% of the original histogram
-parfolder = 'test_ringfilt_wavelet-fft'; % parent folder for 'reco', 'sino', 'phase', and 'flat_corrected'
+parfolder = 'test_ringfilt_jm_multi'; % parent folder for 'reco', 'sino', 'phase', and 'flat_corrected'
 subfolder_flatcor = ''; % subfolder in 'flat_corrected'
 subfolder_phase_map = ''; % subfolder in 'phase_map'
 subfolder_sino = ''; % subfolder in 'sino'
@@ -131,12 +129,13 @@ link_data = 1; % ASTRA data objects become references to Matlab arrays.
 gpu_ind = []; % GPU Device index to use, Matlab notation: index starts from 1. default: [], uses all
 
 %% TODO %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% TODO: Do reco binning only once.
 % TODO: PLot & parameter option for wavelet-fft fing filter
 % TODO: Improve FilterStripesCombinedWaveletFFT
 % TODO: check proj-flat correlation measure for absolute values
 % TODO: check crop_at_rot_axis option with stitch_projections, etc
 % TODO: SSIM: include Gaussian blur filter, test
-% TODO: check attenutation values of reconstructed slice are consitent
+% TODO: check if attenutation values of reconstructed slice are consitent
 % TODO: large data set management: parloop, memory, etc
 % TODO: stitching: optimize and refactor, memory efficency, interpolation method
 % TODO: interactive loop over tomo slices for different phase retrieval parameter
@@ -858,6 +857,8 @@ elseif ~read_flatcor
     end
     
     %% Ring artifact filter
+    sino_nn = round( size( proj, 2) / 2 );    
+    sino_unfilt = squeeze( proj(:,sino_nn,:) )';
     if ring_filter(1)
         t = toc;
         PrintVerbose(verbose, '\nFilter ring artifacts.')
@@ -865,8 +866,7 @@ elseif ~read_flatcor
             
             % Combined wavelet-FFT filter to remove ring artrifacts
             case 'wavelet-fft'                
-                sino_nn = round( size( proj, 2) / 2 );
-                sino_unfilt = squeeze( proj(:,sino_nn,:) )';
+                
                 parfor nn = 1:size( proj, 2)
                     sino = squeeze( proj(:,nn,:) )';
                     [d2, d1] = size( sino );
@@ -902,28 +902,49 @@ elseif ~read_flatcor
                 end
                 
             % Simple ring artifact removal filter
-            case 'jm'
-                % Idea: 
-                yy = round( raw_im_shape_binned2 / 2 );
-                sino = squeeze( proj(:,yy,:) );
-                proj_mean = mean( proj, 3);
-                proj_mean_med = medfilt2( proj_mean, [ring_filter_median_width, 1], 'symmetric' );
-                mask = proj_mean_med ./ proj_mean;
-                proj = bsxfun( @times, proj, mask);
+            case 'jm'                                
+                
+                if numel( ring_filter_median_width ) > 1
+                    
+                    for nn = ring_filter_median_width
+                        %m=sum(im);
+                        proj_mean = sum( proj, 3);
+                        
+                        %md=medfilt1(m,nn);
+                        proj_mean_med = medfilt2( proj_mean, [nn, 1], 'symmetric' );
+                                                
+                        %f=md./m;
+                        mask = proj_mean_med ./ proj_mean;
+                                                
+                        %im=bsxfun(@times,im,f);
+                        proj = bsxfun( @times, proj, mask);                        
+                        
+                    end
+                    
+                else
+                    
+                    proj_mean = mean( proj, 3);
+                    proj_mean_med = medfilt2( proj_mean, [ring_filter_median_width, 1], 'symmetric' );
+                    mask = proj_mean_med ./ proj_mean;
+                    proj = bsxfun( @times, proj, mask);
+                end
+                
                 PrintVerbose(verbose, ' Time elapsed: %.1f s (%.2f min)', toc-t, (toc-t)/60)
                 PrintVerbose( verbose, '\n ring filter mask min/max: %f, %f', min( mask(:) ), max( mask(:) ) )
                 if visualOutput(1)
                     
                     h3 = figure('Name', 'Sinogram and ring filter');
                     
+                    yy = sino_nn;
+                    
                     subplot(2,2,1)
-                    imsc( sino' )
+                    imsc( sino_unfilt )
                     axis equal tight
                     title(sprintf('sino unfiltered, y = %u', yy))
                     colorbar %('Location', 'southoutside')
                     
                     subplot(2,2,2)
-                    imsc( ( squeeze( proj(:,yy,:) ) - sino )' )
+                    imsc( ( squeeze( proj(:,yy,:) ) - sino_unfilt' )' )
                     axis equal tight
                     title(sprintf('sino filt - sino, y = %u', yy))
                     colorbar %('Location', 'southoutside')
@@ -1706,7 +1727,7 @@ fid = fopen( logfile_name, 'w');
 fprintf(fid, 'scan_name : %s\n', scan_name);
 fprintf(fid, 'beamtime_id : %s\n', beamtime_id);
 fprintf(fid, 'scan_path : %s\n', scan_path);
-fprintf(fid, 'reco_path : %s\n', save_path);
+fprintf(fid, 'reco_path : %s\n', reco_path);
 fprintf(fid, 'MATLAB notation, index of first element: 1, range: first:stride:last\n');
 fprintf(fid, 'MATLAB version : %s\n', version);
 fprintf(fid, 'platform : %s\n', computer);
@@ -1771,7 +1792,7 @@ fprintf(fid, 'interactive_determination_of_rot_axis : %u\n', interactive_determi
 % FBP
 fprintf(fid, 'ring_filter : %u\n', ring_filter);
 fprintf(fid, 'ring_filter_method : %s\n', ring_filter_method);
-fprintf(fid, 'ring_filter_median_width : %u\n', ring_filter_median_width);
+fprintf(fid, 'ring_filter_median_width : %s\n', sprintf( '%u ', ring_filter_median_width) );
 fprintf(fid, 'fbp_filter_type : %s\n', fbp_filter_type);
 fprintf(fid, 'fpb_freq_cutoff : %f\n', fpb_freq_cutoff);
 fprintf(fid, 'fbp_filter_padding : %u\n', fbp_filter_padding);
