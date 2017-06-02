@@ -3,7 +3,10 @@ if nargin < 1
     nums = [];
 end
 if nargin < 2
-    doreco = 1;
+    doreco = 0;
+end
+if nargin < 3
+    print_field = 'parfolder';
 end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Parameter sets to loop over %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -54,4 +57,5 @@ para(nn).flat_corr_area2 = [0.1 0.7]; %correlation area: index vector or relativ
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-p05_reco_loop( nums, doreco, para )
+p05_reco_loop( nums, doreco, print_field, para)
+

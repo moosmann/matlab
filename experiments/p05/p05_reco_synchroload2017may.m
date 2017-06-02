@@ -60,9 +60,8 @@ default.gpu_ind = 1;
 %% 2017 May
 raw = '/asap3/petra3/gpfs/p05/2017/data/11003950/raw/';
 
-%% Regular section
-default.write_flatcor = 1;
-default.write_8bit = 1;
+default.write_flatcor = 0;
+default.write_8bit = 0;
 default.write_8bit_binned = 1;
 
 nn = nn + 1;para(nn) = default;para(nn).scan_path = [raw 'syn01_48L_PEEK_12w_b'];
@@ -128,30 +127,7 @@ nn = nn + 1;para(nn) = default; para(nn).scan_path = [raw 'syn22_99L_Mg5Gd_4w_b'
 nn = nn + 1;para(nn) = default; para(nn).scan_path = [raw 'syn23_28R_PEEK_8w_a'];
 nn = nn + 1;para(nn) = default; para(nn).scan_path = [raw 'syn23_28R_PEEK_8w_b'];
 
-%% TEST SECTION
-default.write_flatcor = 0;
-default.write_8bit = 0;
-default.write_8bit_binned = 0;
-default.raw_roi = [265 1464];
 
-nn = nn + 1;para(nn) = default;para(nn).scan_path = [raw 'syn01_48L_PEEK_12w_b'];
-para(nn).do_phase_retrieval = 1;para(nn).phase_retrieval_method = 'tie';para(nn).phase_retrieval_reg_par = 2.5; 
-
-nn = nn + 1;para(nn) = default;para(nn).scan_path = [raw 'syn01_48L_PEEK_12w_b'];
-para(nn).parfolder = 'fbp_fft_wo_symmetric_option';
-
-nn = nn + 1;para(nn) = default;para(nn).scan_path = [raw 'syn01_48L_PEEK_12w_b'];
-para(nn).do_phase_retrieval = 1;para(nn).phase_retrieval_method = 'tie';para(nn).phase_retrieval_reg_par = 2.5; 
-para(nn).parfolder = 'fbp_fft_wo_symmetric_option';
-
-nn = nn + 1;para(nn) = default;para(nn).scan_path = [raw 'syn01_48L_PEEK_12w_b'];
-para(nn).do_phase_retrieval = 1;para(nn).phase_retrieval_method = 'tie';para(nn).phase_retrieval_reg_par = 2.5; 
-para(nn).parfolder = 'fbp_fft_wo_symmetric_option__nopadding';
-para(nn).phase_padding = 0;
-para(nn).fbp_filter_padding = 0;
-
-nn = nn + 1;para(nn) = default;para(nn).scan_path = [raw 'syn01_48L_PEEK_12w_b'];
-para(nn).parfolder = 'fbp_fft_with_symmetric_option';
 
 %% TEST SECTION
 nn = nn + 1;para(nn) = default; para(nn).scan_path = [raw 'syn13_55L_Mg10Gd_12w_load_00'];
@@ -178,56 +154,7 @@ para(nn).phase_retrieval_reg_par = 2.5;
 nn = nn + 1;para(nn) = para(nn-1); 
 para(nn).phase_retrieval_method = 'qpcut';
 
-%% TEST SECTION
-
-% Combined wavelet FFT
-nn = nn + 1;para(nn) = default; para(nn).scan_path = [raw 'syn13_55L_Mg10Gd_12w_load_00'];
-para(nn).raw_roi = [299 1492];
-para(nn).raw_bin = 1;
-para(nn).do_phase_retrieval = 0;
-para(nn).write_8bit = 0;
-para(nn).write_8bit_binned = 0;
-para(nn).write_sino = 0;
-para(nn).write_flatcor = 0;
-para(nn).ring_filter_method = 'wavelet-fft';
-para(nn).wname = 'db25';
-para(nn).sigma = 2.4;
-para(nn).dec_levels = 1;
-para(nn).parfolder = sprintf('test_ringfilt_wavelet-fft_decNum%u', para(nn).dec_levels);
-
-nn = nn + 1;para(nn) = para(nn-1); para(nn).scan_path = [raw 'syn13_55L_Mg10Gd_12w_load_00'];
-para(nn).dec_levels = para(nn-1).dec_levels + 1;
-para(nn).parfolder = sprintf('test_ringfilt_wavelet-fft_decNum%u', para(nn).dec_levels);
-
-nn = nn + 1;para(nn) = para(nn-1); para(nn).scan_path = [raw 'syn13_55L_Mg10Gd_12w_load_00'];
-para(nn).dec_levels = para(nn-1).dec_levels + 1;
-para(nn).parfolder = sprintf('test_ringfilt_wavelet-fft_decNum%u', para(nn).dec_levels);
-
-nn = nn + 1;para(nn) = para(nn-1); para(nn).scan_path = [raw 'syn13_55L_Mg10Gd_12w_load_00'];
-para(nn).dec_levels = para(nn-1).dec_levels + 1;
-para(nn).parfolder = sprintf('test_ringfilt_wavelet-fft_decNum%u', para(nn).dec_levels);
-
-nn = nn + 1;para(nn) = para(nn-1); para(nn).scan_path = [raw 'syn13_55L_Mg10Gd_12w_load_00'];
-para(nn).dec_levels = para(nn-1).dec_levels + 1;
-para(nn).parfolder = sprintf('test_ringfilt_wavelet-fft_decNum%u', para(nn).dec_levels);
-
-nn = nn + 1;para(nn) = para(nn-1); para(nn).scan_path = [raw 'syn13_55L_Mg10Gd_12w_load_00'];
-para(nn).dec_levels = para(nn-1).dec_levels + 1;
-para(nn).parfolder = sprintf('test_ringfilt_wavelet-fft_decNum%u', para(nn).dec_levels);
-
-nn = nn + 1;para(nn) = para(nn-1); para(nn).scan_path = [raw 'syn13_55L_Mg10Gd_12w_load_00'];
-para(nn).dec_levels = para(nn-1).dec_levels + 1;
-para(nn).parfolder = sprintf('test_ringfilt_wavelet-fft_decNum%u', para(nn).dec_levels);
-
-% Simple JM
-nn = nn + 1;para(nn) = para(nn-1); para(nn).scan_path = [raw 'syn13_55L_Mg10Gd_12w_load_00'];
-para(nn).ring_filter_method = 'jm';
-para(nn).parfolder = 'test_ringfilt_jm';
-
-% None
-nn = nn + 1;para(nn) = para(nn-1); para(nn).scan_path = [raw 'syn13_55L_Mg10Gd_12w_load_00'];
-para(nn).ring_filter = 0;
-para(nn).parfolder = 'test_ringfilt_none';
+%
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

@@ -55,32 +55,6 @@ default.sigma = 2.4;
 %% Data sets %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 raw = '/asap3/petra3/gpfs/p05/2016/data/11001978/raw/';
 
-%% Ring filter test section
-
-nn = nn + 1;para(nn) = default;para(nn).scan_path = [raw 'mah_01'];
-para(nn).raw_roi = [293 1492];
-para(nn).rot_axis_offset = -135.5 / para(nn).raw_bin;
-para(nn).rot_axis_tilt = -0.003;
-para(nn).write_sino = 1;
-para(nn).ring_filter_method = 'wavelet-fft';
-para(nn).parfolder = ['test_ringfilt_' para(nn).ring_filter_method];
-
-nn = nn + 1;para(nn) = para(nn-1);
-para(nn).dec_levels = 6;
-para(nn).wname = 'db30';
-para(nn).parfolder = sprintf( 'test_ringfilt_%s_%s_decNum%u', para(nn).ring_filter_method, para(nn).wname, para(nn).dec_levels );
-
-nn = nn + 1;para(nn) = para(nn-1);
-para(nn).ring_filter_method = 'jm';
-para(nn).parfolder = ['test_ringfilt_' para(nn).ring_filter_method];
-
-nn = nn + 1;para(nn) = para(nn-1);
-para(nn).ring_filter = 0;        
-para(nn).ring_filter_method = 'none';
-para(nn).parfolder = ['test_ringfilt_' para(nn).ring_filter_method];
-
-%% Regular
-
 % corroded screw
 nn = nn + 1;para(nn) = default;para(nn).scan_path = [raw 'mah_01'];
 para(nn).rot_axis_offset = -135.75 / para(nn).raw_bin;

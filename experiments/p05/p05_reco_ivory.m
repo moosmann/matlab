@@ -1,9 +1,12 @@
-function para = p05_reco_ivory(nums, doreco)
+function p05_reco_ivory(nums, doreco)
 if nargin < 1
     nums = [];
 end
 if nargin < 2
-    doreco = 1;
+    doreco = 0;
+end
+if nargin < 3
+    print_field = 'parfolder';
 end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Parameter sets to loop over %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -99,4 +102,4 @@ para(nn).vol_size = [-vol_shape(1), vol_shape(1), -vol_shape(2), vol_shape(2), -
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-p05_reco_loop( nums, doreco, para)
+p05_reco_loop( nums, doreco, print_field, para)

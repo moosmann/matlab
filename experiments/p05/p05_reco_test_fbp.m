@@ -55,6 +55,31 @@ sprintf('fbpFilt%s_ringFilt%uMedWid%u_bwFilt%ubwCutoff%u_phasePad%u_freqCutoff%2
 out_path = '/gpfs/petra3/scratch/moosmanj';
 out_path = '/asap3/petra3/gpfs/p05/2016/data/11001978/scratch_cc/c20160803_001_pc_test';
 
+%% TEST SECTION
+default.write_flatcor = 0;
+default.write_8bit = 0;
+default.write_8bit_binned = 0;
+default.raw_roi = [265 1464];
+
+nn = nn + 1;para(nn) = default;para(nn).scan_path = [raw 'syn01_48L_PEEK_12w_b'];
+para(nn).do_phase_retrieval = 1;para(nn).phase_retrieval_method = 'tie';para(nn).phase_retrieval_reg_par = 2.5; 
+
+nn = nn + 1;para(nn) = default;para(nn).scan_path = [raw 'syn01_48L_PEEK_12w_b'];
+para(nn).parfolder = 'fbp_fft_wo_symmetric_option';
+
+nn = nn + 1;para(nn) = default;para(nn).scan_path = [raw 'syn01_48L_PEEK_12w_b'];
+para(nn).do_phase_retrieval = 1;para(nn).phase_retrieval_method = 'tie';para(nn).phase_retrieval_reg_par = 2.5; 
+para(nn).parfolder = 'fbp_fft_wo_symmetric_option';
+
+nn = nn + 1;para(nn) = default;para(nn).scan_path = [raw 'syn01_48L_PEEK_12w_b'];
+para(nn).do_phase_retrieval = 1;para(nn).phase_retrieval_method = 'tie';para(nn).phase_retrieval_reg_par = 2.5; 
+para(nn).parfolder = 'fbp_fft_wo_symmetric_option__nopadding';
+para(nn).phase_padding = 0;
+para(nn).fbp_filter_padding = 0;
+
+nn = nn + 1;para(nn) = default;para(nn).scan_path = [raw 'syn01_48L_PEEK_12w_b'];
+para(nn).parfolder = 'fbp_fft_with_symmetric_option';
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 p05_reco_loop( nums, doreco, print_field, para)
