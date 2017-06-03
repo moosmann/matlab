@@ -1,5 +1,5 @@
-function p05_reco_dummy( SUBSETS, RUN_RECO, PRINT_PARAMETERS)
-% Dummy function which loops over the data sets given in the 'PARAMETER /
+function p05_reco_loop_template( SUBSETS, RUN_RECO, PRINT_PARAMETERS)
+% Template function which loops over the data sets given in the 'PARAMETER /
 % DATA SETS' section below. The 'DEFAULT PARAMETERS' section defines the
 % default paramters. Data / parameter sets are added to the loop using the
 % command 'ADD_DATA_SET'. 
@@ -18,13 +18,13 @@ function p05_reco_dummy( SUBSETS, RUN_RECO, PRINT_PARAMETERS)
 % SUBSETS : 1D array of integers. subset of data sets to be looped over
 % RUN_RECO : bool. default: 0. 0: loops over the subsets but does not start
 % reconstructions, 1: start the reconstruction loop.
-% print_fields : string or cell of strings. parameter to be printed at each
+% PRINT_PARAMETERS : string or cell of strings. parameter to be printed at each
 % loop step. useful in combination with RUN_RECO = 0 to check parameter
 % setting for the sets to loop over
 %
 % Written by Julian Moosmann, 2017-06-2, last modification: 2017-06-03
 %
-% p05_reco_dummy( SUBSETS, RUN_RECO, PRINT_PARAMETERS)
+% p05_reco_loop_template( SUBSETS, RUN_RECO, PRINT_PARAMETERS)
 
 if nargin < 1
     SUBSETS = [];
@@ -82,6 +82,9 @@ write_8bit_binned = 1;
 write_16bit = 0; 
 subfolder_reco = '';
 gpu_ind = 1;
+
+% Set default. Sllows parameters to be changed before first data set is added
+ADD_DEFAULT
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% PARAMETER / DATA SETS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

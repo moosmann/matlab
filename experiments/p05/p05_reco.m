@@ -59,7 +59,7 @@ flat_corr_area2 = [0.2 0.8]; %correlation area: index vector or relative/absolut
 decimal_round_precision = 2; % precision when rounding pixel shifts
 ring_filter = 1; % ring artifact filter
 ring_filter_method = 'jm';'wavelet-fft'; 
-ring_filter_median_width = [3 11 21 31 39];11;
+ring_filter_median_width = 11; %[3 11 21 31 39];
 dec_levels = 2:6;
 wname = 'db30';'db25';
 sigma = 2.4;
@@ -86,7 +86,7 @@ rot_corr_area2 = []; % ROI to correlate projections at angles 0 & pi
 rot_corr_gradient = 0; % use gradient of intensity maps if signal variations are too weak to correlate projections
 rot_axis_tilt = 0; % in rad. camera tilt w.r.t rotation axis. if empty calculate from registration of projections at 0 and pi
 fbp_filter_type = 'Ram-Lak';'linear';
-fpb_filter_freq_cutoff = 0.5; % Cut-off frequency in Fourier space of the above FBP filter
+fpb_filter_freq_cutoff = 1; % Cut-off frequency in Fourier space of the above FBP filter
 fbp_filter_padding = 1; % symmetric padding for consistent boundary conditions
 fbp_filter_padding_method = 'symmetric';
 butterworth_filter = 1; % use butterworth filter in addition to FBP filter
@@ -857,8 +857,8 @@ elseif ~read_flatcor
     end
     
     %% Ring artifact filter
-    sino_nn = round( size( proj, 2) / 2 );    
-    sino_unfilt = squeeze( proj(:,sino_nn,:) )';
+    sino_slice = round( size( proj, 2) / 2 );    
+    sino_unfilt = squeeze( proj(:,sino_slice,:) )';
     if ring_filter(1)
         t = toc;
         PrintVerbose(verbose, '\nFilter ring artifacts.')
@@ -883,19 +883,19 @@ elseif ~read_flatcor
                     subplot(3,1,1)
                     imsc( sino_unfilt )
                     axis equal tight
-                    title(sprintf('sino unfiltered, y = %u', sino_nn))
+                    title(sprintf('sino unfiltered, y = %u', sino_slice))
                     colorbar 
 
                     subplot(3,1,2)
-                    imsc( squeeze( proj(:,sino_nn,:) )' )
+                    imsc( squeeze( proj(:,sino_slice,:) )' )
                     axis equal tight
-                    title(sprintf('sino filtered, y = %u', sino_nn))
+                    title(sprintf('sino filtered, y = %u', sino_slice))
                     colorbar
                     
                     subplot(3,1,3)
-                    imsc( ( squeeze( proj(:,sino_nn,:) )' - sino_unfilt ) )
+                    imsc( ( squeeze( proj(:,sino_slice,:) )' - sino_unfilt ) )
                     axis equal tight
-                    title(sprintf('sino filt - sino, y = %u', sino_nn))
+                    title(sprintf('sino filt - sino, y = %u', sino_slice))
                     colorbar
                     
                     drawnow
@@ -932,21 +932,18 @@ elseif ~read_flatcor
                 PrintVerbose(verbose, ' Time elapsed: %.1f s (%.2f min)', toc-t, (toc-t)/60)
                 PrintVerbose( verbose, '\n ring filter mask min/max: %f, %f', min( mask(:) ), max( mask(:) ) )
                 if visualOutput(1)
-                    
                     h3 = figure('Name', 'Sinogram and ring filter');
-                    
-                    yy = sino_nn;
-                    
+                                        
                     subplot(2,2,1)
                     imsc( sino_unfilt )
                     axis equal tight
-                    title(sprintf('sino unfiltered, y = %u', yy))
+                    title(sprintf('sino unfiltered, y = %u', sino_slice))
                     colorbar %('Location', 'southoutside')
                     
                     subplot(2,2,2)
-                    imsc( ( squeeze( proj(:,yy,:) ) - sino_unfilt' )' )
+                    imsc( ( squeeze( proj(:,sino_slice,:) ) - sino_unfilt' )' )
                     axis equal tight
-                    title(sprintf('sino filt - sino, y = %u', yy))
+                    title(sprintf('sino filt - sino, y = %u', sino_slice))
                     colorbar %('Location', 'southoutside')
                     
                     subplot(2,2,3)

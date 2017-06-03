@@ -1,76 +1,83 @@
-function p05_reco_test_correlation_measure(nums, doreco, print_field)
-
+function p05_reco_test_correlation_measure(SUBSETS, RUN_RECO, PRINT_PARAMETERS )
 if nargin < 1
-    nums = [];
+    SUBSETS = [];
 end
 if nargin < 2
-    doreco = 0;
+    RUN_RECO = 0;
 end
 if nargin < 3
-    print_field = 'correlation_method';
+    PRINT_PARAMETERS = '';
 end
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%% Parameter sets to loop over %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% DEFAULT PARAMETERS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-%% Default %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-nn = 0;
-default.scan_path = '';
-default.visualOutput = 0;
-default.scan_path = '';
-default.raw_bin = 1;
-default.excentric_rot_axis = 0;
-default.crop_at_rot_axis = 0;
-default.stitch_projections = 0; 
-default.proj_range = 1; 
-default.ref_range = 1; 
-default.correlation_method = 'ssim';
-default.corr_num_flats = 3;
-default.do_phase_retrieval = 0;
-default.phase_retrieval_method = 'tie';'qp';'qpcut';
-default.phase_retrieval_reg_par = 2.5; 
-default.phase_retrieval_bin_filt = 0.15; 
-default.phase_retrieval_cutoff_frequ = 1 * pi; 
-default.phase_padding = 1; 
-default.do_tomo = 1;
-default.ring_filter = 1;
-default.rot_axis_offset = [];
-default.rot_axis_tilt = [];
-default.parfolder = '';
-default.write_to_scratch = 0;
-default.write_flatcor = 1;
-default.write_phase_map = 0; 
-default.write_sino = 0; 
-default.write_sino_phase = 0; 
-default.write_reco = 1; 
-default.write_float = 1; 
-default.write_float_binned = 1; 
-default.write_8bit = 0;
-default.write_8bit_binned = 0;
-default.write_16bit = 0; 
+scan_path = '';
+visualOutput = 0;
+scan_path = '';
+raw_bin = 1;
+excentric_rot_axis = 0;
+crop_at_rot_axis = 0;
+stitch_projections = 0; 
+proj_range = 1; 
+ref_range = 1; 
+correlation_method = 'ssim';
+corr_num_flats = 3;
+do_phase_retrieval = 0;
+phase_retrieval_method = 'tie';'qp';'qpcut';
+phase_retrieval_reg_par = 2.5; 
+phase_retrieval_bin_filt = 0.15; 
+phase_retrieval_cutoff_frequ = 1 * pi; 
+phase_padding = 1; 
+do_tomo = 1;
+ring_filter = 1;
+rot_axis_offset = [];
+rot_axis_tilt = [];
+parfolder = '';
+write_to_scratch = 0;
+write_flatcor = 1;
+write_phase_map = 0; 
+write_sino = 0; 
+write_sino_phase = 0; 
+write_reco = 1; 
+write_float = 1; 
+write_float_binned = 1; 
+write_8bit = 0;
+write_8bit_binned = 0;
+write_16bit = 0; 
 
-%% Data sets %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+ADD_DEFAULT
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% PARAMETER / DATA SETS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 %% 2017 May
-raw = '/asap3/petra3/gpfs/p05/2017/data/11003950/raw/';
-%nn = nn + 1;para(nn) = default; para(nn).scan_path = [raw 'syn11_53R_Mg5Gd_12w_load_broken'];
+raw_path = '/asap3/petra3/gpfs/p05/2017/data/11003950/raw/';
+%scan_path = [raw_path 'syn11_53R_Mg5Gd_12w_load_broken'];
+ADD_DATA_SET
 
-nn = nn + 1;para(nn) = default; para(nn).scan_path = [raw 'syn13_55L_Mg10Gd_12w_load_00'];
-para(nn).correlation_method =  'ssim-ml';
-para(nn).parfolder = 'ssim-ml';
+scan_path = [raw_path 'syn13_55L_Mg10Gd_12w_load_00'];
+correlation_method =  'ssim-ml';
+parfolder = 'ssim-ml';
+ADD_DATA_SET
 
-nn = nn + 1;para(nn) = default; para(nn).scan_path = [raw 'syn13_55L_Mg10Gd_12w_load_00'];
-para(nn).correlation_method =  'ssim';
-para(nn).parfolder = 'ssim-LfromROI';
+scan_path = [raw_path 'syn13_55L_Mg10Gd_12w_load_00'];
+correlation_method =  'ssim';
+parfolder = 'ssim-LfromROI';
+ADD_DATA_SET
 
-nn = nn + 1;para(nn) = default; para(nn).scan_path = [raw 'syn13_55L_Mg10Gd_12w_load_00'];
-para(nn).correlation_method =  'ssim';
-para(nn).parfolder = 'ssim-L1';
+scan_path = [raw_path 'syn13_55L_Mg10Gd_12w_load_00'];
+correlation_method =  'ssim';
+parfolder = 'ssim-L1';
+ADD_DATA_SET
 
-nn = nn + 1;para(nn) = default; para(nn).scan_path = [raw 'syn13_55L_Mg10Gd_12w_load_00'];
-para(nn).correlation_method =  'entropy';
-para(nn).parfolder = 'entropy';
-
+scan_path = [raw_path 'syn13_55L_Mg10Gd_12w_load_00'];
+correlation_method =  'entropy';
+parfolder = 'entropy';
+ADD_DATA_SET
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-p05_reco_loop( nums, doreco, print_field, para)
+p05_reco_loop( SUBSETS, RUN_RECO, PRINT_PARAMETERS, PARAMETER_CELL)

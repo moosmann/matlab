@@ -1,31 +1,4 @@
 function p05_reco_synchroload2017may( SUBSETS, RUN_RECO, PRINT_PARAMETERS)
-% Dummy function which loops over the data sets given in the 'PARAMETER /
-% DATA SETS' section below. The 'DEFAULT PARAMETERS' section defines the
-% default paramters. Data / parameter sets are added to the loop using the
-% command 'ADD_DATA_SET'. 
-%
-% Caution: if parameters are changed, they remain changed after the data
-% set is added unless 'ADD_DATA_SET(1)' is used which restores all
-% parameters given in the 'DEFAULT PARAMETER' section.
-%
-% Caution: If parameters not set in the DEFAULT PARAMETER section, then
-% the values in main reconstruction routine 'p05_reco' are used.
-% 
-% Copy this dummy function under a new name and add parameter or data sets
-% to loop over.
-% 
-% ARGUMENTS
-% SUBSETS : 1D array of integers. subset of data sets to be looped over
-% RUN_RECO : bool. default: 0. 0: loops over the subsets but does not start
-% reconstructions, 1: start the reconstruction loop.
-% PRINT_PARAMETERS : string or cell of strings. parameter to be printed at each
-% loop step. useful in combination with RUN_RECO = 0 to check parameter
-% setting for the sets to loop over
-%
-% Written by Julian Moosmann, 2017-06-2, last modification: 2017-06-03
-%
-% p05_reco_dummy( SUBSETS, RUN_RECO, PRINT_PARAMETERS)
-
 if nargin < 1
     SUBSETS = [];
 end
@@ -35,7 +8,6 @@ end
 if nargin < 3
     PRINT_PARAMETERS = '';
 end
-
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% DEFAULT PARAMETERS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -167,15 +139,9 @@ write_8bit_binned = 1;
 ADD_DATA_SET();
 
 phase_retrieval_reg_par = 1.5; ADD_DATA_SET();
-
 phase_retrieval_reg_par = 3.5; ADD_DATA_SET();
-
-phase_retrieval_method = 'qp';
-phase_retrieval_reg_par = 2.5; 
-ADD_DATA_SET();
-
-phase_retrieval_method = 'qpcut';
-ADD_DATA_SET();
+phase_retrieval_method = 'qp';phase_retrieval_reg_par = 2.5; ADD_DATA_SET();
+phase_retrieval_method = 'qpcut';ADD_DATA_SET();
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
