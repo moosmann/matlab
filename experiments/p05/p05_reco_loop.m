@@ -60,7 +60,12 @@ if iscell( par )
                 else
                     fprintf('%3u : %s', num, name )
                     fprintf( ', %s = ', print_field)
-                    disp( external_parameter.(print_field) )
+                    out = external_parameter.(print_field);
+                    if isempty( out )
+                        fprintf( '\n' )
+                    else
+                        disp( out )
+                    end
                 end
             else
                 fprintf('\n%3u : %s', num, name )
