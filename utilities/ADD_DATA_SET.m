@@ -1,7 +1,7 @@
 function ADD_DATA_SET( restore_default_after_set, parameter_cell_array )
 % Add (almost) all parameters, i.e. MATLAB variables given in the current
-% workspace at the moment of calling this function to the cell struct
-% 'par'.
+% workspace at the moment of calling this function to the cell array struct
+% 'PARAMETER_CELL'.
 %
 % ARGUMENTS
 % restore_default_after_set : bool. default: 0. restore parameter values
@@ -12,8 +12,6 @@ function ADD_DATA_SET( restore_default_after_set, parameter_cell_array )
 % Written by Julian Moosmann, 2017-06-02, last mod: 2017-06-03
 %
 % ADD_DATA_SET( restore_default_after_set, parameter_cell_array )
-
-%% TODO: rename non-parameter variables (running index nn, default struct, etc)
 
 %% Default arguments %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 if nargin < 1
@@ -29,7 +27,7 @@ end
 for nn = 1:numel( parameter_cell_array )
     name = parameter_cell_array{nn};
     
-    if ~sum( strcmpi( name, {'PARAMETER_CELL', 'DEFAULT', 'ans', 'PARAMETER_STRUCT', 'raw', 'SUBSETS', 'DO_RECO', 'PRINT_PARAMETERS'} ) )
+    if ~sum( strcmpi( name, {'PARAMETER_CELL', 'DEFAULT', 'ans', 'PARAMETER_STRUCT', 'raw', 'SUBSETS', 'RUN_RECO', 'PRINT_PARAMETERS'} ) )
         parameter_struct.(name) = evalin( 'caller', name );
     end
 end
@@ -43,7 +41,7 @@ elseif parameter_struct.DATA_SET_NUM == 0
     assignin( 'caller', 'DEFAULT', parameter_struct );   
 end
 
-%% Add parameter struct to struct array
+%% Add parameter struct to struct array (workaround to create cell array)
 assignin( 'caller', 'PARAMETER_STRUCT', parameter_struct);
 evalin( 'caller', 'DATA_SET_NUM = DATA_SET_NUM + 1;' )
 evalin( 'caller', 'PARAMETER_CELL{DATA_SET_NUM} = PARAMETER_STRUCT;' )
