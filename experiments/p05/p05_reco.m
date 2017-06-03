@@ -205,9 +205,9 @@ if exist( 'external_parameter' ,'var')
     visualOutput = 0;
     interactive_determination_of_rot_axis = 0;
     fields = fieldnames( external_parameter );
-    for nn = 1:numel(fields)
+    for nn = 1:numel( fields )
         var_name = fields{nn};
-        var_val = getfield(external_parameter, var_name );
+        var_val = getfield( external_parameter, var_name );
         assignin('caller', var_name, var_val )
     end
     clear external_parameter;
@@ -403,9 +403,9 @@ if isempty( sample_detector_distance )
         sample_detector_distance = par.o_ccd_dist / 1000;
     end
 end
-PrintVerbose( verbose, '\n energy : %g keV', energy )
-PrintVerbose( verbose, '\n distance sample dector : %g mm', sample_detector_distance * 1000 )
-PrintVerbose( verbose, '\n effective pixel size : %g micron',  eff_pixel_size * 1e6)
+PrintVerbose( verbose, '\n energy : %.1f keV', energy / 1e3 )
+PrintVerbose( verbose, '\n distance sample dector : %.1f mm', sample_detector_distance * 1000 )
+PrintVerbose( verbose, '\n effective pixel size : %.2f micron',  eff_pixel_size * 1e6)
 
 %% Start parallel CPU pool
 t = toc;
@@ -1064,7 +1064,8 @@ if do_tomo(1)
     % ROI
     im1 = proj( rot_corr_area1, rot_corr_area2, ind1);
     im2 = flipud( proj( rot_corr_area1, rot_corr_area2, ind2) );
-    PrintVerbose(verbose, '\n correlation of image pair. filename index : %g, %g. projection index : %g, %g, angle / pi : %g, %g', proj_nums([ind1,ind2]), ind1, ind2, val1 / pi, (val2 + pi) / pi )
+    PrintVerbose(verbose, '\n correlation of images : [filename index, projection index, angle / pi] = [%g, %g, %g] and [%g, %g, %g]', ... 
+        proj_nums(ind1), ind1, val1 / pi, proj_nums(ind2), ind2, (val2 + pi) / pi )
     if rot_corr_gradient(1)
         l = 2;
         [g11, g12] = gradient(im1);
@@ -1080,7 +1081,7 @@ if do_tomo(1)
     PrintVerbose(verbose, '\n relative shift: %g, %g', rot_corr_shift_x, rot_corr_shift_y)
     rot_axis_offset_calc = rot_corr_shift_x / 2;
     rot_axis_pos_calc = raw_im_shape_binned1 / 2 + rot_axis_offset_calc;
-    PrintVerbose(verbose, '\n calulated rotation axis offset: %f', rot_axis_offset_calc)
+    PrintVerbose(verbose, '\n calculated rotation axis offset: %.2f', rot_axis_offset_calc)
     % use calculated offset if both offset and position are empty
     if isempty( rot_axis_offset ) && isempty( rot_axis_pos )
         rot_axis_offset = rot_axis_offset_calc;
@@ -1314,8 +1315,8 @@ if do_tomo(1)
    
         tint = toc - tint;
     end   
-    PrintVerbose(verbose, '\n rotation axis offset: %f', rot_axis_offset );
-    PrintVerbose(verbose, '\n rotation axis position: %f', rot_axis_pos );
+    PrintVerbose(verbose, '\n rotation axis offset: %.2f', rot_axis_offset );
+    PrintVerbose(verbose, '\n rotation axis position: %.2f', rot_axis_pos );
     PrintVerbose(verbose, '\n rotation axis tilt: %g rad = %g deg', rot_axis_tilt, rot_axis_tilt * 180 / pi)
        
     if visualOutput(1)

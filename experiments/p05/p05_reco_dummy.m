@@ -1,4 +1,4 @@
-function p05_reco_dummy( nums, doreco, print_field)
+function p05_reco_dummy( SUBSETS, DO_RECO, FIELDS_TO_PRINT)
 % Dummy function which loops over the data sets given in the 'PARAMETER /
 % DATA SETS' section below. The 'DEFAULT PARAMETERS' section defines the
 % default paramters. Data / parameter sets are added to the loop using the
@@ -15,25 +15,25 @@ function p05_reco_dummy( nums, doreco, print_field)
 % to loop over.
 % 
 % ARGUMENTS
-% nums : 1D array of integers. subset of data sets to be looped over
-% doreco : bool. default: 0. 0: loops over the subsets but does not start
+% SUBSETS : 1D array of integers. subset of data sets to be looped over
+% DO_RECO : bool. default: 0. 0: loops over the subsets but does not start
 % reconstructions, 1: start the reconstruction loop.
 % print_fields : string or cell of strings. parameter to be printed at each
-% loop step. useful in combination with doreco = 0 to check parameter
+% loop step. useful in combination with DO_RECO = 0 to check parameter
 % setting for the sets to loop over
 %
 % Written by Julian Moosmann, 2017-06-2, last modification: 2017-06-03
 %
-% p05_reco_dummy( nums, doreco, print_field)
+% p05_reco_dummy( SUBSETS, DO_RECO, FIELDS_TO_PRINT)
 
 if nargin < 1
-    nums = [];
+    SUBSETS = [];
 end
 if nargin < 2
-    doreco = 0;
+    DO_RECO = 0;
 end
 if nargin < 3
-    print_field = '';
+    FIELDS_TO_PRINT = '';
 end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -117,4 +117,4 @@ scan_path = [raw 'syn17_25R_PEEK_8w_a'];ADD_DATA_SET(1);
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-p05_reco_loop( nums, doreco, print_field, par)
+p05_reco_loop( SUBSETS, DO_RECO, FIELDS_TO_PRINT, PARAMETER_CELL)

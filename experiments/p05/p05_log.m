@@ -1,4 +1,4 @@
-function [par,cur, cam] = p05_log( file )
+function [par, cur, cam] = p05_log( file )
 % Read log file of beamline P05.
 %
 % ARGUMENTS
@@ -6,7 +6,7 @@ function [par,cur, cam] = p05_log( file )
 % 
 % Written by Julian Moosmann, 2016-12-12. Last version: 2016-12-12
 %
-% par = p05_log(filename)
+% [par, cur, cam] = p05_log(filename)
 
 %% Default arguments %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 if nargin < 1

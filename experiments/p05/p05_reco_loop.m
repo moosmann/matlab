@@ -1,7 +1,7 @@
-function p05_reco_loop(nums, doreco, print_field, par)
+function p05_reco_loop(nums, doreco, print_field, PARAMETER_CELL)
 % Script to loop over parameter sets related to paramters of script
 % 'p05_reco'. Set parameters to loop over as elements of the structure
-% array 'par' below. Fieldnames of 'par' MUST match the names of
+% array 'PARAMETER_CELL' below. Fieldnames of 'PARAMETER_CELL' MUST match the names of
 % parameters in 'p05_reco'.
 %
 % Visual output ('visualOutput') and user interaction
@@ -27,11 +27,11 @@ end
 %% Main %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %% CELL ARRAY %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-if iscell( par )
+if iscell( PARAMETER_CELL )
     
     fprintf( '\nDATA SETS:')
-    for nn = 1:numel( par)
-        [~, name] = fileparts( par{nn}.scan_path );
+    for nn = 1:numel( PARAMETER_CELL)
+        [~, name] = fileparts( PARAMETER_CELL{nn}.scan_path );
         fprintf('\n%3u : %s', nn, name )
     end
     
@@ -39,7 +39,7 @@ if iscell( par )
         fprintf( '\n\nTO BE RECONSTRUCTED:')
         for nn = 1:numel( nums )
             num = nums(nn);
-            external_parameter = par{num};
+            external_parameter = PARAMETER_CELL{num};
             [~, name] = fileparts( external_parameter.scan_path );
             if ~isempty(print_field)
                 if nn == 1
@@ -79,7 +79,7 @@ if iscell( par )
         for nn = 1:numel( nums )
             num = nums(nn);
             
-            external_parameter = par{num};
+            external_parameter = PARAMETER_CELL{num};
             [~, name] = fileparts( external_parameter.scan_path );
             fprintf('\nRECONSTRUCTION OF DATA SET NUMBER %u : %s\n', num, name )
             
@@ -91,11 +91,11 @@ if iscell( par )
 
     
 %% STRUCT ARRAY %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%    
-elseif isstruct( par )
+elseif isstruct( PARAMETER_CELL )
     
     fprintf( '\nDATA SETS:')
-    for nn = 1:numel( par)
-        [~, name] = fileparts( par(nn).scan_path );
+    for nn = 1:numel( PARAMETER_CELL)
+        [~, name] = fileparts( PARAMETER_CELL(nn).scan_path );
         fprintf('\n%3u : %s', nn, name )
     end
     
@@ -103,7 +103,7 @@ elseif isstruct( par )
         fprintf( '\n\nTO BE RECONSTRUCTED:')
         for nn = 1:numel( nums )
             num = nums(nn);
-            external_parameter = par(num);
+            external_parameter = PARAMETER_CELL(num);
             [~, name] = fileparts( external_parameter.scan_path );
             if ~isempty(print_field)
                 if nn == 1
@@ -138,7 +138,7 @@ elseif isstruct( par )
         for nn = 1:numel( nums )
             num = nums(nn);
             
-            external_parameter = par(num);
+            external_parameter = PARAMETER_CELL(num);
             [~, name] = fileparts( external_parameter.scan_path );
             fprintf('\nRECONSTRUCTION OF DATA SET NUMBER %u : %s\n', num, name )
             
