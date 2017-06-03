@@ -29,7 +29,7 @@ end
 for nn = 1:numel( parameter_cell_array )
     name = parameter_cell_array{nn};
     
-    if ~sum( strcmpi( name, {'PARAMETER_CELL', 'DEFAULT', 'ans', 'PARAMETER_STRUCT', 'raw', 'SUBSETS', 'DO_RECO', 'FIELDS_TO_PRINT'} ) )
+    if ~sum( strcmpi( name, {'PARAMETER_CELL', 'DEFAULT', 'ans', 'PARAMETER_STRUCT', 'raw', 'SUBSETS', 'DO_RECO', 'PRINT_PARAMETERS'} ) )
         parameter_struct.(name) = evalin( 'caller', name );
     end
 end

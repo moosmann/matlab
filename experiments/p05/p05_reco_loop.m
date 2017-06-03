@@ -1,4 +1,4 @@
-function p05_reco_loop(nums, doreco, print_field, PARAMETER_CELL)
+function p05_reco_loop(SUBSETS, RUN_RECO, PRINT_PARAMETERS, PARAMETER_CELL)
 % Script to loop over parameter sets related to paramters of script
 % 'p05_reco'. Set parameters to loop over as elements of the structure
 % array 'PARAMETER_CELL' below. Fieldnames of 'PARAMETER_CELL' MUST match the names of
@@ -15,13 +15,13 @@ function p05_reco_loop(nums, doreco, print_field, PARAMETER_CELL)
 
 %% Default arguments %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 if nargin < 1
-    nums = [];
+    SUBSETS = [];
 end
 if nargin < 2
-    doreco = 0;
+    RUN_RECO = 0;
 end
 if nargin < 3
-    print_field = '';
+    PRINT_PARAMETERS = '';
 end
 
 %% Main %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -35,20 +35,20 @@ if iscell( PARAMETER_CELL )
         fprintf('\n%3u : %s', nn, name )
     end
     
-    if ~isempty(nums)
+    if ~isempty(SUBSETS)
         fprintf( '\n\nTO BE RECONSTRUCTED:')
-        for nn = 1:numel( nums )
-            num = nums(nn);
+        for nn = 1:numel( SUBSETS )
+            num = SUBSETS(nn);
             external_parameter = PARAMETER_CELL{num};
             [~, name] = fileparts( external_parameter.scan_path );
-            if ~isempty(print_field)
+            if ~isempty(PRINT_PARAMETERS)
                 if nn == 1
                     fprintf( '\n' )
                 end
-                if iscell(print_field)
+                if iscell(PRINT_PARAMETERS)
                     fprintf('%3u : %s\n', num, name )
-                    for mm = 1:numel( print_field )
-                        fn = print_field{mm};
+                    for mm = 1:numel( PRINT_PARAMETERS )
+                        fn = PRINT_PARAMETERS{mm};
                         fprintf( '        %s = ', fn)
                         out = external_parameter.(fn);
                         if isempty( out )
@@ -59,8 +59,8 @@ if iscell( PARAMETER_CELL )
                     end
                 else
                     fprintf('%3u : %s', num, name )
-                    fprintf( ', %s = ', print_field)
-                    out = external_parameter.(print_field);
+                    fprintf( ', %s = ', PRINT_PARAMETERS)
+                    out = external_parameter.(PRINT_PARAMETERS);
                     if isempty( out )
                         fprintf( '\n' )
                     else
@@ -74,10 +74,10 @@ if iscell( PARAMETER_CELL )
     end
     
     % Loop over parameter sets
-    if ~isempty( nums ) && doreco
+    if ~isempty( SUBSETS ) && RUN_RECO
         fprintf( '\n\nSTART LOOPING \n')
-        for nn = 1:numel( nums )
-            num = nums(nn);
+        for nn = 1:numel( SUBSETS )
+            num = SUBSETS(nn);
             
             external_parameter = PARAMETER_CELL{num};
             [~, name] = fileparts( external_parameter.scan_path );
@@ -99,20 +99,20 @@ elseif isstruct( PARAMETER_CELL )
         fprintf('\n%3u : %s', nn, name )
     end
     
-    if ~isempty(nums)
+    if ~isempty(SUBSETS)
         fprintf( '\n\nTO BE RECONSTRUCTED:')
-        for nn = 1:numel( nums )
-            num = nums(nn);
+        for nn = 1:numel( SUBSETS )
+            num = SUBSETS(nn);
             external_parameter = PARAMETER_CELL(num);
             [~, name] = fileparts( external_parameter.scan_path );
-            if ~isempty(print_field)
+            if ~isempty(PRINT_PARAMETERS)
                 if nn == 1
                     fprintf( '\n' )
                 end
-                if iscell(print_field)
+                if iscell(PRINT_PARAMETERS)
                     fprintf('%3u : %s\n', num, name )
-                    for mm = 1:numel( print_field )
-                        fn = print_field{mm};
+                    for mm = 1:numel( PRINT_PARAMETERS )
+                        fn = PRINT_PARAMETERS{mm};
                         fprintf( '        %s = ', fn)
                         out = external_parameter.(fn);
                         if isempty( out )
@@ -123,8 +123,8 @@ elseif isstruct( PARAMETER_CELL )
                     end
                 else
                     fprintf('%3u : %s', num, name )
-                    fprintf( ', %s = ', print_field)
-                    disp( external_parameter.(print_field) )
+                    fprintf( ', %s = ', PRINT_PARAMETERS)
+                    disp( external_parameter.(PRINT_PARAMETERS) )
                 end
             else
                 fprintf('\n%3u : %s', num, name )
@@ -133,10 +133,10 @@ elseif isstruct( PARAMETER_CELL )
     end
     
     % Loop over parameter sets
-    if ~isempty( nums ) && doreco
+    if ~isempty( SUBSETS ) && RUN_RECO
         fprintf( '\n\nSTART LOOPING \n')
-        for nn = 1:numel( nums )
-            num = nums(nn);
+        for nn = 1:numel( SUBSETS )
+            num = SUBSETS(nn);
             
             external_parameter = PARAMETER_CELL(num);
             [~, name] = fileparts( external_parameter.scan_path );
