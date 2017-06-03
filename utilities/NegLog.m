@@ -1,5 +1,14 @@
 function array = NegLog( array, toggle, enforce_positivity)
 % Take the negative logarithm of the input array.
+%
+% ARGUMENTS
+% array : N-D array
+% toggle : bool. default: 1. take negative logarithm or not
+% enforce_positivity : bool. default: 0. if 1: negative values are set to 0
+%
+% Written by Julian Moosmann, last mod: 2017-06-03
+%
+% array = NegLog( array, toggle, enforce_positivity)
 
 %% Defaults
 if nargin < 2

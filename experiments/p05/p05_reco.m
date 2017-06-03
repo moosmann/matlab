@@ -1561,21 +1561,11 @@ if do_tomo(1)
         filt = filt .* bw;
     end
     
-% old code:
-%     if fbp_filter_padding(1)
-%         proj_shape1 = size( proj, 1);
-%         proj = padarray( NegLog(proj, take_neg_log), [size( proj, 1) 0 0], fbp_filter_padding_method, 'post' );
-%         proj = real( ifft( bsxfun(@times, fft( proj, [], 1), filt), [], 1, 'symmetric') );
-%         proj = proj(1:proj_shape1,:,:);
-%     else
-%         proj = real( ifft( bsxfun(@times, fft( NegLog( proj, take_neg_log), [], 1), filt), [], 1, 'symmetric') );
-%     end
-% new code:
     proj_shape1 = size( proj, 1);
     parfor nn =  1:size( proj, 2)
         im = proj(:,nn,:);
         im = padarray( NegLog(im, take_neg_log), fbp_filter_padding * [proj_shape1 0 0], fbp_filter_padding_method, 'post' );        
-        im = real( ifft( bsxfun(@times, fft( im, [], 1), filt), [], 1, 'symmetric') );        
+        im = real( ifft( bsxfun(@times, fft( im, [], 1), filt), [], 1, 'symmetric') ); %% TODO: Check symmetric option
         %im = real( ifft( bsxfun(@times, fft( im, [], 1), filt), [], 1) );        
         proj(:,nn,:) = im(1:proj_shape1,:,:);
     end    
