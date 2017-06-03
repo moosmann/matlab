@@ -86,7 +86,7 @@ rot_corr_area2 = []; % ROI to correlate projections at angles 0 & pi
 rot_corr_gradient = 0; % use gradient of intensity maps if signal variations are too weak to correlate projections
 rot_axis_tilt = 0; % in rad. camera tilt w.r.t rotation axis. if empty calculate from registration of projections at 0 and pi
 fbp_filter_type = 'Ram-Lak';'linear';
-fpb_freq_cutoff = 0.5; % Cut-off frequency in Fourier space of the above FBP filter
+fpb_filter_freq_cutoff = 0.5; % Cut-off frequency in Fourier space of the above FBP filter
 fbp_filter_padding = 1; % symmetric padding for consistent boundary conditions
 fbp_filter_padding_method = 'symmetric';
 butterworth_filter = 1; % use butterworth filter in addition to FBP filter
@@ -1553,7 +1553,7 @@ if do_tomo(1)
     % Filter sinogram
     PrintVerbose(verbose, '\n Filter sino:' )
     t2 = toc;
-    filt = iradonDesignFilter(fbp_filter_type, (1 + fbp_filter_padding) * size( proj, 1), fpb_freq_cutoff);
+    filt = iradonDesignFilter(fbp_filter_type, (1 + fbp_filter_padding) * size( proj, 1), fpb_filter_freq_cutoff);
     if butterworth_filter(1)
         [b, a] = butter(butterworth_order, butterworth_cutoff_frequ);
         bw = freqz(b, a, numel(filt) );
@@ -1794,7 +1794,7 @@ fprintf(fid, 'ring_filter : %u\n', ring_filter);
 fprintf(fid, 'ring_filter_method : %s\n', ring_filter_method);
 fprintf(fid, 'ring_filter_median_width : %s\n', sprintf( '%u ', ring_filter_median_width) );
 fprintf(fid, 'fbp_filter_type : %s\n', fbp_filter_type);
-fprintf(fid, 'fpb_freq_cutoff : %f\n', fpb_freq_cutoff);
+fprintf(fid, 'fpb_filter_freq_cutoff : %f\n', fpb_filter_freq_cutoff);
 fprintf(fid, 'fbp_filter_padding : %u\n', fbp_filter_padding);
 fprintf(fid, 'fbp_filter_padding_method : %s\n', fbp_filter_padding_method);
 fprintf(fid, 'butterworth_filter : %u\n', butterworth_filter);

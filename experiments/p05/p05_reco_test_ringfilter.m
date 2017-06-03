@@ -29,7 +29,7 @@ default.do_phase_retrieval = 0;
 default.do_tomo = 1;
 default.fbp_filter_padding = 1;
 default.fbp_filter_type = 'Ram-Lak';'linear';
-default.fpb_freq_cutoff = 1; 
+default.fpb_filter_freq_cutoff = 1; 
 default.ring_filter = 1;
 default.ring_filter_method = 'wavelet-fft';
 default.dec_levels = 7;
@@ -212,16 +212,16 @@ para(nn).wname = 'db30';
 para(nn).sigma = 2.4;
 para(nn).dec_levels = 1:7;
 para(nn).fbp_filter_type = 'linear';
-para(nn).fpb_freq_cutoff = 0.5;
-para(nn).parfolder = sprintf('test_ringfilt_wavelet-fft_%s_decLev%s_fbpFilt%s_fbpcut%02u', para(nn).wname, sprintf('%u', para(nn).dec_levels), para(nn).fbp_filter_type, para(nn).fpb_freq_cutoff*10 );
+para(nn).fpb_filter_freq_cutoff = 0.5;
+para(nn).parfolder = sprintf('test_ringfilt_wavelet-fft_%s_decLev%s_fbpFilt%s_fbpcut%02u', para(nn).wname, sprintf('%u', para(nn).dec_levels), para(nn).fbp_filter_type, para(nn).fpb_filter_freq_cutoff*10 );
 
 nn = nn + 1;para(nn) = para(nn-1);
 para(nn).wname = 'db30';
 para(nn).sigma = 2.4;
 para(nn).dec_levels = 1:7;
 para(nn).fbp_filter_type = 'linear';
-para(nn).fpb_freq_cutoff = 1;
-para(nn).parfolder = sprintf('test_ringfilt_wavelet-fft_%s_decLev%s_fbpFilt%s_fbpcut%02u', para(nn).wname, sprintf('%u', para(nn).dec_levels), para(nn).fbp_filter_type, para(nn).fpb_freq_cutoff*10 );
+para(nn).fpb_filter_freq_cutoff = 1;
+para(nn).parfolder = sprintf('test_ringfilt_wavelet-fft_%s_decLev%s_fbpFilt%s_fbpcut%02u', para(nn).wname, sprintf('%u', para(nn).dec_levels), para(nn).fbp_filter_type, para(nn).fpb_filter_freq_cutoff*10 );
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

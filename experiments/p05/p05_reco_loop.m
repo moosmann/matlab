@@ -1,7 +1,7 @@
-function p05_reco_loop(nums, doreco, print_field, para)
-% Script to loop over parameter sets related to paramters of scritp
+function p05_reco_loop(nums, doreco, print_field, par)
+% Script to loop over parameter sets related to paramters of script
 % 'p05_reco'. Set parameters to loop over as elements of the structure
-% array 'para' below. Fieldnames of 'para' MUST match the names of
+% array 'par' below. Fieldnames of 'par' MUST match the names of
 % parameters in 'p05_reco'.
 %
 % Visual output ('visualOutput') and user interaction
@@ -25,57 +25,125 @@ if nargin < 3
 end
 
 %% Main %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-fprintf( '\nDATA SETS:')
-for nn = 1:numel( para)
-    [~, name] = fileparts( para(nn).scan_path );
-    fprintf('\n%3u : %s', nn, name )
-end
 
-if ~isempty(nums)
-    fprintf( '\n\nTO BE RECONSTRUCTED:')
-    for nn = 1:numel( nums )
-        num = nums(nn);
-        external_parameter = para(num);
-        [~, name] = fileparts( external_parameter.scan_path );
-        if ~isempty(print_field)
-            if nn == 1
-                fprintf( '\n' )
-            end
-            if iscell(print_field)
-                fprintf('%3u : %s\n', num, name )
-                for mm = 1:numel( print_field )
-                    fn = print_field{mm};
-                    fprintf( '        %s = ', fn)
-                    out = external_parameter.(fn);
-                    if isempty( out )
-                        fprintf( '\n' )                        
-                    else
-                        disp( out )
+%% CELL ARRAY %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+if iscell( par )
+    
+    fprintf( '\nDATA SETS:')
+    for nn = 1:numel( par)
+        [~, name] = fileparts( par{nn}.scan_path );
+        fprintf('\n%3u : %s', nn, name )
+    end
+    
+    if ~isempty(nums)
+        fprintf( '\n\nTO BE RECONSTRUCTED:')
+        for nn = 1:numel( nums )
+            num = nums(nn);
+            external_parameter = par{num};
+            [~, name] = fileparts( external_parameter.scan_path );
+            if ~isempty(print_field)
+                if nn == 1
+                    fprintf( '\n' )
+                end
+                if iscell(print_field)
+                    fprintf('%3u : %s\n', num, name )
+                    for mm = 1:numel( print_field )
+                        fn = print_field{mm};
+                        fprintf( '        %s = ', fn)
+                        out = external_parameter.(fn);
+                        if isempty( out )
+                            fprintf( '\n' )
+                        else
+                            disp( out )
+                        end
                     end
+                else
+                    fprintf('%3u : %s', num, name )
+                    fprintf( ', %s = ', print_field)
+                    disp( external_parameter.(print_field) )
                 end
             else
-                fprintf('%3u : %s', num, name )
-                fprintf( ', %s = ', print_field)
-                disp( external_parameter.(print_field) )
+                fprintf('\n%3u : %s', num, name )
             end
-        else
-            fprintf('\n%3u : %s', num, name )
         end
     end
-end
-
-% Loop over parameter sets
-if ~isempty( nums ) && doreco 
-    fprintf( '\n\nSTART LOOPING \n')
-    for nn = 1:numel( nums )
-        num = nums(nn);
-        
-        external_parameter = para(num);
-        [~, name] = fileparts( external_parameter.scan_path );
-        fprintf('\nRECONSTRUCTION OF DATA SET NUMBER %u : %s\n', num, name )
-        
-        p05_reco                
+    
+    % Loop over parameter sets
+    if ~isempty( nums ) && doreco
+        fprintf( '\n\nSTART LOOPING \n')
+        for nn = 1:numel( nums )
+            num = nums(nn);
+            
+            external_parameter = par{num};
+            [~, name] = fileparts( external_parameter.scan_path );
+            fprintf('\nRECONSTRUCTION OF DATA SET NUMBER %u : %s\n', num, name )
+            
+            p05_reco
+        end
+        fprintf( '\nRECONSTRUCTION LOOP FINISHED')
     end
-    fprintf( '\nRECONSTRUCTION LOOP FINISHED')
+    fprintf('\n')
+
+    
+%% STRUCT ARRAY %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%    
+elseif isstruct( par )
+    
+    fprintf( '\nDATA SETS:')
+    for nn = 1:numel( par)
+        [~, name] = fileparts( par(nn).scan_path );
+        fprintf('\n%3u : %s', nn, name )
+    end
+    
+    if ~isempty(nums)
+        fprintf( '\n\nTO BE RECONSTRUCTED:')
+        for nn = 1:numel( nums )
+            num = nums(nn);
+            external_parameter = par(num);
+            [~, name] = fileparts( external_parameter.scan_path );
+            if ~isempty(print_field)
+                if nn == 1
+                    fprintf( '\n' )
+                end
+                if iscell(print_field)
+                    fprintf('%3u : %s\n', num, name )
+                    for mm = 1:numel( print_field )
+                        fn = print_field{mm};
+                        fprintf( '        %s = ', fn)
+                        out = external_parameter.(fn);
+                        if isempty( out )
+                            fprintf( '\n' )
+                        else
+                            disp( out )
+                        end
+                    end
+                else
+                    fprintf('%3u : %s', num, name )
+                    fprintf( ', %s = ', print_field)
+                    disp( external_parameter.(print_field) )
+                end
+            else
+                fprintf('\n%3u : %s', num, name )
+            end
+        end
+    end
+    
+    % Loop over parameter sets
+    if ~isempty( nums ) && doreco
+        fprintf( '\n\nSTART LOOPING \n')
+        for nn = 1:numel( nums )
+            num = nums(nn);
+            
+            external_parameter = par(num);
+            [~, name] = fileparts( external_parameter.scan_path );
+            fprintf('\nRECONSTRUCTION OF DATA SET NUMBER %u : %s\n', num, name )
+            
+            p05_reco
+        end
+        fprintf( '\nRECONSTRUCTION LOOP FINISHED')
+    end
+    fprintf('\n')
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+else
+    fprintf( '\n INVALID PARAMETER STRUCT! \n')
 end
-fprintf('\n')
