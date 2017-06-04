@@ -45,7 +45,9 @@ write_8bit = 0;
 write_8bit_binned = 1;
 write_16bit = 0; 
 subfolder_reco = '';
-gpu_ind = 1;
+gpu_index = [];
+
+SET_DEFAULT
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% PARAMETER / DATA SETS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -70,6 +72,7 @@ scan_path = '/asap3/petra3/gpfs/p05/2016/commissioning/c20160915_000_synload/raw
 raw_roi = [121 2240];ADD('r')
 
 %% 2016-09-20 commissioning diana
+%% furchtbarer verdreckter/kaputter Scintillator oder Optik, daher die Ring artefakte
 raw = '/asap3/petra3/gpfs/p05/2016/commissioning/c20160920_000_diana/raw/';
 raw_roi = [];
 scan_path = [raw, 'Mg-10Gd39_1w'];ADD
@@ -80,6 +83,46 @@ scan_path = [raw, 'Mg-5Gd17_2w'];ADD
 scan_path = [raw, 'Mg-5Gd22_3w'];ADD
 scan_path = [raw, 'Mg-5Gd28_4w'];ADD
 
+scan_path = [raw, 'Mg-10Gd39_1w'];
+correlation_method =  'entropy';
+parfolder = correlation_method;
+write_flatcor = 1;
+ADD('r')
+
+scan_path = [raw, 'Mg-10Gd39_1w'];
+ring_filter_method = 'jm';
+ring_filter_median_width = [3 5 7 11 13];
+parfolder = 'ringfilt_jm_multi';
+ADD('r')
+
+scan_path = [raw, 'Mg-10Gd39_1w'];
+ring_filter_method = 'wavelet-fft'; 
+dec_levels = 2:6;
+wname = 'db25';
+sigma = 2.4;
+parfolder = 'ringfilt_wavelet-fft';
+ADD('r')
+
+scan_path = [raw, 'Mg-10Gd39_1w'];
+ring_filter_method = 'jm';
+ring_filter_median_width = [7 21 39];
+parfolder = 'ringfilt_jm_multi_72139';
+write_flatcor = 1;
+ADD('r')
+
+
+scan_path = [raw, 'Mg-10Gd39_1w'];
+ring_filter_method = 'jm';
+ring_filter_median_width = 11;
+darkFiltPixHot = 0;
+darkFiltPixDark = 0;
+refFiltPixHot = 0;
+refFiltPixDark = 0;
+projFiltPixHot = 0; 
+projFiltPixDark = 0; 
+parfolder = 'ringfilt_nopixfilter';
+write_flatcor = 1;
+ADD('r')
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 p05_reco_loop( SUBSETS, RUN_RECO, PRINT_PARAMETERS)

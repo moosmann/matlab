@@ -43,7 +43,8 @@ write_float = 0;
 write_float_binned = 1; 
 write_8bit = 0;
 write_8bit_binned = 1;
-write_16bit = 0; 
+write_16bit = 0;
+gpu_index = 1;
 
 ADD('d')
 
@@ -53,7 +54,7 @@ ADD('d')
 
 raw_path = '/asap3/petra3/gpfs/p05/2016/data/11001994/raw/';
 
-% strong movement
+% strong movement: 0/pi proj do not match
 scan_path = [raw_path 'szeb_07_00']; 
 ADD
 
@@ -64,14 +65,14 @@ ADD
 scan_path = [raw_path 'szeb_13_09']; 
 ADD
 
-% Nothobranchius furzeri
+% Nothobranchius furzeri: Movement
 scan_path = [raw_path 'szeb_23_00'];
 rot_axis_offset = 5.75 / raw_bin;
 ADD
-scan_path = [raw_path 'szeb_23_01']; 
-ADD
-% Movement
-scan_path = [raw_path 'szeb_23_00'];
+
+scan_path = [raw_path 'szeb_24_00']; ADD
+scan_path = [raw_path 'szeb_24_01']; ADD
+scan_path = [raw_path 'szeb_24_02']; ADD
 
 scan_path = [raw_path 'szeb_41'];
 rot_axis_offset = 0 / raw_bin;

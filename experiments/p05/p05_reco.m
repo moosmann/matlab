@@ -127,7 +127,7 @@ interactive_determination_of_rot_axis_slice = 0.5; % slice number, default: 0.5.
 % HARDWARE / SOFTWARE %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 poolsize = 0.80; % number of workers used in a parallel pool. if > 1: absolute number. if 0 < poolsize < 1: relative amount of all cores to be used
 link_data = 1; % ASTRA data objects become references to Matlab arrays.
-gpu_ind = []; % GPU Device index to use, Matlab notation: index starts from 1. default: [], uses all
+gpu_index = []; % GPU Device index to use, Matlab notation: index starts from 1. default: [], uses all
 
 %% TODO %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % TODO: Do reco binning only once.
@@ -304,10 +304,10 @@ PrintVerbose(verbose, '\n reco_path : %s', reco_path)
 [mem_free, mem_avail, mem_total] = free_memory;
 PrintVerbose(verbose, '\n system memory: free, available, total : %.3g GiB, %.3g GiB, %.3g GiB', mem_free/1024^3, mem_avail/1024^3, mem_total/1024^3)
 if ~exist( 'external_parameter' ,'var')
-    if isempty( gpu_ind )
-        gpu_ind = 1:gpuDeviceCount;
+    if isempty( gpu_index )
+        gpu_index = 1:gpuDeviceCount;
     end
-    for nn = gpu_ind
+    for nn = gpu_index
         gpu = gpuDevice( nn );
         PrintVerbose(verbose, '\n gpu %u : memory: available, total, percent : %.3g GiB, %.3g GiB, %.2f%%', nn, gpu.AvailableMemory/1024^3, gpu.TotalMemory/1024^3, 100*gpu.AvailableMemory/gpu.TotalMemory)
     end
@@ -1578,7 +1578,7 @@ if do_tomo(1)
     % Backprojection
     PrintVerbose(verbose, '\n Backproject:')
     t2 = toc;
-    vol = astra_parallel3D( permute(proj, [1 3 2]), rot_angle_offset + angles_reco, rot_axis_offset_reco, vol_shape, vol_size, astra_pixel_size, link_data, rot_axis_tilt, gpu_ind);
+    vol = astra_parallel3D( permute(proj, [1 3 2]), rot_angle_offset + angles_reco, rot_axis_offset_reco, vol_shape, vol_size, astra_pixel_size, link_data, rot_axis_tilt, gpu_index);
     pause(0.01)    
     PrintVerbose(verbose, ' done in %.2f min.', (toc - t2) / 60)
     

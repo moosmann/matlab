@@ -31,25 +31,27 @@ phase_retrieval_cutoff_frequ = 1 * pi;
 phase_padding = 1; 
 do_tomo = 1;
 ring_filter = 1;
-ring_filter_method = 'wavelet-fft'; 'jm';
+ring_filter_method =  'jm';'wavelet-fft';
+ring_filter_median_witdth = 11;
 rot_axis_offset = [];
 rot_axis_tilt = [];
 parfolder = '';
 write_to_scratch = 0;
-write_flatcor = 1;
+write_flatcor = 0;
 write_phase_map = 0; 
 write_sino = 0; 
 write_sino_phase = 0; 
 write_reco = 1; 
-write_float = 1; 
+write_float = 0; 
 write_float_binned = 1; 
-write_8bit = 1;
+write_8bit = 0;
 write_8bit_binned = 1;
 write_16bit = 0; 
 dec_levels = 6;
 wname = 'db30';
 sigma = 2.4;
-ADD
+
+ADD_DEFAULT
 
 %% Data sets %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 raw_path = '/asap3/petra3/gpfs/p05/2016/data/11001978/raw/';
@@ -58,21 +60,19 @@ raw_path = '/asap3/petra3/gpfs/p05/2016/data/11001978/raw/';
 scan_path = [raw_path 'mah_01'];
 rot_axis_offset = -135.75 / raw_bin;
 rot_axis_tilt = -0.003;
-write_sino = 1;
+%write_sino = 1;
 ADD
 
 % corroded screw
 scan_path = [raw_path 'mah_02'];
 rot_axis_offset = -135.75 / raw_bin;
 rot_axis_tilt = -0.003;
-write_sino = 1; 
 ADD
 
 % corroded screw
 scan_path = [raw_path 'mah_03'];
 rot_axis_offset = -135.75 / raw_bin;
 rot_axis_tilt = -0.003;
-write_sino = 1; 
 ADD
 
 % implant fresh
@@ -82,13 +82,12 @@ crop_at_rot_axis = 1;
 rot_axis_offset = 628 / raw_bin;
 rot_axis_tilt = -0.003;
 %vol_shape = [2155 2155 1050];
-ADD
+ADD('r')
 
 % corroded screw
 scan_path = [raw_path 'mah_05'];
 rot_axis_offset = 2 / raw_bin;
 rot_axis_tilt = -0.003;
-write_sino = 1; 
 ADD
 
 % corroded screw
@@ -115,7 +114,7 @@ rot_axis_offset = -2 / raw_bin;
 rot_axis_tilt = -0.003;
 ADD
 
-
+%
 scan_path = [raw_path 'mah_10_13R_top'];
 excentric_rot_axis = 1;
 rot_axis_offset = 1078 / raw_bin;
@@ -136,27 +135,20 @@ ADD
 scan_path = [ raw_path 'mah_11_20R_bottom'];
 rot_axis_offset = 538.5;
 rot_axis_tilt = -0.0024;
-ADD
+ADD('r')
 
 scan_path = [ raw_path 'mah_15_57R'];
-excentric_rot_axis = 0;
-crop_at_rot_axis = 0;
 rot_axis_offset = -2.5 / raw_bin;
 rot_axis_tilt = -0.0028;
-do_phase_retrieval = 0;
 ADD
 
 scan_path = [ raw_path 'mah_15_57R'];
-excentric_rot_axis = 0;
-crop_at_rot_axis = 0;
 rot_axis_offset = -2.5 / raw_bin;
 rot_axis_tilt = -0.0028;
 do_phase_retrieval = 1;
-ADD
+ADD('r')
 
 scan_path = [ raw_path 'mah_16_57R_load'];
-excentric_rot_axis = 0;
-crop_at_rot_axis = 0;
 rot_axis_offset = -2.5;
 rot_axis_tilt = -0.0028;
 ADD
@@ -175,11 +167,10 @@ ADD
 scan_path = [ raw_path 'mah_20_4L_bottom'];
 rot_axis_offset = 12.5;
 rot_axis_tilt = -0.0029;
-do_phase_retrieval = 0;
 ADD
 
 do_phase_retrieval = 1;
-ADD
+ADD('r')
 
 scan_path = [ raw_path 'mah_22_50L_top'];
 rot_axis_offset = 88.5;
@@ -189,27 +180,40 @@ ADD
 scan_path = [ raw_path 'mah_23_50L_top'];
 rot_axis_offset = 5;
 rot_axis_tilt = -0.004160;
-do_phase_retrieval = 0;
 ADD
-
 
 scan_path = [ raw_path 'mah_24_50L_top_load'];
 rot_axis_offset = 4.5;
 rot_axis_tilt = -0.004;
 do_phase_retrieval = 1;
-ADD
+ADD('r')
 
 scan_path = [ raw_path 'mah_28_15R_top'];
 rot_axis_offset = 8.25;
 rot_axis_tilt = -0.003;
-do_phase_retrieval = 0;
+ADD
+
+scan_path = [ raw_path 'mah_29_15R_top_occd125_withpaper'];
+rot_axis_offset = -3.5 / raw_bin;
+rot_axis_tilt = -0.003;
+ADD
+
+scan_path = [ raw_path 'mah_29_15R_top_occd125_withpaper'];
+rot_axis_offset = -3.5 / raw_bin;
+rot_axis_tilt = -0.003;
+do_phase_retrieval = 1;
+ADD('r')
+
+scan_path = [ raw_path 'mah_30_15R_top_occd125_withoutpaper'];
+rot_axis_offset = -3.5 / raw_bin;
+rot_axis_tilt = -0.003;
 ADD
 
 scan_path = [ raw_path 'mah_30_15R_top_occd125_withoutpaper'];
 rot_axis_offset = -3.5 / raw_bin;
 rot_axis_tilt = -0.003;
 do_phase_retrieval = 1;
-ADD
+ADD('r')
 
 scan_path = [ raw_path 'mah_32_15R_top_occd800_withoutpaper'];
 rot_axis_offset = -79.0 / raw_bin;
