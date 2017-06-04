@@ -49,6 +49,7 @@ write_16bit = 0;
 dec_levels = 6;
 wname = 'db30';
 sigma = 2.4;
+ADD
 
 %% Data sets %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 raw_path = '/asap3/petra3/gpfs/p05/2016/data/11001978/raw/';
@@ -58,21 +59,21 @@ scan_path = [raw_path 'mah_01'];
 rot_axis_offset = -135.75 / raw_bin;
 rot_axis_tilt = -0.003;
 write_sino = 1;
-ADD_DATA_SET
+ADD
 
 % corroded screw
 scan_path = [raw_path 'mah_02'];
 rot_axis_offset = -135.75 / raw_bin;
 rot_axis_tilt = -0.003;
 write_sino = 1; 
-ADD_DATA_SET
+ADD
 
 % corroded screw
 scan_path = [raw_path 'mah_03'];
 rot_axis_offset = -135.75 / raw_bin;
 rot_axis_tilt = -0.003;
 write_sino = 1; 
-ADD_DATA_SET
+ADD
 
 % implant fresh
 scan_path = [raw_path 'mah_04'];
@@ -81,61 +82,61 @@ crop_at_rot_axis = 1;
 rot_axis_offset = 628 / raw_bin;
 rot_axis_tilt = -0.003;
 %vol_shape = [2155 2155 1050];
-ADD_DATA_SET
+ADD
 
 % corroded screw
 scan_path = [raw_path 'mah_05'];
 rot_axis_offset = 2 / raw_bin;
 rot_axis_tilt = -0.003;
 write_sino = 1; 
-ADD_DATA_SET
+ADD
 
 % corroded screw
 scan_path = [raw_path 'mah_06_Mg10G_004'];
 rot_axis_offset = 5 / raw_bin;
 rot_axis_tilt = -0.003;
-ADD_DATA_SET
+ADD
 
 % implant fresh formalin
 scan_path = [raw_path 'mah_07_bone_in_formalin'];
 rot_axis_offset = 2 / raw_bin;
 rot_axis_tilt = -0.003;
-ADD_DATA_SET
+ADD
 
 % corrosion cell
 scan_path = [raw_path 'mah_08_corrosion_cell_A'];
 rot_axis_offset = -3.5 / raw_bin;
 rot_axis_tilt = -0.003;
-ADD_DATA_SET
+ADD
 
 % corrosion cell
 scan_path = [raw_path 'mah_08_corrosion_cell_B'];
 rot_axis_offset = -2 / raw_bin;
 rot_axis_tilt = -0.003;
-ADD_DATA_SET
+ADD
 
 
 scan_path = [raw_path 'mah_10_13R_top'];
 excentric_rot_axis = 1;
 rot_axis_offset = 1078 / raw_bin;
 rot_axis_tilt = -0.00267; % about -.15 degrees
-ADD_DATA_SET
+ADD
 
 
 scan_path = [ raw_path '/mah_10_13R_bottom'];
 rot_axis_offset = 539;
 rot_axis_tilt = -0.0023;
-ADD_DATA_SET
+ADD
 
 scan_path = [ raw_path 'mah_11_20R_top'];
 rot_axis_offset = 538.5;
 rot_axis_tilt = -0.0024;
-ADD_DATA_SET
+ADD
 
 scan_path = [ raw_path 'mah_11_20R_bottom'];
 rot_axis_offset = 538.5;
 rot_axis_tilt = -0.0024;
-ADD_DATA_SET
+ADD
 
 scan_path = [ raw_path 'mah_15_57R'];
 excentric_rot_axis = 0;
@@ -143,7 +144,7 @@ crop_at_rot_axis = 0;
 rot_axis_offset = -2.5 / raw_bin;
 rot_axis_tilt = -0.0028;
 do_phase_retrieval = 0;
-ADD_DATA_SET
+ADD
 
 scan_path = [ raw_path 'mah_15_57R'];
 excentric_rot_axis = 0;
@@ -151,113 +152,113 @@ crop_at_rot_axis = 0;
 rot_axis_offset = -2.5 / raw_bin;
 rot_axis_tilt = -0.0028;
 do_phase_retrieval = 1;
-ADD_DATA_SET
+ADD
 
 scan_path = [ raw_path 'mah_16_57R_load'];
 excentric_rot_axis = 0;
 crop_at_rot_axis = 0;
 rot_axis_offset = -2.5;
 rot_axis_tilt = -0.0028;
-ADD_DATA_SET
+ADD
 
 scan_path = [ raw_path 'mah_17_57R_load_middle'];
 rot_axis_offset = 88.25;
 rot_axis_tilt = -0.0025;
-ADD_DATA_SET
+ADD
 
 scan_path = [ raw_path 'mah_18_57R_load_top'];
 rot_axis_offset = 88.25;
 rot_axis_tilt = -0.003;
-ADD_DATA_SET
+ADD
 
 % 3.4.17
 scan_path = [ raw_path 'mah_20_4L_bottom'];
 rot_axis_offset = 12.5;
 rot_axis_tilt = -0.0029;
 do_phase_retrieval = 0;
-ADD_DATA_SET
+ADD
 
 do_phase_retrieval = 1;
-ADD_DATA_SET
+ADD
 
 scan_path = [ raw_path 'mah_22_50L_top'];
 rot_axis_offset = 88.5;
 rot_axis_tilt = -0.0028;
-ADD_DATA_SET
+ADD
 
 scan_path = [ raw_path 'mah_23_50L_top'];
 rot_axis_offset = 5;
 rot_axis_tilt = -0.004160;
 do_phase_retrieval = 0;
-ADD_DATA_SET
+ADD
 
 
 scan_path = [ raw_path 'mah_24_50L_top_load'];
 rot_axis_offset = 4.5;
 rot_axis_tilt = -0.004;
 do_phase_retrieval = 1;
-ADD_DATA_SET
+ADD
 
 scan_path = [ raw_path 'mah_28_15R_top'];
 rot_axis_offset = 8.25;
 rot_axis_tilt = -0.003;
 do_phase_retrieval = 0;
-ADD_DATA_SET
+ADD
 
 scan_path = [ raw_path 'mah_30_15R_top_occd125_withoutpaper'];
 rot_axis_offset = -3.5 / raw_bin;
 rot_axis_tilt = -0.003;
 do_phase_retrieval = 1;
-ADD_DATA_SET
+ADD
 
 scan_path = [ raw_path 'mah_32_15R_top_occd800_withoutpaper'];
 rot_axis_offset = -79.0 / raw_bin;
 rot_axis_tilt = -0.002;
 do_phase_retrieval = 1;
-ADD_DATA_SET
+ADD
 
 scan_path = [ raw_path 'mah_33_50L_occd400_bottom'];
 rot_axis_offset = -40 / raw_bin;
 rot_axis_tilt = 0.00137;
 do_phase_retrieval = 1;
-ADD_DATA_SET
+ADD
 
 scan_path = [ raw_path 'mah_33_50L_occd400_top'];
 rot_axis_offset = 5 / raw_bin;
 rot_axis_tilt = 0.00135;
 do_phase_retrieval = 1;
-ADD_DATA_SET
+ADD
 
 scan_path = [ raw_path 'mah_35_1R_bottom'];
 rot_axis_offset = 2 / raw_bin;
 rot_axis_tilt = 0.00158;
 do_phase_retrieval = 0;
-ADD_DATA_SET
+ADD
 
 scan_path = [ raw_path 'mah_36_1R_top'];
 rot_axis_offset = 2 / raw_bin;
 rot_axis_tilt = 0.00158;
-ADD_DATA_SET
+ADD
 
 scan_path = [ raw_path 'mah_37_10R_bottom'];
 rot_axis_offset = 0 / raw_bin;
 rot_axis_tilt = 0.00158;
-ADD_DATA_SET
+ADD
 
 scan_path = [ raw_path 'mah_38_10R_top'];
-ADD_DATA_SET
+ADD
 
 scan_path = [ raw_path 'mah_39_3L_bottom'];
-ADD_DATA_SET
+ADD
 
 scan_path = [ raw_path 'mah_40_3L_top'];
-ADD_DATA_SET
+ADD
 
 scan_path = [ raw_path 'mah_41_9R_bottom'];
-ADD_DATA_SET
+ADD
 
 scan_path = [ raw_path 'mah_42_9R_top'];
-ADD_DATA_SET
+ADD
 
 % Straw: no proper reco possible due to movment
 
@@ -265,13 +266,13 @@ ADD_DATA_SET
 scan_path = [raw_path 'mah_straw_01'];
 rot_axis_offset = 2 / raw_bin;
 rot_axis_tilt = -0.003;
-ADD_DATA_SET
+ADD
 
 % corroded screw: movement
 scan_path = [raw_path 'mah_straw_02'];
 rot_axis_offset = -1.5 / raw_bin;
 rot_axis_tilt = -0.003;
-ADD_DATA_SET
+ADD
 
 % corroded screw
 scan_path = [raw_path 'mah_straw_03'];
@@ -283,7 +284,7 @@ rot_axis_tilt = -0.0027;
 scan_path = [raw_path 'mah_straw_04'];
 rot_axis_offset = -1.75 / raw_bin;
 rot_axis_tilt = -0.003;
-ADD_DATA_SET
+ADD
 
 % corroded screw
 scan_path = [raw_path 'mah_straw_05'];
@@ -309,4 +310,4 @@ write_sino = 1;
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-p05_reco_loop( SUBSETS, RUN_RECO, PRINT_PARAMETERS, PARAMETER_CELL)
+p05_reco_loop( SUBSETS, RUN_RECO, PRINT_PARAMETERS)

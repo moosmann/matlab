@@ -76,8 +76,9 @@ try
                 assignin('caller', var_name, DEFAULT.(var_name))
             end
     end
-catch
+catch exception
     clear global
+    rethrow( exception )
 end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 end

@@ -56,7 +56,7 @@ write_8bit = 0;
 write_8bit_binned = 0;
 write_16bit = 0; 
 
-ADD_DEFAULT
+ADD('d')
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% PARAMETER / DATA SETS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -73,28 +73,28 @@ raw_roi = [265 1464];
 
 scan_path = [raw_path 'syn01_48L_PEEK_12w_b'];
 do_phase_retrieval = 1;phase_retrieval_method = 'tie';phase_retrieval_reg_par = 2.5; 
-ADD_DATA_SET
+ADD
 
 scan_path = [raw_path 'syn01_48L_PEEK_12w_b'];
 parfolder = 'fbp_fft_wo_symmetric_option';
-ADD_DATA_SET
+ADD
 
 scan_path = [raw_path 'syn01_48L_PEEK_12w_b'];
 do_phase_retrieval = 1;phase_retrieval_method = 'tie';phase_retrieval_reg_par = 2.5; 
 parfolder = 'fbp_fft_wo_symmetric_option';
-ADD_DATA_SET
+ADD
 
 scan_path = [raw_path 'syn01_48L_PEEK_12w_b'];
 do_phase_retrieval = 1;phase_retrieval_method = 'tie';phase_retrieval_reg_par = 2.5; 
 parfolder = 'fbp_fft_wo_symmetric_option__nopadding';
 phase_padding = 0;
 fbp_filter_padding = 0;
-ADD_DATA_SET
+ADD
 
 scan_path = [raw_path 'syn01_48L_PEEK_12w_b'];
 parfolder = 'fbp_fft_with_symmetric_option';
-ADD_DATA_SET
+ADD
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-p05_reco_loop( SUBSETS, RUN_RECO, PRINT_PARAMETERS, PARAMETER_CELL)
+p05_reco_loop( SUBSETS, RUN_RECO, PRINT_PARAMETERS)

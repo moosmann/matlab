@@ -50,7 +50,7 @@ write_8bit = 1;
 write_8bit_binned = 1;
 write_16bit = 0; 
 
-ADD_DEFAULT
+ADD('d')
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% PARAMETER / DATA SETS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -61,8 +61,7 @@ rot_axis_offset = 875 / raw_bin;
 phase_retrieval_method = 'tie';
 phase_retrieval_reg_par = 2; 
 phase_padding = 1; 
-ADD_DATA_SET
-
+ADD
 
 scan_path = [raw_path 'ivo_trans1_006'];
 rot_axis_offset = 875 / raw_bin;
@@ -72,7 +71,7 @@ phase_retrieval_bin_filt = 0.15;
 phase_retrieval_cutoff_frequ = 1 * pi; 
 fbp_filter_padding = 0;
 phase_padding = 0; 
-ADD_DATA_SET
+ADD
 
 
 scan_path = [raw_path 'ivo_trans1_006'];
@@ -86,7 +85,7 @@ fbp_filter_padding = 0;
 phase_padding = 0; 
 vol_shape = [2403, 2403, 1528];
 vol_size = [-vol_shape(1)/2, vol_shape(1)/2, -vol_shape(2)/2, vol_shape(2)/2, -vol_shape(3)/2, vol_shape(3)/2];
-ADD_DATA_SET
+ADD
 
 
 scan_path = [raw_path 'ivo_trans1_006'];
@@ -98,8 +97,8 @@ fbp_filter_padding = 0;
 phase_padding = 0; 
 vol_shape = [2403, 2403, 1528];
 vol_size = [-vol_shape(1), vol_shape(1), -vol_shape(2), vol_shape(2), -vol_shape(3), vol_shape(3)];
-ADD_DATA_SET
+ADD
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-p05_reco_loop( SUBSETS, RUN_RECO, PRINT_PARAMETERS, PARAMETER_CELL)
+p05_reco_loop( SUBSETS, RUN_RECO, PRINT_PARAMETERS)

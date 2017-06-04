@@ -1,4 +1,4 @@
-function p05_reco_invivo( SUBSETS, RUN_RECO, PRINT_PARAMETERS)
+function p05_reco_test_correlation_measure(SUBSETS, RUN_RECO, PRINT_PARAMETERS )
 if nargin < 1
     SUBSETS = [];
 end
@@ -13,7 +13,7 @@ end
 %% DEFAULT PARAMETERS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-interactive_determination_of_rot_axis = 0;
+scan_path = '';
 visualOutput = 0;
 scan_path = '';
 raw_bin = 1;
@@ -22,8 +22,9 @@ crop_at_rot_axis = 0;
 stitch_projections = 0; 
 proj_range = 1; 
 ref_range = 1; 
-correlation_method =  'diff';
-do_phase_retrieval = 1;
+correlation_method = 'ssim';
+corr_num_flats = 3;
+do_phase_retrieval = 0;
 phase_retrieval_method = 'tie';'qp';'qpcut';
 phase_retrieval_reg_par = 2.5; 
 phase_retrieval_bin_filt = 0.15; 
@@ -42,31 +43,41 @@ write_sino_phase = 0;
 write_reco = 1; 
 write_float = 1; 
 write_float_binned = 1; 
-write_8bit = 1;
-write_8bit_binned = 1;
+write_8bit = 0;
+write_8bit_binned = 0;
 write_16bit = 0; 
-ADD_DEFAULT
 
+%ADD('d')
+ADD_DEFAULT
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% PARAMETER / DATA SETS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-raw_path = '/asap3/petra3/gpfs/p05/2016/data/11001994/raw/';
+%% 2017 May
+raw_path = '/asap3/petra3/gpfs/p05/2017/data/11003950/raw/';
+scan_path = [raw_path 'syn11_53R_Mg5Gd_12w_load_broken'];
+ADD
 
-'szeb_23_00'; % rot_axis_offset 5.75;
-'szeb_23_01'; % Nothobranchius furzeri
-'szeb_23_00'; % Nothobranchius furzeri; bewegung
-'szeb_13_00'; % no conspicuous movement artifacts, but cell shape are unclear and nuclei not visible
-'szeb_13_09'; % dead
-'szeb_07_00'; % strong movement
-'szeb_13_00';
+scan_path = [raw_path 'syn13_55L_Mg10Gd_12w_load_00'];
+correlation_method =  'ssim-ml';
+parfolder = 'ssim-ml';
+ADD
 
+scan_path = [raw_path 'syn13_55L_Mg10Gd_12w_load_00'];
+correlation_method =  'ssim';
+parfolder = 'ssim-LfromROI';
+ADD
 
-scan_path = [raw_path 'szeb_41'];
-rot_axis_offset = 0 / raw_bin;
-rot_axis_tilt = 0;
-ADD_DATA_SET
+scan_path = [raw_path 'syn13_55L_Mg10Gd_12w_load_00'];
+correlation_method =  'ssim';
+parfolder = 'ssim-L1';
+ADD
+
+scan_path = [raw_path 'syn13_55L_Mg10Gd_12w_load_00'];
+correlation_method =  'entropy';
+parfolder = 'entropy';
+ADD
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-p05_reco_loop( SUBSETS, RUN_RECO, PRINT_PARAMETERS, PARAMETER_CELL)
+p05_reco_loop( SUBSETS, RUN_RECO, PRINT_PARAMETERS)

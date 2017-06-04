@@ -83,6 +83,7 @@ try
     end
     fprintf('\n')
     clear global
-catch
+catch exception
     clear global
+    rethrow( exception )
 end
