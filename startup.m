@@ -32,8 +32,13 @@ close all;
 
 % Fix error: An unexpected error occurred during CUDA execution. The
 % CUDA error was: cannot set while device is active in this process.
-a = gpuArray(1); 
-clear a;
+%a = gpuArray(1); 
+%clear a;
+for gpu_device_count = 1:gpuDeviceCount
+    gpu = gpuDevice(gpu_device_count);
+    a = gpuArray(1);
+    clear gpu a
+end
 
 % Fix error: “dlopen: cannot load any more object with static TLS”
 %ones(10) * ones(10);
