@@ -52,8 +52,8 @@ end
 %     thisdim = str2double(header((pos(3 + i_dim) + 1):(pos(3 + i_dim + 1) - 1)));
 %     si = [si, thisdim];
 % end
-si = zeros(1,2);
-for i_dim = 0:(ndim - 1)    
+si = [];
+for i_dim = (ndim - 1):-1:0
     si(i_dim+1) = str2double(header((pos(3 + i_dim) + 1):(pos(3 + i_dim + 1) - 1)));
 end
 
