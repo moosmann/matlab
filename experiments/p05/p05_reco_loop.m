@@ -1,34 +1,28 @@
-function p05_reco_loop(SUBSETS, RUN_RECO, PRINT_PARAMETERS, PARAMETER_CELL)
-% Script to loop over parameter sets related to paramters of script
-% 'p05_reco'. Set parameters to loop over as elements of the structure
-% array 'PARAMETER_CELL' below. Fieldnames of 'PARAMETER_CELL' MUST match the names of
-% parameters in 'p05_reco'.
+function p05_reco_loop(SUBSETS, RUN_RECO, PRINT_PARAMETERS)
+% Script to loop over sets of paramters of reconstruction script 'p05_reco'
+% as defined in global cell array 'PARAMETER_CELL' below.
 %
 % Visual output ('visualOutput') and user interaction
 % ('interactive_determination_of_rot_axis') are turned off by default if
 % not set otherwise.
 %
-% Start loop by pushing 'F5', clicking on 'Run' in the Editor tab, or
-% typing 'p05_reco_loop' in the Command Window.
-%
-% Written by Julian Moosmann. First version: 2017-02-15. Last: 2017-05-16
+% Written by Julian Moosmann. First version: 2017-02-15. Last: 2017-06-04
 
-%% Default arguments %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-if nargin < 1
-    SUBSETS = [];
-end
-if nargin < 2
-    RUN_RECO = 0;
-end
-if nargin < 3
-    PRINT_PARAMETERS = '';
-end
+global PARAMETER_CELL
 
-%% Main %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-%% CELL ARRAY %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-if iscell( PARAMETER_CELL )
+try
+    %% Default arguments %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    if nargin < 1
+        SUBSETS = [];
+    end
+    if nargin < 2
+        RUN_RECO = 0;
+    end
+    if nargin < 3
+        PRINT_PARAMETERS = '';
+    end
     
+    %% Main %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     fprintf( '\nDATA SETS:')
     for nn = 1:numel( PARAMETER_CELL)
         [~, name] = fileparts( PARAMETER_CELL{nn}.scan_path );
@@ -88,67 +82,7 @@ if iscell( PARAMETER_CELL )
         fprintf( '\nRECONSTRUCTION LOOP FINISHED')
     end
     fprintf('\n')
-
-    
-%% STRUCT ARRAY %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%    
-elseif isstruct( PARAMETER_CELL )
-    
-    fprintf( '\nDATA SETS:')
-    for nn = 1:numel( PARAMETER_CELL)
-        [~, name] = fileparts( PARAMETER_CELL(nn).scan_path );
-        fprintf('\n%3u : %s', nn, name )
-    end
-    
-    if ~isempty(SUBSETS)
-        fprintf( '\n\nTO BE RECONSTRUCTED:')
-        for nn = 1:numel( SUBSETS )
-            num = SUBSETS(nn);
-            external_parameter = PARAMETER_CELL(num);
-            [~, name] = fileparts( external_parameter.scan_path );
-            if ~isempty(PRINT_PARAMETERS)
-                if nn == 1
-                    fprintf( '\n' )
-                end
-                if iscell(PRINT_PARAMETERS)
-                    fprintf('%3u : %s\n', num, name )
-                    for mm = 1:numel( PRINT_PARAMETERS )
-                        fn = PRINT_PARAMETERS{mm};
-                        fprintf( '        %s = ', fn)
-                        out = external_parameter.(fn);
-                        if isempty( out )
-                            fprintf( '\n' )
-                        else
-                            disp( out )
-                        end
-                    end
-                else
-                    fprintf('%3u : %s', num, name )
-                    fprintf( ', %s = ', PRINT_PARAMETERS)
-                    disp( external_parameter.(PRINT_PARAMETERS) )
-                end
-            else
-                fprintf('\n%3u : %s', num, name )
-            end
-        end
-    end
-    
-    % Loop over parameter sets
-    if ~isempty( SUBSETS ) && RUN_RECO
-        fprintf( '\n\nSTART LOOPING \n')
-        for nn = 1:numel( SUBSETS )
-            num = SUBSETS(nn);
-            
-            external_parameter = PARAMETER_CELL(num);
-            [~, name] = fileparts( external_parameter.scan_path );
-            fprintf('\nRECONSTRUCTION OF DATA SET NUMBER %u : %s\n', num, name )
-            
-            p05_reco
-        end
-        fprintf( '\nRECONSTRUCTION LOOP FINISHED')
-    end
-    fprintf('\n')
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-else
-    fprintf( '\n INVALID PARAMETER STRUCT! \n')
+    clear global
+catch
+    clear global
 end

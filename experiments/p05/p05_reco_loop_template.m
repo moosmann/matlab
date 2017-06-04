@@ -2,10 +2,10 @@ function p05_reco_loop_template( SUBSETS, RUN_RECO, PRINT_PARAMETERS)
 % Template function which loops over the data sets given in the 'PARAMETER /
 % DATA SETS' section below. The 'DEFAULT PARAMETERS' section defines the
 % default paramters. Data / parameter sets are added to the loop using the
-% command 'ADD_DATA_SET'. 
+% command 'ADD'. 
 %
 % Caution: if parameters are changed, they remain changed after the data
-% set is added unless 'ADD_DATA_SET(1)' is used which restores all
+% set is added unless 'ADD(1)' is used which restores all
 % parameters given in the 'DEFAULT PARAMETER' section.
 %
 % Caution: If parameters not set in the DEFAULT PARAMETER section, then
@@ -18,11 +18,11 @@ function p05_reco_loop_template( SUBSETS, RUN_RECO, PRINT_PARAMETERS)
 % SUBSETS : 1D array of integers. subset of data sets to be looped over
 % RUN_RECO : bool. default: 0. 0: loops over the subsets but does not start
 % reconstructions, 1: start the reconstruction loop.
-% PRINT_PARAMETERS : string or cell of strings. parameter to be printed at each
-% loop step. useful in combination with RUN_RECO = 0 to check parameter
-% setting for the sets to loop over
+% PRINT_PARAMETERS : string or cell of strings {'a', 'b'}. parameter to be
+% printed at each loop iteration. useful in combination with RUN_RECO = 0
+% to check parameter setting for the sets to loop over
 %
-% Written by Julian Moosmann, 2017-06-2, last modification: 2017-06-03
+% Written by Julian Moosmann, 2017-06-2, last modification: 2017-06-04
 %
 % p05_reco_loop_template( SUBSETS, RUN_RECO, PRINT_PARAMETERS)
 
@@ -40,7 +40,6 @@ end
 %% DEFAULT PARAMETERS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-% Example: modify, replace, delete
 visualOutput = 0;
 interactive_determination_of_rot_axis = 0;
 interactive_determination_of_rot_axis_tilt = 0;
@@ -83,41 +82,40 @@ write_16bit = 0;
 subfolder_reco = '';
 gpu_ind = 1;
 
-% Set default. Sllows parameters to be changed before first data set is added
-ADD_DEFAULT
+% Set default. Allows parameters to be changed before first data set is added
+ADD('default')
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% PARAMETER / DATA SETS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-% Example: modify, replace, delete
-
-raw = '/asap3/petra3/gpfs/p05/2017/data/11003950/raw/';
+raw_path = '/asap3/petra3/gpfs/p05/2017/data/11003950/raw/';
 
 % Define scan path and add data set
-scan_path = [raw 'syn01_48L_PEEK_12w_b'];
-ADD_DATA_SET;
+scan_path = [raw_path 'syn01_48L_PEEK_12w_b'];
+ADD
 
 % Add another data set
-scan_path = [raw 'syn01_48L_PEEK_12w_c'];
-ADD_DATA_SET();
+scan_path = [raw_path 'syn01_48L_PEEK_12w_c'];
+ADD
 
 % Change parameter, add data set, and restore default parameters
-scan_path = [raw 'syn13_55L_Mg10Gd_12w_load_04'];
+scan_path = [raw_path 'syn13_55L_Mg10Gd_12w_load_04'];
 ref_range = [1:135, 137:162];
-ADD_DATA_SET(1);
+ADD('r')
 
 % Changer paramter for subsequent data sets and add data sets
 raw_roi = [1211 2410];
-scan_path = [raw 'syn14_48L_PEEK_12w_a'];
-ADD_DATA_SET();
+scan_path = [raw_path 'syn14_48L_PEEK_12w_a'];
+ADD
 
-scan_path = [raw 'syn14_48L_PEEK_12w_b'];
-ADD_DATA_SET();
+scan_path = [raw_path 'syn14_48L_PEEK_12w_b'];
+ADD('r')
 
 % Add data set and restore defaults
-scan_path = [raw 'syn17_25R_PEEK_8w_a'];ADD_DATA_SET(1);
+scan_path = [raw_path 'syn17_25R_PEEK_8w_a'];
+ADD
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-p05_reco_loop( SUBSETS, RUN_RECO, PRINT_PARAMETERS, PARAMETER_CELL)
+p05_reco_loop( SUBSETS, RUN_RECO, PRINT_PARAMETERS)
