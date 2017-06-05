@@ -44,7 +44,7 @@ write_float_binned = 1;
 write_8bit = 0;
 write_8bit_binned = 1;
 write_16bit = 0;
-gpu_index = 1;
+gpu_index = [];
 
 ADD('d')
 

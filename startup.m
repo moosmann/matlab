@@ -7,8 +7,8 @@ rmpath( genpath(  [userpath '/.git'] ) );
 rmpath( genpath(  [userpath '/old'] ) );
 
 hostname = getenv('HOSTNAME');
-fprintf( 'HOSTNAME: %s\n', hostname );
-fprintf( 'userpath: %s', userpath );
+fprintf( 'HOSTNAME : %s', hostname );
+fprintf( '\nuserpath : %s', userpath );
 
 %% ASTRA
 % ASTRA 1.8 local
@@ -23,6 +23,7 @@ else
     addpath( genpath( path_to_astra ) );
     %addpath( genpath( '/usr/share/astra/matlab' ) );
 end
+fprintf( '\nASTRA path : %s', path_to_astra );
 
 %% Set default color map to grayscale instead of jet
 set(groot, 'DefaultFigureColormap', gray)
@@ -37,6 +38,7 @@ close all;
 for gpu_device_count = 1:gpuDeviceCount
     gpu = gpuDevice(gpu_device_count);
     a = gpuArray(1);
+    fprintf( '\nGPU device index %u : %s', gpu_device_count, gpu.Name )
     clear gpu a
 end
 

@@ -50,6 +50,7 @@ write_16bit = 0;
 dec_levels = 6;
 wname = 'db30';
 sigma = 2.4;
+gpu_index = [];
 
 ADD_DEFAULT
 

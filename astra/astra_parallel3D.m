@@ -175,6 +175,9 @@ if ~link_data
     vol = astra_mex_data3d('get_single', vol_id);
 end
 astra_mex_data3d('delete', vol_id)
+astra_mex_projector3d('clear')
 
 % Normalize volume
 %vol = pi / 2 / numel(angles) * vol;
+
+end

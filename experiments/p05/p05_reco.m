@@ -12,13 +12,12 @@
 % To loop over sets of data or parameters use 'p05_reco_loop'.
 %
 % Written by Julian Moosmann. First version: 2016-09-28. Last modifcation:
-% 2017-05-08
+% 2017-06-05
 
 %% PARAMETERS / SETTINGS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 close all
 dbstop if error
 % INPUT %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%scan_path = pwd; % Enter folder of data set under the raw directory and run script
 scan_path = ...
     '/asap3/petra3/gpfs/p05/2016/commissioning/c20160913_000_synload/raw/mg5gd_02_1w';
     '/asap3/petra3/gpfs/p05/2017/data/11003950/raw/syn13_55L_Mg10Gd_12w_load_00';     
@@ -130,13 +129,15 @@ link_data = 1; % ASTRA data objects become references to Matlab arrays.
 gpu_index = []; % GPU Device index to use, Matlab notation: index starts from 1. default: [], uses all
 
 %% TODO %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% TODO: Do reco binning only once.
-% TODO: PLot & parameter option for wavelet-fft fing filter
+% TODO: physically consistent attenutation values of reconstructed slice 
+% TODO: vertical stitching
+% TODO: volume shape for excentric rot axis
+% TODO: reco bin once
+% TODO: Interactive plot mode for wavelet-fft fing filter
 % TODO: Improve FilterStripesCombinedWaveletFFT
 % TODO: check proj-flat correlation measure for absolute values
 % TODO: check crop_at_rot_axis option with stitch_projections, etc
 % TODO: SSIM: include Gaussian blur filter, test
-% TODO: check if attenutation values of reconstructed slice are consitent
 % TODO: large data set management: parloop, memory, etc
 % TODO: stitching: optimize and refactor, memory efficency, interpolation method
 % TODO: interactive loop over tomo slices for different phase retrieval parameter
@@ -151,7 +152,6 @@ gpu_index = []; % GPU Device index to use, Matlab notation: index starts from 1.
 % TODO: median filter width of ring filter dependence on binning
 % TODO: check offset: proj correlation for rotation axis determination
 % TODO: check offset: flat/proj correlation 
-% TODO: delete files before writing data to a folder
 % TODO: inverse Gaussian filter for phase retrieval, VZC theorem
 % TODO: flat-flat correlation and averaging before proj-flat correlation
 % TODO: proj-flat correlation: take negative logarithm or not?
@@ -303,14 +303,12 @@ PrintVerbose(verbose, '\n reco_path : %s', reco_path)
 % Memory
 [mem_free, mem_avail, mem_total] = free_memory;
 PrintVerbose(verbose, '\n system memory: free, available, total : %.3g GiB, %.3g GiB, %.3g GiB', mem_free/1024^3, mem_avail/1024^3, mem_total/1024^3)
-if ~exist( 'external_parameter' ,'var')
-    if isempty( gpu_index )
-        gpu_index = 1:gpuDeviceCount;
-    end
-    for nn = gpu_index
-        gpu = gpuDevice( nn );
-        PrintVerbose(verbose, '\n gpu %u : memory: available, total, percent : %.3g GiB, %.3g GiB, %.2f%%', nn, gpu.AvailableMemory/1024^3, gpu.TotalMemory/1024^3, 100*gpu.AvailableMemory/gpu.TotalMemory)
-    end
+if isempty( gpu_index )
+    gpu_index = 1:gpuDeviceCount;
+end
+for nn = gpu_index
+    gpu = parallel.gpu.GPUDevice.getDevice( nn );
+    PrintVerbose(verbose, '\n gpu %u : memory: available, total, percent : %.3g GiB, %.3g GiB, %.2f%%', nn, gpu.AvailableMemory/1024^3, gpu.TotalMemory/1024^3, 100*gpu.AvailableMemory/gpu.TotalMemory)
 end
 
 %% File names
@@ -1581,7 +1579,6 @@ if do_tomo(1)
     vol = astra_parallel3D( permute(proj, [1 3 2]), rot_angle_offset + angles_reco, rot_axis_offset_reco, vol_shape, vol_size, astra_pixel_size, link_data, rot_axis_tilt, gpu_index);
     pause(0.01)    
     PrintVerbose(verbose, ' done in %.2f min.', (toc - t2) / 60)
-    
     % Save volume
     if write_reco(1)        
         if do_phase_retrieval(1)
