@@ -1810,3 +1810,4 @@ PrintVerbose(verbose && interactive_determination_of_rot_axis, '\nTime elapsed i
 PrintVerbose(verbose, '\nTime elapsed for computation: %g s (%.2f min)', toc - tint, (toc - tint) / 60 );
 PrintVerbose(verbose, '\nFINISHED: %s\n\n', scan_name)
 % END %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+dbclear if error

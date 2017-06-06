@@ -247,11 +247,13 @@ rot_axis_tilt = 0.00158;
 ADD
 
 scan_path = [ raw_path 'mah_37_10R_bottom'];
-rot_axis_offset = 0 / raw_bin;
-rot_axis_tilt = 0.00158;
+rot_axis_offset = 0.6 / raw_bin;
+rot_axis_tilt = 0.0015;
 ADD
 
 scan_path = [ raw_path 'mah_38_10R_top'];
+rot_axis_offset = 0.6 / raw_bin;
+rot_axis_tilt = 0.0015;
 ADD
 
 scan_path = [ raw_path 'mah_39_3L_bottom'];
