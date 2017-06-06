@@ -3,22 +3,39 @@ MATLAB scripts and functions
 
 Installation:
 
-1) Log into a GPU node on the Maxwell cluster
+1) Log-in to a GPU node on the Maxwell cluster
 
-2) Download latest MATLAB files from Github: 
-    git clone https://github.com/moosmann/matlab.git
+2) Download latest MATLAB files from Github:
+   
+   git clone https://github.com/moosmann/matlab.git
 
-3) cd matlab
+   or update to latest version. Back-up local files by branching if necessary:
 
-4) Start MATLAB with './startmatlab.sh', see below.
+   git add --all
+   git commit -m "COMMIT MESSAGE"
+   git branch NAME_OF_BRANCH
+
+   Fetch latest files and overwrite all changes:
+
+   git fetch origin master
+   git reset --hard origin/master
 
 
 
 How to start a reconstruction:
 
-1) chmod +x startmatlab.sh
+0) Change directory to downloaded 'matlab' folder:
+   
+   cd matlab
 
-2) ./startmatlab.sh
+1) If startmatlab.sh is not executable:
+   
+   chmod +x startmatlab.sh
+
+2) Start MATLAB with predefined settings from within the 'matlab' folder:
+
+   ./startmatlab.sh
+
     This sets environment variables in order to use a local installation of 
     the ASTRA toolbox, starts MATLAB, and sets the search path (this 
     overwrites local user settings, for details see 'startup.m'_)
@@ -34,6 +51,7 @@ How to start a reconstruction:
     - Type 'F5' key when focus is in the 'p05_reco' file    -
 
 
+
 How to set up automized reconstruction loop:
 
 1) Make a copy of 'p05_reco_template.m', open the copy, and follow the 
@@ -43,6 +61,3 @@ How to set up automized reconstruction loop:
     from 'p05_reco'
 
 3) Add data or parameter sets and run file.
-
-
-
