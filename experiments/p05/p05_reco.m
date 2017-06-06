@@ -12,11 +12,12 @@
 % To loop over sets of data or parameters use 'p05_reco_loop'.
 %
 % Written by Julian Moosmann. First version: 2016-09-28. Last modifcation:
-% 2017-06-05
+% 2017-06-06
+
+close all % open windows
+dbstop if error
 
 %% PARAMETERS / SETTINGS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-close all
-dbstop if error
 % INPUT %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 scan_path = ...
     '/asap3/petra3/gpfs/p05/2016/commissioning/c20160913_000_synload/raw/mg5gd_02_1w';
@@ -125,7 +126,7 @@ interactive_determination_of_rot_axis_tilt = 1; % reconstruct slices with differ
 interactive_determination_of_rot_axis_slice = 0.5; % slice number, default: 0.5. if in [0,1): relative, if in (1, N]: absolute
 % HARDWARE / SOFTWARE %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 poolsize = 0.80; % number of workers used in a parallel pool. if > 1: absolute number. if 0 < poolsize < 1: relative amount of all cores to be used
-link_data = 1; % ASTRA data objects become references to Matlab arrays.
+link_data = 1; % ASTRA data objects become references to Matlab arrays. Reduces memory issues.
 gpu_index = []; % GPU Device index to use, Matlab notation: index starts from 1. default: [], uses all
 
 %% TODO %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -200,6 +201,10 @@ gpu_index = []; % GPU Device index to use, Matlab notation: index starts from 1.
 % stitchted projections. To be tested
 
 % Ring artefact filter '
+
+% GPU CUDA error: device busy
+% Do not call 'gpuDevice()' when ASTRA toolbox is used with multi-GPU
+% support, or MATLAB terminates abnormally with a segmentation violation.
 
 %% External call: parameters set by 'p05_reco_loop' %%%%%%%%%%%%%%%%%%%%%%%
 if exist( 'external_parameter' ,'var')

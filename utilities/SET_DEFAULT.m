@@ -5,6 +5,6 @@ function SET_DEFAULT( )
 %
 % Written by Julian Moosmann, 2017-06-02, last mod: 2017-06-03
 %
-% ADD_DEFAULT()
+% SET_DEFAULT()
 
 evalin( 'caller', 'ADD(''default'')' )

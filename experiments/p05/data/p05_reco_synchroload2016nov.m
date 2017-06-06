@@ -13,7 +13,8 @@ end
 %% DEFAULT PARAMETERS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-visualOutput = 0;
+visualOutput = 1;
+interactive_determination_of_rot_axis = 1;
 scan_path = '';
 raw_roi = [];
 raw_bin = 1;
