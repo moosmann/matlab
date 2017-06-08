@@ -132,6 +132,7 @@ gpu_index = []; % GPU Device index to use, Matlab notation: index starts from 1.
 
 %% TODO %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % TODO: physically consistent attenutation values of reconstructed slice 
+% TODO: check raw roi, transpose, rot90 for KIT and EHD camera
 % TODO: get rid of transpose when reading image files
 % TODO: vertical stitching
 % TODO: volume shape for excentric rot axis
@@ -146,8 +147,6 @@ gpu_index = []; % GPU Device index to use, Matlab notation: index starts from 1.
 % TODO: interactive loop over tomo slices for different phase retrieval parameter
 % TODO: automatic determination of rot center
 % TODO: output file format option: 8-bit, 16-bit for all saved images
-% TODO: normalize proj with beam current for KIT camera AND missing images
-% TODO: raw vertical ROI for tiff images (KIT camera)
 % TODO: additional padding schemes for FBP filter
 % TODO: read sinogram option
 % TODO: set photometric tag for tif files w/o one, turn on respective warning
@@ -519,8 +518,14 @@ elseif ~read_flatcor
     
     % Ring current normalization
     if norm_by_ring_current(1)
-        if isequal( ref_nums, [cur.ref(ref_range).ind] )
-            scale_factor = 100 ./ shiftdim( [cur.ref(ref_range).val], -1 );
+        switch lower( cam )
+            case 'kit'
+                ref_ind = ref_nums + 1;
+            case 'ehd'
+                ref_ind = ref_range;
+        end
+        if isequal( ref_nums, [cur.ref(ref_ind).ind])
+            scale_factor = 100 ./ shiftdim( [cur.ref(ref_ind).val], -1 );
             flat = bsxfun( @times, flat, scale_factor );
             if visualOutput(1)
                 hrc = figure('Name', 'Ring current normalization');
@@ -594,8 +599,14 @@ elseif ~read_flatcor
     
     % Ring current normalization
     if norm_by_ring_current(1)
-        if isequal( proj_nums, [cur.proj(proj_range).ind] )
-            scale_factor = 100 ./ shiftdim( [cur.proj(proj_range).val], -1 );
+        switch lower( cam )
+            case 'kit'
+                proj_ind = proj_nums + 1;
+            case 'ehd'
+                proj_ind = proj_range;
+        end
+        if isequal( proj_nums, [cur.proj(proj_ind).ind] )
+            scale_factor = 100 ./ shiftdim( [cur.proj(proj_ind).val], -1 );
             proj = bsxfun( @times, proj, scale_factor );
             if visualOutput(1)
                 figure(hrc)
