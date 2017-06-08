@@ -20,6 +20,7 @@ dbstop if error
 %% PARAMETERS / SETTINGS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % INPUT %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 scan_path = ...
+    '/asap3/petra3/gpfs/p05/2017/data/11002839/raw/ehh_2017_003_f';
     '/asap3/petra3/gpfs/p05/2016/commissioning/c20160913_000_synload/raw/mg5gd_02_1w';
     '/asap3/petra3/gpfs/p05/2017/data/11003950/raw/syn13_55L_Mg10Gd_12w_load_00';     
 '/asap3/petra3/gpfs/p05/2017/data/11003950/raw/syn01_48L_PEEK_12w_b';
@@ -37,7 +38,7 @@ read_flatcor = 0; % read flatfield-corrected images from disc, skips preprocessi
 read_flatcor_path = ''; % subfolder of 'flat_corrected' containing projections
 % PREPROCESSING %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 raw_roi = []; % vertical roi for binary dat files. skips first raw_roi(1)-1 lines, reads until raw_roi(2)
-raw_bin = 1; % projection binning factor: 1, 2, or 4
+raw_bin = 2; % projection binning factor: 1, 2, or 4
 excentric_rot_axis = 0; % off-centered rotation axis increasing FOV. -1: left, 0: centeerd, 1: right. influences rot_corr_area1
 crop_at_rot_axis = 0; % recommended for scans with excentric rotation axis when no projection stitching is done
 stitch_projections = 0; % stitch projection (for 2 pi scans) at rotation axis position. "doubles" number of voxels
@@ -1283,8 +1284,8 @@ if do_tomo(1)
                         im2c_warped_cur(im2c_warped_cur == 0) = mean2( im2c );
                         im2c_warped_calc(im2c_warped_calc == 0) = mean2( im2c );                        
                         
-                        fprintf( '\n current rotation axis tilt: %g rad = %g deg', rot_axis_tilt, rot_axis_tilt * 180 / pi)
-                        fprintf( '\n calcul. rotation axis tilt: %g rad = %g deg', rot_axis_tilt_calc, rot_axis_tilt_calc * 180 / pi)                        
+                        fprintf( '\n current rotation axis tilt: %g rad (%g deg)', rot_axis_tilt, rot_axis_tilt * 180 / pi)
+                        fprintf( '\n calcul. rotation axis tilt: %g rad (%g deg)', rot_axis_tilt_calc, rot_axis_tilt_calc * 180 / pi)                        
                                                                         
                         name = sprintf( 'projections at 0 and 180 degree. corrected. CURRENT rot axis tilt: %g, rot axis offset: %g', rot_axis_tilt, rot_axis_offset);
                         nimplay( cat(3, im1c(x:end-x,x:end-x)', im2c_warped_cur(x:end-x,x:end-x)'), 0, 0, name)
@@ -1318,7 +1319,7 @@ if do_tomo(1)
     end   
     PrintVerbose(verbose, '\n rotation axis offset: %.2f', rot_axis_offset );
     PrintVerbose(verbose, '\n rotation axis position: %.2f', rot_axis_pos );
-    PrintVerbose(verbose, '\n rotation axis tilt: %g rad = %g deg', rot_axis_tilt, rot_axis_tilt * 180 / pi)
+    PrintVerbose(verbose, '\n rotation axis tilt: %g rad (%g deg)', rot_axis_tilt, rot_axis_tilt * 180 / pi)
        
     if visualOutput(1)
         h4 = figure('Name','Projections at 0 and pi cropped symmetrically to rotation center');
