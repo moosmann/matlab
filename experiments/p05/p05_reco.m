@@ -37,7 +37,7 @@ scan_path = ...
 read_flatcor = 0; % read flatfield-corrected images from disc, skips preprocessing
 read_flatcor_path = ''; % subfolder of 'flat_corrected' containing projections
 % PREPROCESSING %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-raw_roi = []; % vertical roi for binary dat files. skips first raw_roi(1)-1 lines, reads until raw_roi(2)
+raw_roi = [201 2400]; % [y0 y1] vertical roi for binary dat files, or [y0 y1 x0 x1] for CMOS.  skips first raw_roi(1)-1 lines, reads until raw_roi(2)
 raw_bin = 2; % projection binning factor: 1, 2, or 4
 excentric_rot_axis = 0; % off-centered rotation axis increasing FOV. -1: left, 0: centeerd, 1: right. influences rot_corr_area1
 crop_at_rot_axis = 0; % recommended for scans with excentric rotation axis when no projection stitching is done
@@ -132,6 +132,7 @@ gpu_index = []; % GPU Device index to use, Matlab notation: index starts from 1.
 
 %% TODO %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % TODO: physically consistent attenutation values of reconstructed slice 
+% TODO: get rid of transpose when reading image files
 % TODO: vertical stitching
 % TODO: volume shape for excentric rot axis
 % TODO: reco bin once
