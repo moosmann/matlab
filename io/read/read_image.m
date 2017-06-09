@@ -36,17 +36,17 @@ switch lower( filetype )
         warning( 'off', 'MATLAB:imagesci:rtifc:missingPhotometricTag');
         switch numel( roi )
             case 0
-                im = rot90( imread( filename, 'tif' ), -1);
+                im = ( rot90( imread( filename, 'tif' ), 1) );
             case 2
                 y0 = max( (3840-roi(2)), 0 );
                 y1 = min( (3840-roi(1)), 3840);
-                im = rot90( imread( filename, 'tif', 'PixelRegion', {[y0 y1], [1 5120]}), -1);
+                im = ( rot90( imread( filename, 'tif', 'PixelRegion', {[y0 y1], [1 5120]}), 1) );
             case 4
                 y0 = max( (3840-roi(2)), 0 );
                 y1 = min( (3840-roi(1)), 3840);
                 x0 = max( (5120-roi(4)), 0);
                 x1 = min( (5120-roi(1)), 5120);
-                im = rot90( imread( filename, 'tif', 'PixelRegion', {[y0 (3840-roi(1))], [x0 (5120-roi(3))]} ), -1);
+                im = (rot90( imread( filename, 'tif', 'PixelRegion', {[y0 (3840-roi(1))], [x0 (5120-roi(3))]} ), 1) );
         end
     case {'img', 'dar', 'ref'}        
             im = read_dat_jm( filename, roi );        

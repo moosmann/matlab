@@ -62,8 +62,6 @@ end
 y_range = slice + (-dz:dz);
 sino = proj(:, y_range, :);
 
-%sino = normarray( sino );
-
 % Ramp filter
 filt = iradonDesignFilter('Ram-Lak', 2 * num_pix, 0.9);
 

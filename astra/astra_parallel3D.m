@@ -177,7 +177,7 @@ end
 astra_mex_data3d('delete', vol_id)
 astra_mex_projector3d('clear')
 
-% Normalize volume
+% Required for adjoint?
 %vol = pi / 2 / numel(angles) * vol;
 
 end

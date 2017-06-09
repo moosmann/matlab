@@ -1,51 +1,39 @@
-% P05 reconstruction pipeline. preprocessing, filtering, phase retrieval,
-% and tomographic reconstruction.
+% P05 reconstruction pipeline: preprocessing, filtering, phase retrieval,
+% tomographic reconstruction, etc.
 %
 % USAGE
 % Set parameters in PARAMETERS / SETTINGS section below and run script.
 %
-% How to start script:
+% How to run script:
 % - type 'F5' when focus is in the Editor windows
 % - click 'Run' in the Editor tab
 % - type 'p05_reco_loop' and Enter in the Command Window
 %
-% To loop over sets of data or parameters use 'p05_reco_loop'.
+% To loop over sets of data or parameters sets use 'p05_reco_loop'.
 %
 % Written by Julian Moosmann. First version: 2016-09-28. Last modifcation:
 % 2017-06-06
 
-close all % open windows
-dbstop if error
+close all hidden % open windows
+%dbstop if error
 
 %% PARAMETERS / SETTINGS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % INPUT %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 scan_path = ...    
-    '/asap3/petra3/gpfs/p05/2016/commissioning/c20160913_000_synload/raw/mg5gd_02_1w';
-    
-'/asap3/petra3/gpfs/p05/2017/data/11002839/raw/ehh_2017_003_f';
-    '/asap3/petra3/gpfs/p05/2017/data/11003950/raw/syn13_55L_Mg10Gd_12w_load_00';     
-'/asap3/petra3/gpfs/p05/2017/data/11003950/raw/syn01_48L_PEEK_12w_b';
-'/asap3/petra3/gpfs/p05/2016/data/11001978/raw/mah_32_15R_top_occd800_withoutpaper'; % too much fringes, not enough coherence probably, using standard phase retrieval reco looks blurry
-'/asap3/petra3/gpfs/p05/2016/commissioning/c20160803_001_pc_test/raw/phase_600';
-'/asap3/petra3/gpfs/p05/2016/commissioning/c20160803_001_pc_test/raw/phase_1000'; %rot_axis_offset=7.5
-'/asap3/petra3/gpfs/p05/2016/commissioning/c20160803_001_pc_test/raw/phase_1400'; %rot_axis_offset=19.5
-'/asap3/petra3/gpfs/p05/2016/commissioning/c20160803_001_pc_test/raw/we43_phase_030';
-'/asap3/petra3/gpfs/p05/2015/data/11001102/raw/hzg_wzb_mgag_14';
-'/asap3/petra3/gpfs/p05/2015/data/11001102/raw/hzg_wzb_mgag_38';
-'/asap3/petra3/gpfs/p05/2015/data/11001102/raw/hzg_wzb_mgag_02';
-'/asap3/petra3/gpfs/p05/2016/data/11001464/raw/pnl_16_petrosia_c';
-'/asap3/petra3/gpfs/p05/2016/commissioning/c20161024_000_xeno/raw/xeno_01_b';
+    '/asap3/petra3/gpfs/p05/2017/data/11002839/raw/ehh_2017_010_b';
+'/asap3/petra3/gpfs/p05/2017/data/11003950/raw/syn13_55L_Mg10Gd_12w_load_21';        
+'/asap3/petra3/gpfs/p05/2017/data/11003950/raw/syn01_48L_PEEK_12w_b';    
 read_flatcor = 0; % read flatfield-corrected images from disc, skips preprocessing
 read_flatcor_path = ''; % subfolder of 'flat_corrected' containing projections
 % PREPROCESSING %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 raw_roi = [201 2400]; % [y0 y1] vertical roi for binary dat files, or [y0 y1 x0 x1] for CMOS.  skips first raw_roi(1)-1 lines, reads until raw_roi(2)
 raw_bin = 2; % projection binning factor: 1, 2, or 4
-excentric_rot_axis = 0; % off-centered rotation axis increasing FOV. -1: left, 0: centeerd, 1: right. influences rot_corr_area1
+excentric_rot_axis = 1; % off-centered rotation axis increasing FOV. -1: left, 0: centeerd, 1: right. influences rot_corr_area1
 crop_at_rot_axis = 0; % recommended for scans with excentric rotation axis when no projection stitching is done
 stitch_projections = 0; % stitch projection (for 2 pi scans) at rotation axis position. "doubles" number of voxels
 stitch_method = 'sine'; % 'step': no interpolation, 'linear','sine': linear interpolation of overlap region. !!! adjust: correlation area
-proj_range = 1; % range of projections to be used (from all that are found). if empty: all, if scalar: stride
-ref_range = 1; % range of flat fields to be used (from all that are found). start:incr:end. if empty: all (equals 1). if scalar: stride
+proj_range = 2; % range of projections to be used (from all that are found). if empty: all, if scalar: stride
+ref_range = 6; % range of flat fields to be used (from all that are found). start:incr:end. if empty: all (equals 1). if scalar: stride
 darkFiltPixHot = 0.01; % Hot pixel filter parameter for dark fields, for details see 'FilterPixel'
 darkFiltPixDark = 0.005; % Dark pixel filter parameter for dark fields, for details see 'FilterPixel'
 refFiltPixHot = 0.01; % Hot pixel filter parameter for flat fields, for details see 'FilterPixel'
@@ -105,7 +93,7 @@ write_phase_map = 0; % save phase maps (if phase retrieval is not 0)
 write_sino = 0; % save sinograms (after preprocessing & before FBP filtering and phase retrieval)
 write_sino_phase = 0; % save sinograms of phase mapsls
 write_reco = 1; % save reconstructed slices (if do_tomo=1)
-write_float = 1; % write single precision (32-bit float) tiff
+write_float = 0; % write single precision (32-bit float) tiff
 write_float_binned = 1; % write binned single precision (32-bit float) tiff
 write_16bit = 0; % write 8bit-tiff, currently for reco only
 write_8bit = 0; % write 8bit-tiff, currently for reco only
@@ -115,7 +103,7 @@ compression = 'full'; 'std'; 'threshold';'histo'; % method of compression of dyn
 compression_std_num = 5; % dynamic range: mean(volume) +/- NUM* std(volume)
 compression_threshold = [-1 1]; % dynamic range: [MIN MAX]
 compression_histo = [0.05 0.05]; % [LOW HIGH]. crop dynamic range to values between (100*LOW)% and (100*HIGH)% of the original histogram
-parfolder = 'test_ringfilt_jm_multi'; % parent folder for 'reco', 'sino', 'phase', and 'flat_corrected'
+parfolder = ''; % parent folder for 'reco', 'sino', 'phase', and 'flat_corrected'
 subfolder_flatcor = ''; % subfolder in 'flat_corrected'
 subfolder_phase_map = ''; % subfolder in 'phase_map'
 subfolder_sino = ''; % subfolder in 'sino'
@@ -899,7 +887,8 @@ elseif ~read_flatcor
                     h3 = figure('Name', 'Sinogram and ring filter');
                     
                     subplot(3,1,1)
-                    imsc( sino_unfilt )
+                    [~, sorted_angle_index] = sort( angles );
+                    imsc( sino_unfilt(:,sorted_angle_index) )
                     axis equal tight
                     title(sprintf('sino unfiltered, y = %u', sino_slice))
                     colorbar 
@@ -1109,12 +1098,16 @@ if do_tomo(1)
     end
     
     % Tilt of rotation axis
-    im1c = RotAxisSymmetricCropping( proj(:,rot_corr_area2,ind1), rot_axis_pos, 1);
-    im2c = flipud(RotAxisSymmetricCropping( proj(:,rot_corr_area2,ind2) , rot_axis_pos, 1));
-    [optimizer, metric] = imregconfig('monomodal');
-    tform = imregtform(im2c, im1c, 'rigid', optimizer, metric);
-    rot_axis_tilt_calc = asin( tform.T(1,2) ) / 2;
-    PrintVerbose(verbose, '\n calculated tilt of rotation axis : %g rad = %g deg', rot_axis_tilt_calc, rot_axis_tilt_calc * 180 / pi)
+    if interactive_determination_of_rot_axis_tilt(1)
+        im1c = RotAxisSymmetricCropping( proj(:,rot_corr_area2,ind1), rot_axis_pos, 1);
+        im2c = flipud(RotAxisSymmetricCropping( proj(:,rot_corr_area2,ind2) , rot_axis_pos, 1));
+        [optimizer, metric] = imregconfig('monomodal');
+        tform = imregtform(im2c, im1c, 'rigid', optimizer, metric);
+        rot_axis_tilt_calc = asin( tform.T(1,2) ) / 2;
+        PrintVerbose(verbose, '\n calculated tilt of rotation axis : %g rad = %g deg', rot_axis_tilt_calc, rot_axis_tilt_calc * 180 / pi)
+    else
+        rot_axis_tilt_calc = [];
+    end
     if isempty( rot_axis_tilt )
         if abs( rot_axis_pos_calc ) < 0.01 % 0.573 degree
             rot_axis_tilt = rot_axis_tilt_calc;
@@ -1334,7 +1327,7 @@ if do_tomo(1)
     PrintVerbose(verbose, '\n rotation axis position: %.2f', rot_axis_pos );
     PrintVerbose(verbose, '\n rotation axis tilt: %g rad (%g deg)', rot_axis_tilt, rot_axis_tilt * 180 / pi)
        
-    if visualOutput(1)
+    if interactive_determination_of_rot_axis_tilt(1) && visualOutput(1)
         h4 = figure('Name','Projections at 0 and pi cropped symmetrically to rotation center');
         n = 2; 
         m = 2;
@@ -1824,4 +1817,5 @@ PrintVerbose(verbose && interactive_determination_of_rot_axis, '\nTime elapsed i
 PrintVerbose(verbose, '\nTime elapsed for computation: %g s (%.2f min)', toc - tint, (toc - tint) / 60 );
 PrintVerbose(verbose, '\nFINISHED: %s\n\n', scan_name)
 % END %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-dbclear if error
+
+%dbclear if error

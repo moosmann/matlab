@@ -18,5 +18,5 @@ imMean = mean(im(:));
 imVar  = var(im(:));
 imSta  = sqrt(imVar);
 %% Print info
-fprintf(' %s: Min=%g, Max=%g, Mean=%g, Sta=%g, Var=%g Max-Min=%g\n', ...
+fprintf(' %s: Min=%12g, Max=%12g, Mean=%12g, Sta=%12g, Var=%12g Max-Min=%12g\n', ...
     imNameString,imMin,imMax,imMean,imSta,imVar,imMax-imMin);

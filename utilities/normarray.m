@@ -1,5 +1,5 @@
-function imageArray = norar(imageArray)
-%Renormalize 3D input imageArrayray 'imageArray' to the interval [0,1].
+function imageArray = normarray(imageArray)
+%Renormalize 3D input array 'imageArray' slicewise to the interval [0,1].
 
 [d1,d2,~] = size(imageArray);
 

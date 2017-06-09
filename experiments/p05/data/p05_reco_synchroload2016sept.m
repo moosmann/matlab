@@ -53,6 +53,11 @@ SET_DEFAULT
 %% PARAMETER / DATA SETS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+%% Check
+'/asap3/petra3/gpfs/p05/2015/data/11001102/raw/hzg_wzb_mgag_14';
+'/asap3/petra3/gpfs/p05/2015/data/11001102/raw/hzg_wzb_mgag_38';
+'/asap3/petra3/gpfs/p05/2015/data/11001102/raw/hzg_wzb_mgag_02';
+
 %% 2016-09-13 commissioning synload
 raw_path = '/asap3/petra3/gpfs/p05/2016/commissioning/c20160913_000_synload/raw/';
 raw_path_roi = [141 1940];
