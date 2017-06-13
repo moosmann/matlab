@@ -1,4 +1,4 @@
-function [im,HotPixPercent,DeadPixPercent,DarkPixPercent] = FilterPixel(im,FiltThreshHot_FiltThreshDark,printInfo,medianFilterRadius,filterDeadPixel,filterInfsAndNans)
+function [im,HotThresh,DarkThresh,HotPixPercent,DeadPixPercent,DarkPixPercent] = FilterPixel(im,FiltThreshHot_FiltThreshDark,printInfo,medianFilterRadius,filterDeadPixel,filterInfsAndNans)
 %Filter hot, dark, and dead pixels.
 %Substitute hot (and dead) pixels by median values. Hot and dark pixels are
 %found using a ratio of the image and the median filtered images which has

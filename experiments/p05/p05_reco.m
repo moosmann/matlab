@@ -579,10 +579,29 @@ elseif ~read_flatcor
         colorbar
     end
     
+    % Get absolute filter thresholds from percentage-wise pixel filtering
+    % of 1st, middle, and last projection to speed up processing
+    if projFiltPixHot < 1 || projFiltPixDark < 0.5
+        filename = sprintf('%s%s', scan_path, img_names_mat(num_proj_used, :));
+        [~, ht(3), dt(3)] = FilterPixel( read_image( filename, '', raw_roi, tif_info ), [projFiltPixHot, projFiltPixDark]);
+        
+        filename = sprintf('%s%s', scan_path, img_names_mat(1, :));
+        [~, ht(2), dt(2)] = FilterPixel( read_image( filename, '', raw_roi, tif_info ), [projFiltPixHot, projFiltPixDark]);
+                
+        filename = sprintf('%s%s', scan_path, img_names_mat(round(num_proj_used/2), :));
+        [~, ht(1), dt(1)] = FilterPixel( read_image( filename, '', raw_roi, tif_info ), [projFiltPixHot, projFiltPixDark]);
+        
+        HotThresh = mean( ht );
+        DarkThresh = mean( dt );        
+    else
+        HotThresh = projFiltPixHot;
+        DarkThresh = projFiltPixDark;                        
+    end
+    
     % Read raw projections
     parfor nn = 1:num_proj_used
         filename = sprintf('%s%s', scan_path, img_names_mat(nn, :));
-        proj(:, :, nn) = Binning( FilterPixel( read_image( filename, '', raw_roi, tif_info ), [projFiltPixHot, projFiltPixDark]), raw_bin) / raw_bin^2;
+        proj(:, :, nn) = Binning( FilterPixel( read_image( filename, '', raw_roi, tif_info ), [HotThresh, DarkThresh]), raw_bin) / raw_bin^2;
     end
     raw_min = min( proj(:) );
     raw_max = max( proj(:) );
@@ -766,7 +785,6 @@ elseif ~read_flatcor
                     axis tight
                     title(sprintf('correlation measures: projection #1'))
                   
-                    
                     subplot(m,n,2);
                     f = @(x) normat(x(1,:))';
                     Y = [ f(c_ssim), f(-c_l), f(-c_c), f(-c_s) ];
@@ -783,9 +801,6 @@ elseif ~read_flatcor
                     [c_corr_val,c_corr_pos] = sort( c_corr, 2 );    
                     [c_ssim_val,c_ssim_pos] = sort( c_ssim, 2 );
                     [c_ssim_ml_val,c_ssim_ml_pos] = sort( c_ssim_ml, 2 );
-                    
-
-                            
             end            
             drawnow
         end
@@ -1430,8 +1445,14 @@ end
 %% Crop projections at rotation axis position
 % to avoid oversampling for scans with excentric rotation axis and
 % reconstructing without stitching
-if abs( excentric_rot_axis(1) ) && crop_at_rot_axis(1)
-    proj( ceil(rot_axis_pos) + 1:end, :, :) = [];
+if crop_at_rot_axis(1)
+    switch excentric_rot_axis
+        case 1
+            proj( ceil(rot_axis_pos) + 1:end, :, :) = [];
+        case -1
+            %% CHECK
+            proj( 1:floor(rot_axis_pos)-1, :, :) = [];
+    end
     if isempty( vol_shape )                
         vol_shape = [raw_im_shape_binned1, raw_im_shape_binned1, raw_im_shape_binned2];        
     end
@@ -1590,7 +1611,12 @@ if do_tomo(1)
       
     if crop_at_rot_axis(1)
         % half weight pixel at rot axis pos as it is used twice
-        proj( ceil(rot_axis_pos), :, :) = 0.5 * proj( ceil(rot_axis_pos), :, :) ;
+        switch excentric_rot_axis
+            case 1
+                proj( end, :, :) = 0.5 * proj( end, :, :) ;
+            case -1                
+                proj( 1, :, :) = 0.5 * proj( 1, :, :) ;
+        end
     end
     
     % Backprojection
@@ -1599,6 +1625,7 @@ if do_tomo(1)
     vol = astra_parallel3D( permute(proj, [1 3 2]), rot_angle_offset + angles_reco, rot_axis_offset_reco, vol_shape, vol_size, astra_pixel_size, link_data, rot_axis_tilt, gpu_index);
     pause(0.01)    
     PrintVerbose(verbose, ' done in %.2f min.', (toc - t2) / 60)
+    
     % Save volume
     if write_reco(1)        
         if do_phase_retrieval(1)
