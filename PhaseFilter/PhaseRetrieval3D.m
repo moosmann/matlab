@@ -28,7 +28,7 @@ end
 tic;
 phase_filter = PhaseFilter3D( phase_method, (padding + 1) * size( vol ), EnergyDistancePixelsize, reg_par, bin_filt_thresh, output_precision);
 t = toc;
-fprintf( '3D phase filter created in %u s', t )
+fprintf( '3D phase filter created in %.1f s', t )
 
 %vol = real( ifft( ifft( ifft( phase_filter .* fft( fft( fft( vol, [], 1), [], 2), [], 3), [], 3), [], 2), [], 1) );
 if padding
@@ -43,4 +43,4 @@ if padding
 else
     vol = real( ifftn( phase_filter .* fftn( vol ) ) );
 end
-fprintf( '3D phase retrieval done in %u s (%.f min)', toc - t, (toc -t)/60 )
+fprintf( '3D phase retrieval done in %u s (%.2f min)', round(toc - t), (toc -t)/60 )

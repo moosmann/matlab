@@ -20,20 +20,20 @@ close all hidden % open windows
 %% PARAMETERS / SETTINGS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % INPUT %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 scan_path = ...    
-    '/asap3/petra3/gpfs/p05/2017/data/11002839/raw/ehh_2017_010_b';
+    '/asap3/petra3/gpfs/p05/2017/data/11002839/raw/ehh_2017_015_a';
 '/asap3/petra3/gpfs/p05/2017/data/11003950/raw/syn13_55L_Mg10Gd_12w_load_21';        
 '/asap3/petra3/gpfs/p05/2017/data/11003950/raw/syn01_48L_PEEK_12w_b';    
 read_flatcor = 0; % read flatfield-corrected images from disc, skips preprocessing
 read_flatcor_path = ''; % subfolder of 'flat_corrected' containing projections
 % PREPROCESSING %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-raw_roi = [201 2400]; % [y0 y1] vertical roi for binary dat files, or [y0 y1 x0 x1] for CMOS.  skips first raw_roi(1)-1 lines, reads until raw_roi(2)
+raw_roi = [201 2400]; % [y0 y1] vertical roi.  skips first raw_roi(1)-1 lines, reads until raw_roi(2)
 raw_bin = 2; % projection binning factor: 1, 2, or 4
 excentric_rot_axis = 1; % off-centered rotation axis increasing FOV. -1: left, 0: centeerd, 1: right. influences rot_corr_area1
 crop_at_rot_axis = 0; % recommended for scans with excentric rotation axis when no projection stitching is done
 stitch_projections = 0; % stitch projection (for 2 pi scans) at rotation axis position. "doubles" number of voxels
 stitch_method = 'sine'; % 'step': no interpolation, 'linear','sine': linear interpolation of overlap region. !!! adjust: correlation area
-proj_range = 2; % range of projections to be used (from all that are found). if empty: all, if scalar: stride
-ref_range = 6; % range of flat fields to be used (from all that are found). start:incr:end. if empty: all (equals 1). if scalar: stride
+proj_range = 1; % range of projections to be used (from all that are found). if empty: all, if scalar: stride
+ref_range = 1; % range of flat fields to be used (from all that are found). start:incr:end. if empty: all (equals 1). if scalar: stride
 darkFiltPixHot = 0.01; % Hot pixel filter parameter for dark fields, for details see 'FilterPixel'
 darkFiltPixDark = 0.005; % Dark pixel filter parameter for dark fields, for details see 'FilterPixel'
 refFiltPixHot = 0.01; % Hot pixel filter parameter for flat fields, for details see 'FilterPixel'
@@ -358,9 +358,9 @@ PrintVerbose(verbose, '\n projection range used : first:stride:last =  %g:%g:%g'
 
 %% Image shape and ROI
 filename = sprintf('%s%s', scan_path, ref_names{1});
-im_raw = read_image( filename );
+[im_raw, tif_info] = read_image( filename );
 raw_im_shape_raw = size( im_raw );
-im_roi = read_image( filename, '', raw_roi );
+im_roi = read_image( filename, '', raw_roi, tif_info );
 raw_im_shape = size( im_roi );
 raw_im_shape_binned = floor( raw_im_shape / raw_bin );
 raw_im_shape_binned1 = raw_im_shape_binned(1);
@@ -437,6 +437,7 @@ if read_flatcor(1)
     
     % Preallocation
     proj = zeros( raw_im_shape_binned(1), raw_im_shape_binned(2), num_proj_read, 'single');
+    PrintVerbose( verbose, ' Allocated bytes: %.2f Gib.', Bytes( proj, 3 ) )
     proj_names_mat = NameCellToMat( proj_names );
     
     % Read flat corrected projections
@@ -452,9 +453,10 @@ elseif ~read_flatcor
     t = toc;
     PrintVerbose(verbose, '\nProcessing dark fields.')
     darks = zeros( [raw_im_shape_binned, num_dark], 'single');
+    PrintVerbose( verbose, ' Allocated bytes: %.2f Mib.', Bytes( darks, 2 ) )
     parfor nn = 1:num_dark
         filename = sprintf('%s%s', scan_path, dark_names{nn});
-        im = single( read_image( filename, '', raw_roi) );
+        im = single( read_image( filename, '', raw_roi, tif_info) );
         % Remove large outliers. Assume Poisson distribtion at large lambda
         % is approximately a Gaussian distribution and set all value above
         % mean + 4 * std (99.994 of values lie within 4 std). Due to
@@ -487,11 +489,12 @@ elseif ~read_flatcor
     
     % Preallocation
     flat = zeros( [raw_im_shape_binned, num_ref_used], 'single');
+    PrintVerbose( verbose, ' Allocated bytes: %.2f Gib.', Bytes( flat, 3 ) )
     
     % Parallel loop
     parfor nn = 1:num_ref_used
         filename = sprintf('%s%s', scan_path, ref_names_mat(nn, :));
-        flat(:, :, nn) = Binning( FilterPixel( read_image( filename, '', raw_roi ), [refFiltPixHot refFiltPixDark]), raw_bin) / raw_bin^2;
+        flat(:, :, nn) = Binning( FilterPixel( read_image( filename, '', raw_roi, tif_info ), [refFiltPixHot refFiltPixDark]), raw_bin) / raw_bin^2;
         % Check for zeros
         num_zeros =  sum( sum( flat(:,:,nn) < 1 ) );
         if num_zeros > 0
@@ -557,16 +560,17 @@ elseif ~read_flatcor
     
     %% Projections
     t = toc;
-    PrintVerbose(verbose, '\nRead and filter raws.')
+    PrintVerbose(verbose, '\nRead and filter projections.')
     % Preallocation
     proj = zeros( raw_im_shape_binned(1), raw_im_shape_binned(2), num_proj_used, 'single');
+    PrintVerbose( verbose, ' Allocated bytes: %.2f Gib.', Bytes( proj, 3 ) )
     img_names_mat = NameCellToMat( proj_names(proj_range) );
     
     % Display first raw images
     if visualOutput(1)
         figure(h1)
         filename = sprintf('%s%s', scan_path, img_names_mat(1, :));
-        raw1 = Binning( FilterPixel( read_image( filename, '', raw_roi ), [projFiltPixHot, projFiltPixDark]), raw_bin) / raw_bin^2;
+        raw1 = Binning( FilterPixel( read_image( filename, '', raw_roi, tif_info ), [projFiltPixHot, projFiltPixDark]), raw_bin) / raw_bin^2;
         subplot(2,2,3)
         imsc1( raw1 )
         axis equal tight
@@ -578,7 +582,7 @@ elseif ~read_flatcor
     % Read raw projections
     parfor nn = 1:num_proj_used
         filename = sprintf('%s%s', scan_path, img_names_mat(nn, :));
-        proj(:, :, nn) = Binning( FilterPixel( read_image( filename, '', raw_roi ), [projFiltPixHot, projFiltPixDark]), raw_bin) / raw_bin^2;
+        proj(:, :, nn) = Binning( FilterPixel( read_image( filename, '', raw_roi, tif_info ), [projFiltPixHot, projFiltPixDark]), raw_bin) / raw_bin^2;
     end
     raw_min = min( proj(:) );
     raw_max = max( proj(:) );
@@ -1192,7 +1196,7 @@ if do_tomo(1)
             nimplay(vol, 0, 0, 'OFFSET: sequence of reconstructed slices using different rotation axis offsets')
             
             % Input
-            offset = input( '\n\nENTER ROTATION AXIS OFFSET OR A RANGE OF OFFSETS(if empty use current offset): ');
+            offset = input( '\n\nENTER ROTATION AXIS OFFSET OR A RANGE OF OFFSETS (if empty use current offset): ');
             if isempty( offset )
                 offset = rot_axis_offset;
             end
@@ -1419,9 +1423,13 @@ if stitch_projections(1)
     clear proj_sti;
     angles = angles(1:num_proj_sti);
     PrintVerbose(verbose, ' Time elapsed: %.1f (%.2f min)', toc-t, (toc-t)/60)
+    PrintVerbose(verbose, '\n shape of stitched projections : %u %u %u', size( proj ) )
+    PrintVerbose(verbose, '\n memory allocted : %.2 GiB', Bytes( proj, 3 ) )
 end
 
-%% Crop projection at rotation axis position to avoid oversampling
+%% Crop projections at rotation axis position
+% to avoid oversampling for scans with excentric rotation axis and
+% reconstructing without stitching
 if abs( excentric_rot_axis(1) ) && crop_at_rot_axis(1)
     proj( ceil(rot_axis_pos) + 1:end, :, :) = [];
     if isempty( vol_shape )                
@@ -1447,6 +1455,7 @@ end
 %% Phase retrieval %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 edp = [energy, sample_detector_distance, eff_pixel_size_binned];
 if do_phase_retrieval(1)
+    PrintVerbose(verbose, '\nPhase retrieval.')
     t = toc;
     PrintVerbose(verbose, '\n energy : %g eV', energy)
     PrintVerbose(verbose, '\n sample detector distance : %g m', sample_detector_distance)
@@ -1469,7 +1478,6 @@ if do_phase_retrieval(1)
     CheckAndMakePath( reco_phase_path )
     PrintVerbose(verbose, '\n reco_phase_path : %s', reco_phase_path)
     PrintVerbose(verbose, '\n phase retrieval method : %s', phase_retrieval_method)
-    PrintVerbose(verbose, '\nPhase retrieval.')
     
     % Retrieval
     parfor nn = 1:size(proj, 3)
@@ -1809,6 +1817,7 @@ fprintf(fid, 'write_8bit_binned : %u\n', write_8bit_binned);
 fprintf(fid, 'reco_bin : %u\n', reco_bin);
 fprintf(fid, 'full_reconstruction_time : %.1f s\n', toc);
 fprintf(fid, 'date_of_reconstruction : %s', datetime);
+fprintf(fid, 'rotation_axis_offset : %f\n', rot_axis_offset);
 %fprintf(fid, ' : \n', );
 fclose(fid);
 PrintVerbose(verbose, '\n log file : %s', logfile_name)
