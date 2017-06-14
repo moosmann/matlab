@@ -20,15 +20,15 @@ close all hidden % open windows
 %% PARAMETERS / SETTINGS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % INPUT %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 scan_path = ...    
+    '/asap3/petra3/gpfs/p05/2017/data/11003950/raw/syn13_55L_Mg10Gd_12w_load_00';        
     '/asap3/petra3/gpfs/p05/2017/data/11002839/raw/ehh_2017_015_a';
-'/asap3/petra3/gpfs/p05/2017/data/11003950/raw/syn13_55L_Mg10Gd_12w_load_21';        
 '/asap3/petra3/gpfs/p05/2017/data/11003950/raw/syn01_48L_PEEK_12w_b';    
 read_flatcor = 0; % read flatfield-corrected images from disc, skips preprocessing
 read_flatcor_path = ''; % subfolder of 'flat_corrected' containing projections
 % PREPROCESSING %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-raw_roi = [201 2400]; % [y0 y1] vertical roi.  skips first raw_roi(1)-1 lines, reads until raw_roi(2)
+raw_roi = [];[201 2400]; % [y0 y1] vertical roi.  skips first raw_roi(1)-1 lines, reads until raw_roi(2)
 raw_bin = 2; % projection binning factor: 1, 2, or 4
-excentric_rot_axis = 1; % off-centered rotation axis increasing FOV. -1: left, 0: centeerd, 1: right. influences rot_corr_area1
+excentric_rot_axis = 0; % off-centered rotation axis increasing FOV. -1: left, 0: centeerd, 1: right. influences rot_corr_area1
 crop_at_rot_axis = 0; % recommended for scans with excentric rotation axis when no projection stitching is done
 stitch_projections = 0; % stitch projection (for 2 pi scans) at rotation axis position. "doubles" number of voxels
 stitch_method = 'sine'; % 'step': no interpolation, 'linear','sine': linear interpolation of overlap region. !!! adjust: correlation area
@@ -99,10 +99,10 @@ write_16bit = 0; % write 8bit-tiff, currently for reco only
 write_8bit = 0; % write 8bit-tiff, currently for reco only
 write_8bit_binned = 0; % write binned 8bit-tiff, currently for reco only
 reco_bin = 2; % currently only 2 x 2 x 2 binning is implemented
-compression = 'full'; 'std'; 'threshold';'histo'; % method of compression of dynamic range
+compression = 'histo';'full'; 'std'; 'threshold'; % method of compression of dynamic range
 compression_std_num = 5; % dynamic range: mean(volume) +/- NUM* std(volume)
 compression_threshold = [-1 1]; % dynamic range: [MIN MAX]
-compression_histo = [0.05 0.05]; % [LOW HIGH]. crop dynamic range to values between (100*LOW)% and (100*HIGH)% of the original histogram
+compression_histo = [0.02 0.02]; % [LOW HIGH]. crop dynamic range to values between (100*LOW)% and (100*HIGH)% of the original histogram
 parfolder = ''; % parent folder for 'reco', 'sino', 'phase', and 'flat_corrected'
 subfolder_flatcor = ''; % subfolder in 'flat_corrected'
 subfolder_phase_map = ''; % subfolder in 'phase_map'
@@ -190,7 +190,7 @@ gpu_index = []; % GPU Device index to use, Matlab notation: index starts from 1.
 % Empirically, this does not work well for excentric rotation axis positions and
 % stitchted projections. To be tested
 
-% Ring artefact filter '
+% Ring artefact filter
 
 % GPU CUDA error: device busy
 % Do not call 'gpuDevice()' when ASTRA toolbox is used with multi-GPU
@@ -437,7 +437,7 @@ if read_flatcor(1)
     
     % Preallocation
     proj = zeros( raw_im_shape_binned(1), raw_im_shape_binned(2), num_proj_read, 'single');
-    PrintVerbose( verbose, ' Allocated bytes: %.2f Gib.', Bytes( proj, 3 ) )
+    PrintVerbose( verbose, ' Allocated bytes: %.2f GiB.', Bytes( proj, 3 ) )
     proj_names_mat = NameCellToMat( proj_names );
     
     % Read flat corrected projections
@@ -453,7 +453,7 @@ elseif ~read_flatcor
     t = toc;
     PrintVerbose(verbose, '\nProcessing dark fields.')
     darks = zeros( [raw_im_shape_binned, num_dark], 'single');
-    PrintVerbose( verbose, ' Allocated bytes: %.2f Mib.', Bytes( darks, 2 ) )
+    PrintVerbose( verbose, ' Allocated bytes: %.2f MiB.', Bytes( darks, 2 ) )
     parfor nn = 1:num_dark
         filename = sprintf('%s%s', scan_path, dark_names{nn});
         im = single( read_image( filename, '', raw_roi, tif_info) );
@@ -489,7 +489,7 @@ elseif ~read_flatcor
     
     % Preallocation
     flat = zeros( [raw_im_shape_binned, num_ref_used], 'single');
-    PrintVerbose( verbose, ' Allocated bytes: %.2f Gib.', Bytes( flat, 3 ) )
+    PrintVerbose( verbose, ' Allocated bytes: %.2f GiB.', Bytes( flat, 3 ) )
     
     % Parallel loop
     parfor nn = 1:num_ref_used
@@ -563,7 +563,7 @@ elseif ~read_flatcor
     PrintVerbose(verbose, '\nRead and filter projections.')
     % Preallocation
     proj = zeros( raw_im_shape_binned(1), raw_im_shape_binned(2), num_proj_used, 'single');
-    PrintVerbose( verbose, ' Allocated bytes: %.2f Gib.', Bytes( proj, 3 ) )
+    PrintVerbose( verbose, ' Allocated bytes: %.2f GiB.', Bytes( proj, 3 ) )
     img_names_mat = NameCellToMat( proj_names(proj_range) );
     
     % Display first raw images
@@ -644,18 +644,17 @@ elseif ~read_flatcor
     end
     raw_min2 = min( proj(:) );
     raw_max2 = max( proj(:) );
-    
-    %% Flat field correction %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    
-    % Flat field correction without correlation
-    if ~correlate_proj_flat
-        flat_m = median(flat, 3);
-        proj = bsxfun( @times, proj, flat_m);
-    end
     PrintVerbose(verbose, ' Time elapsed: %.1f s (%.2f min)', toc - t, ( toc - t ) / 60 )
+    PrintVerbose(verbose, '\n hot- / dark-pixel filter threshold : %f, %f', HotThresh, DarkThresh )    
     
-    % Correlate flat fields
-    if correlate_proj_flat
+    %% Flat field correction %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%    
+    if ~correlate_proj_flat
+        % Flat field correction without correlation
+        flat_m = median(flat, 3);
+        proj = bsxfun( @times, proj, flat_m);    
+    else
+
+        % Correlate flat fields    
         PrintVerbose(verbose, '\nCorrelate projections and flat-fields.')
         t = toc;
         % Correlation ROI
@@ -928,10 +927,9 @@ elseif ~read_flatcor
                 end
                 
             % Simple ring artifact removal filter
-            case 'jm'                                
-                
+            case 'jm'                                                
                 if numel( ring_filter_median_width ) > 1
-                    
+                    %% Combine if/else
                     for nn = ring_filter_median_width
                         %m=sum(im);
                         proj_mean = sum( proj, 3);
@@ -943,12 +941,9 @@ elseif ~read_flatcor
                         mask = proj_mean_med ./ proj_mean;
                                                 
                         %im=bsxfun(@times,im,f);
-                        proj = bsxfun( @times, proj, mask);                        
-                        
-                    end
-                    
-                else
-                    
+                        proj = bsxfun( @times, proj, mask);                                                
+                    end                    
+                else                    
                     proj_mean = mean( proj, 3);
                     proj_mean_med = medfilt2( proj_mean, [ring_filter_median_width, 1], 'symmetric' );
                     mask = proj_mean_med ./ proj_mean;
@@ -1643,7 +1638,7 @@ if do_tomo(1)
         if write_float(1)
             PrintVerbose(verbose, '\n Write floats:')
             t2 = toc;
-            save_path = [reco_path 'float' filesep];
+            save_path = sprintf( '%sfloat_rawBin%u/', reco_path, raw_bin);
             CheckAndMakePath(save_path)
             parfor nn = 1:size( vol, 3)
                 filename = sprintf( '%sreco_%06u.tif', save_path, nn);
@@ -1657,7 +1652,7 @@ if do_tomo(1)
         if write_float_binned(1)
             PrintVerbose(verbose, '\n Write float binned:')
             t2 = toc;
-            save_path = [reco_path 'float_binned' filesep];
+            save_path = sprintf( '%sfloat_rawBin%u_recoBin%u/', reco_path, raw_bin, reco_bin);
             CheckAndMakePath(save_path)
             for ii = 1:floor( size( vol, 3) / reco_bin )
                 filename = sprintf( '%sreco_%06u.tif', save_path, ii);
@@ -1680,31 +1675,55 @@ if do_tomo(1)
                 case 'full'
                     % use the full dynamic range of the data
                     vol = (vol - vol_min) ./ (vol_max - vol_min);
+                    tlow = vol_min;
+                    thigh = vol_max;
                 case 'std'
                     % use the dynamic range within several standard
-                    % deviations around the mean value of the data
+                    % deviations centered around the mean value of the data
                     vol_mean = mean( vol(:) );
                     vol_std = std( vol(:) );
                     tlow = vol_mean - compression_std_num * vol_std;
-                    thigh = vol_mean + compression_std_num * vol_std;
-                    vol(vol < tlow) = tlow;
-                    vol(vol > thigh) = thigh;
-                    % Normalize volume
+                    thigh = vol_mean + compression_std_num * vol_std;                    
+                    % Rescale volume
                     vol = (vol - tlow) / (thigh - tlow);
                 case 'threshold'
                     % use dyanmic range within given lower and upper
                     % thresholds
-                    vol = ( vol - compression_threshold(1) ) / ( compression_threshold(2) - compression_threshold(1) );
+                    tlow = compression_threshold(1);
+                    thigh = compression_threshold(2);
+                    vol = ( vol - tlow ) / ( thigh - tlow );
                 case 'histo'
                     % crop dynamic range using histogram
-                    %% TODO
+                    t2 = toc;
+                    PrintVerbose(verbose, '\nCompression by histogram thresholds:' )
+                    num_bins_max = 2048;
+                    bl = min( round( 1 / compression_histo(1) / 2 ) * 2, num_bins_max);
+                    bh = min( round( 1 / compression_histo(2) / 2 ) * 2, num_bins_max);
+                    num_bins = min( lcm( bl, bh ), num_bins_max);
+                    PrintVerbose(verbose, '\n lower/higher percentage : %g%%, %g%%', compression_histo*100 )
+                    PrintVerbose(verbose, '\n bins required for lower/higher percentage thresholds : %u, %u', bl, bh )
+                    PrintVerbose(verbose, '\n number of histogram bins (least common multiple) : %u', num_bins )
+                    [x, y, z] = size( vol );
+                    xx = round( x / 2 ) + (-ceil(0.9*x/2/sqrt(2)):floor(0.9*x/2/sqrt(2)));
+                    yy = round( y / 2 ) + (-ceil(0.9*y/2/sqrt(2)):floor(0.9*y/2/sqrt(2)));
+                    zz = round( z / 2 ) + (-ceil(z/4):floor(z/4));
+                    vol_min = min3( vol(xx,yy,zz) );
+                    vol_max = max3( vol(xx,yy,zz) );
+                    PrintVerbose(verbose, '\n volume ROI  min/max : %g, %g', vol_min, vol_max )
+                    [histo, edges] = histcounts( vol(xx,xx,zz), num_bins, 'BinLimits', [vol_min vol_max] );
+                    tlow = edges( round( num_bins / bl ) );
+                    thigh = edges( end - round( num_bins / bh ) );
+                    PrintVerbose(verbose, ' \n lower / higher threshold : %g, %g', tlow, thigh )
+                    % Normalize volume
+                    vol = (vol - tlow) / (thigh - tlow);                                   
+                    PrintVerbose(verbose, '\n done in %.0f s (%.2f min).',toc - t2, (toc - t2) / 60)
             end
             
             % 16-bit tiff
             if write_16bit(1)
                 PrintVerbose(verbose, '\n Write uint16:')
                 t2 = toc;
-                save_path = [reco_path 'uint16' filesep];
+                save_path = sprintf( '%s/uint16_rawBin%u/', reco_path, raw_bin);
                 CheckAndMakePath(save_path)
                 parfor ii = 1:size( vol, 3)
                     filename = sprintf( '%sreco_%06u.tif', save_path, ii);
@@ -1718,7 +1737,7 @@ if do_tomo(1)
             if write_8bit(1)
                 PrintVerbose(verbose, '\n Write uint8:')
                 t2 = toc;
-                save_path = [reco_path 'uint8' filesep];
+                save_path = sprintf( '%s/uint8_rawBin%u/', reco_path, raw_bin);                
                 CheckAndMakePath(save_path)
                 parfor ii = 1:size( vol, 3)
                     filename = sprintf( '%sreco_%06u.tif', save_path, ii);
@@ -1732,7 +1751,7 @@ if do_tomo(1)
             if write_8bit_binned(1)
                 PrintVerbose(verbose, '\n Write uint8 binned:')
                 t2 = toc;
-                save_path = [reco_path 'uint8_binned' filesep];
+                save_path = sprintf( '%s/uint8_rawBin%u_recoBin%u/', reco_path, raw_bin, reco_bin);
                 CheckAndMakePath(save_path)
                 for ii = 1:floor( size( vol, 3) / reco_bin )
                     filename = sprintf( '%sreco_%06u.tif', save_path, ii);
@@ -1796,12 +1815,14 @@ if ~read_flatcor
     fprintf(fid, 'min_max_of_all_flat_corr_projs : %g %g \n', proj_min, proj_max);
 end
 % Phase retrieval
-fprintf(fid, 'do_phase_retrieval : %u\n', do_phase_retrieval);
-fprintf(fid, 'phase_retrieval_method : %s\n', phase_retrieval_method);
-fprintf(fid, 'phase_retrieval_regularisation_parameter : %f\n', phase_retrieval_reg_par);
-fprintf(fid, 'phase_retrieval_binary_filter_threshold : %f\n', phase_retrieval_bin_filt);
-fprintf(fid, 'phase_retrieval_cutoff_frequ : %f pi\n', phase_retrieval_cutoff_frequ / pi);
-fprintf(fid, 'phase_padding : %u\n', phase_padding);
+if do_phase_retrieval(1)
+    fprintf(fid, 'do_phase_retrieval : %u\n', do_phase_retrieval);
+    fprintf(fid, 'phase_retrieval_method : %s\n', phase_retrieval_method);
+    fprintf(fid, 'phase_retrieval_regularisation_parameter : %f\n', phase_retrieval_reg_par);
+    fprintf(fid, 'phase_retrieval_binary_filter_threshold : %f\n', phase_retrieval_bin_filt);
+    fprintf(fid, 'phase_retrieval_cutoff_frequ : %f pi\n', phase_retrieval_cutoff_frequ / pi);
+    fprintf(fid, 'phase_padding : %u\n', phase_padding);
+end
 % Volume
 fprintf(fid, 'volume_shape : %u %u %u\n', vol_shape(1), vol_shape(2), vol_shape(3));
 fprintf(fid, 'volume_size : %f %f %f %f %f %f\n', vol_size(1), vol_size(2), vol_size(3), vol_size(4), vol_size(5), vol_size(6));
@@ -1841,6 +1862,8 @@ fprintf(fid, 'write_float : %u\n', write_float);
 fprintf(fid, 'write_16bit : %g\n', write_16bit);
 fprintf(fid, 'write_8bit : %u\n', write_8bit);
 fprintf(fid, 'write_8bit_binned : %u\n', write_8bit_binned);
+fprintf(fid, 'compression_method : %s\n', compression);
+fprintf(fid, 'compression_limits : %f %f\n', tlow, thigh);
 fprintf(fid, 'reco_bin : %u\n', reco_bin);
 fprintf(fid, 'full_reconstruction_time : %.1f s\n', toc);
 fprintf(fid, 'date_of_reconstruction : %s', datetime);
