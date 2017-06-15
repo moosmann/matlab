@@ -70,10 +70,14 @@ scan_path = [raw_path 'syn04_30R_PEEK_8w_a'];ADD
 scan_path = [raw_path 'syn04_30R_PEEK_8w_b'];ADD
 scan_path = [raw_path 'syn05_41R_PEEK_12w_a'];ADD
 scan_path = [raw_path 'syn11_53R_Mg5Gd_12w_load_broken'];ADD
+
+raw_roi = [287 1486];
 scan_path = [raw_path 'syn13_55L_Mg10Gd_12w_load_00'];ADD
 scan_path = [raw_path 'syn13_55L_Mg10Gd_12w_load_02'];ADD
-scan_path = [raw_path 'syn13_55L_Mg10Gd_12w_load_04'];ref_range = [1:135, 137:162];ADD('r')
-scan_path = [raw_path 'syn13_55L_Mg10Gd_12w_load_06'];ADD
+scan_path = [raw_path 'syn13_55L_Mg10Gd_12w_load_04'];
+ref_range = [1:135, 137:162];ADD
+scan_path = [raw_path 'syn13_55L_Mg10Gd_12w_load_06'];
+ref_range = 1;ADD
 scan_path = [raw_path 'syn13_55L_Mg10Gd_12w_load_08'];ADD
 scan_path = [raw_path 'syn13_55L_Mg10Gd_12w_load_10'];ADD
 scan_path = [raw_path 'syn13_55L_Mg10Gd_12w_load_12'];ADD
@@ -128,6 +132,7 @@ scan_path = [raw_path 'syn23_28R_PEEK_8w_b'];ADD('r')
 
 %% TEST SECTION
 scan_path = [raw_path 'syn13_55L_Mg10Gd_12w_load_00'];
+raw_roi = [287 1486];
 raw_bin = 1;
 do_phase_retrieval = 1;
 phase_retrieval_method = 'tie';
@@ -144,13 +149,16 @@ phase_retrieval_method = 'qp';phase_retrieval_reg_par = 2.5; ADD
 phase_retrieval_method = 'qpcut';ADD('r')
 
 scan_path = [raw_path 'syn13_55L_Mg10Gd_12w_load_00'];
-write_float = 0; 
-write_float_binned = 0; 
+raw_roi = [287 1486];
+write_float = 1; 
+write_float_binned = 1; 
+write_16bit = 1;
+write_16bit_binned = 1;
 write_8bit = 1;
 write_8bit_binned = 1;
-compression = 'histo';
-compression_histo = [0.02 0.02];
-subfolder_reco = 'compression_histo';
+compression_method = 'histo';
+compression_parameter = [0.05 0.05];
+parfolder = 'test';
 ADD
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
