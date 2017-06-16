@@ -1,4 +1,4 @@
-function im = MaskingDisc( im, radial_fraction, value)
+function [im, m] = MaskingDisc( im, radial_fraction, value)
 % Keep central ellipse within the 'radial_fraction' of the largest ellipse
 % fitting within the rectangular image and set the region outside of this
 % ellipse to the mean within the disc or to 'value'.

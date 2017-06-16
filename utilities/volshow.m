@@ -65,6 +65,13 @@ for nn = 1:num_sli
     else
         show_slice( im )
     end
+    
+    % Inlay
+    x = round( 0.1 * min( size( im )));
+    t = text(x, x, sprintf( '%u', nn));
+    t.Color = [1 1 1];
+    t.FontSize = [16];
+    
     drawnow
     shg
     % Interactive scrolling

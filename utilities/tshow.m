@@ -1,4 +1,4 @@
-function tshow(ImageNumber,FilenamePattern,WorkspaceVariableName)
+function tshow(ImageNumber,FilenamePattern,WorkspaceVariableName, workspace)
 % Read tif file and display image.
 %
 % Written by Julian Moosmann, last version 2013-1024
@@ -13,6 +13,10 @@ end
 if nargin < 3
     WorkspaceVariableName = '';
 end
+if nargin < 4
+    workspace = 'caller';'base';
+end
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Read edf file names in current folder
 if isempty(FilenamePattern)
@@ -20,10 +24,13 @@ if isempty(FilenamePattern)
 else
     imStruct = FilenameCell([FilenamePattern '.tif']);
 end
-NumIm = numel(FilenameCell);
+NumIm = numel(imStruct);
 %% Set image number
 if ~ImageNumber
     ImageNumber = ceil(NumIm/2);
+end
+if ImageNumber < 0
+    ImageNumber = NumIm + ImageNumber + 1;
 end
 %% Read image
 imName = imStruct{ImageNumber};
@@ -35,12 +42,7 @@ if isempty(WorkspaceVariableName)
    WorkspaceVariableName = lower([imName(1:3) num2str(ImageNumber,'%04u')]);          
 end
 if ischar(WorkspaceVariableName)
-    assignin('base',WorkspaceVariableName,im);
+    assignin(workspace, WorkspaceVariableName, im);
 end
 %% Print info
-fprintf('Read ''tif'' image ''%s'' of %u. Size: %4u x %4u. Variable ''%s'' is assigned to base workspace.\n',imName,NumIm,size(im),WorkspaceVariableName)
-
-
-
-
-
+fprintf('Read ''%s'' of %u tiff images foundin current directory.\nImage shape: %4u %4u.\nVariable ''%s'' is assigned to %s workspace.\n',imName,NumIm,size(im),WorkspaceVariableName, workspace)

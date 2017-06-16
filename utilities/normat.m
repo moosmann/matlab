@@ -1,5 +1,4 @@
-function mat = normat(mat,MinMax)
-
+function mat = normat(mat, MinMax)
 % Normalize matrix "mat" to the dynamic range between MinMax(1) and
 % MinMax(2), else between [0,1].
 %

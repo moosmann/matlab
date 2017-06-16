@@ -29,7 +29,7 @@ else
             yl = y - mod( y, bin );            
             
             % Generic 2D bin functions            
-            f = @(n,m,k) array(n:bin:xl,m:bin:yl);            
+            f = @(n,m) array(n:bin:xl,m:bin:yl);            
             
             switch bin
                 case 2
@@ -56,7 +56,7 @@ else
             switch bin
                 case 2
                     array = f(1,1,1) + f(1,1,2) + f(1,2,1) + f(1,2,2) + f(2,1,1) + f(2,1,2) + f(2,2,1) + f(2,2,2);
-                case 3
+                case 3                    
                     error('Bin size %g not implemented.', bin)
                 case 4
                     error('Bin size %g not implemented.', bin)                    
