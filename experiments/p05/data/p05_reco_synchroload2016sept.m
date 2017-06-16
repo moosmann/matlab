@@ -12,9 +12,9 @@ end
 %% DEFAULT PARAMETERS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-raw_path_roi = [];
+raw_roi = [];
 scan_path = '';
-raw_path_bin = 1;
+raw_bin = 1;
 excentric_rot_axis = 0;
 crop_at_rot_axis = 0;
 stitch_projections = 0; 
@@ -46,6 +46,7 @@ write_8bit_binned = 1;
 write_16bit = 0; 
 subfolder_reco = '';
 gpu_index = [];
+write_8bit_binary_segmented = 1;
 
 SET_DEFAULT
 
@@ -60,13 +61,13 @@ SET_DEFAULT
 
 %% 2016-09-13 commissioning synload
 raw_path = '/asap3/petra3/gpfs/p05/2016/commissioning/c20160913_000_synload/raw/';
-raw_path_roi = [141 1940];
+raw_roi = [141 1940];
 
 scan_path = [raw_path, 'mg5gd_02_1w'];rot_axis_offset = 2.0;ADD
 scan_path = [raw_path, 'mg10gd_38_1w'];rot_axis_offset = [];ADD
 scan_path = [raw_path, 'mg10gd_41_2w'];ADD
 scan_path = [raw_path, 'mg10gd_44_3w'];ADD
-scan_path = [raw_path, 'mg10gd_50_4w']; ADD% reco problems CHECK
+%scan_path = [raw_path, 'mg10gd_50_4w']; ADD% reco problems CHECK
 scan_path = [raw_path, 'mg5gd_02_1w'];ADD
 scan_path = [raw_path, 'mg5gd_13_2w'];ADD
 scan_path = [raw_path, 'mg5gd_21_3w'];ADD
@@ -74,12 +75,12 @@ scan_path = [raw_path, 'mg5gd_25_4w'];ADD('r')
 
 %% 2016-09-15 commissioning ynload
 scan_path = '/asap3/petra3/gpfs/p05/2016/commissioning/c20160915_000_synload/raw/mg10gd_50_4w';
-raw_path_roi = [121 2240];ADD('r')
+raw_roi = [121 2240];ADD('r')
 
 %% 2016-09-20 commissioning diana
 %% furchtbarer verdreckter/kaputter Scintillator oder Optik, daher die Ring artefakte
 raw_path = '/asap3/petra3/gpfs/p05/2016/commissioning/c20160920_000_diana/raw/';
-raw_path_roi = [];
+raw_roi = [];
 scan_path = [raw_path, 'Mg-10Gd39_1w'];ADD
 scan_path = [raw_path, 'Mg-10Gd42_2w'];ADD
 scan_path = [raw_path, 'Mg-10Gd45_3w'];ADD
@@ -88,6 +89,8 @@ scan_path = [raw_path, 'Mg-5Gd17_2w'];ADD
 scan_path = [raw_path, 'Mg-5Gd22_3w'];ADD
 scan_path = [raw_path, 'Mg-5Gd28_4w'];ADD
 
+
+%% test section
 scan_path = [raw_path, 'Mg-10Gd39_1w'];
 correlation_method =  'entropy';
 parfolder = correlation_method;

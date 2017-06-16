@@ -14,7 +14,7 @@
 % Written by Julian Moosmann. First version: 2016-09-28. Last modifcation:
 % 2017-06-14
 
-close all hidden % open windows
+close all hidden % closes all open windows
 %dbstop if error
 
 %% PARAMETERS / SETTINGS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -99,6 +99,7 @@ write_16bit = 0; % write 16bit-tiff
 write_16bit_binned = 0; % write 16bit-tiff
 write_8bit = 0; % write 8bit-tiff
 write_8bit_binned = 0; % write binned 8bit-tiff
+write_8bit_binary_segmented = 0;
 reco_bin = 2; % currently only 2 x 2 x 2 binning is implemented
 compression_method = 'histo';'full'; 'std'; 'threshold'; % method to compression dynamic range into [0, 1]
 compression_parameter = [0.02 0.02]; % parameter for compression method 
@@ -124,12 +125,12 @@ link_data = 1; % ASTRA data objects become references to Matlab arrays. Reduces 
 gpu_index = []; % GPU Device index to use, Matlab notation: index starts from 1. default: [], uses all
 
 %% TODO %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% TODO: if visual output none, reduce correlation to chosen method
 % TODO: physically consistent attenutation values of reconstructed slice 
 % TODO: check raw roi, transpose, rot90 for KIT and EHD camera
 % TODO: get rid of transpose when reading image files
 % TODO: vertical stitching
 % TODO: volume shape for excentric rot axis
-% TODO: reco bin once
 % TODO: Interactive plot mode for wavelet-fft fing filter
 % TODO: Improve FilterStripesCombinedWaveletFFT
 % TODO: check proj-flat correlation measure for absolute values
@@ -138,7 +139,7 @@ gpu_index = []; % GPU Device index to use, Matlab notation: index starts from 1.
 % TODO: stitching: optimize and refactor, memory efficency, interpolation method
 % TODO: interactive loop over tomo slices for different phase retrieval parameter
 % TODO: automatic determination of rot center
-% TODO: output file format option: 8-bit, 16-bit for all saved images
+% TODO: output file format option: 8-bit, 16-bit for sino, phase, proj
 % TODO: additional padding schemes for FBP filter
 % TODO: read sinogram option
 % TODO: set photometric tag for tif files w/o one, turn on respective warning
@@ -149,6 +150,7 @@ gpu_index = []; % GPU Device index to use, Matlab notation: index starts from 1.
 % TODO: inverse Gaussian filter for phase retrieval, VZC theorem
 % TODO: flat-flat correlation and averaging before proj-flat correlation
 % TODO: proj-flat correlation: take negative logarithm or not?
+% TODO: Check impact of symmetric FBP ifft option        
 
 %% Notes %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -188,6 +190,8 @@ gpu_index = []; % GPU Device index to use, Matlab notation: index starts from 1.
 % small-scale features, such as those stemming from contimation of the beam
 % from the scintllator, diamond window, etc, and less sensitive to
 % variations on a larger scale.
+% Matlab's SSIM becoms time consuming for large data sets because it
+% involves Gaussian blurring.
 
 % Entropy-type determination of rotation axis position
 % Empirically, this does not work well for excentric rotation axis positions and
@@ -743,7 +747,7 @@ elseif ~read_flatcor
                         cov_pf = mean2( ( p - p_mean ) .* (f - f_mean ) );
                         c_cov(pp,ff) = - cov_pf;
                         % corr: cross correlation
-                        c_corr(pp,ff) = - cov_pf / ( p_std * f_std )
+                        c_corr(pp,ff) = - cov_pf ./ ( p_std * f_std );
                         % ssim: tructural similarity index
                         c1 = ( 0.01 * L )^2;
                         c2 = ( 0.03 * L )^2;
@@ -1605,8 +1609,7 @@ if do_tomo(1)
     parfor nn =  1:size( proj, 2)
         im = proj(:,nn,:);
         im = padarray( NegLog(im, take_neg_log), fbp_filter_padding * [proj_shape1 0 0], fbp_filter_padding_method, 'post' );        
-        im = real( ifft( bsxfun(@times, fft( im, [], 1), filt), [], 1, 'symmetric') ); %% TODO: Check impact of symmetric option
-        %im = real( ifft( bsxfun(@times, fft( im, [], 1), filt), [], 1) );        
+        im = real( ifft( bsxfun(@times, fft( im, [], 1), filt), [], 1, 'symmetric') ); 
         proj(:,nn,:) = im(1:proj_shape1,:,:);
     end    
     pause(0.01)
@@ -1646,10 +1649,10 @@ if do_tomo(1)
         fclose( fid );
         
         % Single precision: 32-bit float tiff
-        write_volume( write_float, vol, 'float', reco_path, raw_bin, 1, 0, verbose)
+        write_volume( write_float, vol, 'float', reco_path, raw_bin, 1, 0, verbose);
         
         % Compression of dynamic range
-        if write_8bit || write_8bit_binned || write_16bit || write_16bit_binned 
+        if write_8bit || write_8bit_binned || write_16bit || write_16bit_binned
             [tlow, thigh] = compression( vol, compression_method, compression_parameter );
         else
             tlow = 0;
@@ -1657,22 +1660,34 @@ if do_tomo(1)
         end    
         
         % 16-bit tiff
-        write_volume( write_16bit, (vol - tlow)/(thigh - tlow), 'uint16', reco_path, raw_bin, 1, 0, verbose)
+        write_volume( write_16bit, (vol - tlow)/(thigh - tlow), 'uint16', reco_path, raw_bin, 1, 0, verbose);
         
         % 8-bit tiff
-        write_volume( write_8bit, (vol - tlow)/(thigh - tlow), 'uint8', reco_path, raw_bin, 1, 0, verbose)
+        write_volume( write_8bit, (vol - tlow)/(thigh - tlow), 'uint8', reco_path, raw_bin, 1, 0, verbose);
         
         % Bin data
-        vol = Binning( vol, reco_bin ) / reco_bin^3;        
+        if write_float_binned || write_16bit_binned || write_8bit_binned || write_8bit_binary_segmented
+            PrintVerbose(verbose, '\n Binning:')
+            t2 = toc;
+            vol = Binning( vol, reco_bin ) / reco_bin^3;
+            PrintVerbose(verbose, ' done in %.2f min.', (toc - t2) / 60)
+        end
                 
         % Binned single precision: 32-bit float tiff
-        write_volume( write_float_binned, vol, 'float', reco_path, raw_bin, reco_bin, 0, verbose)              
+        write_volume( write_float_binned, vol, 'float', reco_path, raw_bin, reco_bin, 0, verbose);
                 
         % 16-bit tiff binned
-        write_volume( write_16bit_binned, (vol - tlow)/(thigh - tlow), 'uint16', reco_path, raw_bin, reco_bin, 0, verbose)
+        write_volume( write_16bit_binned, (vol - tlow)/(thigh - tlow), 'uint16', reco_path, raw_bin, reco_bin, 0, verbose);
         
         % 8-bit tiff binned
-        write_volume( write_8bit_binned, (vol - tlow)/(thigh - tlow), 'uint8', reco_path, raw_bin, reco_bin, 0, verbose)       
+        write_volume( write_8bit_binned, (vol - tlow)/(thigh - tlow), 'uint8', reco_path, raw_bin, reco_bin, 0, verbose);
+        
+        % segmentation
+        if write_8bit_binary_segmented(1)
+            [vol, out] = segment_volume(vol, 2^8, visualOutput, verbose);
+            save_path = write_volume( 1, vol, 'uint8', reco_path, raw_bin, reco_bin, 0, verbose, '_segmented');
+            save( sprintf( '%ssegmentation_info.m', save_path), out, '-mat', '-v7.3')
+        end
         
     end
     
@@ -1779,7 +1794,6 @@ fprintf(fid, 'reco_bin : %u\n', reco_bin);
 fprintf(fid, 'full_reconstruction_time : %.1f s\n', toc);
 fprintf(fid, 'date_of_reconstruction : %s', datetime);
 fprintf(fid, 'rotation_axis_offset : %f\n', rot_axis_offset);
-%fprintf(fid, ' : \n', );
 fclose(fid);
 PrintVerbose(verbose, '\n log file : %s', logfile_name)
 
