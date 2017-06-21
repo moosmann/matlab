@@ -40,13 +40,13 @@ write_sino = 0;
 write_sino_phase = 0; 
 write_reco = 1; 
 write_float = 0; 
-write_float_binned = 1; 
+write_float_binned = 0; 
 write_8bit = 0;
-write_8bit_binned = 1;
+write_8bit_binned = 0;
 write_16bit = 0; 
 subfolder_reco = '';
 gpu_index = [];
-write_8bit_binary_segmented = 1;
+write_8bit_segmented = 1;
 
 SET_DEFAULT
 

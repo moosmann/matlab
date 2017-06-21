@@ -59,12 +59,9 @@ for nn = 1:num_sli
         case 3
             im = squeeze( vol(:, :, nn) );
     end
-    % Transpose
-    if fit_to_screen
-        show_slice( im' )
-    else
-        show_slice( im )
-    end
+        
+    % Transpose?
+    show_slice( rot90( FilterHisto(im), fit_to_screen ) )
     
     % Inlay
     x = round( 0.1 * min( size( im )));

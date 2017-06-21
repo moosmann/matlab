@@ -14,7 +14,7 @@
 % Written by Julian Moosmann. First version: 2016-09-28. Last modifcation:
 % 2017-06-14
 
-close all hidden % closes all open windows
+close all hidden % close all open windows
 %dbstop if error
 
 %% PARAMETERS / SETTINGS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -26,7 +26,7 @@ scan_path = ...
 read_flatcor = 0; % read flatfield-corrected images from disc, skips preprocessing
 read_flatcor_path = ''; % subfolder of 'flat_corrected' containing projections
 % PREPROCESSING %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-raw_roi = [];[201 2400]; % [y0 y1] vertical roi.  skips first raw_roi(1)-1 lines, reads until raw_roi(2)
+raw_roi = []; % [y0 y1] vertical roi.  skips first raw_roi(1)-1 lines, reads until raw_roi(2)
 raw_bin = 2; % projection binning factor: 1, 2, or 4
 excentric_rot_axis = 0; % off-centered rotation axis increasing FOV. -1: left, 0: centeerd, 1: right. influences rot_corr_area1
 crop_at_rot_axis = 0; % recommended for scans with excentric rotation axis when no projection stitching is done
@@ -99,7 +99,7 @@ write_16bit = 0; % write 16bit-tiff
 write_16bit_binned = 0; % write 16bit-tiff
 write_8bit = 0; % write 8bit-tiff
 write_8bit_binned = 0; % write binned 8bit-tiff
-write_8bit_binary_segmented = 0;
+write_8bit_segmented = 0;
 reco_bin = 2; % currently only 2 x 2 x 2 binning is implemented
 compression_method = 'histo';'full'; 'std'; 'threshold'; % method to compression dynamic range into [0, 1]
 compression_parameter = [0.02 0.02]; % parameter for compression method 
@@ -305,7 +305,6 @@ if isempty( subfolder_reco )
 else
     reco_path = [out_path, filesep, 'reco', filesep, subfolder_reco, filesep];
 end
-PrintVerbose(verbose, '\n reco_path : %s', reco_path)
 
 % Memory
 [mem_free, mem_avail, mem_total] = free_memory;
@@ -1666,7 +1665,7 @@ if do_tomo(1)
         write_volume( write_8bit, (vol - tlow)/(thigh - tlow), 'uint8', reco_path, raw_bin, 1, 0, verbose);
         
         % Bin data
-        if write_float_binned || write_16bit_binned || write_8bit_binned || write_8bit_binary_segmented
+        if write_float_binned || write_16bit_binned || write_8bit_binned || write_8bit_segmented
             PrintVerbose(verbose, '\n Binning:')
             t2 = toc;
             vol = Binning( vol, reco_bin ) / reco_bin^3;
@@ -1683,10 +1682,10 @@ if do_tomo(1)
         write_volume( write_8bit_binned, (vol - tlow)/(thigh - tlow), 'uint8', reco_path, raw_bin, reco_bin, 0, verbose);
         
         % segmentation
-        if write_8bit_binary_segmented(1)
-            [vol, out] = segment_volume(vol, 2^8, visualOutput, verbose);
-            save_path = write_volume( 1, vol, 'uint8', reco_path, raw_bin, reco_bin, 0, verbose, '_segmented');
-            save( sprintf( '%ssegmentation_info.m', save_path), out, '-mat', '-v7.3')
+        if write_8bit_segmented(1)
+            [vol, out] = segment_volume(vol, 2^10, visualOutput, verbose);
+            save_path = write_volume( 1, vol/255, 'uint8', reco_path, raw_bin, reco_bin, 0, verbose, '_segmented');
+            save( sprintf( '%ssegmentation_info.m', save_path), 'out', '-mat', '-v7.3')
         end
         
     end
@@ -1796,10 +1795,11 @@ fprintf(fid, 'date_of_reconstruction : %s', datetime);
 fprintf(fid, 'rotation_axis_offset : %f\n', rot_axis_offset);
 fclose(fid);
 PrintVerbose(verbose, '\n log file : %s', logfile_name)
+PrintVerbose(verbose, '\n reco_path : %s', reco_path)
 
 PrintVerbose(verbose && interactive_determination_of_rot_axis, '\nTime elapsed in interactive mode: %g s (%.2f min)', tint, tint / 60 );
 PrintVerbose(verbose, '\nTime elapsed for computation: %g s (%.2f min)', toc - tint, (toc - tint) / 60 );
 PrintVerbose(verbose, '\nFINISHED: %s\n\n', scan_name)
 % END %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-%dbclear if error
+dbclear if error

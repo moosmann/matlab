@@ -12,7 +12,7 @@ end
 
 %% Main %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 t = toc;
-PrintVerbose(verbose, 'Segmentation:')    
+PrintVerbose(verbose, '\n Segmentation:')    
     
 d3 = size( vol, 3);
 d3h = round( d3 / 2 );
@@ -46,8 +46,10 @@ edges = (0:nbins) / nbins * (vol_max - vol_min) + vol_min;
 
 parfor nn = 1:d3
     s = vol(:,:,nn);
+    
+    %% Identify first histogram max from background
     h = histcounts( s, edges);
-    hs(:,nn) = h;
+    hs(:,nn) = h;    
     
     % Maximum: position and value
     [max1_val(nn), max1_pos(nn)] = max( h );
@@ -57,6 +59,7 @@ parfor nn = 1:d3
     fwhm(nn) = abs( max1_pos(nn) - p );
     sig = fwhm(nn) / ( 2 * sqrt( 2 * log(2) ) );
     
+    %% Search for 2nd histogram max from bulk material of Mg screw    
     % Search 2nd maximum
     x1(nn) = ceil( max1_pos(nn) + 11*sig);
     [max2_val(nn), max2_pos(nn)] = max( h(x1(nn):end) );
@@ -80,13 +83,12 @@ parfor nn = 1:d3
     vs = zeros( size( s ) , 'uint8');
     vs(s >= t1) = 1;
     
-    %% Try simple segmentaiton of Gd dots
+    %% Identify Gd dots
     [h2,edges2] = histcounts( s(logical(vs)) );
     [~,max_pos] = max( h2 );
-    t2 = edges2(floor(1.8*max_pos));
-    vs( s >= t2 ) = 2;
-        
-    %s(s > t1) = 1;        
+    t2(nn) = edges2(floor(1.8*max_pos));
+    vs( s >= t2(nn) ) = 2;
+            
     vol(:,:,nn) = vs;
     
 end
@@ -105,6 +107,7 @@ out.max2.val = max2_val;
 out.max2.pos = max2_pos;
 out.t1.val = t1_val;
 out.t1.pos = t1_pos;
+out.t2.val = t2;
 out.x1 = x1;
 
 %% Show plots

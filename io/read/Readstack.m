@@ -1,19 +1,19 @@
 function stack = Readstack(InputPath,StepSize_or_VecOfImagesToRead,FilenamePattern)
 % Read images (default: tif) into 3D stack.
 %
-% Written by Julian Moosmann, first version: long ago, last version:
-% 2013-1021
+% Written by Julian Moosmann, first version: 2010. long ago, last version:
+% 2017-06-21
 
 %% Default arguments.
 if nargin < 1
     InputPath = '';
-end;
+end
 if nargin < 2
     StepSize_or_VecOfImagesToRead = 1;
 end
 if nargin < 3
     FilenamePattern = '*.tif';
-end;
+end
 
 %% MAIN %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 tic
@@ -41,6 +41,10 @@ switch lower(FilenamePattern(end-2:end))
     case 'edf'
         for nn = NumFilesToRead:-1:1
             stack(:,:,nn) = pmedfread(sprintf('%s%s',InputPath,files{filesToRead(nn)}))';
+        end
+    case {'img', 'dar', 'ref', 'sli', 'sln'}
+        for nn = NumFilesToRead:-1:1
+            stack(:,:,nn) = read_dat_jm(sprintf('%s%s',InputPath,files{filesToRead(nn)}))';
         end
     otherwise        
         for nn = NumFilesToRead:-1:1
