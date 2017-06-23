@@ -25,6 +25,14 @@ else
 end
 fprintf( '\nASTRA path : %s', path_to_astra );
 
+%% ImageJ / Fiji
+%path_to_imagej = '/asap3/petra3/gpfs/common/p05/jm/imagej/ImageJ.app/scripts';
+%addpath( genpath( path_to_imagej ) );
+%fprintf( '\nImageJ path : %s', path_to_imagej );
+path_to_fiji = '/asap3/petra3/gpfs/common/p05/jm/fiji/Fiji.app/scripts';
+addpath( genpath( path_to_fiji ) );
+fprintf( '\nFiji path : %s', path_to_fiji );
+
 %% Set default color map to grayscale instead of jet
 set(groot, 'DefaultFigureColormap', gray)
 close all;

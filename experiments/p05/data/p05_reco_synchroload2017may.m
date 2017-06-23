@@ -33,6 +33,7 @@ do_tomo = 1;
 fbp_filter_padding = 1;
 fbp_filter_freq_cutoff = 1;
 ring_filter = 1;
+ring_filter_method = 'jm';'wavelet-fft'; 
 dec_levels = 7;
 wname = 'db25';
 sigma = 2.4;
@@ -40,7 +41,7 @@ rot_axis_offset = [];
 rot_axis_tilt = 0.001;
 parfolder = '';
 write_to_scratch = 0;
-write_flatcor = 0;
+write_flatcor = 1;
 write_phase_map = 0; 
 write_sino = 0; 
 write_sino_phase = 0; 
@@ -51,7 +52,9 @@ write_8bit = 0;
 write_8bit_binned = 1;
 write_16bit = 0; 
 subfolder_reco = '';
-gpu_ind = 1;
+gpu_ind = [];
+compression_method = 'histo';
+compression_parameter = [0.20 0.15];
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% PARAMETER / DATA SETS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -71,6 +74,7 @@ scan_path = [raw_path 'syn04_30R_PEEK_8w_b'];ADD
 scan_path = [raw_path 'syn05_41R_PEEK_12w_a'];ADD
 scan_path = [raw_path 'syn11_53R_Mg5Gd_12w_load_broken'];ADD
 
+% load: att reco
 raw_roi = [287 1486];
 scan_path = [raw_path 'syn13_55L_Mg10Gd_12w_load_00'];ADD
 scan_path = [raw_path 'syn13_55L_Mg10Gd_12w_load_02'];ADD
@@ -84,9 +88,29 @@ scan_path = [raw_path 'syn13_55L_Mg10Gd_12w_load_12'];ADD
 scan_path = [raw_path 'syn13_55L_Mg10Gd_12w_load_14'];ADD
 scan_path = [raw_path 'syn13_55L_Mg10Gd_12w_load_16'];ADD
 scan_path = [raw_path 'syn13_55L_Mg10Gd_12w_load_18'];ADD
-scan_path = [raw_path 'syn13_55L_Mg10Gd_12w_load_20'];ADD
+% empty: scan_path = [raw_path 'syn13_55L_Mg10Gd_12w_load_20'];ADD
 scan_path = [raw_path 'syn13_55L_Mg10Gd_12w_load_22'];ADD
 scan_path = [raw_path 'syn13_55L_Mg10Gd_12w_load_24_noload'];ADD
+
+% load: phase reco
+raw_roi = [287 1486];
+do_phase_retrieval = 1;
+write_8bit_segmented = 0;
+scan_path = [raw_path 'syn13_55L_Mg10Gd_12w_load_00'];ADD
+scan_path = [raw_path 'syn13_55L_Mg10Gd_12w_load_02'];ADD
+scan_path = [raw_path 'syn13_55L_Mg10Gd_12w_load_04'];
+ref_range = [1:135, 137:162];ADD
+scan_path = [raw_path 'syn13_55L_Mg10Gd_12w_load_06'];
+ref_range = 1;ADD
+scan_path = [raw_path 'syn13_55L_Mg10Gd_12w_load_08'];ADD
+scan_path = [raw_path 'syn13_55L_Mg10Gd_12w_load_10'];ADD
+scan_path = [raw_path 'syn13_55L_Mg10Gd_12w_load_12'];ADD
+scan_path = [raw_path 'syn13_55L_Mg10Gd_12w_load_14'];ADD
+scan_path = [raw_path 'syn13_55L_Mg10Gd_12w_load_16'];ADD
+scan_path = [raw_path 'syn13_55L_Mg10Gd_12w_load_18'];ADD
+scan_path = [raw_path 'syn13_55L_Mg10Gd_12w_load_22'];ADD
+scan_path = [raw_path 'syn13_55L_Mg10Gd_12w_load_24_noload'];ADD
+
 
 raw_roi = [1211 2410];
 scan_path = [raw_path 'syn14_48L_PEEK_12w_a'];ADD

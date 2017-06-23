@@ -1,8 +1,8 @@
 *~
-experiments/p05/path_to_last_reco
+experiments/p05/path_to_latest_reco
 ./experiments/p05/pathtolastreco
-experiments/p05/path_to_last_scan
+experiments/p05/path_to_latest_scan
 ./experiments/p05/pathtolastscan
-experiments/p05/path_to_last_raw
+experiments/p05/path_to_latest_raw
 ./experiments/p05/pathtolastraw
 

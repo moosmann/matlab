@@ -1,21 +1,21 @@
 % P05 reconstruction pipeline: preprocessing, filtering, phase retrieval,
-% tomographic reconstruction, etc.
+% tomographic reconstruction, simple segmentation, etc.
 %
 % USAGE
 % Set parameters in PARAMETERS / SETTINGS section below and run script.
 %
 % How to run script:
-% - type 'F5' when focus is in the Editor windows
-% - click 'Run' in the Editor tab
-% - type 'p05_reco_loop' and Enter in the Command Window
+% - Hit 'F5' when focus is in the Editor windows
+% - Click 'Run' in the Editor tab
+% - Type 'p05_reco' and hit Enter in the Command Window
 %
 % To loop over sets of data or parameters sets use 'p05_reco_loop'.
 %
 % Written by Julian Moosmann. First version: 2016-09-28. Last modifcation:
-% 2017-06-14
+% 2017-06-21
 
 close all hidden % close all open windows
-%dbstop if error
+dbstop if error
 
 %% PARAMETERS / SETTINGS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % INPUT %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -54,6 +54,9 @@ ring_filter_median_width = 11; %[3 11 21 31 39];
 dec_levels = 2:6;
 wname = 'db30';'db25';
 sigma = 2.4;
+energy = []; % in eV. if empty: read from log file
+sample_detector_distance = []; % in m. if empty: read from log file
+eff_pixel_size = []; % in m. if empty: read from log file. effective pixel size =  detector pixel size / magnification
 % Phase retrieval %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 do_phase_retrieval = 0;
 phase_retrieval_method = 'tie';'qp';'qpcut'; 'tie'; %'qp' 'ctf' 'tie' 'qp2' 'qpcut'
@@ -61,9 +64,6 @@ phase_retrieval_reg_par = 2.5; % regularization parameter
 phase_retrieval_bin_filt = 0.15; % threshold for quasiparticle retrieval 'qp', 'qp2'
 phase_retrieval_cutoff_frequ = 1 * pi; % in radian. frequency cutoff in Fourier space for 'qpcut' phase retrieval
 phase_padding = 1; % padding of intensities before phase retrieval
-energy = []; % in eV. if empty: read from log file
-sample_detector_distance = []; % in m. if empty: read from log file
-eff_pixel_size = []; % in m. if empty: read from log file. effective pixel size =  detector pixel size / magnification
 % Tomography parameters %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 do_tomo = 1; % run tomographic reconstruction
 vol_shape = [];% shape of the volume to be reconstructed, either in absolute number of voxels or in relative number w.r.t. the default volume which is given by the detector width and height
@@ -228,7 +228,7 @@ if ~isempty( rot_axis_offset ) && ~isempty( rot_axis_pos )
     error('rot_axis_offset (%f) and rot_axis_pos (%f) cannot be used simultaneously. One must be empty.', rot_axis_offset, rot_axis_pos)
 end
 if abs(excentric_rot_axis)
-    if crop_at_rot_axis(1) || stitch_projections(1)
+    if crop_at_rot_axis(1) && stitch_projections(1)
         error( 'Do not use ''stitch projections'' in combination with ''crop_at_rot_axis''. Cropping at rot axis only makes sense without stitching in order to avoid oversampling artefacts within the overlap region.' )
     end
 end

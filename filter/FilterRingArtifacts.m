@@ -59,33 +59,46 @@ tic;
 Vq = interp2(X, Y, im, Xq, Yq, 'linear', 0);
 t = toc;
 
-% Fourier transform polar image
-% Vqf = fft2(Vq);
-% Filtering
-% Vqf(1,:) = squeeze(median([Vqf(1:2,:); Vqf(end,:)], 1));
-% Vqf = real(ifft2(Vqf));
-
-% Edge
-% Vqf = Vq;
-% edges = edge(Vq);
-% Vqm = medfilt2(Vq, [3, 3], 'symmetric');
-% Vqf(edges) = Vqm(edges);
-
-Vq_min = min(Vq(:));
-Vq_max = max(Vq(:));
-
-Vq = 1 + normat(Vq);
-Vm = medfilt2(Vq, [1, 6], 'symmetric');
-
-delta = 0.01;
-mask = Vq./Vm > 1 + delta | Vq./Vm < 1 - delta;
-
-Vq(mask) = Vm(mask);
-
-Vq = (Vq - 1) * (Vq_max - Vq_min) + Vq_min;
-
-% %% Radial median filtering
-% Vqf = medfilt2(Vq, [1, 15], 'symmetric');
+method = 'wavelet-fft';
+switch method
+    case 'wavelet-fft'
+        dec_levels = 3;
+        wname = 'db25';
+        sigma = 2.4;
+        xc = round(size(Vq,1)/2);
+        x1 = 1:xc;
+        x2 = xc + x1;
+        Vq = cat(1, FilterStripesCombinedWaveletFFT( Vq(x1,:), dec_levels, wname, sigma ),FilterStripesCombinedWaveletFFT( Vq(x2,:), dec_levels, wname, sigma ));
+    otherwise
+        
+        % Fourier transform polar image
+        % Vqf = fft2(Vq);
+        % Filtering
+        % Vqf(1,:) = squeeze(median([Vqf(1:2,:); Vqf(end,:)], 1));
+        % Vqf = real(ifft2(Vqf));
+        
+        % Edge
+        % Vqf = Vq;
+        % edges = edge(Vq);
+        % Vqm = medfilt2(Vq, [3, 3], 'symmetric');
+        % Vqf(edges) = Vqm(edges);
+        
+        Vq_min = min(Vq(:));
+        Vq_max = max(Vq(:));
+        
+        Vq = 1 + normat(Vq);
+        Vm = medfilt2(Vq, [1, 6], 'symmetric');
+        
+        delta = 0.01;
+        mask = Vq./Vm > 1 + delta | Vq./Vm < 1 - delta;
+        
+        Vq(mask) = Vm(mask);
+        
+        Vq = (Vq - 1) * (Vq_max - Vq_min) + Vq_min;
+        
+        % %% Radial median filtering
+        % Vqf = medfilt2(Vq, [1, 15], 'symmetric');
+end
 
 % Inverse polar transformation
 [thq, rq] = cart2pol(X, Y);
