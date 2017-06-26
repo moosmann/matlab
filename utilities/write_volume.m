@@ -1,13 +1,13 @@
 function save_path = write_volume( tag, vol, output_type, reco_path, raw_bin, phase_bin, reco_bin, counter_offset, verbose, suffix )
 
 %% Default arguments %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-if nargin < 7
+if nargin < 8
     counter_offset = 0;
 end
-if nargin < 8
+if nargin < 9
     verbose = 1;
 end
-if nargin < 9
+if nargin < 10
     suffix = '';
 end
 

@@ -9,7 +9,9 @@ Installation:
    
    git clone https://github.com/moosmann/matlab.git
 
-   or update to latest version. Back-up local files by branching if necessary:
+   OR
+
+   update to latest version. Back-up local files by branching if necessary:
 
    git add --all
    git commit -m "COMMIT MESSAGE"
@@ -24,13 +26,9 @@ Installation:
 
 How to start a reconstruction:
 
-0) Change directory to downloaded 'matlab' folder:
+1) Change directory to downloaded 'matlab' folder:
    
    cd matlab
-
-1) If startmatlab.sh is not executable:
-   
-   chmod +x startmatlab.sh
 
 2) Start MATLAB with predefined settings from within the 'matlab' folder:
 
@@ -40,8 +38,11 @@ How to start a reconstruction:
     the ASTRA toolbox, starts MATLAB, and sets the search path (this 
     overwrites local user settings, for details see 'startup.m'_)
 
-3) Open 'p05_reco' in MATLAB located at './matlab/experiments/p05/', eg 
-    type 'edit p05_reco' in MATLAB's command line
+    If 'startmatlab.sh' is not executable:
+    chmod +x startmatlab.sh
+
+3) Open 'p05_reco' in MATLAB located at './matlab/experiments/p05/' if not 
+    already opened, eg type 'edit p05_reco' in MATLAB's command line
 
 4) Check and modify reconstruction parameters, at least 'scan_path'
 
@@ -52,7 +53,7 @@ How to start a reconstruction:
 
 
 
-How to set up automized reconstruction loop:
+How to set up automatized reconstruction loop:
 
 1) Make a copy of 'p05_reco_template.m', open the copy, and follow the 
     instructions within the help.

@@ -15,12 +15,12 @@
 % 2017-06-21
 
 close all hidden % close all open windows
-dbstop if error
+%dbstop if error
 
 %% PARAMETERS / SETTINGS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % INPUT %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 scan_path = ...
-    '/asap3/petra3/gpfs/p05/2017/data/11003063/raw/hnee_01_hw_hk776_bn161514';
+    '/asap3/petra3/gpfs/p05/2017/data/11003063/raw/hnee_01_hw_hk776_bn161514';    
     '/asap3/petra3/gpfs/p05/2017/data/11003950/raw/syn13_55L_Mg10Gd_12w_load_00';        
     '/asap3/petra3/gpfs/p05/2017/data/11002839/raw/ehh_2017_015_a';
 '/asap3/petra3/gpfs/p05/2017/data/11003950/raw/syn01_48L_PEEK_12w_b';    
@@ -28,7 +28,7 @@ read_flatcor = 0; % read flatfield-corrected images from disc, skips preprocessi
 read_flatcor_path = ''; % subfolder of 'flat_corrected' containing projections
 % PREPROCESSING %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 raw_roi = [1 2400]; % [y0 y1] vertical roi.  skips first raw_roi(1)-1 lines, reads until raw_roi(2)
-raw_bin = 1; % projection binning factor: 1, 2, or 4
+raw_bin = 2; % projection binning factor: 1, 2, or 4
 excentric_rot_axis = 0; % off-centered rotation axis increasing FOV. -1: left, 0: centeerd, 1: right. influences rot_corr_area1
 crop_at_rot_axis = 0; % recommended for scans with excentric rotation axis when no projection stitching is done
 stitch_projections = 0; % stitch projection (for 2 pi scans) at rotation axis position. "doubles" number of voxels
@@ -60,8 +60,8 @@ sample_detector_distance = []; % in m. if empty: read from log file
 eff_pixel_size = []; % in m. if empty: read from log file. effective pixel size =  detector pixel size / magnification
 % Phase retrieval %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 do_phase_retrieval = 1;
-phase_bin = 2; % Binning factor after phase retrieval, but before tomographic reconstruction
-phase_retrieval_method = 'qp'; 'tie'; 'qpcut'; 'tie'; %'qp' 'ctf' 'tie' 'qp2' 'qpcut'
+phase_bin = 1; % Binning factor after phase retrieval, but before tomographic reconstruction
+phase_retrieval_method = 'tie';'qpcut';  'tie'; %'qp' 'ctf' 'tie' 'qp2' 'qpcut'
 phase_retrieval_reg_par = 2.5; % regularization parameter
 phase_retrieval_bin_filt = 0.15; % threshold for quasiparticle retrieval 'qp', 'qp2'
 phase_retrieval_cutoff_frequ = 1 * pi; % in radian. frequency cutoff in Fourier space for 'qpcut' phase retrieval
@@ -72,7 +72,7 @@ vol_shape = [];% shape of the volume to be reconstructed, either in absolute num
 vol_size = []; % if empty, unit voxel size is assumed
 rot_angle_full = []; % in radians: empty ([]), full angle of rotation, or array of angles. if empty full rotation angles is determined automatically to pi or 2 pi
 rot_angle_offset = pi; % global rotation of reconstructed volume
-rot_axis_offset = 16 / raw_bin;%[] ; % if empty use automatic computation
+rot_axis_offset = []; % if empty use automatic computation
 rot_axis_pos = []; % if empty use automatic computation. either offset or pos has to be empty. can't use both
 rot_corr_area1 = []; % ROI to correlate projections at angles 0 & pi. Use [0.75 1] or so for scans with an excentric rotation axisq
 rot_corr_area2 = []; % ROI to correlate projections at angles 0 & pi
@@ -89,20 +89,20 @@ astra_pixel_size = 1; % size of a detector pixel: if different from one 'vol_siz
 take_neg_log = []; % take negative logarithm. if empty, use 1 for attenuation contrast, 0 for phase contrast
 % Output %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 out_path = '';% absolute path were output data will be stored. !!overwrites the write_to_scratch flag. if empty uses the beamtime directory and either 'processed' or 'scratch_cc'
-write_to_scratch = 1; % write to 'scratch_cc' instead of 'processed'
+write_to_scratch = 0; % write to 'scratch_cc' instead of 'processed'
 write_flatcor = 0; % save preprocessed flat corrected projections
-write_phase_map = 1; % save phase maps (if phase retrieval is not 0)
+write_phase_map = 0; % save phase maps (if phase retrieval is not 0)
 write_sino = 0; % save sinograms (after preprocessing & before FBP filtering and phase retrieval)
 write_sino_phase = 0; % save sinograms of phase mapsls
 write_reco = 1; % save reconstructed slices (if do_tomo=1)
 write_float = 1; % write single precision (32-bit float) tiff
 write_float_binned = 1; % write binned single precision (32-bit float) tiff
 write_16bit = 0; % write 16bit-tiff
-write_16bit_binned = 0; % write 16bit-tiff
+write_16bit_binned = 1; % write 16bit-tiff
 write_8bit = 0; % write 8bit-tiff
 write_8bit_binned = 0; % write binned 8bit-tiff
 write_8bit_segmented = 0;
-reco_bin = 2; % currently only 2 x 2 x 2 binning is implemented
+reco_bin = 2; % binning of reconstructed volume
 compression_method = 'histo';'full'; 'std'; 'threshold'; % method to compression dynamic range into [0, 1]
 compression_parameter = [0.02 0.02]; % parameter for compression method 
 % dynamic range is compressed s.t. new dynamic range assumes
@@ -117,8 +117,8 @@ subfolder_sino = ''; % subfolder in 'sino'
 subfolder_reco = ''; % subfolder in 'reco'
 % INTERACTION %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 verbose = 1; % print information to standard output
-visualOutput = 1; % show images and plots during reconstruction
-interactive_determination_of_rot_axis = 0; % reconstruct slices with different rotation axis offsets
+visualOutput = 0; % show images and plots during reconstruction
+interactive_determination_of_rot_axis = 1; % reconstruct slices with different rotation axis offsets
 interactive_determination_of_rot_axis_tilt = 0; % reconstruct slices with different offset AND tilts of the rotation axis
 interactive_determination_of_rot_axis_slice = 0.5; % slice number, default: 0.5. if in [0,1): relative, if in (1, N]: absolute
 % HARDWARE / SOFTWARE %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -1560,7 +1560,7 @@ if write_sino_phase(1)
 end
 
 %% Post phase retrieval binning
-if do_phase_retrieval(1) && phase_bin(1)
+if do_phase_retrieval(1) && ( phase_bin(1) > 1)
     t = toc;
     PrintVerbose(verbose, 'Post phase retrieval binning:')
     proj_bin = zeros( floor(size( proj ) ./ [2 2 1] ), 'single');
@@ -1825,7 +1825,7 @@ fprintf(fid, 'date_of_reconstruction : %s\n', datetime);
 fprintf(fid, 'rotation_axis_offset : %f\n', rot_axis_offset);
 fclose(fid);
 PrintVerbose(verbose, '\n log file : %s', logfile_name)
-PrintVerbose(verbose, '\n reco_path : %s', reco_path)
+PrintVerbose(verbose, '\n reco_path : \n%s', reco_path)
 
 PrintVerbose(verbose && interactive_determination_of_rot_axis, '\nTime elapsed in interactive mode: %g s (%.2f min)', tint, tint / 60 );
 PrintVerbose(verbose, '\nTime elapsed for computation: %g s (%.2f min)', toc - tint, (toc - tint) / 60 );
