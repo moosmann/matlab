@@ -1,4 +1,4 @@
-function save_path = write_volume( tag, vol, output_type, reco_path, raw_bin, reco_bin, counter_offset, verbose, suffix )
+function save_path = write_volume( tag, vol, output_type, reco_path, raw_bin, phase_bin, reco_bin, counter_offset, verbose, suffix )
 
 %% Default arguments %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 if nargin < 7
@@ -18,6 +18,9 @@ else
     t = toc;
     
     save_path = sprintf( '%s%s_rawBin%u', reco_path, output_type, raw_bin);
+    if phase_bin > 1
+        save_path = sprintf( '%s_phaseBin%u', save_path, phase_bin);
+    end
     PrintVerbose(verbose, '\n Write %s', output_type)
     if reco_bin > 1
         PrintVerbose(verbose, ' binned')

@@ -28,7 +28,7 @@ read_flatcor = 0; % read flatfield-corrected images from disc, skips preprocessi
 read_flatcor_path = ''; % subfolder of 'flat_corrected' containing projections
 % PREPROCESSING %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 raw_roi = [1 2400]; % [y0 y1] vertical roi.  skips first raw_roi(1)-1 lines, reads until raw_roi(2)
-raw_bin = 2; % projection binning factor: 1, 2, or 4
+raw_bin = 1; % projection binning factor: 1, 2, or 4
 excentric_rot_axis = 0; % off-centered rotation axis increasing FOV. -1: left, 0: centeerd, 1: right. influences rot_corr_area1
 crop_at_rot_axis = 0; % recommended for scans with excentric rotation axis when no projection stitching is done
 stitch_projections = 0; % stitch projection (for 2 pi scans) at rotation axis position. "doubles" number of voxels
@@ -60,7 +60,7 @@ sample_detector_distance = []; % in m. if empty: read from log file
 eff_pixel_size = []; % in m. if empty: read from log file. effective pixel size =  detector pixel size / magnification
 % Phase retrieval %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 do_phase_retrieval = 1;
-post_phase_retrieval_bin = 0; % Binning after phase retrieval, but before tomographic reconstruction
+phase_bin = 2; % Binning factor after phase retrieval, but before tomographic reconstruction
 phase_retrieval_method = 'qp'; 'tie'; 'qpcut'; 'tie'; %'qp' 'ctf' 'tie' 'qp2' 'qpcut'
 phase_retrieval_reg_par = 2.5; % regularization parameter
 phase_retrieval_bin_filt = 0.15; % threshold for quasiparticle retrieval 'qp', 'qp2'
@@ -90,7 +90,7 @@ take_neg_log = []; % take negative logarithm. if empty, use 1 for attenuation co
 % Output %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 out_path = '';% absolute path were output data will be stored. !!overwrites the write_to_scratch flag. if empty uses the beamtime directory and either 'processed' or 'scratch_cc'
 write_to_scratch = 1; % write to 'scratch_cc' instead of 'processed'
-write_flatcor = 1; % save preprocessed flat corrected projections
+write_flatcor = 0; % save preprocessed flat corrected projections
 write_phase_map = 1; % save phase maps (if phase retrieval is not 0)
 write_sino = 0; % save sinograms (after preprocessing & before FBP filtering and phase retrieval)
 write_sino_phase = 0; % save sinograms of phase mapsls
@@ -118,7 +118,7 @@ subfolder_reco = ''; % subfolder in 'reco'
 % INTERACTION %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 verbose = 1; % print information to standard output
 visualOutput = 1; % show images and plots during reconstruction
-interactive_determination_of_rot_axis = 1; % reconstruct slices with different rotation axis offsets
+interactive_determination_of_rot_axis = 0; % reconstruct slices with different rotation axis offsets
 interactive_determination_of_rot_axis_tilt = 0; % reconstruct slices with different offset AND tilts of the rotation axis
 interactive_determination_of_rot_axis_slice = 0.5; % slice number, default: 0.5. if in [0,1): relative, if in (1, N]: absolute
 % HARDWARE / SOFTWARE %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -127,6 +127,7 @@ link_data = 1; % ASTRA data objects become references to Matlab arrays. Reduces 
 gpu_index = []; % GPU Device index to use, Matlab notation: index starts from 1. default: [], uses all
 
 %% TODO %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% TODO: visual output for phase retrieval: phase map, fft(int), 
 % TODO: if visual output none, reduce correlation to chosen method
 % TODO: physically consistent attenutation values of reconstructed slice 
 % TODO: check raw roi, transpose, rot90 for KIT and EHD camera
@@ -1024,6 +1025,8 @@ if do_phase_retrieval(1)
     if isempty( take_neg_log )
         take_neg_log = 0;
     end
+else
+    phase_bin = 0;
 end
 tint = 0;
 if do_tomo(1)
@@ -1557,18 +1560,17 @@ if write_sino_phase(1)
 end
 
 %% Post phase retrieval binning
-post_phase_retrieval_bin = 1;
-if post_phase_retrieval_bin(1)
+if do_phase_retrieval(1) && phase_bin(1)
     t = toc;
     PrintVerbose(verbose, 'Post phase retrieval binning:')
     proj_bin = zeros( floor(size( proj ) ./ [2 2 1] ), 'single');
     parfor nn = 1:size( proj, 3)
-        proj_bin(:,:,nn) = Binning( proj(:,:,nn), 2 );
+        proj_bin(:,:,nn) = Binning( proj(:,:,nn), phase_bin ) / phase_bin^2;
     end
     proj = proj_bin;    
     clear proj_bin;
-    rot_axis_pos = rot_axis_pos / 2;
-    rot_axis_offset = rot_axis_offset / 2;
+    rot_axis_pos = rot_axis_pos / phase_bin;
+    rot_axis_offset = rot_axis_offset / phase_bin;
     PrintVerbose(verbose, ' done in %g s (%.2f min)', toc - t, (toc - t) / 60)
 end
 
@@ -1674,7 +1676,7 @@ if do_tomo(1)
         fclose( fid );
         
         % Single precision: 32-bit float tiff
-        write_volume( write_float, vol, 'float', reco_path, raw_bin, 1, 0, verbose);
+        write_volume( write_float, vol, 'float', reco_path, raw_bin, phase_bin, 1, 0, verbose);
         
         % Compression of dynamic range
         if write_8bit || write_8bit_binned || write_16bit || write_16bit_binned
@@ -1685,10 +1687,10 @@ if do_tomo(1)
         end    
         
         % 16-bit tiff
-        write_volume( write_16bit, (vol - tlow)/(thigh - tlow), 'uint16', reco_path, raw_bin, 1, 0, verbose);
+        write_volume( write_16bit, (vol - tlow)/(thigh - tlow), 'uint16', reco_path, raw_bin, phase_bin, 1, 0, verbose);
         
         % 8-bit tiff
-        write_volume( write_8bit, (vol - tlow)/(thigh - tlow), 'uint8', reco_path, raw_bin, 1, 0, verbose);
+        write_volume( write_8bit, (vol - tlow)/(thigh - tlow), 'uint8', reco_path, raw_bin, phase_bin, 1, 0, verbose);
         
         % Bin data
         if write_float_binned || write_16bit_binned || write_8bit_binned || write_8bit_segmented
@@ -1699,18 +1701,18 @@ if do_tomo(1)
         end
                 
         % Binned single precision: 32-bit float tiff
-        write_volume( write_float_binned, vol, 'float', reco_path, raw_bin, reco_bin, 0, verbose);
+        write_volume( write_float_binned, vol, 'float', reco_path, raw_bin, phase_bin, reco_bin, 0, verbose);
                 
         % 16-bit tiff binned
-        write_volume( write_16bit_binned, (vol - tlow)/(thigh - tlow), 'uint16', reco_path, raw_bin, reco_bin, 0, verbose);
+        write_volume( write_16bit_binned, (vol - tlow)/(thigh - tlow), 'uint16', reco_path, raw_bin, phase_bin, reco_bin, 0, verbose);
         
         % 8-bit tiff binned
-        write_volume( write_8bit_binned, (vol - tlow)/(thigh - tlow), 'uint8', reco_path, raw_bin, reco_bin, 0, verbose);
+        write_volume( write_8bit_binned, (vol - tlow)/(thigh - tlow), 'uint8', reco_path, raw_bin, phase_bin, reco_bin, 0, verbose);
         
         % segmentation
         if write_8bit_segmented(1)
             [vol, out] = segment_volume(vol, 2^10, visualOutput, verbose);
-            save_path = write_volume( 1, vol/255, 'uint8', reco_path, raw_bin, reco_bin, 0, verbose, '_segmented');
+            save_path = write_volume( 1, vol/255, 'uint8', reco_path, raw_bin, phase_bin, reco_bin, 0, verbose, '_segmented');
             save( sprintf( '%ssegmentation_info.m', save_path), 'out', '-mat', '-v7.3')
         end
         
@@ -1768,6 +1770,7 @@ end
 % Phase retrieval
 if do_phase_retrieval(1)
     fprintf(fid, 'do_phase_retrieval : %u\n', do_phase_retrieval);
+    fprintf(fid, 'phase_bin : %u\n', phase_bin);    
     fprintf(fid, 'phase_retrieval_method : %s\n', phase_retrieval_method);
     fprintf(fid, 'phase_retrieval_regularisation_parameter : %f\n', phase_retrieval_reg_par);
     fprintf(fid, 'phase_retrieval_binary_filter_threshold : %f\n', phase_retrieval_bin_filt);
@@ -1786,6 +1789,7 @@ fprintf(fid, 'rotation_angle_full_rad : %f * pi\n', rot_angle_full / pi);
 fprintf(fid, 'rotation_angle_offset_rad : %f * pi\n', rot_angle_offset / pi);
 fprintf(fid, 'rotation_axis_offset_calculated : %f\n', rot_axis_offset_calc);
 fprintf(fid, 'rotation_axis_offset : %f\n', rot_axis_offset);
+fprintf(fid, 'rotation_axis_offset_reco : %f\n', rot_axis_offset_reco);
 fprintf(fid, 'rotation_axis_position_calculated : %f\n', rot_axis_pos_calc);
 fprintf(fid, 'rotation_axis_position : %f\n', rot_axis_pos);
 fprintf(fid, 'rotation_axis_tilt_calculated : %f\n', rot_axis_tilt_calc);
@@ -1817,7 +1821,7 @@ fprintf(fid, 'compression_method : %s\n', compression_method);
 fprintf(fid, 'compression_limits : %f %f\n', tlow, thigh);
 fprintf(fid, 'reco_bin : %u\n', reco_bin);
 fprintf(fid, 'full_reconstruction_time : %.1f s\n', toc);
-fprintf(fid, 'date_of_reconstruction : %s', datetime);
+fprintf(fid, 'date_of_reconstruction : %s\n', datetime);
 fprintf(fid, 'rotation_axis_offset : %f\n', rot_axis_offset);
 fclose(fid);
 PrintVerbose(verbose, '\n log file : %s', logfile_name)
