@@ -19,14 +19,15 @@ dbstop if error
 
 %% PARAMETERS / SETTINGS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % INPUT %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-scan_path = ...    
+scan_path = ...
+    '/asap3/petra3/gpfs/p05/2017/data/11003063/raw/hnee_01_hw_hk776_bn161514';
     '/asap3/petra3/gpfs/p05/2017/data/11003950/raw/syn13_55L_Mg10Gd_12w_load_00';        
     '/asap3/petra3/gpfs/p05/2017/data/11002839/raw/ehh_2017_015_a';
 '/asap3/petra3/gpfs/p05/2017/data/11003950/raw/syn01_48L_PEEK_12w_b';    
 read_flatcor = 0; % read flatfield-corrected images from disc, skips preprocessing
 read_flatcor_path = ''; % subfolder of 'flat_corrected' containing projections
 % PREPROCESSING %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-raw_roi = []; % [y0 y1] vertical roi.  skips first raw_roi(1)-1 lines, reads until raw_roi(2)
+raw_roi = [1 2400]; % [y0 y1] vertical roi.  skips first raw_roi(1)-1 lines, reads until raw_roi(2)
 raw_bin = 2; % projection binning factor: 1, 2, or 4
 excentric_rot_axis = 0; % off-centered rotation axis increasing FOV. -1: left, 0: centeerd, 1: right. influences rot_corr_area1
 crop_at_rot_axis = 0; % recommended for scans with excentric rotation axis when no projection stitching is done
@@ -58,8 +59,9 @@ energy = []; % in eV. if empty: read from log file
 sample_detector_distance = []; % in m. if empty: read from log file
 eff_pixel_size = []; % in m. if empty: read from log file. effective pixel size =  detector pixel size / magnification
 % Phase retrieval %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-do_phase_retrieval = 0;
-phase_retrieval_method = 'tie';'qp';'qpcut'; 'tie'; %'qp' 'ctf' 'tie' 'qp2' 'qpcut'
+do_phase_retrieval = 1;
+post_phase_retrieval_bin = 0; % Binning after phase retrieval, but before tomographic reconstruction
+phase_retrieval_method = 'qp'; 'tie'; 'qpcut'; 'tie'; %'qp' 'ctf' 'tie' 'qp2' 'qpcut'
 phase_retrieval_reg_par = 2.5; % regularization parameter
 phase_retrieval_bin_filt = 0.15; % threshold for quasiparticle retrieval 'qp', 'qp2'
 phase_retrieval_cutoff_frequ = 1 * pi; % in radian. frequency cutoff in Fourier space for 'qpcut' phase retrieval
@@ -70,7 +72,7 @@ vol_shape = [];% shape of the volume to be reconstructed, either in absolute num
 vol_size = []; % if empty, unit voxel size is assumed
 rot_angle_full = []; % in radians: empty ([]), full angle of rotation, or array of angles. if empty full rotation angles is determined automatically to pi or 2 pi
 rot_angle_offset = pi; % global rotation of reconstructed volume
-rot_axis_offset = [] ; % if empty use automatic computation
+rot_axis_offset = 16 / raw_bin;%[] ; % if empty use automatic computation
 rot_axis_pos = []; % if empty use automatic computation. either offset or pos has to be empty. can't use both
 rot_corr_area1 = []; % ROI to correlate projections at angles 0 & pi. Use [0.75 1] or so for scans with an excentric rotation axisq
 rot_corr_area2 = []; % ROI to correlate projections at angles 0 & pi
@@ -87,13 +89,13 @@ astra_pixel_size = 1; % size of a detector pixel: if different from one 'vol_siz
 take_neg_log = []; % take negative logarithm. if empty, use 1 for attenuation contrast, 0 for phase contrast
 % Output %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 out_path = '';% absolute path were output data will be stored. !!overwrites the write_to_scratch flag. if empty uses the beamtime directory and either 'processed' or 'scratch_cc'
-write_to_scratch = 0; % write to 'scratch_cc' instead of 'processed'
-write_flatcor = 0; % save preprocessed flat corrected projections
-write_phase_map = 0; % save phase maps (if phase retrieval is not 0)
+write_to_scratch = 1; % write to 'scratch_cc' instead of 'processed'
+write_flatcor = 1; % save preprocessed flat corrected projections
+write_phase_map = 1; % save phase maps (if phase retrieval is not 0)
 write_sino = 0; % save sinograms (after preprocessing & before FBP filtering and phase retrieval)
 write_sino_phase = 0; % save sinograms of phase mapsls
 write_reco = 1; % save reconstructed slices (if do_tomo=1)
-write_float = 0; % write single precision (32-bit float) tiff
+write_float = 1; % write single precision (32-bit float) tiff
 write_float_binned = 1; % write binned single precision (32-bit float) tiff
 write_16bit = 0; % write 16bit-tiff
 write_16bit_binned = 0; % write 16bit-tiff
@@ -523,11 +525,14 @@ elseif ~read_flatcor
     if norm_by_ring_current(1)
         switch lower( cam )
             case 'kit'
-                ref_ind = ref_nums + 1;
+                %ref_ind = ref_nums + 1 ;
+                ref_ind = ref_range ;
+                ref_check = ref_ind - 1;
             case 'ehd'
                 ref_ind = ref_range;
+                ref_check = ref_nums;
         end
-        if isequal( ref_nums, [cur.ref(ref_ind).ind])
+        if isequal( ref_check, [cur.ref(ref_ind).ind])
             scale_factor = 100 ./ shiftdim( [cur.ref(ref_ind).val], -1 );
             flat = bsxfun( @times, flat, scale_factor );
             if visualOutput(1)
@@ -624,11 +629,14 @@ elseif ~read_flatcor
     if norm_by_ring_current(1)
         switch lower( cam )
             case 'kit'
-                proj_ind = proj_nums + 1;
+                %proj_ind = proj_nums + 1;
+                proj_ind = proj_range;
+                proj_check = proj_ind - 1;
             case 'ehd'
                 proj_ind = proj_range;
+                proj_check = proj_nums;
         end
-        if isequal( proj_nums, [cur.proj(proj_ind).ind] )
+        if isequal( proj_check, [cur.proj(proj_ind).ind] )
             scale_factor = 100 ./ shiftdim( [cur.proj(proj_ind).val], -1 );
             proj = bsxfun( @times, proj, scale_factor );
             if visualOutput(1)
@@ -1449,8 +1457,8 @@ if stitch_projections(1)
 end
 
 %% Crop projections at rotation axis position
-% to avoid oversampling for scans with excentric rotation axis and
-% reconstructing without stitching
+% This is to avoid oversampling for scans with excentric rotation axis and
+% reconstructing WITHOUT stitching
 if crop_at_rot_axis(1)
     switch excentric_rot_axis
         case 1
@@ -1545,7 +1553,23 @@ if write_sino_phase(1)
     end
     pause(0.01)
     PrintVerbose(verbose, ' done.')
-    PrintVerbose(verbose, ' Time elapsed: %g s (%.2f min)', toc-t, (toc-t)/60)
+    PrintVerbose(verbose, ' Time elapsed: %g s (%.2f min)', toc - t, (toc - t) / 60)
+end
+
+%% Post phase retrieval binning
+post_phase_retrieval_bin = 1;
+if post_phase_retrieval_bin(1)
+    t = toc;
+    PrintVerbose(verbose, 'Post phase retrieval binning:')
+    proj_bin = zeros( floor(size( proj ) ./ [2 2 1] ), 'single');
+    parfor nn = 1:size( proj, 3)
+        proj_bin(:,:,nn) = Binning( proj(:,:,nn), 2 );
+    end
+    proj = proj_bin;    
+    clear proj_bin;
+    rot_axis_pos = rot_axis_pos / 2;
+    rot_axis_offset = rot_axis_offset / 2;
+    PrintVerbose(verbose, ' done in %g s (%.2f min)', toc - t, (toc - t) / 60)
 end
 
 %% Tomographic reco
@@ -1564,7 +1588,8 @@ if do_tomo(1)
     if isempty( vol_shape )
         % default volume given by the detector width and height
         vol_shape1 = size( proj, 1);
-        vol_shape = [vol_shape1, vol_shape1, raw_im_shape_binned2];
+        vol_shape3 = size( proj, 2 );
+        vol_shape = [vol_shape1, vol_shape1, vol_shape3];
     else
         vol_shape1 = size( proj, 1);
         if vol_shape(1) <=  1
@@ -1574,7 +1599,7 @@ if do_tomo(1)
             vol_shape(2) = round( 1 + vol_shape(2) * (vol_shape1 - 1) );
         end
         if vol_shape(3) <=  1
-            vol_shape(3) = round( 1 + vol_shape(3) * (raw_im_shape_binned2 - 1) );
+            vol_shape(3) = round( 1 + vol_shape(3) * (vol_shape3 - 1) );
         end
     end
     if isempty( vol_size )
