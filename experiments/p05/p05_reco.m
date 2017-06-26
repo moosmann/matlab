@@ -1445,7 +1445,7 @@ if stitch_projections(1)
     angles = angles(1:num_proj_sti);
     PrintVerbose(verbose, ' Time elapsed: %.1f (%.2f min)', toc-t, (toc-t)/60)
     PrintVerbose(verbose, '\n shape of stitched projections : %u %u %u', size( proj ) )
-    PrintVerbose(verbose, '\n memory allocted : %.2 GiB', Bytes( proj, 3 ) )
+    PrintVerbose(verbose, '\n memory allocated : %.2f GiB', Bytes( proj, 3 ) )
 end
 
 %% Crop projections at rotation axis position
@@ -1550,6 +1550,7 @@ end
 
 %% Tomographic reco
 if do_tomo(1)
+    PrintVerbose(verbose, '\nTomographic reconstruction:')
     
     if stitch_projections(1)
         rot_axis_offset_reco = 0;
@@ -1578,10 +1579,10 @@ if do_tomo(1)
     end
     if isempty( vol_size )
         vol_size = [-vol_shape(1)/2, vol_shape(1)/2, -vol_shape(2)/2, vol_shape(2)/2, -vol_shape(3)/2, vol_shape(3)/2];
-    end
-    PrintVerbose(verbose, '\n shape reconstructed volume: [%g, %g, %g]', vol_shape )    
+    end    
+    PrintVerbose(verbose, '\n shape of reconstructed volume: [%g, %g, %g]', vol_shape )
+    PrintVerbose(verbose, '\n memory required: %.2f GiB', prod( vol_shape ) * 4 / 1024^3 )
     
-    PrintVerbose(verbose, '\nTomographic reconstruction:')
     if isempty( take_neg_log )
         take_neg_log = 1;
     end

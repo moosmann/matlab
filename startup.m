@@ -10,6 +10,9 @@ hostname = getenv('HOSTNAME');
 fprintf( 'HOSTNAME : %s', hostname );
 fprintf( '\nuserpath : %s', userpath );
 
+%% CUDA
+fprintf( '\nCUDA_PATH : %s', getenv( 'CUDA_PATH' ) );
+
 %% ASTRA
 % ASTRA 1.8 local
 path_to_astra = '/asap3/petra3/gpfs/common/p05/astra/1.8/matlab';
@@ -18,6 +21,9 @@ path_to_astra = '/asap3/petra3/gpfs/common/p05/astra/1.8/matlab';
 if strcmp( hostname(1:8), 'max-hzgg')    
     addpath( genpath( path_to_astra ) );
 elseif strcmp( hostname(1:8), 'max-p3ag')   
+    addpath( genpath( path_to_astra ) );
+elseif strcmp( hostname(1:8), 'max-nova')
+    %path_to_astra = '/asap3/petra3/gpfs/common/p05/astra/1.8_old/matlab';
     addpath( genpath( path_to_astra ) );
 else    
     addpath( genpath( path_to_astra ) );
