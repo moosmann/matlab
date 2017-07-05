@@ -55,6 +55,7 @@ subfolder_reco = '';
 gpu_ind = [];
 compression_method = 'histo';
 compression_parameter = [0.20 0.15];
+ADD_DEFAULT
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% PARAMETER / DATA SETS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -183,7 +184,22 @@ write_8bit_binned = 1;
 compression_method = 'histo';
 compression_parameter = [0.05 0.05];
 parfolder = 'test';
+ADD('r')
+
+scan_path = [raw_path 'syn13_55L_Mg10Gd_12w_load_00'];
+raw_roi = [287 1486];
+raw_bin = 1;
+butterworth_filter = 0;
+write_flatcor = 0;
+write_float = 1; 
+write_float_binned = 1; 
+write_16bit = 0;
+write_16bit_binned = 0;
+write_8bit = 0;
+write_8bit_binned = 0;
+parfolder = 'noButterworth';
 ADD
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

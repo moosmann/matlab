@@ -40,9 +40,10 @@ write_sino = 0;
 write_sino_phase = 0; 
 write_reco = 1; 
 write_float = 0; 
-write_float_binned = 0; 
+write_float_binned = 1; 
+compression_parameter = [0.25 0.1];
 write_8bit = 0;
-write_8bit_binned = 0;
+write_8bit_binned = 1;
 write_16bit = 0; 
 subfolder_reco = '';
 gpu_index = [];
@@ -62,9 +63,9 @@ SET_DEFAULT
 %% 2016-09-13 commissioning synload
 raw_path = '/asap3/petra3/gpfs/p05/2016/commissioning/c20160913_000_synload/raw/';
 raw_roi = [141 1940];
-
 scan_path = [raw_path, 'mg5gd_02_1w'];rot_axis_offset = 2.0;ADD
-scan_path = [raw_path, 'mg10gd_38_1w'];rot_axis_offset = [];ADD
+scan_path = [raw_path, 'mg10gd_38_1w'];rot_axis_offset = 2.5;ADD
+%interactive_determination_of_rot_axis = 1;
 scan_path = [raw_path, 'mg10gd_41_2w'];ADD
 scan_path = [raw_path, 'mg10gd_44_3w'];ADD
 %scan_path = [raw_path, 'mg10gd_50_4w']; ADD% reco problems CHECK
@@ -88,7 +89,6 @@ scan_path = [raw_path, 'Mg-10Gd49_4w'];ADD
 scan_path = [raw_path, 'Mg-5Gd17_2w'];ADD
 scan_path = [raw_path, 'Mg-5Gd22_3w'];ADD
 scan_path = [raw_path, 'Mg-5Gd28_4w'];ADD
-
 
 %% test section
 scan_path = [raw_path, 'Mg-10Gd39_1w'];

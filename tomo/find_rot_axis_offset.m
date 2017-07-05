@@ -34,6 +34,7 @@ if nargin < 8
 end
 mask_rad = 0.95;
 mask_val = 0;
+butterworth_filtering = 0;
 
 %% Main %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 [num_pix, num_row, ~] = size( proj );
@@ -66,9 +67,11 @@ sino = proj(:, y_range, :);
 filt = iradonDesignFilter('Ram-Lak', 2 * num_pix, 0.9);
 
 % Butterworth filter
-[b, a] = butter(1, 0.5);
-bw = freqz(b, a, numel(filt) );
-filt = filt .* bw;
+if butterworth_filtering(1)
+    [b, a] = butter(1, 0.5);
+    bw = freqz(b, a, numel(filt) );
+    filt = filt .* bw;
+end
 
 % Apply filters
 sino = padarray( NegLog(sino, take_neg_log), [num_pix 0 0 ], 'symmetric', 'post');

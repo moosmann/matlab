@@ -5,14 +5,14 @@
 % Set parameters in PARAMETERS / SETTINGS section below and run script.
 %
 % How to run script:
-% - Hit 'F5' when focus is in the Editor windows
-% - Click 'Run' in the Editor tab
-% - Type 'p05_reco' and hit Enter in the Command Window
+% - Editor windows: press 'F5' when focus is in the Editor window
+% - Editor tab: click 'Run' in the 
+% - Command Window: type 'p05_reco' and Enter
 %
-% To loop over sets of data or parameters sets use 'p05_reco_loop'.
+% To loop over sets of data or parameters sets see 'p05_reco_loop_template'.
 %
 % Written by Julian Moosmann. First version: 2016-09-28. Last modifcation:
-% 2017-06-21
+% 2017-07-05
 
 close all hidden % close all open windows
 %dbstop if error
@@ -20,6 +20,7 @@ close all hidden % close all open windows
 %% PARAMETERS / SETTINGS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % INPUT %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 scan_path = ...
+    '/asap3/petra3/gpfs/p05/2017/data/11002839/raw/ehh_2017_019_b';
     '/asap3/petra3/gpfs/p05/2017/data/11003063/raw/hnee_01_hw_hk776_bn161514';    
     '/asap3/petra3/gpfs/p05/2017/data/11003950/raw/syn13_55L_Mg10Gd_12w_load_00';        
     '/asap3/petra3/gpfs/p05/2017/data/11002839/raw/ehh_2017_015_a';
@@ -27,7 +28,7 @@ scan_path = ...
 read_flatcor = 0; % read flatfield-corrected images from disc, skips preprocessing
 read_flatcor_path = ''; % subfolder of 'flat_corrected' containing projections
 % PREPROCESSING %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-raw_roi = [1 2400]; % [y0 y1] vertical roi.  skips first raw_roi(1)-1 lines, reads until raw_roi(2)
+raw_roi = []; % [y0 y1] vertical roi.  skips first raw_roi(1)-1 lines, reads until raw_roi(2)
 raw_bin = 2; % projection binning factor: 1, 2, or 4
 excentric_rot_axis = 0; % off-centered rotation axis increasing FOV. -1: left, 0: centeerd, 1: right. influences rot_corr_area1
 crop_at_rot_axis = 0; % recommended for scans with excentric rotation axis when no projection stitching is done
@@ -45,7 +46,7 @@ correlate_proj_flat = 1;%  correlate flat fields and projection to correct beam 
 correlation_method = 'ssim-ml'; 'diff';'shift';'ssim';'std';'entropy';'cov';'cross'; % method for correlation. 'diff': difference measure (preferred), 'shift': computes relative shift using image cross-correlation
 corr_shift_max_pixelshift = 0.25; % maximum pixelshift allowed for 'shift'-correlation method: if 0 use the best match (i.e. the one with the least shift), if > 0 uses all flats with shifts smaller than corr_shift_max_pixelshift
 corr_num_flats = 3; % number of flat fields used for average/median of flats. for 'shift'-correlation its the maximum number
-norm_by_ring_current = 1; % normalize flat fields and projections by ring current
+ring_current_normalization = 1; % normalize flat fields and projections by ring current
 flat_corr_area1 = [1 floor(100/raw_bin)]; % correlation area: index vector or relative/absolute position of [first pix, last pix]
 flat_corr_area2 = [0.2 0.8]; %correlation area: index vector or relative/absolute position of [first pix, last pix]
 decimal_round_precision = 2; % precision when rounding pixel shifts
@@ -82,9 +83,9 @@ fbp_filter_type = 'Ram-Lak';'linear';
 fpb_filter_freq_cutoff = 1; % Cut-off frequency in Fourier space of the above FBP filter
 fbp_filter_padding = 1; % symmetric padding for consistent boundary conditions
 fbp_filter_padding_method = 'symmetric';
-butterworth_filter = 1; % use butterworth filter in addition to FBP filter
+butterworth_filter = 0; % use butterworth filter in addition to FBP filter
 butterworth_order = 1;
-butterworth_cutoff_frequ = 0.5;
+butterworth_cutoff_frequ = 1;
 astra_pixel_size = 1; % size of a detector pixel: if different from one 'vol_size' needs to be ajusted
 take_neg_log = []; % take negative logarithm. if empty, use 1 for attenuation contrast, 0 for phase contrast
 % Output %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -95,20 +96,20 @@ write_phase_map = 0; % save phase maps (if phase retrieval is not 0)
 write_sino = 0; % save sinograms (after preprocessing & before FBP filtering and phase retrieval)
 write_sino_phase = 0; % save sinograms of phase mapsls
 write_reco = 1; % save reconstructed slices (if do_tomo=1)
-write_float = 1; % write single precision (32-bit float) tiff
-write_float_binned = 1; % write binned single precision (32-bit float) tiff
-write_16bit = 0; % write 16bit-tiff
-write_16bit_binned = 1; % write 16bit-tiff
-write_8bit = 0; % write 8bit-tiff
-write_8bit_binned = 0; % write binned 8bit-tiff
-write_8bit_segmented = 0;
-reco_bin = 2; % binning of reconstructed volume
+write_float = 1; % single precision (32-bit float) tiff
+write_16bit = 0; 
+write_8bit = 0; 
+reco_bin = 2; % binning factor of reconstructed volume
+write_float_binned = 1; % binned single precision (32-bit float) tiff
+write_16bit_binned = 0; 
+write_8bit_binned = 1; 
+write_8bit_segmented = 0; % experimental: threshold segmentation for histograms with 2 distinct peaks: __/\_/\__
 compression_method = 'histo';'full'; 'std'; 'threshold'; % method to compression dynamic range into [0, 1]
-compression_parameter = [0.02 0.02]; % parameter for compression method 
+compression_parameter = [0.20 0.15]; % compression-method specific parameter
 % dynamic range is compressed s.t. new dynamic range assumes
 % 'full' : full dynamic range is used
-% 'std' : NUM = compression_parameter, mean +/- NUM*std, dynamic range is rescaled to within -/+ NUM standard deviations around the mean value
 % 'threshold' : [LOW HIGH] = compression_parameter, eg. [-0.01 1]
+% 'std' : NUM = compression_parameter, mean +/- NUM*std, dynamic range is rescaled to within -/+ NUM standard deviations around the mean value
 % 'histo' : [LOW HIGH] = compression_parameter (100*LOW)% and (100*HIGH)% of the original histogram, e.g. [0.02 0.02]
 parfolder = ''; % parent folder for 'reco', 'sino', 'phase', and 'flat_corrected'
 subfolder_flatcor = ''; % subfolder in 'flat_corrected'
@@ -117,7 +118,7 @@ subfolder_sino = ''; % subfolder in 'sino'
 subfolder_reco = ''; % subfolder in 'reco'
 % INTERACTION %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 verbose = 1; % print information to standard output
-visualOutput = 0; % show images and plots during reconstruction
+visualOutput = 1; % show images and plots during reconstruction
 interactive_determination_of_rot_axis = 1; % reconstruct slices with different rotation axis offsets
 interactive_determination_of_rot_axis_tilt = 0; % reconstruct slices with different offset AND tilts of the rotation axis
 interactive_determination_of_rot_axis_slice = 0.5; % slice number, default: 0.5. if in [0,1): relative, if in (1, N]: absolute
@@ -317,7 +318,7 @@ if isempty( gpu_index )
 end
 for nn = gpu_index
     gpu = parallel.gpu.GPUDevice.getDevice( nn );
-    PrintVerbose(verbose, '\n gpu %u : memory: available, total, percent : %.3g GiB, %.3g GiB, %.2f%%', nn, gpu.AvailableMemory/1024^3, gpu.TotalMemory/1024^3, 100*gpu.AvailableMemory/gpu.TotalMemory)
+    PrintVerbose(verbose, '\n gpu %u memory : available, total, percent = %.3g GiB, %.3g GiB, %.2f%%', nn, gpu.AvailableMemory/1024^3, gpu.TotalMemory/1024^3, 100*gpu.AvailableMemory/gpu.TotalMemory)
 end
 
 %% File names
@@ -512,10 +513,10 @@ elseif ~read_flatcor
         % Check for zeros
         num_zeros =  sum( sum( flat(:,:,nn) < 1 ) );
         if num_zeros > 0
-            fprintf('\n WARNING: values of %u pixels of flat field no %u are lower than 1.', num_zeros, nn)
+            fprintf('\n WARNING: values of %u pixels of flat field no %u are below 1.\n', num_zeros, nn)
         end
     end
-    % min/max values before dark field subtraction and ring normalization
+    % min/max values before dark field subtraction and ring current normalization
     flat_min = min( flat(:) );
     flat_max = max( flat(:) );
     
@@ -523,7 +524,7 @@ elseif ~read_flatcor
     flat = bsxfun( @minus, flat, dark );
     
     % Ring current normalization
-    if norm_by_ring_current(1)
+    if ring_current_normalization(1)
         switch lower( cam )
             case 'kit'
                 %ref_ind = ref_nums + 1 ;
@@ -545,7 +546,7 @@ elseif ~read_flatcor
                 drawnow
             end
         else
-            fprintf('\n WARNING: flat fields not normalized by ring current. Names read from dir() and log-file are inconsistent.')
+            fprintf('\n WARNING: flat fields not normalized by ring current. Names read from dir() and log-file are inconsistent.\n')
         end
     end
     
@@ -561,12 +562,16 @@ elseif ~read_flatcor
     
     num_zeros =  sum( flat(:) < 1 );
     if num_zeros > 0
-        fprintf('\n WARNING: flat field contains %u zeros', num_zeros)
+        fprintf('\n WARNING: flat field contains %u zeros\n', num_zeros)
     end
     
     PrintVerbose(verbose, ' Time elapsed: %.1f s', toc-t)
     if visualOutput(1)
-        figure(h1)
+        if exist( 'h1' , 'var' )
+            figure(h1)
+        else
+            h1 = figure('Name', 'mean dark field, flat field, projections');
+        end
         subplot(2,2,2)
         imsc1( flat(:,:,1) )
         axis equal tight% square
@@ -585,7 +590,11 @@ elseif ~read_flatcor
     
     % Display first raw images
     if visualOutput(1)
-        figure(h1)
+         if exist( 'h1' , 'var' )
+            figure(h1)
+        else
+            h1 = figure('Name', 'mean dark field, flat field, projections');
+         end
         filename = sprintf('%s%s', scan_path, img_names_mat(1, :));
         raw1 = Binning( FilterPixel( read_image( filename, '', raw_roi, tif_info ), [projFiltPixHot, projFiltPixDark]), raw_bin) / raw_bin^2;
         subplot(2,2,3)
@@ -627,7 +636,7 @@ elseif ~read_flatcor
     proj = bsxfun( @minus, proj, dark);
     
     % Ring current normalization
-    if norm_by_ring_current(1)
+    if ring_current_normalization(1)
         switch lower( cam )
             case 'kit'
                 %proj_ind = proj_nums + 1;
@@ -641,7 +650,11 @@ elseif ~read_flatcor
             scale_factor = 100 ./ shiftdim( [cur.proj(proj_ind).val], -1 );
             proj = bsxfun( @times, proj, scale_factor );
             if visualOutput(1)
-                figure(hrc)
+                if exist( 'hrc', 'var' )
+                    figure(hrc)
+                else
+                   hrc = figure('Name', 'Ring current normalization'); 
+                end
                 subplot(2,1,2);
                 plot( scale_factor(:), '.' )
                 axis tight %equal
@@ -649,7 +662,7 @@ elseif ~read_flatcor
                 drawnow
             end
         else
-            fprintf('\n WARNING: projections not normalized by ring current. Names read from dir() and log-file are not consistent.')
+            fprintf('\n WARNING: projections not normalized by ring current. Names read from dir() and log-file are not consistent.\n')
         end
     end
     
@@ -891,7 +904,11 @@ elseif ~read_flatcor
     end
     PrintVerbose(verbose, '\n sinogram size = [%g, %g, %g]', size( proj ) )
     if visualOutput(1)
-        figure(h1)
+        if exist( 'h1' , 'var' )
+            figure(h1)
+        else
+            h1 = figure('Name', 'mean dark field, flat field, projections');
+        end
         subplot(2,2,4)
         imsc1( proj(:,:,1))
         axis equal tight
@@ -1753,7 +1770,7 @@ fprintf(fid, 'effective_pixel_size : %g micron\n', eff_pixel_size * 1e6);
 fprintf(fid, 'effective_pixel_size_binned : %g micron\n', eff_pixel_size_binned * 1e6);
 fprintf(fid, 'energy : %g eV\n', energy);
 fprintf(fid, 'sample_detector_distance : %f m\n', sample_detector_distance);
-fprintf(fid, 'norm_by_ring_current : %u\n', norm_by_ring_current);
+fprintf(fid, 'ring_current_normalization : %u\n', ring_current_normalization);
 fprintf(fid, 'proj_flat_correlation_method : %s\n', correlation_method);
 fprintf(fid, 'proj_flat_correlation_num_flats : %u\n', corr_num_flats);
 fprintf(fid, 'flat_field_correlation_area_1 : %u:%u:%u\n', flat_corr_area1(1), flat_corr_area1(2) - flat_corr_area1(1), flat_corr_area1(end));
@@ -1822,7 +1839,7 @@ fprintf(fid, 'compression_limits : %f %f\n', tlow, thigh);
 fprintf(fid, 'reco_bin : %u\n', reco_bin);
 fprintf(fid, 'full_reconstruction_time : %.1f s\n', toc);
 fprintf(fid, 'date_of_reconstruction : %s\n', datetime);
-fprintf(fid, 'rotation_axis_offset : %f\n', rot_axis_offset);
+fprintf(fid, 'rotation_axis_offset at %u x binning : %f\n', raw_bin, rot_axis_offset);
 fclose(fid);
 PrintVerbose(verbose, '\n log file : %s', logfile_name)
 PrintVerbose(verbose, '\n reco_path : \n%s', reco_path)

@@ -1,4 +1,4 @@
-function p05_reco_ehh( SUBSETS, RUN_RECO, PRINT_PARAMETERS)
+function p05_reco_hnee( SUBSETS, RUN_RECO, PRINT_PARAMETERS)
 
 if nargin < 1
     SUBSETS = [];
@@ -19,7 +19,7 @@ interactive_determination_of_rot_axis = 0;
 interactive_determination_of_rot_axis_tilt = 0;
 raw_roi = [];
 scan_path = '';
-raw_bin = 2;
+raw_bin = 1;
 excentric_rot_axis = 0;
 crop_at_rot_axis = 0;
 stitch_projections = 0; 
@@ -33,13 +33,19 @@ phase_retrieval_bin_filt = 0.15;
 phase_retrieval_cutoff_frequ = 1 * pi; 
 phase_padding = 1; 
 do_tomo = 1;
+butterworth_filter = 0; 
+butterworth_order = 1;
+butterworth_cutoff_frequ = 0.5;
 fbp_filter_padding = 1;
 fbp_filter_freq_cutoff = 1;
 ring_filter = 1;
+dec_levels = 7;
+wname = 'db25';
+sigma = 2.4;
 rot_axis_offset = [];
-rot_axis_tilt = [];
+rot_axis_tilt = 0;
 parfolder = '';
-write_to_scratch = 0;
+write_to_scratch = 1;
 write_flatcor = 0;
 write_phase_map = 0; 
 write_sino = 0; 
@@ -48,41 +54,53 @@ write_reco = 1;
 write_float = 1; 
 write_float_binned = 1; 
 write_8bit = 0;
-write_8bit_binned = 1;
+write_8bit_binned = 0;
 write_16bit = 0; 
-subfolder_reco = '';
+
 gpu_ind = [];
 
 % Set default. Allows parameters to be changed before first data set is added
-ADD('default')
+ADD('default') % or use SET_DEFAULT
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% PARAMETER / DATA SETS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-raw_path = '/asap3/petra3/gpfs/p05/2017/data/11002839/raw/';
-scan_path = [raw_path 'ehh_2017_019_f'];
-raw_roi = [201 2400];
-rot_axis_offset = 1052.5 * 2 / raw_bin;
-proj_range = 1;
-ref_range = 1;
-excentric_rot_axis = 1;
-crop_at_rot_axis = 0;
-stitch_projections = 1; 
-stitch_method = 'sine';
-do_phase_retrieval = 0;
-phase_padding = 1; 
-visualOutput = 0;
-interactive_determination_of_rot_axis = 0;
+raw_path = '/asap3/petra3/gpfs/p05/2017/data/11003063/raw/';
+
+scan_path = [raw_path 'hnee_01_hw_hk776_bn161514'];
 ADD
 
+scan_path = [raw_path 'hnee_02_hw_hk776_bn161514_d300'];
+ADD
 
-parfolder = 'noButterworth';
-butterworth_filter = 0;
-ADD('r')
+%% No butterworth filter
+raw_roi = [101 2100];
+raw_bin = 1;
+phase_bin = 1; 
+butterworth_filter = 0; 
+butterworth_order = 1;
+butterworth_cutoff_frequ = 0.5;
+subfolder_reco = 'noBWfilt';
 
+scan_path = [raw_path 'hnee_03_hw_hk776_bn161514_d150'];
+rot_axis_offset = 9 / raw_bin;
+do_phase_retrieval = 1;
+phase_retrieval_method = 'tie';
+phase_retrieval_reg_par = 2.5; 
+ADD
 
+phase_retrieval_method = 'qp';
+phase_retrieval_bin_filt = 0.1; 
+ADD
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+phase_retrieval_method = 'qpcut';
+phase_retrieval_cutoff_frequ = 1 * pi;
+ADD
+
+phase_retrieval_method = 'qpcut';
+phase_retrieval_cutoff_frequ = 2 * pi;
+ADD
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 p05_reco_loop( SUBSETS, RUN_RECO, PRINT_PARAMETERS)
