@@ -11,6 +11,12 @@
 %
 % To loop over sets of data or parameters sets see 'p05_reco_loop_template'.
 %
+% Errors:
+%
+% GPU CUDA error: device busy
+% Do not call 'gpuDevice()' when ASTRA toolbox is used with multi-GPU
+% support, or MATLAB terminates abnormally with a segmentation violation.
+%
 % Written by Julian Moosmann. First version: 2016-09-28. Last modifcation:
 % 2017-07-05
 
@@ -80,7 +86,7 @@ rot_corr_area1 = []; % ROI to correlate projections at angles 0 & pi. Use [0.75 
 rot_corr_area2 = []; % ROI to correlate projections at angles 0 & pi
 rot_corr_gradient = 0; % use gradient of intensity maps if signal variations are too weak to correlate projections
 rot_axis_tilt = 0; % in rad. camera tilt w.r.t rotation axis. if empty calculate from registration of projections at 0 and pi
-fbp_filter_type = 'Ram-Lak';'linear';
+fbp_filter_type = 'Ram-Lak';'linear'; % Ram-Lak according to Kak/Slaney
 fpb_filter_freq_cutoff = 1; % Cut-off frequency in Fourier space of the above FBP filter
 fbp_filter_padding = 1; % symmetric padding for consistent boundary conditions
 fbp_filter_padding_method = 'symmetric';
@@ -127,87 +133,6 @@ interactive_determination_of_rot_axis_slice = 0.5; % slice number, default: 0.5.
 poolsize = 0.80; % number of workers used in a parallel pool. if > 1: absolute number. if 0 < poolsize < 1: relative amount of all cores to be used
 link_data = 1; % ASTRA data objects become references to Matlab arrays. Reduces memory issues.
 gpu_index = []; % GPU Device index to use, Matlab notation: index starts from 1. default: [], uses all
-
-%% TODO %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% TODO: visual output for phase retrieval: phase map, fft(int), etc
-% TODO: choose regulatrization parameter for phase retrieval via interactive mode 
-% TODO: if visual output none, reduce correlation to chosen method
-% TODO: physically consistent attenutation values of reconstructed slice 
-% TODO: check raw roi, transpose, rot90 for KIT and EHD camera
-% TODO: get rid of transpose when reading image files
-% TODO: vertical stitching
-% TODO: volume shape for excentric rot axis
-% TODO: Interactive plot mode for wavelet-fft fing filter
-% TODO: Improve FilterStripesCombinedWaveletFFT
-% TODO: check proj-flat correlation measure for absolute values
-% TODO: SSIM: include Gaussian blur filter, test
-% TODO: large data set management: parloop, memory, etc
-% TODO: stitching: optimize and refactor, memory efficency, interpolation method
-% TODO: interactive loop over tomo slices for different phase retrieval parameter
-% TODO: automatic determination of rot center
-% TODO: output file format option: 8-bit, 16-bit for sino, phase, proj
-% TODO: additional padding schemes for FBP filter
-% TODO: read sinogram option
-% TODO: set photometric tag for tif files w/o one, turn on respective warning
-% TODO: GPU phase retrieval: parfor-loop requires memory managment
-% TODO: median filter width of ring filter dependence on binning
-% TODO: check offset: proj correlation for rotation axis determination
-% TODO: check offset: flat/proj correlation 
-% TODO: inverse Gaussian filter for phase retrieval, VZC theorem
-% TODO: flat-flat correlation and averaging before proj-flat correlation
-% TODO: proj-flat correlation: take negative logarithm or not?
-% TODO: Check impact of symmetric FBP ifft option        
-
-%% Notes %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-% Padding and phase retrieval:
-% Symmetric padding of intensity maps before phase retrieval cleary reduces
-% artifacts in the retrieved phase maps which are due to inconistent
-% boundary conditions. However, due to local tomography phase retrieval
-% with padding can result in more artifacts in the recostructed volume
-% (such as additonal bumps at the halo described below). After phase
-% retrieval without padding the region close to the left
-% boundary is blended in to the region close to the right boundary and vice
-% versa (same holds for top and bottom). This effect fades out with
-% increasing distance to the boundarys. Due to this blending effect
-% asymmetrical 'density' distributions, which are the cause of halo-like
-% artifacts stretching outwards from the biggest possible circle within the
-% reconstruction volume within a slice, are reduced which reduces the
-% halo-like artifacts as well.
-
-% FOV extension by excentric rotation axis:
-% For absorpion-contrast data or more precisely when no phase retrieval
-% is desired, volumes can be reconstructed from a data set where an excentric
-% position of the rotation axis was used without prior stitching of the
-% projections by simply providing the correct rotation axis position and
-% setting fbp_filter_padding to 1. Maybe, for the automatic detection of the
-% rotation axis to work, the area to correlate has to be adjusted i.e.
-% 'rot_corr_area1'. When using phase retrieval, this
-% approach does not work appropriately and gives rise to artifacts near the
-% center of the reconstructed volume. This is due to the fact, that without
-% stitching the phase is retrieved from a 'cropped' projection which
-% results in inconsitently retrieved low frequencies (large scale
-% variations) in the phase map. Using the 'linear' FBP filter instead of
-% 'Ram-Lak' maybe reduces these artifacts (not tested).
-
-% Correlation of projections and flat fields:
-% Compared to the simple differencing method, the cross correlation method
-% is very likely to give non-optimal results since is more sensitive to
-% small-scale features, such as those stemming from contimation of the beam
-% from the scintllator, diamond window, etc, and less sensitive to
-% variations on a larger scale.
-% Matlab's SSIM becoms time consuming for large data sets because it
-% involves Gaussian blurring.
-
-% Entropy-type determination of rotation axis position
-% Empirically, this does not work well for excentric rotation axis positions and
-% stitchted projections. To be tested
-
-% Ring artefact filter
-
-% GPU CUDA error: device busy
-% Do not call 'gpuDevice()' when ASTRA toolbox is used with multi-GPU
-% support, or MATLAB terminates abnormally with a segmentation violation.
 
 %% External call: parameters set by 'p05_reco_loop' %%%%%%%%%%%%%%%%%%%%%%%
 if exist( 'external_parameter' ,'var')
@@ -1881,6 +1806,8 @@ fprintf(fid, 'full_reconstruction_time : %.1f s\n', toc);
 fprintf(fid, 'date_of_reconstruction : %s\n', datetime);
 fprintf(fid, 'rotation_axis_offset at %u x binning : %f\n', raw_bin, rot_axis_offset);
 fclose(fid);
+% End of log file
+
 PrintVerbose(verbose, '\n log file : %s', logfile_name)
 PrintVerbose(verbose, '\n reco_path : \n%s', reco_path)
 
