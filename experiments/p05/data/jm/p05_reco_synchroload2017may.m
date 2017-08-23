@@ -23,6 +23,7 @@ stitch_projections = 0;
 proj_range = 1; 
 ref_range = 1; 
 correlation_method =  'ssim-ml';
+butterworth_filter = 0;
 do_phase_retrieval = 0;
 phase_retrieval_method = 'tie';'qp';'qpcut';
 phase_retrieval_reg_par = 2.5; 
@@ -200,6 +201,23 @@ write_8bit_binned = 0;
 parfolder = 'noButterworth';
 ADD
 
+scan_path = [raw_path 'syn13_55L_Mg10Gd_12w_load_00'];
+raw_roi = [287 1486];
+raw_bin = 1;
+correlation_method =  'ssim';
+write_flatcor = 0;
+write_float = 1; 
+write_float_binned = 1; 
+write_16bit = 0;
+write_16bit_binned = 0;
+write_8bit = 0;
+write_8bit_binned = 0;
+parfolder = 'test_ssim';
+ADD
+
+correlation_method =  'ssim-ml';
+parfolder = 'test_ssim-ml';
+ADD
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

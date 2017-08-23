@@ -29,6 +29,19 @@ p.cmos.pixel_size_micron = p.cmos.pixel_size * 1e6;
 p.cmos.fov = p.cmos.pixel_size * p.cmos.pixels(1) ./ p.opt.magn;
 p.cmos.fov_mm = p.cmos.fov * 1e3;
 
+%% Stages
+p.stage.rotation.vendor = 'Aerotech';
+p.stage.rotation.travel_range_z = [-10,10];
+
+p.stage.base.vendor = 'Aerotech';
+p.stage.base.type = 'tripod';
+p.stage.base.travel_range_z = [];
+
+p.stage.camera.vendor = '';
+p.stage.camera.type = 'tripod';
+p.stage.camera.travel_range_z = [];
+
+p.stage.sample.vendor = 'Space Fab';
 
 %% Output
 fprintf( '\nOptics:\n' )
@@ -39,3 +52,5 @@ disp( p.ccd )
 
 fprintf( '\nCMOS camera:\n' )
 disp( p.cmos )
+
+disp( p.stage.rotation )

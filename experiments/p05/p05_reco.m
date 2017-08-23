@@ -15,11 +15,12 @@
 % 2017-07-05
 
 close all hidden % close all open windows
-%dbstop if error
+dbstop if error
 
 %% PARAMETERS / SETTINGS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % INPUT %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 scan_path = ...
+    '/asap3/petra3/gpfs/p05/2017/data/11002845/raw/ste_02_l1_bb';
     '/asap3/petra3/gpfs/p05/2017/data/11002839/raw/ehh_2017_019_b';
     '/asap3/petra3/gpfs/p05/2017/data/11003063/raw/hnee_01_hw_hk776_bn161514';    
     '/asap3/petra3/gpfs/p05/2017/data/11003950/raw/syn13_55L_Mg10Gd_12w_load_00';        
@@ -28,12 +29,12 @@ scan_path = ...
 read_flatcor = 0; % read flatfield-corrected images from disc, skips preprocessing
 read_flatcor_path = ''; % subfolder of 'flat_corrected' containing projections
 % PREPROCESSING %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-raw_roi = []; % [y0 y1] vertical roi.  skips first raw_roi(1)-1 lines, reads until raw_roi(2)
+raw_roi = [351 1500]; % [y0 y1] vertical roi.  skips first raw_roi(1)-1 lines, reads until raw_roi(2)
 raw_bin = 2; % projection binning factor: 1, 2, or 4
-excentric_rot_axis = 0; % off-centered rotation axis increasing FOV. -1: left, 0: centeerd, 1: right. influences rot_corr_area1
+excentric_rot_axis = 1; % off-centered rotation axis increasing FOV. -1: left, 0: centeerd, 1: right. influences rot_corr_area1
 crop_at_rot_axis = 0; % recommended for scans with excentric rotation axis when no projection stitching is done
-stitch_projections = 0; % stitch projection (for 2 pi scans) at rotation axis position. "doubles" number of voxels
-stitch_method = 'sine'; % 'step': no interpolation, 'linear','sine': linear interpolation of overlap region. !!! adjust: correlation area
+stitch_projections = 1; % stitch projection (for 2 pi scans) at rotation axis position. "doubles" number of voxels
+stitch_method = 'sine'; % 'step': no interpolation, 'linear','sine': linear/sinusoidal interpolation of overlap region. !!! adjust: correlation area
 proj_range = 1; % range of projections to be used (from all that are found). if empty: all, if scalar: stride
 ref_range = 1; % range of flat fields to be used (from all that are found). start:incr:end. if empty: all (equals 1). if scalar: stride
 darkFiltPixHot = 0.01; % Hot pixel filter parameter for dark fields, for details see 'FilterPixel'
@@ -43,7 +44,7 @@ refFiltPixDark = 0.005; % Dark pixel filter parameter for flat fields, for detai
 projFiltPixHot = 0.01; % Hot pixel filter parameter for projections, for details see 'FilterPixel'
 projFiltPixDark = 0.005; % Dark pixel filter parameter for projections, for details see 'FilterPixel'
 correlate_proj_flat = 1;%  correlate flat fields and projection to correct beam shaking
-correlation_method = 'ssim-ml'; 'diff';'shift';'ssim';'std';'entropy';'cov';'cross'; % method for correlation. 'diff': difference measure (preferred), 'shift': computes relative shift using image cross-correlation
+correlation_method = 'ssim-ml'; 'cross-entropy12';'cross-entropy21';'cross-entropyx';'diff';'shift';'ssim';'std';'entropy';'cov';'cross'; % method for correlation. 'diff': difference measure (preferred), 'shift': computes relative shift using image cross-correlation
 corr_shift_max_pixelshift = 0.25; % maximum pixelshift allowed for 'shift'-correlation method: if 0 use the best match (i.e. the one with the least shift), if > 0 uses all flats with shifts smaller than corr_shift_max_pixelshift
 corr_num_flats = 3; % number of flat fields used for average/median of flats. for 'shift'-correlation its the maximum number
 ring_current_normalization = 1; % normalize flat fields and projections by ring current
@@ -60,7 +61,7 @@ energy = []; % in eV. if empty: read from log file
 sample_detector_distance = []; % in m. if empty: read from log file
 eff_pixel_size = []; % in m. if empty: read from log file. effective pixel size =  detector pixel size / magnification
 % Phase retrieval %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-do_phase_retrieval = 1;
+do_phase_retrieval = 0;
 phase_bin = 1; % Binning factor after phase retrieval, but before tomographic reconstruction
 phase_retrieval_method = 'tie';'qpcut';  'tie'; %'qp' 'ctf' 'tie' 'qp2' 'qpcut'
 phase_retrieval_reg_par = 2.5; % regularization parameter
@@ -90,7 +91,7 @@ astra_pixel_size = 1; % size of a detector pixel: if different from one 'vol_siz
 take_neg_log = []; % take negative logarithm. if empty, use 1 for attenuation contrast, 0 for phase contrast
 % Output %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 out_path = '';% absolute path were output data will be stored. !!overwrites the write_to_scratch flag. if empty uses the beamtime directory and either 'processed' or 'scratch_cc'
-write_to_scratch = 0; % write to 'scratch_cc' instead of 'processed'
+write_to_scratch = 1; % write to 'scratch_cc' instead of 'processed'
 write_flatcor = 0; % save preprocessed flat corrected projections
 write_phase_map = 0; % save phase maps (if phase retrieval is not 0)
 write_sino = 0; % save sinograms (after preprocessing & before FBP filtering and phase retrieval)
@@ -128,7 +129,8 @@ link_data = 1; % ASTRA data objects become references to Matlab arrays. Reduces 
 gpu_index = []; % GPU Device index to use, Matlab notation: index starts from 1. default: [], uses all
 
 %% TODO %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% TODO: visual output for phase retrieval: phase map, fft(int), 
+% TODO: visual output for phase retrieval: phase map, fft(int), etc
+% TODO: choose regulatrization parameter for phase retrieval via interactive mode 
 % TODO: if visual output none, reduce correlation to chosen method
 % TODO: physically consistent attenutation values of reconstructed slice 
 % TODO: check raw roi, transpose, rot90 for KIT and EHD camera
@@ -311,6 +313,7 @@ else
 end
 
 % Memory
+PrintVerbose(verbose, '\n hostname : %s', getenv( 'HOSTNAME' ) );
 [mem_free, mem_avail, mem_total] = free_memory;
 PrintVerbose(verbose, '\n system memory: free, available, total : %.3g GiB, %.3g GiB, %.3g GiB', mem_free/1024^3, mem_avail/1024^3, mem_total/1024^3)
 if isempty( gpu_index )
@@ -523,6 +526,17 @@ elseif ~read_flatcor
     % Dark field correction
     flat = bsxfun( @minus, flat, dark );
     
+%     %% TEST or REMOVE
+%     % Check for missing intensities        
+%     parfor nn = 1:num_ref_used
+%         f = flat(:,:,nn);
+%         m = (f ./ dark) < 1;
+%         f(m) = dark(m);
+%         flat(:,:,nn) = f;
+%     end
+%     
+    
+    
     % Ring current normalization
     if ring_current_normalization(1)
         switch lower( cam )
@@ -703,6 +717,9 @@ elseif ~read_flatcor
         c_diff2_l2 = c_diff1_l1;
         c_std = zeros( num_proj_used, num_ref_used);
         c_ent = c_std;
+        c_cross_entropy12 = c_std;
+        c_cross_entropy21 = c_std;
+        c_cross_entropyx = c_std;
         c_cov = c_std;
         c_corr = c_std;
         c_ssim = c_std;
@@ -724,7 +741,7 @@ elseif ~read_flatcor
                         flat_corr_shift_1(pp,ff) = round( out.shift1, decimal_round_precision );
                         flat_corr_shift_2(pp,ff) = round( out.shift2, decimal_round_precision) ; % relevant shift
                     end
-                case {'diff', 'std', 'entropy', 'ssim', 'ssim-ml', 'cov', 'corr'}
+                case {'diff', 'std', 'entropy', 'cross-entropy12', 'cross-entropy21', 'cross-entropyx' 'ssim', 'ssim-ml', 'cov', 'corr'}
                     % Dynamic range of camera for SSIM
 %                     switch lower( cam )
 %                         case 'kit'
@@ -763,7 +780,16 @@ elseif ~read_flatcor
                         % std: standard deviation of ratio
                         c_std(pp,ff) = std2( r );
                         % entropy of ratio
-                        c_ent(pp,ff) = entropy( double(r) );
+                        c_ent(pp,ff) = entropy( double(r) );                        
+                        % cross entropy
+                        p1 = imhist( normat( p(:) ) ) ./ numel( p );                        
+                        p2 = imhist( normat( f(:) ), numel( p1 ) ) ./ numel( f );
+                        m = boolean( (p1 == 0) + (p2 == 0) );
+                        p1(m) = [];
+                        p2(m) = [];
+                        c_cross_entropy12(pp,ff) = sum( p1 .* log2( p2 ) ) + sum( (1 - p1) .* log2( 1 - p2 ) );
+                        c_cross_entropy21(pp,ff) = sum( p2 .* log2( p1 ) ) + sum( (1 - p2) .* log2( 1 - p1 ) );
+                        c_cross_entropyx(pp,ff) = abs( sum( p2 .* log2( p1 ) ) - sum( p1 .* log2( p2 ) ) );
                         % cov: cross covariance
                         cov_pf = mean2( ( p - p_mean ) .* (f - f_mean ) );
                         c_cov(pp,ff) = - cov_pf;
@@ -804,16 +830,14 @@ elseif ~read_flatcor
                     axis  tight
                     title(sprintf('minimal absolute horizontal shift (unused)'))
                                    
-                case {'diff', 'std', 'entropy', 'ssim', 'ssim-ml', 'cov', 'corr'}
+                case {'diff', 'std', 'entropy', '', 'ssim', 'ssim-ml', 'cov', 'corr'}
                     m = 2; n = 1;
                     subplot(m,n,1);
                     %f = @(x) normat( min( x, [], 2));                    
                     f = @(x) normat(x(1,:))';
-                    Y = [f(c_diff1_l2), f(c_std), f(c_ent), f(c_cov), f(c_corr), f(c_ssim), f(c_ssim_ml)];
-                    %Y = [f(c_diff1_l1), f(c_diff1_l2), f(c_diff2_l1), f(c_diff2_l2)];
+                    Y = [f(c_diff1_l2), f(c_std), f(c_ent), f(c_cross_entropy12), f(c_cross_entropy21), f(c_cross_entropyx), f(c_cov), f(c_corr), f(c_ssim), f(c_ssim_ml)];                    
                     plot( Y, '-' )
-                    legend('iso diff L2', 'ratio std dev', 'ratio entropy', 'cov', 'corr', 'ssim', 'ssim-ml' )
-                    %legend('anisotropic L1', 'anisotropic L2', 'isotropic L1', 'isotropic L2')
+                    legend('iso diff L2', 'ratio std dev', 'ratio entropy', 'cross entropy 12', 'cross entropy 21','cross entropy x', 'cov', 'corr', 'ssim', 'ssim-ml' )
                     axis tight
                     title(sprintf('correlation measures: projection #1'))
                   
@@ -829,6 +853,9 @@ elseif ~read_flatcor
                     [c_diff1_l2_val,c_diff1_l2_pos] = sort( c_diff1_l2, 2 );
                     [c_std_val,c_std_pos] = sort( c_std, 2 );    
                     [c_ent_val,c_ent_pos] = sort( c_ent, 2 );                        
+                    [c_cross_ent12_val,c_cross_ent12_pos] = sort( c_cross_entropy12, 2 );
+                    [c_cross_ent21_val,c_cross_ent21_pos] = sort( c_cross_entropy21, 2 );
+                    [c_cross_entx_val,c_cross_entx_pos] = sort( c_cross_entropyx, 2 );
                     [c_cov_val,c_cov_pos] = sort( c_cov, 2 );
                     [c_corr_val,c_corr_pos] = sort( c_corr, 2 );    
                     [c_ssim_val,c_ssim_pos] = sort( c_ssim, 2 );
@@ -848,6 +875,12 @@ elseif ~read_flatcor
                         corr_mat = c_std;
                     case 'entropy'
                         corr_mat = c_ent;
+                    case 'cross-entropy12'
+                        corr_mat = c_cross_entropy12;
+                    case 'cross-entropy21'
+                        corr_mat = c_cross_entropy21;
+                    case 'cross-entropyx'
+                        corr_mat = c_cross_entropyx;
                     case 'ssim'
                         corr_mat = c_ssim;
                     case 'ssim-ml'
@@ -918,7 +951,7 @@ elseif ~read_flatcor
     end
     
     %% Ring artifact filter
-    sino_slice = round( size( proj, 2) / 2 );    
+    sino_slice = round( size( proj, 2) / 2 );
     sino_unfilt = squeeze( proj(:,sino_slice,:) )';
     if ring_filter(1)
         t = toc;
@@ -926,7 +959,7 @@ elseif ~read_flatcor
         switch lower( ring_filter_method )
             
             % Combined wavelet-FFT filter to remove ring artrifacts
-            case 'wavelet-fft'                
+            case 'wavelet-fft'
                 
                 parfor nn = 1:size( proj, 2)
                     sino = squeeze( proj(:,nn,:) )';
@@ -936,18 +969,25 @@ elseif ~read_flatcor
                     proj(:,nn,:) = sino;
                 end
                 PrintVerbose(verbose, ' Time elapsed: %.1f s (%.2f min)', toc-t, (toc-t)/60)
-               
+                
                 if visualOutput(1)
                     
                     h3 = figure('Name', 'Sinogram and ring filter');
                     
                     subplot(3,1,1)
+                    angles = [cur.proj.angle] / 180 * pi;
                     [~, sorted_angle_index] = sort( angles );
+                    if strcmpi(cam, 'kit')
+                        % drop angles where projections are missing
+                        angles = angles(1 + proj_nums);
+                    else
+                        angles = angles(proj_range);
+                    end
                     imsc( sino_unfilt(:,sorted_angle_index) )
                     axis equal tight
                     title(sprintf('sino unfiltered, y = %u', sino_slice))
-                    colorbar 
-
+                    colorbar
+                    
                     subplot(3,1,2)
                     imsc( squeeze( proj(:,sino_slice,:) )' )
                     axis equal tight
@@ -963,7 +1003,7 @@ elseif ~read_flatcor
                     drawnow
                 end
                 
-            % Simple ring artifact removal filter
+            % Simple ring artifact filter
             case 'jm'                                                
                 if numel( ring_filter_median_width ) > 1
                     %% Combine if/else
@@ -1510,7 +1550,7 @@ end
 %% Phase retrieval %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 edp = [energy, sample_detector_distance, eff_pixel_size_binned];
 if do_phase_retrieval(1)
-    PrintVerbose(verbose, '\nPhase retrieval.')
+    PrintVerbose(verbose, '\nPhase retrieval')
     t = toc;
     PrintVerbose(verbose, '\n energy : %g eV', energy)
     PrintVerbose(verbose, '\n sample detector distance : %g m', sample_detector_distance)
@@ -1544,7 +1584,7 @@ if do_phase_retrieval(1)
         %proj(:,:,nn) = gather( im(1:raw_im_shape_binned1, 1:raw_im_shape_binned2) );
     end
     pause(0.01)
-    PrintVerbose(verbose, ' Time elapsed: %g s (%.2f min)', toc-t, (toc-t)/60)
+    PrintVerbose(verbose, '\n done in %g s (%.2f min)', toc-t, (toc-t)/60)
     
     % Save phase maps
     if write_phase_map(1)

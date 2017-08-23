@@ -19,7 +19,7 @@ interactive_determination_of_rot_axis = 0;
 interactive_determination_of_rot_axis_tilt = 0;
 raw_roi = [];
 scan_path = '';
-raw_bin = 1;
+raw_bin = 2;
 excentric_rot_axis = 0;
 crop_at_rot_axis = 0;
 stitch_projections = 0; 
@@ -84,6 +84,7 @@ butterworth_cutoff_frequ = 0.5;
 subfolder_reco = 'noBWfilt';
 
 scan_path = [raw_path 'hnee_03_hw_hk776_bn161514_d150'];
+subfolder_reco = '';
 rot_axis_offset = 9 / raw_bin;
 do_phase_retrieval = 1;
 phase_retrieval_method = 'tie';
@@ -100,6 +101,45 @@ ADD
 
 phase_retrieval_method = 'qpcut';
 phase_retrieval_cutoff_frequ = 2 * pi;
+ADD
+
+raw_roi = [201 2100];
+raw_bin = 2;
+scan_path = [raw_path 'hnee_04_hw_hk776_bn1513_1016b'];
+do_phase_retrieval = 1;
+phase_retrieval_method = 'tie';
+phase_retrieval_reg_par = 2.5; 
+rot_axis_offset = 2*8.75 / raw_bin;
+correlation_method =  'ssim-ml';
+parfolder = correlation_method;
+ADD
+
+correlation_method =  'ssim';
+parfolder = correlation_method;
+ADD
+
+correlation_method =  'ssim-ml';
+ring_filter_method = 'wavelet-fft'; 
+dec_levels = 1:3;
+wname = 'db25';
+sigma = 2.4;
+parfolder = sprintf('ringfilt_wavelet-fft_%s_decLev%s', wname, sprintf('%u', dec_levels) );
+ADD
+
+dec_levels = 1:5;
+parfolder = sprintf('ringfilt_wavelet-fft_%s_decLev%s', wname, sprintf('%u', dec_levels) );
+ADD
+
+dec_levels = 1:7;
+parfolder = sprintf('ringfilt_wavelet-fft_%s_decLev%s', wname, sprintf('%u', dec_levels) );
+ADD
+
+dec_levels = 2:6;
+parfolder = sprintf('ringfilt_wavelet-fft_%s_decLev%s', wname, sprintf('%u', dec_levels) );
+ADD
+
+parfolder = '';
+do_phase_retrieval = 0;
 ADD
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
