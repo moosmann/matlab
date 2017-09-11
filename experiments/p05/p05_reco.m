@@ -18,7 +18,7 @@
 % support, or MATLAB terminates abnormally with a segmentation violation.
 %
 % Written by Julian Moosmann. First version: 2016-09-28. Last modifcation:
-% 2017-09-23
+% 2017-09-11
 
 close all hidden % close all open windows
 dbstop if error
@@ -26,6 +26,8 @@ dbstop if error
 %% PARAMETERS / SETTINGS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % INPUT %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 scan_path = ...
+    '/asap3/petra3/gpfs/p05/2017/data/11003435/raw/ony_42';
+    '/asap3/petra3/gpfs/p05/2017/data/11003435/raw/ony_24'; % fly scan
     '/asap3/petra3/gpfs/p05/2017/data/11003950/raw/syn13_55L_Mg10Gd_12w_load_00';
     '/asap3/petra3/gpfs/p05/2017/data/11002845/raw/ste_02_l1_bb';
     '/asap3/petra3/gpfs/p05/2017/data/11002839/raw/ehh_2017_019_b';
@@ -35,21 +37,27 @@ scan_path = ...
 read_flatcor = 0; % read flatfield-corrected images from disc, skips preprocessing
 read_flatcor_path = ''; % subfolder of 'flat_corrected' containing projections
 % PREPROCESSING %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-raw_roi = [501 1500]; % [y0 y1] vertical roi.  skips first raw_roi(1)-1 lines, reads until raw_roi(2)
+raw_roi = []; % [y0 y1] vertical roi.  skips first raw_roi(1)-1 lines, reads until raw_roi(2)
 raw_bin = 2; % projection binning factor: 1, 2, or 4
-excentric_rot_axis = 1; % off-centered rotation axis increasing FOV. -1: left, 0: centeerd, 1: right. influences rot_corr_area1
+excentric_rot_axis = 0; % off-centered rotation axis increasing FOV. -1: left, 0: centeerd, 1: right. influences rot_corr_area1
 crop_at_rot_axis = 0; % recommended for scans with excentric rotation axis when no projection stitching is done
-stitch_projections = 1; % stitch projection (for 2 pi scans) at rotation axis position. "doubles" number of voxels
-stitch_method = 'sine'; % 'step': no interpolation, 'linear','sine': linear/sinusoidal interpolation of overlap region. !!! adjust: correlation area
-proj_range = 2; % range of projections to be used (from all that are found). if empty: all, if scalar: stride
-ref_range = 1:20; % range of flat fields to be used (from all that are found). start:incr:end. if empty: all (equals 1). if scalar: stride
+stitch_projections = 0; % stitch projection (for 2 pi scans) at rotation axis position. "doubles" number of voxels
+stitch_method = 'sine';'linear';'sine'; %  ! adjust correlation area if necessary !
+    % 'step' : no interpolation, use step function
+    % 'linear' : linear interpolation of overlap region
+    % 'sine' : sinusoidal interpolation of overlap region
+proj_range = 1; % range of projections to be used (from all found). if empty or 1: all, if scalar: stride
+ref_range = 1; % range of flat fields to be used (from all found). start:incr:end. if empty or 1: all. if scalar: stride
+energy = 22000;%[]; % in eV! if empty: read from log file
+sample_detector_distance = []; % in m. if empty: read from log file
+eff_pixel_size = []; % in m. if empty: read from log file. effective pixel size =  detector pixel size / magnification
 darkFiltPixHot = 0.01; % Hot pixel filter parameter for dark fields, for details see 'FilterPixel'
 darkFiltPixDark = 0.005; % Dark pixel filter parameter for dark fields, for details see 'FilterPixel'
 refFiltPixHot = 0.01; % Hot pixel filter parameter for flat fields, for details see 'FilterPixel'
 refFiltPixDark = 0.005; % Dark pixel filter parameter for flat fields, for details see 'FilterPixel'
 projFiltPixHot = 0.01; % Hot pixel filter parameter for projections, for details see 'FilterPixel'
 projFiltPixDark = 0.005; % Dark pixel filter parameter for projections, for details see 'FilterPixel'
-correlation_method = 'ssim-ml';'diff';'shift';'ssim';'std';'entropy';'cov';'cross';'cross-entropy12';'cross-entropy21';'cross-entropyx';'none';
+correlation_method = 'none';'ssim-ml';'diff';'shift';'ssim';'std';'entropy';'cov';'cross';'cross-entropy12';'cross-entropy21';'cross-entropyx';
     % 'ssim-ml' : Matlab's structural similarity index (SSIM), includes Gaussian smoothing
     % 'entropy' : entropy-like measure
     % 'ssim' : own implementation of SSIM, smoothing not yet implemented
@@ -63,16 +71,13 @@ flat_corr_area1 = [1 floor(100/raw_bin)]; % correlation area: index vector or re
 flat_corr_area2 = [0.2 0.8]; %correlation area: index vector or relative/absolute position of [first pix, last pix]
 decimal_round_precision = 2; % precision when rounding pixel shifts
 ring_filter = 1; % ring artifact filter
-ring_filter_method = 'jm';'wavelet-fft'; 
-ring_filter_median_width = 11; %[3 11 21 31 39];
-dec_levels = 2:6;
-wname = 'db30';'db25';
-sigma = 2.4;
-energy = []; % in eV. if empty: read from log file
-sample_detector_distance = []; % in m. if empty: read from log file
-eff_pixel_size = []; % in m. if empty: read from log file. effective pixel size =  detector pixel size / magnification
+ring_filter_method = 'jm';'wavelet-fft';
+ring_filter_median_width = 11; % for 'jm' method[3 11 21 31 39];
+dec_levels = 2:6; % decomposition levels for 'wavelet-fft'
+wname = 'db30';'db25'; % wavelet type for 'wavelet-fft'
+sigma = 2.4; %  suppression factor for 'wavelet-fft'
 % Phase retrieval %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-do_phase_retrieval = 0;
+do_phase_retrieval = 0; % See 'PhaseFilter' for detailed description of parameters !
 phase_bin = 1; % Binning factor after phase retrieval, but before tomographic reconstruction
 phase_retrieval_method = 'tie';'qpcut';  'tie'; %'qp' 'ctf' 'tie' 'qp2' 'qpcut'
 phase_retrieval_reg_par = 2.5; % regularization parameter
@@ -87,7 +92,7 @@ rot_angle_full = []; % in radians: empty ([]), full angle of rotation, or array 
 rot_angle_offset = pi; % global rotation of reconstructed volume
 rot_axis_offset = []; % if empty use automatic computation
 rot_axis_pos = []; % if empty use automatic computation. either offset or pos has to be empty. can't use both
-rot_corr_area1 = []; % ROI to correlate projections at angles 0 & pi. Use [0.75 1] or so for scans with an excentric rotation axisq
+rot_corr_area1 = []; % ROI to correlate projections at angles 0 & pi. Use [0.75 1] or so for scans with an excentric rotation axis
 rot_corr_area2 = []; % ROI to correlate projections at angles 0 & pi
 rot_corr_gradient = 0; % use gradient of intensity maps if signal variations are too weak to correlate projections
 rot_axis_tilt = 0; % in rad. camera tilt w.r.t rotation axis. if empty calculate from registration of projections at 0 and pi
@@ -103,18 +108,18 @@ take_neg_log = []; % take negative logarithm. if empty, use 1 for attenuation co
 % Output %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 out_path = '';% absolute path were output data will be stored. !!overwrites the write_to_scratch flag. if empty uses the beamtime directory and either 'processed' or 'scratch_cc'
 write_to_scratch = 1; % write to 'scratch_cc' instead of 'processed'
-write_flatcor = 0; % save preprocessed flat corrected projections
-write_phase_map = 0; % save phase maps (if phase retrieval is not 0)
-write_sino = 0; % save sinograms (after preprocessing & before FBP filtering and phase retrieval)
-write_sino_phase = 0; % save sinograms of phase mapsls
+write_flatcor = 1; % save preprocessed flat corrected projections
+write_phase_map = 1; % save phase maps (if phase retrieval is not 0)
+write_sino = 1; % save sinograms (after preprocessing & before FBP filtering and phase retrieval)
+write_sino_phase = 1; % save sinograms of phase maps
 write_reco = 1; % save reconstructed slices (if do_tomo=1)
 write_float = 1; % single precision (32-bit float) tiff
-write_16bit = 0; 
-write_8bit = 0; 
+write_16bit = 1; 
+write_8bit = 1; 
 reco_bin = 2; % binning factor of reconstructed volume
 write_float_binned = 1; % binned single precision (32-bit float) tiff
-write_16bit_binned = 0; 
-write_8bit_binned = 0; 
+write_16bit_binned = 1; 
+write_8bit_binned = 1; 
 write_8bit_segmented = 0; % experimental: threshold segmentation for histograms with 2 distinct peaks: __/\_/\__
 compression_method = 'histo';'full'; 'std'; 'threshold'; % method to compression dynamic range into [0, 1]
 compression_parameter = [0.20 0.15]; % compression-method specific parameter
@@ -138,6 +143,8 @@ interactive_determination_of_rot_axis_slice = 0.5; % slice number, default: 0.5.
 poolsize = 0.80; % number of workers used in a parallel pool. if > 1: absolute number. if 0 < poolsize < 1: relative amount of all cores to be used
 link_data = 1; % ASTRA data objects become references to Matlab arrays. Reduces memory issues.
 gpu_index = []; % GPU Device index to use, Matlab notation: index starts from 1. default: [], uses all
+
+%% END OF PARAMETERS / SETTINGS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %% External call: parameters set by 'p05_reco_loop' %%%%%%%%%%%%%%%%%%%%%%%
 if exist( 'external_parameter' ,'var')
@@ -316,6 +323,7 @@ raw_im_shape_binned2 = raw_im_shape_binned(2);
 PrintVerbose(verbose, '\n raw image shape : %g  %g', raw_im_shape_raw)
 PrintVerbose(verbose, '\n raw image shape roi : %g  %g', raw_im_shape)
 PrintVerbose(verbose, '\n raw image shape binned : %g  %g', raw_im_shape_binned)
+PrintVerbose(verbose, '\n raw_binning_factor : %u', raw_bin)
 
 %% P05 log-file
 str = dir( sprintf( '%s*scan.log', scan_path) );
@@ -642,12 +650,37 @@ elseif ~read_flatcor
         drawnow
     end
     
+    %% Angles
+    if exist('cur', 'var') && isfield(cur, 'proj') && isfield( cur.proj, 'angle')
+        % for KIT cam this includes missing angles
+        angles = [cur.proj.angle] / 180 * pi;        
+        if strcmpi(cam, 'kit')
+            % drop angles where projections are missing
+            angles = angles(1 + proj_nums);
+        else
+            angles = angles(proj_range);
+        end
+    else
+        if isfield( par, 'projections' )
+            num_proj = double( par.projections );
+        elseif isfield( par, 'n_angles' )
+            num_proj = double( par.n_angles );
+        end
+        switch lower( cam )
+            case 'ehd'
+                angles = rot_angle_full * (0:num_proj - 1) / (num_proj - 1); % EHD: ok
+            case 'kit'
+                angles = rot_angle_full * (0:num_proj - 1) / num_proj; % KIT: ok if par.projections exist
+        end
+    end
+    [~, sorted_angle_index] = sort( angles );
+    
     %% Ring artifact filter
     sino_slice = round( size( proj, 2) / 2 );
-    sino_unfilt = squeeze( proj(:,sino_slice,:) )';
+    sino_unfilt = squeeze( proj(:,sino_slice,sorted_angle_index) )';
     if ring_filter(1)
         t = toc;
-        PrintVerbose(verbose, '\nFilter ring artifacts.')
+        PrintVerbose(verbose, '\nFilter ring artifacts. Method: %s. ', ring_filter_method)
         switch lower( ring_filter_method )
             
             % Combined wavelet-FFT filter to remove ring artrifacts
@@ -661,33 +694,26 @@ elseif ~read_flatcor
                     proj(:,nn,:) = sino;
                 end
                 PrintVerbose(verbose, ' Time elapsed: %.1f s (%.2f min)', toc-t, (toc-t)/60)
+                sino_filt = squeeze( proj(:,sino_slice,sorted_angle_index) )';
                 
                 if visualOutput(1)
                     
                     h3 = figure('Name', 'Sinogram and ring filter');
                     
-                    subplot(3,1,1)
-                    angles = [cur.proj.angle] / 180 * pi;
-                    [~, sorted_angle_index] = sort( angles );
-                    if strcmpi(cam, 'kit')
-                        % drop angles where projections are missing
-                        angles = angles(1 + proj_nums);
-                    else
-                        angles = angles(proj_range);
-                    end
-                    imsc( sino_unfilt(:,sorted_angle_index) )
+                    subplot(3,1,1)                    
+                    imsc( sino_unfilt )
                     axis equal tight
                     title(sprintf('sino unfiltered, y = %u', sino_slice))
                     colorbar
                     
-                    subplot(3,1,2)
-                    imsc( squeeze( proj(:,sino_slice,:) )' )
+                    subplot(3,1,2)                    
+                    imsc( sino_filt )
                     axis equal tight
                     title(sprintf('sino filtered, y = %u', sino_slice))
                     colorbar
                     
                     subplot(3,1,3)
-                    imsc( ( squeeze( proj(:,sino_slice,:) )' - sino_unfilt ) )
+                    imsc( sino_filt - sino_unfilt )
                     axis equal tight
                     title(sprintf('sino filt - sino, y = %u', sino_slice))
                     colorbar
@@ -718,6 +744,7 @@ elseif ~read_flatcor
                     mask = proj_mean_med ./ proj_mean;
                     proj = bsxfun( @times, proj, mask);
                 end
+                sino_filt = squeeze( proj(:,sino_slice,sorted_angle_index) )';
                 
                 PrintVerbose(verbose, ' Time elapsed: %.1f s (%.2f min)', toc-t, (toc-t)/60)
                 PrintVerbose( verbose, '\n ring filter mask min/max: %f, %f', min( mask(:) ), max( mask(:) ) )
@@ -731,7 +758,7 @@ elseif ~read_flatcor
                     colorbar %('Location', 'southoutside')
                     
                     subplot(2,2,2)
-                    imsc( ( squeeze( proj(:,sino_slice,:) ) - sino_unfilt' )' )
+                    imsc( sino_filt - sino_unfilt )
                     axis equal tight
                     title(sprintf('sino filt - sino, y = %u', sino_slice))
                     colorbar %('Location', 'southoutside')
@@ -822,28 +849,6 @@ if do_tomo(1)
         end
     end
     PrintVerbose(verbose, '\n full rotation angle: %g * pi', rot_angle_full / pi)
-    if exist('cur', 'var') && isfield(cur, 'proj') && isfield( cur.proj, 'angle')
-        % for KIT cam this includes missing angles
-        angles = [cur.proj.angle] / 180 * pi;
-        if strcmpi(cam, 'kit')
-            % drop angles where projections are missing
-            angles = angles(1 + proj_nums);
-        else
-            angles = angles(proj_range);
-        end
-    else
-        if isfield( par, 'projections' )
-            num_proj = double( par.projections );
-        elseif isfield( par, 'n_angles' )
-            num_proj = double( par.n_angles );
-        end
-        switch lower( cam )
-            case 'ehd'
-                angles = rot_angle_full * (0:num_proj - 1) / (num_proj - 1); % EHD: ok
-            case 'kit'
-                angles = rot_angle_full * (0:num_proj - 1) / num_proj; % KIT: ok if par.projections exist
-        end
-    end
     if numel( angles ) ~= num_proj_used
         error('Number of elements in array of angles (%g) unequal number of projections read (%g)', numel( angles ), num_proj_used)
     end
@@ -1294,7 +1299,7 @@ if do_phase_retrieval(1)
 end
 
 %% Save sinograms of phase maps
-if write_sino_phase(1)
+if do_phase_retrieval(1) && write_sino_phase(1)
     t = toc;
     PrintVerbose(verbose, '\nSave phase map sinogram:')
     CheckAndMakePath(sino_phase_path)
