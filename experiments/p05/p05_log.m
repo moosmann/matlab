@@ -55,6 +55,7 @@ par.dark_prefix = '%s';
 par.num_dark_img = '%u';
 par.pos_dpc_s_pos_z = '%f';
 par.camera_distance = '%f';
+par.camera_dist = '%f';
 par.proj_prefix = '%s';
 par.exposure_time = '%f';
 par.off_axes = '%u';
@@ -87,8 +88,11 @@ end
 
 %% Ring current
 [folder] = fileparts( file );
-proj_cur = read_dat( sprintf('%s/proj_current.dat', folder ) );
-ref_cur = read_dat( sprintf('%s/ref_current.dat', folder ) );
+proj_cur = single( read_dat( sprintf('%s/proj_current.dat', folder ) ) );
+ref_cur = single( read_dat( sprintf('%s/ref_current.dat', folder ) ) );
+if ~isfield( par, 'angle_list' )
+    par.angle_list = 180 * (0:single(par.projections) - 1) / single(par.projections);
+end
 for nn = 1:numel( proj_cur )    
     cur.proj(nn).val = proj_cur(nn);
     cur.proj(nn).ind = nn - 1;

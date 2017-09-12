@@ -11,7 +11,7 @@
 %
 % To loop over sets of data or parameters sets see 'p05_reco_loop_template'.
 %
-% Errors:
+% Known errors:
 %
 % GPU CUDA error: device busy
 % Do not call 'gpuDevice()' when ASTRA toolbox is used with multi-GPU
@@ -26,8 +26,8 @@ dbstop if error
 %% PARAMETERS / SETTINGS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % INPUT %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 scan_path = ...
-    '/asap3/petra3/gpfs/p05/2017/data/11003435/raw/ony_42';
     '/asap3/petra3/gpfs/p05/2017/data/11003435/raw/ony_24'; % fly scan
+    '/asap3/petra3/gpfs/p05/2017/data/11003435/raw/ony_42';    
     '/asap3/petra3/gpfs/p05/2017/data/11003950/raw/syn13_55L_Mg10Gd_12w_load_00';
     '/asap3/petra3/gpfs/p05/2017/data/11002845/raw/ste_02_l1_bb';
     '/asap3/petra3/gpfs/p05/2017/data/11002839/raw/ehh_2017_019_b';
@@ -37,7 +37,7 @@ scan_path = ...
 read_flatcor = 0; % read flatfield-corrected images from disc, skips preprocessing
 read_flatcor_path = ''; % subfolder of 'flat_corrected' containing projections
 % PREPROCESSING %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-raw_roi = []; % [y0 y1] vertical roi.  skips first raw_roi(1)-1 lines, reads until raw_roi(2)
+raw_roi = [501 3840]; % [y0 y1] vertical roi.  skips first raw_roi(1)-1 lines, reads until raw_roi(2)
 raw_bin = 2; % projection binning factor: 1, 2, or 4
 excentric_rot_axis = 0; % off-centered rotation axis increasing FOV. -1: left, 0: centeerd, 1: right. influences rot_corr_area1
 crop_at_rot_axis = 0; % recommended for scans with excentric rotation axis when no projection stitching is done
@@ -71,13 +71,13 @@ flat_corr_area1 = [1 floor(100/raw_bin)]; % correlation area: index vector or re
 flat_corr_area2 = [0.2 0.8]; %correlation area: index vector or relative/absolute position of [first pix, last pix]
 decimal_round_precision = 2; % precision when rounding pixel shifts
 ring_filter = 1; % ring artifact filter
-ring_filter_method = 'wavelet-fft';'jm';
+ring_filter_method = 'jm';'wavelet-fft';
 ring_filter_waveletfft_dec_levels = 2:6; % decomposition levels for 'wavelet-fft'
 ring_filter_waveletfft_wname = 'db30';'db25'; % wavelet type for 'wavelet-fft'
 ring_filter_waveletfft_sigma = 2.4; %  suppression factor for 'wavelet-fft'
 ring_filter_jm_median_width = 11; % [3 11 21 31 39];
 % PHASE RETRIEVAL %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-do_phase_retrieval = 0; % See 'PhaseFilter' for detailed description of parameters !
+do_phase_retrieval = 1; % See 'PhaseFilter' for detailed description of parameters !
 phase_bin = 1; % Binning factor after phase retrieval, but before tomographic reconstruction
 phase_retrieval_method = 'tie';'qpcut';  'tie'; %'qp' 'ctf' 'tie' 'qp2' 'qpcut'
 phase_retrieval_reg_par = 2.5; % regularization parameter
@@ -349,6 +349,8 @@ eff_pixel_size_binned = raw_bin * eff_pixel_size;
 if isempty( sample_detector_distance )
     if isfield( par, 'camera_distance')
         sample_detector_distance = par.camera_distance / 1000;
+    elseif isfield( par, 'camera_dist')
+        sample_detector_distance = par.camera_dist / 1000;
     elseif isfield( par, 'o_ccd_dist')
         sample_detector_distance = par.o_ccd_dist / 1000;
     end
@@ -430,7 +432,7 @@ elseif ~read_flatcor
     dark_med_max = max( dark(:) );
     PrintVerbose(verbose, ' Time elapsed: %.1f s', toc-t)
     if visualOutput(1)
-        h1 = figure('Name', 'mean dark field, flat field, projections');
+        h1 = figure('Name', 'data and flat-and-dark-field correction');
         subplot(2,3,1)
         imsc1( dark );
         axis equal tight
@@ -465,17 +467,6 @@ elseif ~read_flatcor
     % Dark field correction
     flat = bsxfun( @minus, flat, dark );
     
-%     %% TEST or REMOVE
-%     % Check for missing intensities        
-%     parfor nn = 1:num_ref_used
-%         f = flat(:,:,nn);
-%         m = (f ./ dark) < 1;
-%         f(m) = dark(m);
-%         flat(:,:,nn) = f;
-%     end
-%     
-    
-    
     % Ring current normalization
     if ring_current_normalization(1)
         switch lower( cam )
@@ -493,11 +484,11 @@ elseif ~read_flatcor
             scale_factor = 100 ./ shiftdim( ref_rc, -1 );
             flat = bsxfun( @times, flat, scale_factor );
             if visualOutput(1)
-                hrc = figure('Name', 'Ring current normalization');
+                hrc = figure('Name', 'Ring currents');
                 subplot(2,1,1);
                 plot( ref_rc(:), '.' )
                 axis tight% equal tight square
-                title(sprintf('flats'))                
+                title(sprintf('ring current: flat fields'))                
                 legend( sprintf( 'mean: %.2f mA', ref_rcm) )
                 drawnow
             end
@@ -526,7 +517,7 @@ elseif ~read_flatcor
         if exist( 'h1' , 'var' )
             figure(h1)
         else
-            h1 = figure('Name', 'mean dark field, flat field, projections');
+            h1 = figure('Name', 'data and flat-and-dark-field correction');
         end
         subplot(2,3,2)
         imsc1( flat(:,:,1) )
@@ -550,7 +541,7 @@ elseif ~read_flatcor
          if exist( 'h1' , 'var' )
             figure(h1)
         else
-            h1 = figure('Name', 'mean dark field, flat field, projections');
+            h1 = figure('Name', 'data and flat-and-dark-field correction');
          end
         filename = sprintf('%s%s', scan_path, img_names_mat(1, :));
         raw1 = Binning( FilterPixel( read_image( filename, '', raw_roi, tif_info ), [projFiltPixHot, projFiltPixDark]), raw_bin) / raw_bin^2;
@@ -558,7 +549,7 @@ elseif ~read_flatcor
         imsc1( raw1 )
         axis equal tight
         xticks([]);yticks([])
-        title(sprintf('raw proj: #1'))
+        title(sprintf('raw proj #1'))
         drawnow
         colorbar
     end
@@ -613,12 +604,12 @@ elseif ~read_flatcor
                 if exist( 'hrc', 'var' )
                     figure(hrc)
                 else
-                   hrc = figure('Name', 'Ring current normalization'); 
+                   hrc = figure('Name', 'Ring currents'); 
                 end
                 subplot(2,1,2);
                 plot( proj_rc(:), '.' )
                 axis tight %equal
-                title(sprintf('projections'))
+                title(sprintf('ring current: raw projections'))
                 legend( sprintf( 'mean: %.2f mA', proj_rcm) )
                 drawnow
             end
@@ -627,7 +618,7 @@ elseif ~read_flatcor
         end
     end
     
-    % Check for non-positive values
+    % Enforce positivity
     parfor nn = 1:num_proj_used
         im = proj(:,:,nn);
         m = im < 1;
@@ -649,7 +640,7 @@ elseif ~read_flatcor
         if exist( 'h1' , 'var' )
             figure(h1)
         else
-            h1 = figure('Name', 'mean dark field, flat field, projections');
+            h1 = figure('Name', 'data and flat-and-dark-field correction');
         end
                 
         subplot(2,3,4)
@@ -706,7 +697,7 @@ elseif ~read_flatcor
     sino_unfilt = squeeze( proj(:,sino_slice,sorted_angle_index) )';
     if ring_filter(1)
         t = toc;
-        PrintVerbose(verbose, '\nFilter ring artifacts. Method: %s. ', ring_filter_method)
+        PrintVerbose(verbose, '\nFilter ring artifacts using %s. ', ring_filter_method)
         switch lower( ring_filter_method )
             
             % Combined wavelet-FFT filter to remove ring artrifacts

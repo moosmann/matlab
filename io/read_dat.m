@@ -73,6 +73,8 @@ switch type
         cl = 'uint16';      %JH, 11.12.09
     case 'L'
         cl = 'uint32';
+    case 'I'
+        cl = 'int16';
     otherwise
         error(['Data type not supported:' type]);
 end
