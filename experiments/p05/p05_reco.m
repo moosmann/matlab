@@ -18,7 +18,7 @@
 % support, or MATLAB terminates abnormally with a segmentation violation.
 %
 % Written by Julian Moosmann. First version: 2016-09-28. Last modifcation:
-% 2017-09-11
+% 2017-09-12
 
 close all hidden % close all open windows
 dbstop if error
@@ -46,8 +46,8 @@ stitch_method = 'sine';'linear';'sine'; %  ! adjust correlation area if necessar
     % 'step' : no interpolation, use step function
     % 'linear' : linear interpolation of overlap region
     % 'sine' : sinusoidal interpolation of overlap region
-proj_range = 4; % range of projections to be used (from all found). if empty or 1: all, if scalar: stride
-ref_range = 4; % range of flat fields to be used (from all found). start:incr:end. if empty or 1: all. if scalar: stride
+proj_range = 1; % range of projections to be used (from all found). if empty or 1: all, if scalar: stride
+ref_range = 1; % range of flat fields to be used (from all found). start:incr:end. if empty or 1: all. if scalar: stride
 energy = 22000;%[]; % in eV! if empty: read from log file
 sample_detector_distance = []; % in m. if empty: read from log file
 eff_pixel_size = []; % in m. if empty: read from log file. effective pixel size =  detector pixel size / magnification
@@ -71,12 +71,12 @@ flat_corr_area1 = [1 floor(100/raw_bin)]; % correlation area: index vector or re
 flat_corr_area2 = [0.2 0.8]; %correlation area: index vector or relative/absolute position of [first pix, last pix]
 decimal_round_precision = 2; % precision when rounding pixel shifts
 ring_filter = 1; % ring artifact filter
-ring_filter_method = 'jm';'wavelet-fft';
-ring_filter_median_width = 11; % for 'jm' method[3 11 21 31 39];
-dec_levels = 2:6; % decomposition levels for 'wavelet-fft'
-wname = 'db30';'db25'; % wavelet type for 'wavelet-fft'
-sigma = 2.4; %  suppression factor for 'wavelet-fft'
-% Phase retrieval %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+ring_filter_method = 'wavelet-fft';'jm';
+ring_filter_waveletfft_dec_levels = 2:6; % decomposition levels for 'wavelet-fft'
+ring_filter_waveletfft_wname = 'db30';'db25'; % wavelet type for 'wavelet-fft'
+ring_filter_waveletfft_sigma = 2.4; %  suppression factor for 'wavelet-fft'
+ring_filter_jm_median_width = 11; % [3 11 21 31 39];
+% PHASE RETRIEVAL %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 do_phase_retrieval = 0; % See 'PhaseFilter' for detailed description of parameters !
 phase_bin = 1; % Binning factor after phase retrieval, but before tomographic reconstruction
 phase_retrieval_method = 'tie';'qpcut';  'tie'; %'qp' 'ctf' 'tie' 'qp2' 'qpcut'
@@ -84,7 +84,7 @@ phase_retrieval_reg_par = 2.5; % regularization parameter
 phase_retrieval_bin_filt = 0.15; % threshold for quasiparticle retrieval 'qp', 'qp2'
 phase_retrieval_cutoff_frequ = 1 * pi; % in radian. frequency cutoff in Fourier space for 'qpcut' phase retrieval
 phase_padding = 1; % padding of intensities before phase retrieval
-% Tomography parameters %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% TOMOGRAPHY %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 do_tomo = 1; % run tomographic reconstruction
 vol_shape = [];% shape of the volume to be reconstructed, either in absolute number of voxels or in relative number w.r.t. the default volume which is given by the detector width and height
 vol_size = []; % if empty, unit voxel size is assumed
@@ -105,7 +105,7 @@ butterworth_order = 1;
 butterworth_cutoff_frequ = 1;
 astra_pixel_size = 1; % size of a detector pixel: if different from one 'vol_size' needs to be ajusted
 take_neg_log = []; % take negative logarithm. if empty, use 1 for attenuation contrast, 0 for phase contrast
-% Output %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% OUTPUT %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 out_path = '';% absolute path were output data will be stored. !!overwrites the write_to_scratch flag. if empty uses the beamtime directory and either 'processed' or 'scratch_cc'
 write_to_scratch = 1; % write to 'scratch_cc' instead of 'processed'
 write_flatcor = 1; % save preprocessed flat corrected projections
@@ -195,7 +195,7 @@ if ~strcmp(raw_folder, 'raw')
 end
 PrintVerbose(verbose, '%s', scan_name)
 PrintVerbose(verbose, '\n scan_path:%s', scan_path)
-% Save scan path in file
+% Save scan path to file
 filename = [userpath, filesep, 'experiments/p05/path_to_latest_scan'];
 fid = fopen( filename , 'w' );
 fprintf( fid, '%s', scan_path );
@@ -431,9 +431,10 @@ elseif ~read_flatcor
     PrintVerbose(verbose, ' Time elapsed: %.1f s', toc-t)
     if visualOutput(1)
         h1 = figure('Name', 'mean dark field, flat field, projections');
-        subplot(2,2,1)
+        subplot(2,3,1)
         imsc1( dark );
         axis equal tight
+        xticks([]);yticks([])
         title(sprintf('dark field'))
         colorbar
         drawnow
@@ -487,14 +488,17 @@ elseif ~read_flatcor
                 ref_check = ref_nums;
         end
         if isequal( ref_check, [cur.ref(ref_ind).ind])
-            scale_factor = 100 ./ shiftdim( [cur.ref(ref_ind).val], -1 );
+            ref_rc = [cur.ref(ref_ind).val];
+            ref_rcm = mean( ref_rc(:) );
+            scale_factor = 100 ./ shiftdim( ref_rc, -1 );
             flat = bsxfun( @times, flat, scale_factor );
             if visualOutput(1)
                 hrc = figure('Name', 'Ring current normalization');
                 subplot(2,1,1);
-                plot( scale_factor(:), '.' )
+                plot( ref_rc(:), '.' )
                 axis tight% equal tight square
-                title(sprintf('flats'))
+                title(sprintf('flats'))                
+                legend( sprintf( 'mean: %.2f mA', ref_rcm) )
                 drawnow
             end
         else
@@ -524,9 +528,10 @@ elseif ~read_flatcor
         else
             h1 = figure('Name', 'mean dark field, flat field, projections');
         end
-        subplot(2,2,2)
+        subplot(2,3,2)
         imsc1( flat(:,:,1) )
-        axis equal tight% square
+        axis equal tight
+        xticks([]);yticks([])
         title(sprintf('flat field #1'))
         drawnow
         colorbar
@@ -549,10 +554,11 @@ elseif ~read_flatcor
          end
         filename = sprintf('%s%s', scan_path, img_names_mat(1, :));
         raw1 = Binning( FilterPixel( read_image( filename, '', raw_roi, tif_info ), [projFiltPixHot, projFiltPixDark]), raw_bin) / raw_bin^2;
-        subplot(2,2,3)
+        subplot(2,3,3)
         imsc1( raw1 )
         axis equal tight
-        title(sprintf('raw projection #1 (roi)'))
+        xticks([]);yticks([])
+        title(sprintf('raw proj: #1'))
         drawnow
         colorbar
     end
@@ -599,7 +605,9 @@ elseif ~read_flatcor
                 proj_check = proj_nums;
         end
         if isequal( proj_check, [cur.proj(proj_ind).ind] )
-            scale_factor = 100 ./ shiftdim( [cur.proj(proj_ind).val], -1 );
+            proj_rc = [cur.proj(proj_ind).val];           
+            proj_rcm = mean( proj_rc(:) );            
+            scale_factor = 100 ./ shiftdim( proj_rc, -1 );
             proj = bsxfun( @times, proj, scale_factor );
             if visualOutput(1)
                 if exist( 'hrc', 'var' )
@@ -608,9 +616,10 @@ elseif ~read_flatcor
                    hrc = figure('Name', 'Ring current normalization'); 
                 end
                 subplot(2,1,2);
-                plot( scale_factor(:), '.' )
+                plot( proj_rc(:), '.' )
                 axis tight %equal
                 title(sprintf('projections'))
+                legend( sprintf( 'mean: %.2f mA', proj_rcm) )
                 drawnow
             end
         else
@@ -642,11 +651,28 @@ elseif ~read_flatcor
         else
             h1 = figure('Name', 'mean dark field, flat field, projections');
         end
-        subplot(2,2,4)
+                
+        subplot(2,3,4)
         imsc1( proj(:,:,1))
         axis equal tight
-        title(sprintf('flat-&-dark corrected projection #1'))
+        xticks([]);yticks([])
+        title(sprintf('intensity: first proj'))
         colorbar
+        
+        subplot(2,3,5)
+        imsc1( proj(:,:,round(size(proj,3)/2)))
+        axis equal tight
+        xticks([]);yticks([])
+        title(sprintf('intensity: middle proj'))
+        colorbar
+        
+        subplot(2,3,6)
+        imsc1( proj(:,:,end))
+        axis equal tight
+        xticks([]);yticks([])
+        title(sprintf('intensity: last proj'))
+        colorbar
+        
         drawnow
     end
     
@@ -689,7 +715,7 @@ elseif ~read_flatcor
                 parfor nn = 1:size( proj, 2)
                     sino = squeeze( proj(:,nn,:) )';
                     [d2, d1] = size( sino );
-                    sino = FilterStripesCombinedWaveletFFT( sino, dec_levels, wname, sigma )';
+                    sino = FilterStripesCombinedWaveletFFT( sino, ring_filter_waveletfft_dec_levels, ring_filter_waveletfft_wname, ring_filter_waveletfft_sigma )';
                     sino = sino( 1:d1, 1:d2 );
                     proj(:,nn,:) = sino;
                 end
@@ -723,9 +749,9 @@ elseif ~read_flatcor
                 
             % Simple ring artifact filter
             case 'jm'                                                
-                if numel( ring_filter_median_width ) > 1
+                if numel( ring_filter_jm_median_width ) > 1
                     %% Combine if/else
-                    for nn = ring_filter_median_width
+                    for nn = ring_filter_jm_median_width
                         %m=sum(im);
                         proj_mean = sum( proj, 3);
                         
@@ -740,7 +766,7 @@ elseif ~read_flatcor
                     end                    
                 else                    
                     proj_mean = mean( proj, 3);
-                    proj_mean_med = medfilt2( proj_mean, [ring_filter_median_width, 1], 'symmetric' );
+                    proj_mean_med = medfilt2( proj_mean, [ring_filter_jm_median_width, 1], 'symmetric' );
                     mask = proj_mean_med ./ proj_mean;
                     proj = bsxfun( @times, proj, mask);
                 end
@@ -1109,7 +1135,7 @@ if do_tomo(1)
         end
              
         rot_axis_pos = raw_im_shape_binned1 / 2 + rot_axis_offset;
-        fprintf( '\nEND OF INTERACTIVE MODE\n' )
+        fprintf( '\nEND OF INTERACTIVE MODE' )
    
         tint = toc - tint;
     end   
@@ -1367,8 +1393,6 @@ if do_tomo(1)
     if isempty( take_neg_log )
         take_neg_log = 1;
     end
-    vol_min = NaN;
-    vol_max = NaN;
     angles_reco = angles;
     % Delete redundant projection
     if isequal( angles(1), angles(end) )
@@ -1423,7 +1447,7 @@ if do_tomo(1)
         end
         CheckAndMakePath( reco_path )
         
-        % Save reco path and scan path in file
+        % Save reco path to file
         filename = [userpath, filesep, 'experiments/p05/path_to_latest_reco'];
         fid = fopen( filename , 'w' );
         fprintf( fid, '%s', reco_path );
@@ -1555,7 +1579,7 @@ fprintf(fid, 'interactive_determination_of_rot_axis : %u\n', interactive_determi
 % FBP
 fprintf(fid, 'ring_filter : %u\n', ring_filter);
 fprintf(fid, 'ring_filter_method : %s\n', ring_filter_method);
-fprintf(fid, 'ring_filter_median_width : %s\n', sprintf( '%u ', ring_filter_median_width) );
+fprintf(fid, 'ring_filter_jm_median_width : %s\n', sprintf( '%u ', ring_filter_jm_median_width) );
 fprintf(fid, 'fbp_filter_type : %s\n', fbp_filter_type);
 fprintf(fid, 'fpb_filter_freq_cutoff : %f\n', fpb_filter_freq_cutoff);
 fprintf(fid, 'fbp_filter_padding : %u\n', fbp_filter_padding);
@@ -1566,7 +1590,9 @@ fprintf(fid, 'butterworth_cutoff_frequency : %f\n', butterworth_cutoff_frequ);
 fprintf(fid, 'astra_pixel_size : %f\n', astra_pixel_size);
 fprintf(fid, 'take_negative_logarithm : %u\n', take_neg_log);
 fprintf(fid, 'gpu_name : %s\n', gpu.Name);
-fprintf(fid, 'volume_min-max : %g %g\n', vol_min, vol_max);
+if exist( 'vol_min', 'var')
+    fprintf(fid, 'volume_min-max : %g %g\n', vol_min, vol_max);
+end
 fprintf(fid, 'write_float : %u\n', write_float);
 fprintf(fid, 'write_16bit : %g\n', write_16bit);
 fprintf(fid, 'write_8bit : %u\n', write_8bit);

@@ -225,14 +225,14 @@ switch correlation_method
                     axis  tight
                     title(sprintf('minimal absolute horizontal shift (unused)'))
                     
-                otherwise
+                case {'cov', 'corr', 'ssim'}
+                    
                     m = 2; n = 1;
-                    subplot(m,n,1);
-                    %f = @(x) normat( min( x, [], 2));
+                    subplot(m,n,1);                    
                     f = @(x) normat(x(1,:))';
-                    Y = [f(c_diff1_l2), f(c_std), f(c_ent), f(c_cross_entropy12), f(c_cross_entropy21), f(c_cross_entropyx), f(c_cov), f(c_corr), f(c_ssim), f(c_ssim_ml)];
+                    Y = [ f(c_cov), f(c_corr), f(c_ssim)];
                     plot( Y, '-' )
-                    legend('iso diff L2', 'ratio std dev', 'ratio entropy', 'cross entropy 12', 'cross entropy 21','cross entropy x', 'cov', 'corr', 'ssim', 'ssim-ml' )
+                    legend( 'cov', 'corr', 'ssim' )
                     axis tight
                     title(sprintf('correlation measures: projection #1'))
                     
@@ -240,9 +240,34 @@ switch correlation_method
                     f = @(x) normat(x(1,:))';
                     Y = [ f(c_ssim), f(-c_l), f(-c_c), f(-c_s) ];
                     plot( Y, '-' )
-                    legend('ssim', 'luminance', 'contrast', 'structure' )
+                    legend( 'ssim', 'luminance', 'contrast', 'structure' )
                     axis tight
                     title(sprintf('SSIM and components: projection #1'))
+                
+                case 'all'
+                    
+%                     m = 2; n = 1;
+%                     subplot(m,n,1);
+%                     %f = @(x) normat( min( x, [], 2));
+%                     f = @(x) normat(x(1,:))';
+%                     Y = [f(c_diff1_l2), f(c_std), f(c_ent), f(c_cross_entropy12), f(c_cross_entropy21), f(c_cross_entropyx), f(c_cov), f(c_corr), f(c_ssim), f(c_ssim_ml)];
+%                     plot( Y, '-' )
+%                     legend('iso diff L2', 'ratio std dev', 'ratio entropy', 'cross entropy 12', 'cross entropy 21','cross entropy x', 'cov', 'corr', 'ssim', 'ssim-ml' )
+%                     axis tight
+%                     title(sprintf('correlation measures: projection #1'))
+
+                    
+                otherwise
+                                        
+                    mid = round( num_proj_used / 2 );
+                    f = @(mat,pp) mat(pp,:)';
+                    Y = [ f( corr_mat, 1), f( corr_mat, mid), f( corr_mat, num_proj_used) ];
+                    plot( Y, '-' )
+                    legend( 'first proj', 'mid proj', 'last proj' )
+                    axis tight
+                    title(sprintf('correlation method: %s', correlation_method))      
+                    xlabel( 'flat field index' )
+                    ylabel( 'measure' )
                     
             end
             drawnow
