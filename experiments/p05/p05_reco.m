@@ -46,8 +46,8 @@ stitch_method = 'sine';'linear';'sine'; %  ! adjust correlation area if necessar
     % 'step' : no interpolation, use step function
     % 'linear' : linear interpolation of overlap region
     % 'sine' : sinusoidal interpolation of overlap region
-proj_range = 1; % range of projections to be used (from all found). if empty or 1: all, if scalar: stride
-ref_range = 1; % range of flat fields to be used (from all found). start:incr:end. if empty or 1: all. if scalar: stride
+proj_range = 4; % range of projections to be used (from all found). if empty or 1: all, if scalar: stride
+ref_range = 4; % range of flat fields to be used (from all found). start:incr:end. if empty or 1: all. if scalar: stride
 energy = 22000;%[]; % in eV! if empty: read from log file
 sample_detector_distance = []; % in m. if empty: read from log file
 eff_pixel_size = []; % in m. if empty: read from log file. effective pixel size =  detector pixel size / magnification
@@ -57,7 +57,7 @@ refFiltPixHot = 0.01; % Hot pixel filter parameter for flat fields, for details 
 refFiltPixDark = 0.005; % Dark pixel filter parameter for flat fields, for details see 'FilterPixel'
 projFiltPixHot = 0.01; % Hot pixel filter parameter for projections, for details see 'FilterPixel'
 projFiltPixDark = 0.005; % Dark pixel filter parameter for projections, for details see 'FilterPixel'
-correlation_method = 'none';'ssim-ml';'diff';'shift';'ssim';'std';'entropy';'cov';'cross';'cross-entropy12';'cross-entropy21';'cross-entropyx';
+correlation_method = 'ssim-ml';'diff';'shift';'ssim';'std';'entropy';'cov';'cross';'cross-entropy12';'cross-entropy21';'cross-entropyx';
     % 'ssim-ml' : Matlab's structural similarity index (SSIM), includes Gaussian smoothing
     % 'entropy' : entropy-like measure
     % 'ssim' : own implementation of SSIM, smoothing not yet implemented
@@ -633,7 +633,7 @@ elseif ~read_flatcor
     PrintVerbose(verbose, '\n hot- / dark-pixel filter threshold : %f, %f', HotThresh, DarkThresh )    
     
     %% Flat field correction %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%        
-    proj_flat_correlation( proj, flat, correlation_method, flat_corr_area1, flat_corr_area2, raw_im_shape_binned, corr_shift_max_pixelshift, corr_num_flats, decimal_round_precision, flatcor_path, verbose, visualOutput);
+    [proj, corr] = proj_flat_correlation( proj, flat, correlation_method, flat_corr_area1, flat_corr_area2, raw_im_shape_binned, corr_shift_max_pixelshift, corr_num_flats, decimal_round_precision, flatcor_path, verbose, visualOutput);
     
     PrintVerbose(verbose, '\n sinogram size = [%g, %g, %g]', size( proj ) )
     if visualOutput(1)
