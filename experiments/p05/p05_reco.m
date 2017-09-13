@@ -18,7 +18,7 @@
 % support, or MATLAB terminates abnormally with a segmentation violation.
 %
 % Written by Julian Moosmann. First version: 2016-09-28. Last modifcation:
-% 2017-09-12
+% 2017-09-13
 
 close all hidden % close all open windows
 dbstop if error
@@ -37,7 +37,7 @@ scan_path = ...
 read_flatcor = 0; % read flatfield-corrected images from disc, skips preprocessing
 read_flatcor_path = ''; % subfolder of 'flat_corrected' containing projections
 % PREPROCESSING %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-raw_roi = [501 3840]; % [y0 y1] vertical roi.  skips first raw_roi(1)-1 lines, reads until raw_roi(2)
+raw_roi = [501 3500]; % [y0 y1] vertical roi.  skips first raw_roi(1)-1 lines, reads until raw_roi(2)
 raw_bin = 2; % projection binning factor: 1, 2, or 4
 excentric_rot_axis = 0; % off-centered rotation axis increasing FOV. -1: left, 0: centeerd, 1: right. influences rot_corr_area1
 crop_at_rot_axis = 0; % recommended for scans with excentric rotation axis when no projection stitching is done
@@ -108,18 +108,18 @@ take_neg_log = []; % take negative logarithm. if empty, use 1 for attenuation co
 % OUTPUT %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 out_path = '';% absolute path were output data will be stored. !!overwrites the write_to_scratch flag. if empty uses the beamtime directory and either 'processed' or 'scratch_cc'
 write_to_scratch = 1; % write to 'scratch_cc' instead of 'processed'
-write_flatcor = 1; % save preprocessed flat corrected projections
-write_phase_map = 1; % save phase maps (if phase retrieval is not 0)
-write_sino = 1; % save sinograms (after preprocessing & before FBP filtering and phase retrieval)
-write_sino_phase = 1; % save sinograms of phase maps
+write_flatcor = 0; % save preprocessed flat corrected projections
+write_phase_map = 0; % save phase maps (if phase retrieval is not 0)
+write_sino = 0; % save sinograms (after preprocessing & before FBP filtering and phase retrieval)
+write_sino_phase = 0; % save sinograms of phase maps
 write_reco = 1; % save reconstructed slices (if do_tomo=1)
 write_float = 1; % single precision (32-bit float) tiff
-write_16bit = 1; 
-write_8bit = 1; 
-reco_bin = 2; % binning factor of reconstructed volume
+write_16bit = 0; 
+write_8bit = 0; 
+reco_bin = 1; % binning factor of reconstructed volume
 write_float_binned = 1; % binned single precision (32-bit float) tiff
-write_16bit_binned = 1; 
-write_8bit_binned = 1; 
+write_16bit_binned = 0; 
+write_8bit_binned = 0; 
 write_8bit_segmented = 0; % experimental: threshold segmentation for histograms with 2 distinct peaks: __/\_/\__
 compression_method = 'histo';'full'; 'std'; 'threshold'; % method to compression dynamic range into [0, 1]
 compression_parameter = [0.20 0.15]; % compression-method specific parameter
@@ -135,7 +135,7 @@ subfolder_sino = ''; % subfolder in 'sino'
 subfolder_reco = ''; % subfolder in 'reco'
 % INTERACTION %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 verbose = 1; % print information to standard output
-visualOutput = 1; % show images and plots during reconstruction
+visual_output = 1; % show images and plots during reconstruction
 interactive_determination_of_rot_axis = 1; % reconstruct slices with different rotation axis offsets
 interactive_determination_of_rot_axis_tilt = 0; % reconstruct slices with different offset AND tilts of the rotation axis
 interactive_determination_of_rot_axis_slice = 0.5; % slice number, default: 0.5. if in [0,1): relative, if in (1, N]: absolute
@@ -148,7 +148,7 @@ gpu_index = []; % GPU Device index to use, Matlab notation: index starts from 1.
 
 %% External call: parameters set by 'p05_reco_loop' %%%%%%%%%%%%%%%%%%%%%%%
 if exist( 'external_parameter' ,'var')
-    visualOutput = 0;
+    visual_output = 0;
     interactive_determination_of_rot_axis = 0;
     fields = fieldnames( external_parameter );
     for nn = 1:numel( fields )
@@ -176,7 +176,7 @@ if abs(excentric_rot_axis)
     end
 end
 
-%% Input folder
+%% Folders: input
 while scan_path(end) == filesep
     scan_path(end) = [];
 end
@@ -201,7 +201,7 @@ fid = fopen( filename , 'w' );
 fprintf( fid, '%s', scan_path );
 fclose( fid );
 
-%% Output folder
+%% Folders: output
 out_folder = 'processed';
 if write_to_scratch(1)
     out_folder = 'scratch_cc';
@@ -425,13 +425,17 @@ elseif ~read_flatcor
         im( im > im_mean + 4*im_std) = im_mean;
         darks(:, :, nn) = Binning( FilterPixel( im, [darkFiltPixHot darkFiltPixDark]), raw_bin) / raw_bin^2;
     end
-    dark_min = min( darks(:) );
-    dark_max = max( darks(:) );
-    dark = squeeze( median(darks, 3) );
+    darks_min = min( darks(:) );
+    darks_max = max( darks(:) );
+    for nn = num_dark:-1:1
+        darks_to_use(nn) = boolean( max2( darks(:,:,nn) )  );        
+    end
+    dark = squeeze( median(darks(:,:,darks_to_use), 3) );
+    clear darks
     dark_med_min = min( dark(:) );
     dark_med_max = max( dark(:) );
     PrintVerbose(verbose, ' Time elapsed: %.1f s', toc-t)
-    if visualOutput(1)
+    if visual_output(1)
         h1 = figure('Name', 'data and flat-and-dark-field correction');
         subplot(2,3,1)
         imsc1( dark );
@@ -451,15 +455,22 @@ elseif ~read_flatcor
     PrintVerbose( verbose, ' Allocated bytes: %.2f GiB.', Bytes( flat, 3 ) )
     
     % Parallel loop
+    refs_to_use = zeros( 1, size( flat,3), 'logical');
     parfor nn = 1:num_ref_used
-        filename = sprintf('%s%s', scan_path, ref_names_mat(nn, :));
+        filename = sprintf('%s%s', scan_path, ref_names_mat(nn,:));
         flat(:, :, nn) = Binning( FilterPixel( read_image( filename, '', raw_roi, tif_info ), [refFiltPixHot refFiltPixDark]), raw_bin) / raw_bin^2;
+        
         % Check for zeros
         num_zeros =  sum( sum( flat(:,:,nn) < 1 ) );
-        if num_zeros > 0
-            fprintf('\n WARNING: values of %u pixels of flat field no %u are below 1.\n', num_zeros, nn)
-        end
+        refs_to_use(nn) = ~boolean( num_zeros  );
+%         if num_zeros > 0
+%             fprintf('\n WARNING: values of %u pixels of flat field no %u are below 1.\n', num_zeros, nn)
+%         end
     end
+    
+    % Delete empty refs  
+    flat(:,:,~refs_to_use) = [];    
+    
     % min/max values before dark field subtraction and ring current normalization
     flat_min = min( flat(:) );
     flat_max = max( flat(:) );
@@ -471,23 +482,21 @@ elseif ~read_flatcor
     if ring_current_normalization(1)
         switch lower( cam )
             case 'kit'
-                %ref_ind = ref_nums + 1 ;
-                ref_ind = ref_range ;
-                ref_check = ref_ind - 1;
-            case 'ehd'
-                ref_ind = ref_range;
+                %ref_ind = ref_nums + 1 ;                
+                ref_check = ref_range - 1;
+            case 'ehd'                
                 ref_check = ref_nums;
         end
-        if isequal( ref_check, [cur.ref(ref_ind).ind])
-            ref_rc = [cur.ref(ref_ind).val];
+        if isequal( ref_check, [cur.ref(ref_range).ind])
+            ref_rc = [cur.ref(ref_range).val];
             ref_rcm = mean( ref_rc(:) );
-            scale_factor = 100 ./ shiftdim( ref_rc, -1 );
+            scale_factor = 100 ./ shiftdim( ref_rc(refs_to_use), -1 );
             flat = bsxfun( @times, flat, scale_factor );
-            if visualOutput(1)
+            if visual_output(1)
                 hrc = figure('Name', 'Ring currents');
                 subplot(2,1,1);
                 plot( ref_rc(:), '.' )
-                axis tight% equal tight square
+                axis tight
                 title(sprintf('ring current: flat fields'))                
                 legend( sprintf( 'mean: %.2f mA', ref_rcm) )
                 drawnow
@@ -497,8 +506,8 @@ elseif ~read_flatcor
         end
     end
     
-    % Check for non-positive values
-    parfor nn = 1:num_ref_used
+    % Enforce positivity
+    parfor nn = 1:size( flat, 3 )
         im = flat(:,:,nn);
         m = im < 1;
         im(m) = 1;
@@ -506,14 +515,18 @@ elseif ~read_flatcor
     end
     flat_min2 = min( flat(:) );
     flat_max2 = max( flat(:) );
-    
     num_zeros =  sum( flat(:) < 1 );
     if num_zeros > 0
         fprintf('\n WARNING: flat field contains %u zeros\n', num_zeros)
     end
-    
+            
+    nn = sum( ~refs_to_use(:) );
+    num_ref_used = num_ref_used - nn;
     PrintVerbose(verbose, ' Time elapsed: %.1f s', toc-t)
-    if visualOutput(1)
+    PrintVerbose( verbose && nn,'\n discarded empty refs : %u', nn )
+    
+    % Show flat field
+    if visual_output(1)
         if exist( 'h1' , 'var' )
             figure(h1)
         else
@@ -536,8 +549,8 @@ elseif ~read_flatcor
     PrintVerbose( verbose, ' Allocated bytes: %.2f GiB.', Bytes( proj, 3 ) )
     img_names_mat = NameCellToMat( proj_names(proj_range) );
     
-    % Display first raw images
-    if visualOutput(1)
+    % Display first raw image
+    if visual_output(1)
          if exist( 'h1' , 'var' )
             figure(h1)
         else
@@ -566,18 +579,30 @@ elseif ~read_flatcor
         filename = sprintf('%s%s', scan_path, img_names_mat(round(num_proj_used/2), :));
         [~, ht(1), dt(1)] = FilterPixel( read_image( filename, '', raw_roi, tif_info ), [projFiltPixHot, projFiltPixDark]);
         
-        HotThresh = mean( ht );
-        DarkThresh = mean( dt );        
+        HotThresh = median( ht );
+        DarkThresh = median( dt );        
     else
         HotThresh = projFiltPixHot;
         DarkThresh = projFiltPixDark;                        
     end
     
     % Read raw projections
+    projs_to_use = zeros( 1, size( proj,3), 'logical' );
     parfor nn = 1:num_proj_used
-        filename = sprintf('%s%s', scan_path, img_names_mat(nn, :));
-        proj(:, :, nn) = Binning( FilterPixel( read_image( filename, '', raw_roi, tif_info ), [HotThresh, DarkThresh]), raw_bin) / raw_bin^2;
+        filename = sprintf('%s%s', scan_path, img_names_mat(nn,:));
+        proj(:, :, nn) = Binning( FilterPixel( read_image( filename, '', raw_roi, tif_info ), [HotThresh, DarkThresh]), raw_bin) / raw_bin^2;        
+        
+         % Check for zeros
+        num_zeros =  sum( sum( proj(:,:,nn) < 1 ) );
+        projs_to_use(nn) = ~boolean( num_zeros  );
+%         if num_zeros > 0
+%             fprintf('\n WARNING: values of %u pixels of projection no %u are below 1.\n', num_zeros, nn)
+%         end
     end
+        
+    % Delete empty projections
+    proj(:,:,~projs_to_use) = [];
+    
     raw_min = min( proj(:) );
     raw_max = max( proj(:) );
     
@@ -588,19 +613,18 @@ elseif ~read_flatcor
     if ring_current_normalization(1)
         switch lower( cam )
             case 'kit'
-                %proj_ind = proj_nums + 1;
-                proj_ind = proj_range;
-                proj_check = proj_ind - 1;
-            case 'ehd'
-                proj_ind = proj_range;
+                %proj_ind = proj_nums + 1;                
+                proj_check = proj_range - 1;
+            case 'ehd'                
                 proj_check = proj_nums;
         end
-        if isequal( proj_check, [cur.proj(proj_ind).ind] )
-            proj_rc = [cur.proj(proj_ind).val];           
+        if isequal( proj_check, [cur.proj(proj_range).ind] )
+            proj_rc = [cur.proj(proj_range).val];           
             proj_rcm = mean( proj_rc(:) );            
-            scale_factor = 100 ./ shiftdim( proj_rc, -1 );
+            scale_factor = 100 ./ shiftdim( proj_rc(projs_to_use), -1 );
             proj = bsxfun( @times, proj, scale_factor );
-            if visualOutput(1)
+            % Plot ring current
+            if visual_output(1)
                 if exist( 'hrc', 'var' )
                     figure(hrc)
                 else
@@ -608,18 +632,18 @@ elseif ~read_flatcor
                 end
                 subplot(2,1,2);
                 plot( proj_rc(:), '.' )
-                axis tight %equal
+                axis tight
                 title(sprintf('ring current: raw projections'))
                 legend( sprintf( 'mean: %.2f mA', proj_rcm) )
                 drawnow
             end
         else
-            fprintf('\n WARNING: projections not normalized by ring current. Names read from dir() and log-file are not consistent.\n')
+            fprintf('\n WARNING: projections not normalized by ring current. Names read from dir() and log-file are inconsistent.\n')
         end
     end
     
     % Enforce positivity
-    parfor nn = 1:num_proj_used
+    parfor nn = 1:size( proj, 3 )
         im = proj(:,:,nn);
         m = im < 1;
         if sum( m(:) ) > 0
@@ -627,16 +651,20 @@ elseif ~read_flatcor
             proj(:,:,nn) = im;
         end
     end
+    
     raw_min2 = min( proj(:) );
     raw_max2 = max( proj(:) );
-    PrintVerbose(verbose, ' Time elapsed: %.1f s (%.2f min)', toc - t, ( toc - t ) / 60 )
-    PrintVerbose(verbose, '\n hot- / dark-pixel filter threshold : %f, %f', HotThresh, DarkThresh )    
-    
+    nn = sum( ~projs_to_use(:) );
+    num_proj_used = num_proj_used - nn;
+    PrintVerbose( verbose, ' Time elapsed: %.1f s (%.2f min)', toc - t, ( toc - t ) / 60 )
+    PrintVerbose( verbose, '\n hot- / dark-pixel filter threshold : %f, %f', HotThresh, DarkThresh )    
+    PrintVerbose( verbose && nn,'\n discarded empty projections : %u', nn )    
+
     %% Flat field correction %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%        
-    [proj, corr] = proj_flat_correlation( proj, flat, correlation_method, flat_corr_area1, flat_corr_area2, raw_im_shape_binned, corr_shift_max_pixelshift, corr_num_flats, decimal_round_precision, flatcor_path, verbose, visualOutput);
+    [proj, corr] = proj_flat_correlation( proj, flat, correlation_method, flat_corr_area1, flat_corr_area2, raw_im_shape_binned, corr_shift_max_pixelshift, corr_num_flats, decimal_round_precision, flatcor_path, verbose, visual_output);
     
     PrintVerbose(verbose, '\n sinogram size = [%g, %g, %g]', size( proj ) )
-    if visualOutput(1)
+    if visual_output(1)
         if exist( 'h1' , 'var' )
             figure(h1)
         else
@@ -690,6 +718,9 @@ elseif ~read_flatcor
                 angles = rot_angle_full * (0:num_proj - 1) / num_proj; % KIT: ok if par.projections exist
         end
     end
+    % drop angles where projections are empty
+    angles(~projs_to_use) = [];
+    % sort angles for displaying and non-contiguous acquisition
     [~, sorted_angle_index] = sort( angles );
     
     %% Ring artifact filter
@@ -713,7 +744,7 @@ elseif ~read_flatcor
                 PrintVerbose(verbose, ' Time elapsed: %.1f s (%.2f min)', toc-t, (toc-t)/60)
                 sino_filt = squeeze( proj(:,sino_slice,sorted_angle_index) )';
                 
-                if visualOutput(1)
+                if visual_output(1)
                     
                     h3 = figure('Name', 'Sinogram and ring filter');
                     
@@ -765,7 +796,7 @@ elseif ~read_flatcor
                 
                 PrintVerbose(verbose, ' Time elapsed: %.1f s (%.2f min)', toc-t, (toc-t)/60)
                 PrintVerbose( verbose, '\n ring filter mask min/max: %f, %f', min( mask(:) ), max( mask(:) ) )
-                if visualOutput(1)
+                if visual_output(1)
                     h3 = figure('Name', 'Sinogram and ring filter');
                                         
                     subplot(2,2,1)
@@ -805,7 +836,7 @@ elseif ~read_flatcor
         PrintVerbose(verbose, '\nSave flat-corrected projections.')
         CheckAndMakePath( flatcor_path )
         % Projections
-        parfor nn = 1:num_proj_used
+        parfor nn = 1:size( proj, 3 )
             filename = sprintf('%sproj_%06u.tif', flatcor_path, nn );
             write32bitTIFfromSingle(filename, rot90( proj(:, :, nn) ) );
         end
@@ -853,7 +884,7 @@ if do_tomo(1)
         else
             % Guess from correlation of projections
             im1 = proj( rot_corr_area1, rot_corr_area2, 1);
-            im2 = proj( rot_corr_area1, rot_corr_area2, num_proj_used);
+            im2 = proj( rot_corr_area1, rot_corr_area2, end);
             [~, cm1] = ImageCorrelation( im1, im2, 0, 0, 0); % large if full angle is  2 * pi
             [~, cm2] = ImageCorrelation( im1, flipud(im2), 0, 0, 0); % large if full angle is pi
             if max( cm1(:) ) > max( cm2(:) )
@@ -1134,7 +1165,7 @@ if do_tomo(1)
     PrintVerbose(verbose, '\n rotation axis position: %.2f', rot_axis_pos );
     PrintVerbose(verbose, '\n rotation axis tilt: %g rad (%g deg)', rot_axis_tilt, rot_axis_tilt * 180 / pi)
        
-    if interactive_determination_of_rot_axis_tilt(1) && visualOutput(1)
+    if interactive_determination_of_rot_axis_tilt(1) && visual_output(1)
         h4 = figure('Name','Projections at 0 and pi cropped symmetrically to rotation center');
         n = 2; 
         m = 2;
@@ -1258,7 +1289,7 @@ if write_sino(1)
     end
     pause(0.01)
     PrintVerbose(verbose, ' done.')
-    PrintVerbose(verbose, ' Time elapsed: %g s (%.2f min)', toc-t, (toc-t)/60)
+    PrintVerbose(verbose, ' Time elapsed: %.1f s (%.2f min)', toc-t, (toc-t)/60)
 end
 
 %% Phase retrieval %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -1311,7 +1342,7 @@ if do_phase_retrieval(1)
             write32bitTIFfromSingle( filename, squeeze( rot90( proj( :, :, nn) ) ) )
         end
         pause(0.01)
-        PrintVerbose(verbose, ' Time elapsed: %g s (%.2f min)', toc-t, (toc-t)/60)
+        PrintVerbose(verbose, ' Time elapsed: %.1f s (%.2f min)', toc-t, (toc-t)/60)
     end
 end
 
@@ -1327,7 +1358,7 @@ if do_phase_retrieval(1) && write_sino_phase(1)
     end
     pause(0.01)
     PrintVerbose(verbose, ' done.')
-    PrintVerbose(verbose, ' Time elapsed: %g s (%.2f min)', toc - t, (toc - t) / 60)
+    PrintVerbose(verbose, ' Time elapsed: %.1f s (%.2f min)', toc - t, (toc - t) / 60)
 end
 
 %% Post phase retrieval binning
@@ -1429,7 +1460,35 @@ if do_tomo(1)
     PrintVerbose(verbose, ' done in %.2f min.', (toc - t2) / 60)
     
     vol_min = min( vol(:) );
-    vol_max = max( vol(:) );        
+    vol_max = max( vol(:) );
+    
+    % Show orthogonal vol cuts
+    if visual_output(1)
+        figure('Name', 'Volum cuts');
+        
+        subplot(1,3,1)
+        nn = round( size( vol, 1 ) / 2);
+        imsc( squeeze( vol(:,:,nn) ) )
+        axis equal tight
+        title( sprintf( 'vol z = %u', nn ) )
+        colorbar
+        
+        subplot(1,3,2)
+        nn = round( size( vol, 2 ) / 2);
+        imsc( squeeze( vol(:,nn,:) ) )
+        axis equal tight        
+        title( sprintf( 'vol y = %u', nn ) )
+        colorbar
+        
+        subplot(1,3,3)
+        nn = round( size( vol, 3 ) / 2);
+        imsc( squeeze( vol(nn,:,:) ) )
+        axis equal tight                
+        title( sprintf( 'vol x = %u', nn ) )
+        colorbar
+
+        drawnow
+    end
     
     % Save volume
     if write_reco(1)        
@@ -1480,7 +1539,7 @@ if do_tomo(1)
         
         % segmentation
         if write_8bit_segmented(1)
-            [vol, out] = segment_volume(vol, 2^10, visualOutput, verbose);
+            [vol, out] = segment_volume(vol, 2^10, visual_output, verbose);
             save_path = write_volume( 1, vol/255, 'uint8', reco_path, raw_bin, phase_bin, reco_bin, 0, verbose, '_segmented');
             save( sprintf( '%ssegmentation_info.m', save_path), 'out', '-mat', '-v7.3')
         end
@@ -1528,7 +1587,7 @@ fprintf(fid, 'proj_flat_correlation_num_flats : %u\n', corr_num_flats);
 fprintf(fid, 'flat_field_correlation_area_1 : %u:%u:%u\n', flat_corr_area1(1), flat_corr_area1(2) - flat_corr_area1(1), flat_corr_area1(end));
 fprintf(fid, 'flat_field_correlation_area_2 : %u:%u:%u\n', flat_corr_area2(1), flat_corr_area2(2) - flat_corr_area2(1), flat_corr_area2(end));
 if ~read_flatcor
-    fprintf(fid, 'min_max_of_all_darks : %6g %6g\n', dark_min, dark_max);
+    fprintf(fid, 'min_max_of_all_darks : %6g %6g\n', darks_min, darks_max);
     fprintf(fid, 'min_max_of_median_dark : %6g %6g\n', dark_med_min, dark_med_max);
     fprintf(fid, 'min_max_of_all_flats : %6g %6g\n', flat_min, flat_max);
     fprintf(fid, 'min_max_of_all_corrected_flats : %6g %6g\n', flat_min2, flat_max2);

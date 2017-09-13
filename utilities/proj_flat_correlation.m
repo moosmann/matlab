@@ -262,7 +262,7 @@ switch correlation_method
                     mid = round( num_proj_used / 2 );
                     f = @(mat,pp) mat(pp,:)';
                     Y = [ f( corr_mat, 1), f( corr_mat, mid), f( corr_mat, num_proj_used) ];
-                    plot( Y, '-' )
+                    plot( Y, '.' )
                     legend( 'first proj', 'mid proj', 'last proj' )
                     axis tight
                     title(sprintf('correlation method: %s', correlation_method))      
