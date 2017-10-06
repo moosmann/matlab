@@ -1,8 +1,8 @@
-% TODO list for P05 reconstruction pipeline 'p05_reco'
+%% TODO list for P05 reconstruction pipeline 'p05_reco'
 
+% TODO: check missing proj mod for stitching etc
 % TODO: visual output for phase retrieval: phase map, fft(int), etc
 % TODO: choose regulatrization parameter for phase retrieval via interactive mode 
-% TODO: if visual output none, reduce correlation to chosen method
 % TODO: physically consistent attenutation values of reconstructed slice 
 % TODO: check raw roi, transpose, rot90 for KIT and EHD camera
 % TODO: get rid of transpose when reading image files

@@ -1,4 +1,4 @@
-function [proj, corr] = proj_flat_correlation( proj, flat, correlation_method, flat_corr_area1, flat_corr_area2, raw_im_shape_binned, corr_shift_max_pixelshift, corr_num_flats, decimal_round_precision, flatcor_path, verbose, visualOutput)
+function [proj, corr, proj_roi, flat_roi] = proj_flat_correlation( proj, flat, correlation_method, flat_corr_area1, flat_corr_area2, raw_im_shape_binned, corr_shift_max_pixelshift, corr_num_flats, decimal_round_precision, flatcor_path, verbose, visualOutput)
 % Correlate all projection with all flat-field to find the best matching
 % pairs for the flat-field correction using method of choice.
 %
@@ -8,7 +8,7 @@ function [proj, corr] = proj_flat_correlation( proj, flat, correlation_method, f
 %
 %
 % Written by Julian Moosmann. First version: 2017-08-23. Last modifcation:
-% 2017-08-23
+% 2017-09-14
 
 %% Projection / flat-field correlcation
 switch correlation_method

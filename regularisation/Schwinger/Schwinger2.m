@@ -17,7 +17,7 @@ if nargin < 4
     BinaryFilterThreshold = 0.05;
 end
 if nargin < 1
-    phi0 = 0.1*normat(double(imread('~/lena.tif')));
+    phi0 = 0.1*normat(double(imread('~/barbara.png')));
     im = Propagation2(phi0,0,EnergyDistancePixelsize,0,1);
     phi0 = SubtractMean(phi0);
 end
@@ -80,9 +80,40 @@ for nn = 1:1:numel(t)
 end
 
 
-itool(phiRegOpt),itool(phi)
-h = @(x) itool(100*abs(x-phi0));
-h(phiRegOpt),h(phi)
+figure
+
+subplot(2,2,1)
+imsc(phiRegOpt)
+axis equal tight
+title(sprintf('phi reg opt'))
+colorbar
+%xticks([]);yticks([])        
+
+subplot(2,2,2)
+imsc(phi)
+axis equal tight
+title(sprintf('phi'))
+colorbar
+%xticks([]);yticks([])        
+
+h = @(x) 100*abs(x-phi0);
+
+subplot(2,2,3)
+imsc(h(phiRegOpt))
+axis equal tight
+title(sprintf('100*diff(phi reg opt,phi0)'))
+colorbar
+%xticks([]);yticks([])        
+
+subplot(2,2,4)
+imsc(h(phi))
+axis equal tight
+title(sprintf('100*diff(phi,phi0)'))
+colorbar
+%xticks([]);yticks([])        
+
+drawnow
+
 h = @(x) sum(abs(x(:)-phi0(:)));
 fprintf('\nDifference norm: Standard: %g, Schwinger: %g\n',h(phiRegOpt),h(phi))
 

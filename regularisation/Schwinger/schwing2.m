@@ -1,4 +1,4 @@
-function schwing2(dat,sli,pad,sn,smax);
+function schwing2(dat,sli,pad,sn,smax)
 %phase retrieval to first and second order
 
 %dimensions of input data array
@@ -30,11 +30,11 @@ phi0 = real(phi0);
 phi11        = -1/(4*pi)*sum((ifft2(selap.*repmat(fft2(g.^2,pad*dimy,pad*dimx),[1,1,sn]))),3)/sn;
 %second correction
 phi12        = -1/(4*pi)*sum(real(ifft2(selap.*repmat(fft2( ...
-                sum((ifft2( xi.*selap.*g_fts)),3)/sn.*ifft2( xi(:,:,1).*g_fts(:,:,1)) ...
-               +sum((ifft2(eta.*selap.*g_fts)),3)/sn.*ifft2(eta(:,:,1).*g_fts(:,:,1)) ...
-                                                           ),[1,1,sn]))),3)/sn;
-phi13        = -1/(8*pi)*((sum((ifft2(xi.*selap.*g_fts)),3)/sn).^2 ... 
-                         +(sum((ifft2(eta.*selap.*g_fts)),3)/sn).^2);
+    sum((ifft2( xi.*selap.*g_fts)),3)/sn.*ifft2( xi(:,:,1).*g_fts(:,:,1)) ...
+    +sum((ifft2(eta.*selap.*g_fts)),3)/sn.*ifft2(eta(:,:,1).*g_fts(:,:,1)) ...
+    ),[1,1,sn]))),3)/sn;
+phi13        = -1/(8*pi)*((sum((ifft2(xi.*selap.*g_fts)),3)/sn).^2 ...
+    +(sum((ifft2(eta.*selap.*g_fts)),3)/sn).^2);
 %figran(phi11);
 %figran(phi12);
 %figran(phi13);
@@ -43,19 +43,17 @@ phi13 = real(phi13);
 
 %clip region of interest
 if pad>1
-phi0  = phi0(1:dimy,1:dimx);
-phi11 = phi11(1:dimy,1:dimx);
-phi12 = phi12(1:dimy,1:dimx);
-phi13 = phi13(1:dimy,1:dimx);
-end;
+    phi0  = phi0(1:dimy,1:dimx);
+    phi11 = phi11(1:dimy,1:dimx);
+    phi12 = phi12(1:dimy,1:dimx);
+    phi13 = phi13(1:dimy,1:dimx);
+end
 
 %figures
 if 1
-figure,imshow([phi0 ],[],'InitialMagnification','fit'),colorbar;
-figure,imshow([phi11],[],'InitialMagnification','fit'),colorbar;
-figure,imshow([phi12],[],'InitialMagnification','fit'),colorbar;
-%figure,imshow([phi11+phi12],[],'InitialMagnification','fit'),colorbar;
-figure,imshow([phi13],[],'InitialMagnification','fit'),colorbar;
-end;
-
-
+    figure,imshow([phi0 ],[],'InitialMagnification','fit'),colorbar;
+    figure,imshow([phi11],[],'InitialMagnification','fit'),colorbar;
+    figure,imshow([phi12],[],'InitialMagnification','fit'),colorbar;
+    %figure,imshow([phi11+phi12],[],'InitialMagnification','fit'),colorbar;
+    figure,imshow([phi13],[],'InitialMagnification','fit'),colorbar;
+end

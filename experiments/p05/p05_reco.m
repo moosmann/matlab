@@ -48,7 +48,7 @@ stitch_method = 'sine';'linear';'sine'; %  ! adjust correlation area if necessar
     % 'sine' : sinusoidal interpolation of overlap region
 proj_range = 1; % range of projections to be used (from all found). if empty or 1: all, if scalar: stride
 ref_range = 1; % range of flat fields to be used (from all found). start:incr:end. if empty or 1: all. if scalar: stride
-energy = 22000;%[]; % in eV! if empty: read from log file
+energy = []; % in eV! if empty: read from log file
 sample_detector_distance = []; % in m. if empty: read from log file
 eff_pixel_size = []; % in m. if empty: read from log file. effective pixel size =  detector pixel size / magnification
 darkFiltPixHot = 0.01; % Hot pixel filter parameter for dark fields, for details see 'FilterPixel'
@@ -57,15 +57,18 @@ refFiltPixHot = 0.01; % Hot pixel filter parameter for flat fields, for details 
 refFiltPixDark = 0.005; % Dark pixel filter parameter for flat fields, for details see 'FilterPixel'
 projFiltPixHot = 0.01; % Hot pixel filter parameter for projections, for details see 'FilterPixel'
 projFiltPixDark = 0.005; % Dark pixel filter parameter for projections, for details see 'FilterPixel'
-correlation_method = 'ssim-ml';'diff';'shift';'ssim';'std';'entropy';'cov';'cross';'cross-entropy12';'cross-entropy21';'cross-entropyx';
+correlation_method = 'ssim-ml';'diff';'shift';'ssim';'std';'entropy';'cov';'corr';'cross-entropy12';'cross-entropy21';'cross-entropyx';
     % 'ssim-ml' : Matlab's structural similarity index (SSIM), includes Gaussian smoothing
-    % 'entropy' : entropy-like measure
     % 'ssim' : own implementation of SSIM, smoothing not yet implemented
-    % 'diff': difference measure
-    % 'shift': computes relative shift using image cross-correlation
+    % 'entropy' : entropy measure of proj over flat
+    % 'cov' : cross covariance
+    % 'corr' : cross correlation = normalized cross covariance
+    % 'std' : standard deviation of proj over flat
+    % 'diff': difference of proj and flat
+    % 'shift': computes relative shift from peak of cross-correlation map
     % 'none' : no correlation, use median flat
 corr_shift_max_pixelshift = 0.25; % maximum pixelshift allowed for 'shift'-correlation method: if 0 use the best match (i.e. the one with the least shift), if > 0 uses all flats with shifts smaller than corr_shift_max_pixelshift
-corr_num_flats = 3; % number of flat fields used for average/median of flats. for 'shift'-correlation its the maximum number
+corr_num_flats = 1; % number of flat fields used for average/median of flats. for 'shift'-correlation its the maximum number
 ring_current_normalization = 1; % normalize flat fields and projections by ring current
 flat_corr_area1 = [1 floor(100/raw_bin)]; % correlation area: index vector or relative/absolute position of [first pix, last pix]
 flat_corr_area2 = [0.2 0.8]; %correlation area: index vector or relative/absolute position of [first pix, last pix]
@@ -80,17 +83,17 @@ ring_filter_jm_median_width = 11; % [3 11 21 31 39];
 do_phase_retrieval = 1; % See 'PhaseFilter' for detailed description of parameters !
 phase_bin = 1; % Binning factor after phase retrieval, but before tomographic reconstruction
 phase_retrieval_method = 'tie';'qpcut';  'tie'; %'qp' 'ctf' 'tie' 'qp2' 'qpcut'
-phase_retrieval_reg_par = 2.5; % regularization parameter
+phase_retrieval_reg_par = 1.5; % regularization parameter. larger values tend to blurrier images. smaller values tend to original data.
 phase_retrieval_bin_filt = 0.15; % threshold for quasiparticle retrieval 'qp', 'qp2'
 phase_retrieval_cutoff_frequ = 1 * pi; % in radian. frequency cutoff in Fourier space for 'qpcut' phase retrieval
-phase_padding = 1; % padding of intensities before phase retrieval
+phase_padding = 1; % padding of intensities before phase retrieval, 0: no padding
 % TOMOGRAPHY %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 do_tomo = 1; % run tomographic reconstruction
 vol_shape = [];% shape of the volume to be reconstructed, either in absolute number of voxels or in relative number w.r.t. the default volume which is given by the detector width and height
 vol_size = []; % if empty, unit voxel size is assumed
 rot_angle_full = []; % in radians: empty ([]), full angle of rotation, or array of angles. if empty full rotation angles is determined automatically to pi or 2 pi
 rot_angle_offset = pi; % global rotation of reconstructed volume
-rot_axis_offset = []; % if empty use automatic computation
+rot_axis_offset = 72.5;[]; % if empty use automatic computation
 rot_axis_pos = []; % if empty use automatic computation. either offset or pos has to be empty. can't use both
 rot_corr_area1 = []; % ROI to correlate projections at angles 0 & pi. Use [0.75 1] or so for scans with an excentric rotation axis
 rot_corr_area2 = []; % ROI to correlate projections at angles 0 & pi
@@ -98,7 +101,7 @@ rot_corr_gradient = 0; % use gradient of intensity maps if signal variations are
 rot_axis_tilt = 0; % in rad. camera tilt w.r.t rotation axis. if empty calculate from registration of projections at 0 and pi
 fbp_filter_type = 'Ram-Lak';'linear'; % Ram-Lak according to Kak/Slaney
 fpb_filter_freq_cutoff = 1; % Cut-off frequency in Fourier space of the above FBP filter
-fbp_filter_padding = 1; % symmetric padding for consistent boundary conditions
+fbp_filter_padding = 1; % symmetric padding for consistent boundary conditions, 0: no padding
 fbp_filter_padding_method = 'symmetric';
 butterworth_filter = 0; % use butterworth filter in addition to FBP filter
 butterworth_order = 1;
@@ -128,7 +131,7 @@ compression_parameter = [0.20 0.15]; % compression-method specific parameter
     % 'threshold' : [LOW HIGH] = compression_parameter, eg. [-0.01 1]
     % 'std' : NUM = compression_parameter, mean +/- NUM*std, dynamic range is rescaled to within -/+ NUM standard deviations around the mean value
     % 'histo' : [LOW HIGH] = compression_parameter (100*LOW)% and (100*HIGH)% of the original histogram, e.g. [0.02 0.02]
-parfolder = ''; % parent folder for 'reco', 'sino', 'phase', and 'flat_corrected'
+parfolder = 'flat1'; % parent folder for 'reco', 'sino', 'phase', and 'flat_corrected'
 subfolder_flatcor = ''; % subfolder in 'flat_corrected'
 subfolder_phase_map = ''; % subfolder in 'phase_map'
 subfolder_sino = ''; % subfolder in 'sino'
@@ -136,7 +139,7 @@ subfolder_reco = ''; % subfolder in 'reco'
 % INTERACTION %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 verbose = 1; % print information to standard output
 visual_output = 1; % show images and plots during reconstruction
-interactive_determination_of_rot_axis = 1; % reconstruct slices with different rotation axis offsets
+interactive_determination_of_rot_axis = 0; % reconstruct slices with different rotation axis offsets
 interactive_determination_of_rot_axis_tilt = 0; % reconstruct slices with different offset AND tilts of the rotation axis
 interactive_determination_of_rot_axis_slice = 0.5; % slice number, default: 0.5. if in [0,1): relative, if in (1, N]: absolute
 % HARDWARE / SOFTWARE %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -661,7 +664,7 @@ elseif ~read_flatcor
     PrintVerbose( verbose && nn,'\n discarded empty projections : %u', nn )    
 
     %% Flat field correction %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%        
-    [proj, corr] = proj_flat_correlation( proj, flat, correlation_method, flat_corr_area1, flat_corr_area2, raw_im_shape_binned, corr_shift_max_pixelshift, corr_num_flats, decimal_round_precision, flatcor_path, verbose, visual_output);
+    [proj, corr, proj_roi, flat_roi] = proj_flat_correlation( proj, flat, correlation_method, flat_corr_area1, flat_corr_area2, raw_im_shape_binned, corr_shift_max_pixelshift, corr_num_flats, decimal_round_precision, flatcor_path, verbose, visual_output);
     
     PrintVerbose(verbose, '\n sinogram size = [%g, %g, %g]', size( proj ) )
     if visual_output(1)
