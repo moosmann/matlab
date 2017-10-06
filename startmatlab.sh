@@ -30,5 +30,6 @@ echo -e 'PYTHONPATH:' $PYTHONPATH
 echo -e 'MATLABPATH:' $MATLABPATH
 echo -e 'Starting MATLAB.\n'
 
+#matlab
 #matlab_R2016b
-matlab
+matlab_R2017a

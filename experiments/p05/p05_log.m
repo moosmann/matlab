@@ -44,6 +44,7 @@ par.scan_duration = '%f';
 par.eff_pix_size = '%f';
 par.eff_pix = '%f';
 par.projections = '%u';
+par.num_projections = '%u';
 par.ref_prefix = '%s';
 par.sample = '%s';
 par.rotation = '%f';
@@ -90,8 +91,14 @@ end
 [folder] = fileparts( file );
 proj_cur = single( read_dat( sprintf('%s/proj_current.dat', folder ) ) );
 ref_cur = single( read_dat( sprintf('%s/ref_current.dat', folder ) ) );
+
+if ~isempty(par.projections)
+    num_proj = single(par.projections);
+elseif ~isempty(par.num_projections)
+    num_proj = single(par.num_projections);
+end
 if ~isfield( par, 'angle_list' )
-    par.angle_list = 180 * (0:single(par.projections) - 1) / single(par.projections);
+    par.angle_list = 180 * (0:num_proj - 1) / num_proj;
 end
 for nn = 1:numel( proj_cur )    
     cur.proj(nn).val = proj_cur(nn);

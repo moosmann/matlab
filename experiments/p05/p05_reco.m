@@ -4,12 +4,14 @@
 % USAGE
 % Set parameters in PARAMETERS / SETTINGS section below and run script.
 %
-% How to run script:
+% HOW TO RUN THE SCRIPT:
 % - Editor windows: press 'F5' when focus is in the Editor window
 % - Editor tab: click 'Run' in the 
 % - Command Window: type 'p05_reco' and Enter
 %
-% To loop over sets of data or parameters sets see 'p05_reco_loop_template'.
+% HOW TO AUTOMATICALLY LOOP OVER RECONSTRUCTIONS:
+% To loop over different data or parameters sets see 'p05_reco_loop_template'.
+%
 %
 % Known errors:
 %
@@ -18,7 +20,7 @@
 % support, or MATLAB terminates abnormally with a segmentation violation.
 %
 % Written by Julian Moosmann. First version: 2016-09-28. Last modifcation:
-% 2017-09-13
+% 2017-10-06
 
 close all hidden % close all open windows
 dbstop if error
@@ -26,6 +28,9 @@ dbstop if error
 %% PARAMETERS / SETTINGS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % INPUT %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 scan_path = ...
+    '/asap3/petra3/gpfs/p05/2017/data/11003700/raw/mpimm_08_a';    
+    '/asap3/petra3/gpfs/p05/2017/data/11003700/raw/mpimm_07_a';
+    '/asap3/petra3/gpfs/p05/2017/data/11003700/raw/mpimm_04_a';
     '/asap3/petra3/gpfs/p05/2017/data/11003435/raw/ony_24'; % fly scan
     '/asap3/petra3/gpfs/p05/2017/data/11003435/raw/ony_42';    
     '/asap3/petra3/gpfs/p05/2017/data/11003950/raw/syn13_55L_Mg10Gd_12w_load_00';
@@ -37,8 +42,8 @@ scan_path = ...
 read_flatcor = 0; % read flatfield-corrected images from disc, skips preprocessing
 read_flatcor_path = ''; % subfolder of 'flat_corrected' containing projections
 % PREPROCESSING %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-raw_roi = [501 3500]; % [y0 y1] vertical roi.  skips first raw_roi(1)-1 lines, reads until raw_roi(2)
-raw_bin = 2; % projection binning factor: 1, 2, or 4
+raw_roi = []; % [y0 y1] vertical roi.  skips first raw_roi(1)-1 lines, reads until raw_roi(2)
+raw_bin = 4; % projection binning factor: 1, 2, or 4
 excentric_rot_axis = 0; % off-centered rotation axis increasing FOV. -1: left, 0: centeerd, 1: right. influences rot_corr_area1
 crop_at_rot_axis = 0; % recommended for scans with excentric rotation axis when no projection stitching is done
 stitch_projections = 0; % stitch projection (for 2 pi scans) at rotation axis position. "doubles" number of voxels
@@ -47,8 +52,8 @@ stitch_method = 'sine';'linear';'sine'; %  ! adjust correlation area if necessar
     % 'linear' : linear interpolation of overlap region
     % 'sine' : sinusoidal interpolation of overlap region
 proj_range = 1; % range of projections to be used (from all found). if empty or 1: all, if scalar: stride
-ref_range = 1; % range of flat fields to be used (from all found). start:incr:end. if empty or 1: all. if scalar: stride
-energy = []; % in eV! if empty: read from log file
+ref_range = 100:300; % range of flat fields to be used (from all found). start:incr:end. if empty or 1: all. if scalar: stride
+energy = 16000;[]; % in eV! if empty: read from log file
 sample_detector_distance = []; % in m. if empty: read from log file
 eff_pixel_size = []; % in m. if empty: read from log file. effective pixel size =  detector pixel size / magnification
 darkFiltPixHot = 0.01; % Hot pixel filter parameter for dark fields, for details see 'FilterPixel'
@@ -93,7 +98,7 @@ vol_shape = [];% shape of the volume to be reconstructed, either in absolute num
 vol_size = []; % if empty, unit voxel size is assumed
 rot_angle_full = []; % in radians: empty ([]), full angle of rotation, or array of angles. if empty full rotation angles is determined automatically to pi or 2 pi
 rot_angle_offset = pi; % global rotation of reconstructed volume
-rot_axis_offset = 72.5;[]; % if empty use automatic computation
+rot_axis_offset = []; % if empty use automatic computation
 rot_axis_pos = []; % if empty use automatic computation. either offset or pos has to be empty. can't use both
 rot_corr_area1 = []; % ROI to correlate projections at angles 0 & pi. Use [0.75 1] or so for scans with an excentric rotation axis
 rot_corr_area2 = []; % ROI to correlate projections at angles 0 & pi
@@ -139,7 +144,7 @@ subfolder_reco = ''; % subfolder in 'reco'
 % INTERACTION %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 verbose = 1; % print information to standard output
 visual_output = 1; % show images and plots during reconstruction
-interactive_determination_of_rot_axis = 0; % reconstruct slices with different rotation axis offsets
+interactive_determination_of_rot_axis = 1; % reconstruct slices with different rotation axis offsets
 interactive_determination_of_rot_axis_tilt = 0; % reconstruct slices with different offset AND tilts of the rotation axis
 interactive_determination_of_rot_axis_slice = 0.5; % slice number, default: 0.5. if in [0,1): relative, if in (1, N]: absolute
 % HARDWARE / SOFTWARE %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -360,7 +365,7 @@ if isempty( sample_detector_distance )
 end
 PrintVerbose( verbose, '\n energy : %.1f keV', energy / 1e3 )
 PrintVerbose( verbose, '\n distance sample dector : %.1f mm', sample_detector_distance * 1000 )
-PrintVerbose( verbose, '\n effective pixel size : %.2f micron',  eff_pixel_size * 1e6)
+PrintVerbose( verbose, '\n effective pixel size unbinned : %.2f micron',  eff_pixel_size * 1e6)
 
 %% Start parallel CPU pool
 t = toc;
@@ -430,9 +435,12 @@ elseif ~read_flatcor
     end
     darks_min = min( darks(:) );
     darks_max = max( darks(:) );
-    for nn = num_dark:-1:1
+    % Reject dark images which are all zero
+    darks_to_use = zeros( 1, num_dark, 'logical' );
+    parfor nn = 1:num_dark
         darks_to_use(nn) = boolean( max2( darks(:,:,nn) )  );        
     end
+    % Median dark
     dark = squeeze( median(darks(:,:,darks_to_use), 3) );
     clear darks
     dark_med_min = min( dark(:) );
@@ -592,15 +600,17 @@ elseif ~read_flatcor
     % Read raw projections
     projs_to_use = zeros( 1, size( proj,3), 'logical' );
     parfor nn = 1:num_proj_used
+        % Read and filter raw projection
         filename = sprintf('%s%s', scan_path, img_names_mat(nn,:));
-        proj(:, :, nn) = Binning( FilterPixel( read_image( filename, '', raw_roi, tif_info ), [HotThresh, DarkThresh]), raw_bin) / raw_bin^2;        
+        im = Binning( FilterPixel( read_image( filename, '', raw_roi, tif_info ), [HotThresh, DarkThresh]), raw_bin) / raw_bin^2;        
         
-         % Check for zeros
-        num_zeros =  sum( sum( proj(:,:,nn) < 1 ) );
+         % Check for zeros and reject images which is all zero
+        num_zeros =  sum( sum( im < 1 ) );
         projs_to_use(nn) = ~boolean( num_zeros  );
-%         if num_zeros > 0
-%             fprintf('\n WARNING: values of %u pixels of projection no %u are below 1.\n', num_zeros, nn)
-%         end
+        
+        if projs_to_use(nn)
+            proj(:, :, nn) = im;
+        end
     end
         
     % Delete empty projections
@@ -709,7 +719,9 @@ elseif ~read_flatcor
             angles = angles(proj_range);
         end
     else
-        if isfield( par, 'projections' )
+        if isfield( par, 'num_projections' )
+            num_proj = double( par.num_projections );
+        elseif isfield( par, 'projections' )
             num_proj = double( par.projections );
         elseif isfield( par, 'n_angles' )
             num_proj = double( par.n_angles );

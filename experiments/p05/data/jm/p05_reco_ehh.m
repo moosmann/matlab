@@ -46,9 +46,9 @@ write_sino = 0;
 write_sino_phase = 0; 
 write_reco = 1; 
 write_float = 1; 
-write_float_binned = 1; 
+write_float_binned = 0; 
 write_8bit = 0;
-write_8bit_binned = 1;
+write_8bit_binned = 0;
 write_16bit = 0; 
 subfolder_reco = '';
 gpu_ind = [];
@@ -63,17 +63,19 @@ ADD('default')
 raw_path = '/asap3/petra3/gpfs/p05/2017/data/11002839/raw/';
 scan_path = [raw_path 'ehh_2017_019_f'];
 raw_roi = [201 2400];
+raw_bin = 4;
 rot_axis_offset = 1052.5 * 2 / raw_bin;
-proj_range = 1;
-ref_range = 1;
+proj_range = 10;
+ref_range = 10;
 excentric_rot_axis = 1;
 crop_at_rot_axis = 0;
 stitch_projections = 1; 
 stitch_method = 'sine';
 do_phase_retrieval = 0;
-phase_padding = 1; 
-visualOutput = 0;
-interactive_determination_of_rot_axis = 0;
+phase_padding = 1;
+write_to_scratch = 1;
+%visualOutput = 0;
+%interactive_determination_of_rot_axis = 0;
 ADD
 
 

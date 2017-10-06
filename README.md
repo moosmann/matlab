@@ -11,17 +11,23 @@ Installation:
 
    OR
 
-   update to latest version. Back-up local files by branching if necessary:
+   Update to latest version: Fetch latest version of the 'master' branch 
+   from the remote repository 'origin' and reset/overwrite all local 
+   changes. New files that were created locally and which do
+   not exist in the latest branch are not deleted.
+
+   git fetch origin master
+   git reset --hard origin/master
+
+   Before updating you can back-up local files by branching if necessary:
 
    git add --all
    git commit -m "COMMIT MESSAGE"
    git branch NAME_OF_BRANCH
 
-   Fetch latest files and overwrite all changes:
-
-   git fetch origin master
-   git reset --hard origin/master
-
+   To check which files were modified and which new (untracked files):
+    
+   git status
 
 
 How to start a reconstruction:
@@ -55,8 +61,8 @@ How to start a reconstruction:
 
 How to set up automatized reconstruction loop:
 
-1) Make a copy of 'p05_reco_template.m', open the copy, and follow the 
-    instructions within the help.
+1) Make a copy of 'p05_reco_template.m' and follow the instructions of the
+   help within.
 
 2) Adjust default parameter section: modify, delete, or copy parameter 
     from 'p05_reco'

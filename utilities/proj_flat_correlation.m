@@ -25,7 +25,7 @@ switch correlation_method
         num_ref_used = size( flat, 3);
         
         % Correlate flat fields
-        PrintVerbose(verbose, '\nCorrelate projections and flat-fields.')
+        PrintVerbose(verbose, '\nCorrelate projections and flat-fields. Method: %s.', correlation_method)
         t = toc;
         
         % Correlation ROI
