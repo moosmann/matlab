@@ -30,6 +30,9 @@ echo -e 'PYTHONPATH:' $PYTHONPATH
 echo -e 'MATLABPATH:' $MATLABPATH
 echo -e 'Starting MATLAB.\n'
 
+#
+# alias gitfetchandreset='git fetch origin master & git reset --hard origin/master'
+
 #matlab
 #matlab_R2016b
-matlab_R2017a
+matlab_R2017a &
