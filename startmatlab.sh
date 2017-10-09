@@ -35,4 +35,4 @@ echo -e 'Starting MATLAB.\n'
 
 #matlab
 #matlab_R2016b
-matlab_R2017a &
+matlab_R2017a

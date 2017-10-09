@@ -28,7 +28,7 @@ dbstop if error
 %% PARAMETERS / SETTINGS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % INPUT %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 scan_path = ...
-    '/asap3/petra3/gpfs/p05/2017/data/11003700/raw/mpimm_08_a';    
+    '/asap3/petra3/gpfs/p05/2017/data/11003700/raw/mpimm_12_a';    
     '/asap3/petra3/gpfs/p05/2017/data/11003700/raw/mpimm_07_a';
     '/asap3/petra3/gpfs/p05/2017/data/11003700/raw/mpimm_04_a';
     '/asap3/petra3/gpfs/p05/2017/data/11003435/raw/ony_24'; % fly scan
@@ -43,7 +43,7 @@ read_flatcor = 0; % read flatfield-corrected images from disc, skips preprocessi
 read_flatcor_path = ''; % subfolder of 'flat_corrected' containing projections
 % PREPROCESSING %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 raw_roi = []; % [y0 y1] vertical roi.  skips first raw_roi(1)-1 lines, reads until raw_roi(2)
-raw_bin = 4; % projection binning factor: 1, 2, or 4
+raw_bin = 3; % projection binning factor: 1, 2, or 4
 excentric_rot_axis = 0; % off-centered rotation axis increasing FOV. -1: left, 0: centeerd, 1: right. influences rot_corr_area1
 crop_at_rot_axis = 0; % recommended for scans with excentric rotation axis when no projection stitching is done
 stitch_projections = 0; % stitch projection (for 2 pi scans) at rotation axis position. "doubles" number of voxels
@@ -52,8 +52,8 @@ stitch_method = 'sine';'linear';'sine'; %  ! adjust correlation area if necessar
     % 'linear' : linear interpolation of overlap region
     % 'sine' : sinusoidal interpolation of overlap region
 proj_range = 1; % range of projections to be used (from all found). if empty or 1: all, if scalar: stride
-ref_range = 100:300; % range of flat fields to be used (from all found). start:incr:end. if empty or 1: all. if scalar: stride
-energy = 16000;[]; % in eV! if empty: read from log file
+ref_range = []; % range of flat fields to be used (from all found). start:incr:end. if empty or 1: all. if scalar: stride
+energy = []; % in eV! if empty: read from log file
 sample_detector_distance = []; % in m. if empty: read from log file
 eff_pixel_size = []; % in m. if empty: read from log file. effective pixel size =  detector pixel size / magnification
 darkFiltPixHot = 0.01; % Hot pixel filter parameter for dark fields, for details see 'FilterPixel'
@@ -88,7 +88,7 @@ ring_filter_jm_median_width = 11; % [3 11 21 31 39];
 do_phase_retrieval = 1; % See 'PhaseFilter' for detailed description of parameters !
 phase_bin = 1; % Binning factor after phase retrieval, but before tomographic reconstruction
 phase_retrieval_method = 'tie';'qpcut';  'tie'; %'qp' 'ctf' 'tie' 'qp2' 'qpcut'
-phase_retrieval_reg_par = 1.5; % regularization parameter. larger values tend to blurrier images. smaller values tend to original data.
+phase_retrieval_reg_par = .5; % regularization parameter. larger values tend to blurrier images. smaller values tend to original data.
 phase_retrieval_bin_filt = 0.15; % threshold for quasiparticle retrieval 'qp', 'qp2'
 phase_retrieval_cutoff_frequ = 1 * pi; % in radian. frequency cutoff in Fourier space for 'qpcut' phase retrieval
 phase_padding = 1; % padding of intensities before phase retrieval, 0: no padding
@@ -115,7 +115,7 @@ astra_pixel_size = 1; % size of a detector pixel: if different from one 'vol_siz
 take_neg_log = []; % take negative logarithm. if empty, use 1 for attenuation contrast, 0 for phase contrast
 % OUTPUT %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 out_path = '';% absolute path were output data will be stored. !!overwrites the write_to_scratch flag. if empty uses the beamtime directory and either 'processed' or 'scratch_cc'
-write_to_scratch = 1; % write to 'scratch_cc' instead of 'processed'
+write_to_scratch = 0; % write to 'scratch_cc' instead of 'processed'
 write_flatcor = 0; % save preprocessed flat corrected projections
 write_phase_map = 0; % save phase maps (if phase retrieval is not 0)
 write_sino = 0; % save sinograms (after preprocessing & before FBP filtering and phase retrieval)
@@ -136,7 +136,7 @@ compression_parameter = [0.20 0.15]; % compression-method specific parameter
     % 'threshold' : [LOW HIGH] = compression_parameter, eg. [-0.01 1]
     % 'std' : NUM = compression_parameter, mean +/- NUM*std, dynamic range is rescaled to within -/+ NUM standard deviations around the mean value
     % 'histo' : [LOW HIGH] = compression_parameter (100*LOW)% and (100*HIGH)% of the original histogram, e.g. [0.02 0.02]
-parfolder = 'flat1'; % parent folder for 'reco', 'sino', 'phase', and 'flat_corrected'
+parfolder = ''; % parent folder for 'reco', 'sino', 'phase', and 'flat_corrected'
 subfolder_flatcor = ''; % subfolder in 'flat_corrected'
 subfolder_phase_map = ''; % subfolder in 'phase_map'
 subfolder_sino = ''; % subfolder in 'sino'
