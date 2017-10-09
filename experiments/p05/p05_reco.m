@@ -20,7 +20,7 @@
 % support, or MATLAB terminates abnormally with a segmentation violation.
 %
 % Written by Julian Moosmann. First version: 2016-09-28. Last modifcation:
-% 2017-10-06
+% 2017-10-09
 
 close all hidden % close all open windows
 dbstop if error
@@ -28,7 +28,6 @@ dbstop if error
 %% PARAMETERS / SETTINGS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % INPUT %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 scan_path = ...
-    '/asap3/petra3/gpfs/p05/2017/data/11003700/raw/mpimm_12_a';    
     '/asap3/petra3/gpfs/p05/2017/data/11003700/raw/mpimm_07_a';
     '/asap3/petra3/gpfs/p05/2017/data/11003700/raw/mpimm_04_a';
     '/asap3/petra3/gpfs/p05/2017/data/11003435/raw/ony_24'; % fly scan
@@ -42,7 +41,7 @@ scan_path = ...
 read_flatcor = 0; % read flatfield-corrected images from disc, skips preprocessing
 read_flatcor_path = ''; % subfolder of 'flat_corrected' containing projections
 % PREPROCESSING %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-raw_roi = []; % [y0 y1] vertical roi.  skips first raw_roi(1)-1 lines, reads until raw_roi(2)
+raw_roi = [501 3000]; % [y0 y1] vertical roi.  skips first raw_roi(1)-1 lines, reads until raw_roi(2)
 raw_bin = 3; % projection binning factor: 1, 2, or 4
 excentric_rot_axis = 0; % off-centered rotation axis increasing FOV. -1: left, 0: centeerd, 1: right. influences rot_corr_area1
 crop_at_rot_axis = 0; % recommended for scans with excentric rotation axis when no projection stitching is done
@@ -116,7 +115,7 @@ take_neg_log = []; % take negative logarithm. if empty, use 1 for attenuation co
 % OUTPUT %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 out_path = '';% absolute path were output data will be stored. !!overwrites the write_to_scratch flag. if empty uses the beamtime directory and either 'processed' or 'scratch_cc'
 write_to_scratch = 0; % write to 'scratch_cc' instead of 'processed'
-write_flatcor = 0; % save preprocessed flat corrected projections
+write_flatcor = 1; % save preprocessed flat corrected projections
 write_phase_map = 0; % save phase maps (if phase retrieval is not 0)
 write_sino = 0; % save sinograms (after preprocessing & before FBP filtering and phase retrieval)
 write_sino_phase = 0; % save sinograms of phase maps
@@ -1042,7 +1041,7 @@ if do_tomo(1)
             drawnow            
             
             % Play
-            nimplay(vol, 0, 0, 'OFFSET: sequence of reconstructed slices using different rotation axis offsets')
+            nimplay(vol, 1, [], 'OFFSET: sequence of reconstructed slices using different rotation axis offsets')
             
             % Input
             offset = input( '\n\nENTER ROTATION AXIS OFFSET OR A RANGE OF OFFSETS (if empty use current offset): ');
@@ -1105,10 +1104,9 @@ if do_tomo(1)
                     legend( metrics_tilt(x).name)
                     title(sprintf('metric VS rotation axis tilt'))
                     drawnow
-                    
-                    
+                                        
                     % Play
-                    nimplay(vol, 0, 0, 'TILT: sequence of reconstructed slices using different rotation axis tilts')
+                    nimplay(vol, 1, [], 'TILT: sequence of reconstructed slices using different rotation axis tilts')
                     
                     % Input
                     tilt = input( '\nENTER TILT OF ROTATION AXIS OR RANGE OF TILTS (if empty use current tilt):');
@@ -1147,10 +1145,10 @@ if do_tomo(1)
                         fprintf( '\n calcul. rotation axis tilt: %g rad (%g deg)', rot_axis_tilt_calc, rot_axis_tilt_calc * 180 / pi)                        
                                                                         
                         name = sprintf( 'projections at 0 and 180 degree. corrected. CURRENT rot axis tilt: %g, rot axis offset: %g', rot_axis_tilt, rot_axis_offset);
-                        nimplay( cat(3, im1c(x:end-x,x:end-x)', im2c_warped_cur(x:end-x,x:end-x)'), 0, 0, name)
+                        nimplay( cat(3, im1c(x:end-x,x:end-x)', im2c_warped_cur(x:end-x,x:end-x)'), 1, 0, name)
                                                 
                         name = sprintf( 'projections at 0 and 180 degree. corrected. CALCULATED rot axis tilt: %g, rot axis offset: %g', rot_axis_tilt_calc, rot_axis_offset);
-                        nimplay( cat(3, im1c(x:end-x,x:end-x)', im2c_warped_calc(x:end-x,x:end-x)'), 0, 0, name)
+                        nimplay( cat(3, im1c(x:end-x,x:end-x)', im2c_warped_calc(x:end-x,x:end-x)'), 1, 0, name)
                                                                                                 
                         tilt = input( '\nENTER ROTATION AXIS TILT (if empty use current value): ');
                         if isempty( tilt )

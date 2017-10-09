@@ -1,52 +1,62 @@
-function nimplay(imstack,normGlobal,permuteOrder, name)
-% Play stack of images (array) as video clip. Contrast is adapted by
-% normalizing the images before hand. Images have to be stacked along the
-% third dimension, otherwise use permuteOrder to rearrange stack dimensions.
+function nimplay( vol, renorm_slicewise, permute_order, figure_name)
+% Play 3D array using MATLAB's movie play. Contrast is adjuste slicewise by
+% default unless renorm_slicewise is set to zero. Movie is run along 3rd
+% dimension unless dimension are rearranged using the permutation order
+% parameter.
 % 
-% imstack: 3D-array of images: vert x hor x slice (Matlab notation)
-% normGlobale: scalar, default: 0. 1: subtract from each slice its mean. 0:
-% subtract from each slice the gobal mean.
-% permuteOrder: vector. Permute array dimension.
+% vol : 3D-array of images
+% renorm_slicewise : scalar, default: 1. Renorm slice thus losing scaling
+%  information reltive to different slices
+% permute_order : empty or 3D vector. Permute array dimension. If empty do
+%  not permute.
+% figure_name : string (of figure)
 %
 % Written by Julian Moosmann, last version 2013-11-01
+% Last modification: 2017-10-09
 %
-%nimplay(imstack,normGlobal,permuteOrder)
+%nimplay( vol, renorm_slicewise, permute_order, figure_name)
 
 %% Default arguments
 if nargin < 2
-    normGlobal = 0;
+    renorm_slicewise = 1;
 end
 if nargin < 3
-    permuteOrder = 0;
+    permute_order = [];
 end
 if nargin < 4
-    name = '';
+    figure_name = '';
 end
 
-%% Permute stack
-if permuteOrder(1)
-    imstack = permute(imstack,permuteOrder);
+%% Permute dimensions
+if ~isempty( permute_order ) && prod( permute_order ) ~= 0
+    vol = permute(vol, permute_order);
 end
-%% Compute minima and maxima
-if normGlobal
-    armin = min(imstack(:));
-    armax = max(imstack(:));
+
+if isinteger( vol )
+    vol = single( vol );
+end
+
+%% Normalization
+if ~renorm_slicewise
+    armin = min( vol(:) );
+    armax = max( vol(:) );
 else
     % Find minimum and maximum of each matrix in the input array and create a
     % an array corresponding the input array to subtract the values from the
     % input arrray.
-    [d1, d2, ~] = size(imstack);
-    armin = repmat(min(min(imstack)),[d1,d2,1]);
-    armax = repmat(max(max(imstack)),[d1,d2,1]);
+    [d1, d2, ~] = size(vol);
+    armin = repmat(min(min(vol)),[d1,d2,1]);
+    armax = repmat(max(max(vol)),[d1,d2,1]);
 end
+
 %% Renormalize: subtract minimum, then divide by maximum-minimum.
-imstack = (imstack-armin)./(armax-armin);
-%% Play normalized image array as a clip.
-h = implay(imstack);
-if isempty( name )
-    name = sprintf( 'volume shape: %u x %u x %u', size(imstack) );
+vol = ( double( vol ) - armin ) ./ ( armax - armin );
+
+%% Play normalized volume in movie player
+h = implay(vol);
+if isempty( figure_name )
+    figure_name = sprintf( 'volume shape: %u x %u x %u', size(vol) );
 end
-set(h.Parent, 'Name', name)
+set(h.Parent, 'name', figure_name)
 drawnow
 pause(0.01)
-

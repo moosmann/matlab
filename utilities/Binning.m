@@ -3,7 +3,8 @@ function array = Binning(array, bin)
 % such that mod(size(array), bin) = 0.
 %
 % array : 2D or 3D array
-% bin: integer. Default: 2. size of bin
+% bin: integer scalar or 2- or 3- component vector. Default: 2. size of bin for
+% each dimension. if scalar then bin is the same for each dimension
 %
 % Written by Julian Moosmann.
 % Last modification 2017-10-09
@@ -17,54 +18,75 @@ end
 
 %% Main %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-if isempty( bin ) || bin == 0 || bin == 1
+if isempty( bin ) || prod(bin) == 0 || prod(bin) == 1
     return
 else
     switch ndims( array )
+        
         case 2
-            [x,y] = size( array );
+            
+            if isscalar( bin )
+                bin1 = bin;
+                bin2 = bin;
+            else
+                bin1 = bin(1);
+                bin2 = bin(2);                
+            end
+                
+            [dim1,dim2] = size( array );
             
             % last relevant pixel
-            xl = x - mod( x, bin );
-            yl = y - mod( y, bin );
+            last1 = dim1 - mod( dim1, bin1 );
+            last2 = dim2 - mod( dim2, bin2 );
             
             % Generic 2D bin functions
-            f = @(n,m) array(n:bin:xl,m:bin:yl);
+            f = @(n,m) array(n:bin1:last1,m:bin2:last2);
             
             % Binning
             tmp = 0;
-            for mm = 1:bin
-                for nn = 1:bin
+            for mm = 1:bin1
+                for nn = 1:bin2
                     tmp = tmp + f(mm,nn);
                 end
             end
             array = tmp;
             
         case 3
-            [x,y,z] = size( array );
+            
+            if isscalar( bin )
+                bin1 = bin;
+                bin2 = bin;
+                bin3 = bin;
+            else
+                bin1 = bin(1);
+                bin2 = bin(2);
+                bin3 = bin(3);                
+            end
+            
+            [dim1,dim2,dim3] = size( array );
             
             % crop to appropriate number of pixels
-            xl = x - mod( x, bin);
-            yl = y - mod( y, bin);
-            zl = z - mod( z, bin);
+            last1 = dim1 - mod( dim1, bin1);
+            last2 = dim2 - mod( dim2, bin2);
+            last3 = dim3 - mod( dim3, bin3);
             
             % Generic 3D bin functions
-            f = @(n,m,k) array(n:bin:xl,m:bin:yl,k:bin:zl);
+            f = @(n,m,k) array(n:bin1:last1,m:bin2:last2,k:bin3:last3);
             
             % Binning
-            switch bin
-                case 2
-                    tmp = f(1,1,1) + f(1,1,2) + f(1,2,1) + f(1,2,2) + f(2,1,1) + f(2,1,2) + f(2,2,1) + f(2,2,2);                
-                otherwise
+%             switch bin1 
+%                 case 2
+%                     tmp = f(1,1,1) + f(1,1,2) + f(1,2,1) + f(1,2,2) + f(2,1,1) + f(2,1,2) + f(2,2,1) + f(2,2,2);                
+%                 otherwise
                     tmp = 0;
-                    for ll = 1:bin
-                        for mm = 1:bin
-                            for nn = 1:bin
+                    for ll = 1:bin1
+                        for mm = 1:bin2
+                            for nn = 1:bin3
                                 tmp = tmp + f(ll,mm,nn);
                             end
                         end
                     end                                        
-            end
+%            end
             array = tmp;
         
         otherwise
