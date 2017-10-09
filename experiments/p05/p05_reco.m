@@ -28,6 +28,7 @@ dbstop if error
 %% PARAMETERS / SETTINGS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % INPUT %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 scan_path = ...
+    '/asap3/petra3/gpfs/p05/2017/data/11003700/raw/mpimm_12_a';
     '/asap3/petra3/gpfs/p05/2017/data/11003700/raw/mpimm_07_a';
     '/asap3/petra3/gpfs/p05/2017/data/11003700/raw/mpimm_04_a';
     '/asap3/petra3/gpfs/p05/2017/data/11003435/raw/ony_24'; % fly scan
@@ -41,12 +42,12 @@ scan_path = ...
 read_flatcor = 0; % read flatfield-corrected images from disc, skips preprocessing
 read_flatcor_path = ''; % subfolder of 'flat_corrected' containing projections
 % PREPROCESSING %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-raw_roi = [501 3000]; % [y0 y1] vertical roi.  skips first raw_roi(1)-1 lines, reads until raw_roi(2)
+raw_roi = [1001 3000]; % [y0 y1] vertical roi.  skips first raw_roi(1)-1 lines, reads until raw_roi(2)
 raw_bin = 3; % projection binning factor: 1, 2, or 4
 excentric_rot_axis = 0; % off-centered rotation axis increasing FOV. -1: left, 0: centeerd, 1: right. influences rot_corr_area1
-crop_at_rot_axis = 0; % recommended for scans with excentric rotation axis when no projection stitching is done
-stitch_projections = 0; % stitch projection (for 2 pi scans) at rotation axis position. "doubles" number of voxels
-stitch_method = 'sine';'linear';'sine'; %  ! adjust correlation area if necessary !
+crop_at_rot_axis = 0; % for recos of scans with excentric rotation axis but WITHOUT projection stitching
+stitch_projections = 0; % for 2 pi scans: stitch projection at rotation axis position
+stitch_method = 'sine';'linear'; 'step'; %  ! adjust correlation area if necessary !
     % 'step' : no interpolation, use step function
     % 'linear' : linear interpolation of overlap region
     % 'sine' : sinusoidal interpolation of overlap region
@@ -55,11 +56,10 @@ ref_range = []; % range of flat fields to be used (from all found). start:incr:e
 energy = []; % in eV! if empty: read from log file
 sample_detector_distance = []; % in m. if empty: read from log file
 eff_pixel_size = []; % in m. if empty: read from log file. effective pixel size =  detector pixel size / magnification
-darkFiltPixHot = 0.01; % Hot pixel filter parameter for dark fields, for details see 'FilterPixel'
-darkFiltPixDark = 0.005; % Dark pixel filter parameter for dark fields, for details see 'FilterPixel'
-refFiltPixHot = 0.01; % Hot pixel filter parameter for flat fields, for details see 'FilterPixel'
-refFiltPixDark = 0.005; % Dark pixel filter parameter for flat fields, for details see 'FilterPixel'
-projFiltPixHot = 0.01; % Hot pixel filter parameter for projections, for details see 'FilterPixel'
+dark_FiltPixThresh = [0.01 0.005]; % Dark fields: threshold parameter for hot/dark pixel filter, for details see 'FilterPixel'
+ref_FiltPixThresh = [0.01 0.005]; % Flat fields: threshold parameter for hot/dark pixel filter, for details see 'FilterPixel'
+proj_FiltPixThresh = [0.01 0.005]; % Raw projection: threshold parameter for hot/dark pixel filter, for details see 'FilterPixel'
+
 projFiltPixDark = 0.005; % Dark pixel filter parameter for projections, for details see 'FilterPixel'
 correlation_method = 'ssim-ml';'diff';'shift';'ssim';'std';'entropy';'cov';'corr';'cross-entropy12';'cross-entropy21';'cross-entropyx';
     % 'ssim-ml' : Matlab's structural similarity index (SSIM), includes Gaussian smoothing
@@ -75,7 +75,7 @@ corr_shift_max_pixelshift = 0.25; % maximum pixelshift allowed for 'shift'-corre
 corr_num_flats = 1; % number of flat fields used for average/median of flats. for 'shift'-correlation its the maximum number
 ring_current_normalization = 1; % normalize flat fields and projections by ring current
 flat_corr_area1 = [1 floor(100/raw_bin)]; % correlation area: index vector or relative/absolute position of [first pix, last pix]
-flat_corr_area2 = [0.2 0.8]; %correlation area: index vector or relative/absolute position of [first pix, last pix]
+flat_corr_area2 = [0.2 0.8]; % correlation area: index vector or relative/absolute position of [first pix, last pix]
 decimal_round_precision = 2; % precision when rounding pixel shifts
 ring_filter = 1; % ring artifact filter
 ring_filter_method = 'jm';'wavelet-fft';
@@ -430,7 +430,7 @@ elseif ~read_flatcor
         im_mean = mean( im(:) );
         im_std = std( im(:) );
         im( im > im_mean + 4*im_std) = im_mean;
-        darks(:, :, nn) = Binning( FilterPixel( im, [darkFiltPixHot darkFiltPixDark]), raw_bin) / raw_bin^2;
+        darks(:, :, nn) = Binning( FilterPixel( im, dark_FiltPixThresh), raw_bin) / raw_bin^2;
     end
     darks_min = min( darks(:) );
     darks_max = max( darks(:) );
@@ -468,7 +468,7 @@ elseif ~read_flatcor
     refs_to_use = zeros( 1, size( flat,3), 'logical');
     parfor nn = 1:num_ref_used
         filename = sprintf('%s%s', scan_path, ref_names_mat(nn,:));
-        flat(:, :, nn) = Binning( FilterPixel( read_image( filename, '', raw_roi, tif_info ), [refFiltPixHot refFiltPixDark]), raw_bin) / raw_bin^2;
+        flat(:, :, nn) = Binning( FilterPixel( read_image( filename, '', raw_roi, tif_info ), ref_FiltPixThresh), raw_bin) / raw_bin^2;
         
         % Check for zeros
         num_zeros =  sum( sum( flat(:,:,nn) < 1 ) );
@@ -579,21 +579,22 @@ elseif ~read_flatcor
     
     % Get absolute filter thresholds from percentage-wise pixel filtering
     % of 1st, middle, and last projection to speed up processing
-    if projFiltPixHot < 1 || projFiltPixDark < 0.5
+    if proj_FiltPixThresh(1) < 1 || proj_FiltPixThresh(2) < 0.5
+        
         filename = sprintf('%s%s', scan_path, img_names_mat(num_proj_used, :));
-        [~, ht(3), dt(3)] = FilterPixel( read_image( filename, '', raw_roi, tif_info ), [projFiltPixHot, projFiltPixDark]);
+        [~, ht(3), dt(3)] = FilterPixel( read_image( filename, '', raw_roi, tif_info ), proj_FiltPixThresh);
         
         filename = sprintf('%s%s', scan_path, img_names_mat(1, :));
-        [~, ht(2), dt(2)] = FilterPixel( read_image( filename, '', raw_roi, tif_info ), [projFiltPixHot, projFiltPixDark]);
+        [~, ht(2), dt(2)] = FilterPixel( read_image( filename, '', raw_roi, tif_info ), proj_FiltPixThresh);
                 
         filename = sprintf('%s%s', scan_path, img_names_mat(round(num_proj_used/2), :));
-        [~, ht(1), dt(1)] = FilterPixel( read_image( filename, '', raw_roi, tif_info ), [projFiltPixHot, projFiltPixDark]);
+        [~, ht(1), dt(1)] = FilterPixel( read_image( filename, '', raw_roi, tif_info ), proj_FiltPixThresh);
         
         HotThresh = median( ht );
         DarkThresh = median( dt );        
     else
-        HotThresh = projFiltPixHot;
-        DarkThresh = projFiltPixDark;                        
+        HotThresh = proj_FiltPixThresh(1);
+        DarkThresh = proj_FiltPixThresh(2);
     end
     
     % Read raw projections
@@ -1480,7 +1481,7 @@ if do_tomo(1)
         figure('Name', 'Volum cuts');
         
         subplot(1,3,1)
-        nn = round( size( vol, 1 ) / 2);
+        nn = round( size( vol, 3 ) / 2);
         imsc( squeeze( vol(:,:,nn) ) )
         axis equal tight
         title( sprintf( 'vol z = %u', nn ) )
@@ -1494,7 +1495,7 @@ if do_tomo(1)
         colorbar
         
         subplot(1,3,3)
-        nn = round( size( vol, 3 ) / 2);
+        nn = round( size( vol, 1 ) / 2);
         imsc( squeeze( vol(nn,:,:) ) )
         axis equal tight                
         title( sprintf( 'vol x = %u', nn ) )
