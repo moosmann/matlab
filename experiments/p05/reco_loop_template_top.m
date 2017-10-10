@@ -40,10 +40,6 @@
 % 'parfolder'}. Parameter setting to be printed at each loop iteration.
 % Useful in combination with RUN_RECO = 0 to check parameter setting for
 % the subset to loop over
-%
-% Written by Julian Moosmann, 2017-06-2, last modification: 2017-06-05
-%
-% p05_reco_loop_template( SUBSETS, RUN_RECO, PRINT_PARAMETERS)
 
 if nargin < 1
     SUBSETS = [];

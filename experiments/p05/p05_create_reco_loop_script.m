@@ -2,6 +2,9 @@ function p05_create_reco_loop_script( raw_path, folder_pattern)
 % Create template file to loop over reconstruction for all data sets, i.e.
 % folder, found in 'raw_path' matching the 'folder_pattern'. Created file
 % will be immediately opened in the MATLAB editor for editing.
+% 
+% !! Uses parameter setting of the main reco script 'p05_reco' if not
+% changed in the created templated file. See help within created template!!
 %
 % raw_path : string. Default: use present working directory. path to scan
 %   for data sets. 
@@ -12,8 +15,11 @@ function p05_create_reco_loop_script( raw_path, folder_pattern)
 %
 % p05_create_reco_loop_script( raw_path, folder_pattern)
 
-% TODO: Issue: where to create file
-% TODO: Issue: related to file location: add search path
+% TODO: How to handle parameters!!!!
+% TODO: Option to overwrite existing file 
+% TODO: Where to create file
+% TODO: Related to file location: add search path
+% TODO: Add creation time and user name to template
 
 %% Default arguments %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 if nargin < 1   
@@ -49,6 +55,7 @@ while exist( filename, 'file')
     nn = nn + 1;
     filename = sprintf( '%s_%02u.m', filename_prefix, nn );
 end
+folders(ismember(folders,{'.','..'})) = [];
 
 %% Create template %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -66,7 +73,7 @@ fprintf(fid, 'function %s%s', func_name, top);
 fprintf(fid, '\nraw_path = ''%s/'';', raw_path);
 for nn = 1:numel( folders )
     fprintf(fid, '\n' );
-    fprintf(fid, '\nscan_path = [raw_path %s]; ADD', folders{nn});    
+    fprintf(fid, '\nscan_path = [raw_path ''%s'']; ADD', folders{nn});    
 end
 
 % Write bottom: call reco loop
