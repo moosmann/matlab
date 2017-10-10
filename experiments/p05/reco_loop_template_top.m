@@ -1,4 +1,4 @@
-function p05_reco_loop_template( SUBSETS, RUN_RECO, PRINT_PARAMETERS)
+( SUBSETS, RUN_RECO, PRINT_PARAMETERS)
 % Template function to loop over data sets given in the 'PARAMETER / DATA
 % SETS' section below. The 'DEFAULT PARAMETERS' section defines the default
 % paramters. To add a data / parameter to the loop, define your
@@ -68,36 +68,3 @@ SET_DEFAULT
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% PARAMETER / DATA SETS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-% EXAMPLES
-
-raw_path = '/asap3/petra3/gpfs/p05/2017/data/11003950/raw/';
-
-% Define scan path and add data set
-scan_path = [raw_path 'syn01_48L_PEEK_12w_b'];
-ADD
-
-% Add another data set
-scan_path = [raw_path 'syn01_48L_PEEK_12w_c'];
-ADD
-
-% Change parameter, add data set, and restore default parameters
-scan_path = [raw_path 'syn13_55L_Mg10Gd_12w_load_04'];
-ref_range = [1:135, 137:162];
-ADD('r')
-
-% Changer paramter for subsequent data sets and add data sets
-raw_roi = [1211 2410];
-scan_path = [raw_path 'syn14_48L_PEEK_12w_a'];
-ADD
-
-scan_path = [raw_path 'syn14_48L_PEEK_12w_b'];
-ADD('r')
-
-% Add data set and restore defaults
-scan_path = [raw_path 'syn17_25R_PEEK_8w_a'];
-ADD
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-p05_reco_loop( SUBSETS, RUN_RECO, PRINT_PARAMETERS)
