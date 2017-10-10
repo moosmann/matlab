@@ -59,8 +59,6 @@ eff_pixel_size = []; % in m. if empty: read from log file. effective pixel size 
 dark_FiltPixThresh = [0.01 0.005]; % Dark fields: threshold parameter for hot/dark pixel filter, for details see 'FilterPixel'
 ref_FiltPixThresh = [0.01 0.005]; % Flat fields: threshold parameter for hot/dark pixel filter, for details see 'FilterPixel'
 proj_FiltPixThresh = [0.01 0.005]; % Raw projection: threshold parameter for hot/dark pixel filter, for details see 'FilterPixel'
-
-projFiltPixDark = 0.005; % Dark pixel filter parameter for projections, for details see 'FilterPixel'
 correlation_method = 'ssim-ml';'diff';'shift';'ssim';'std';'entropy';'cov';'corr';'cross-entropy12';'cross-entropy21';'cross-entropyx';
     % 'ssim-ml' : Matlab's structural similarity index (SSIM), includes Gaussian smoothing
     % 'ssim' : own implementation of SSIM, smoothing not yet implemented
@@ -567,7 +565,7 @@ elseif ~read_flatcor
             h1 = figure('Name', 'data and flat-and-dark-field correction');
          end
         filename = sprintf('%s%s', scan_path, img_names_mat(1, :));
-        raw1 = Binning( FilterPixel( read_image( filename, '', raw_roi, tif_info ), [projFiltPixHot, projFiltPixDark]), raw_bin) / raw_bin^2;
+        raw1 = Binning( FilterPixel( read_image( filename, '', raw_roi, tif_info ), proj_FiltPixThresh), raw_bin) / raw_bin^2;
         subplot(2,3,3)
         imsc1( raw1 )
         axis equal tight
