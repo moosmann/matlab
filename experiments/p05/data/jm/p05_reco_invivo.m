@@ -62,8 +62,13 @@ ADD
 scan_path = [raw_path 'szeb_13_00']; 
 ADD
 % dead
-scan_path = [raw_path 'szeb_13_09']; 
-ADD
+scan_path = [raw_path 'szeb_13_09']; ADD
+
+% early death
+scan_path = [raw_path 'szeb_17_00']; ADD
+
+% strong movement: following ones look ok
+scan_path = [raw_path 'szeb_19_00']; ADD
 
 % Nothobranchius furzeri: Movement
 scan_path = [raw_path 'szeb_23_00'];
