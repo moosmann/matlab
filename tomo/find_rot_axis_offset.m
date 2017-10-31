@@ -1,4 +1,4 @@
-function [vol, m] = find_rot_axis_offset(proj, angles, slice, offsets, tilt, take_neg_log, number_of_stds, vol_shape)
+function [vol, m] = find_rot_axis_offset(proj, angles, slice, offsets, tilt, take_neg_log, number_of_stds, vol_shape, lamino, fixed_tilt)
 % Reconstruct slices from sinogram for a range of rotation axis positoin
 % offsets.
 %
@@ -31,6 +31,12 @@ if nargin < 7
 end
 if nargin < 8
     vol_shape = [];
+end
+if nargin < 9
+    lamino = 0;
+end
+if nargin < 10
+    fixed_tilt = 0;
 end
 mask_rad = 0.95;
 mask_val = 0;
@@ -98,9 +104,14 @@ for nn = 1:numel( offsets )
     offset = offsets(nn);
     
     %% Reco
-    im = astra_parallel3D( permute( sino, [1 3 2]), angles, offset, vol_shape, vol_size, astra_pixel_size, link_data, tilt);    
-    vol(:,:,nn) = FilterHisto(im, number_of_stds, filter_histo_roi);
-    
+    if ~lamino
+        im = astra_parallel3D( permute( sino, [1 3 2]), angles, offset, vol_shape, vol_size, astra_pixel_size, link_data, tilt, gpu_index, fixed_tilt);
+    else
+        im = astra_parallel3D( permute( sino, [1 3 2]), angles, offset, vol_shape, vol_size, astra_pixel_size, link_data, fixed_tilt, gpu_index, tilt);
+    end
+
+
+    vol(:,:,nn) = FilterHisto(im, number_of_stds, filter_histo_roi);    
     %% Metrics    
     im = double( MaskingDisc( im, mask_rad, mask_val) ) * 2^16;
     % mean    

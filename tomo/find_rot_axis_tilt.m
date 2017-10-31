@@ -1,4 +1,4 @@
-function [vol, m] = find_rot_axis_tilt(proj, angles, slice, offset, tilts, take_neg_log, number_of_stds, vol_shape)
+function [vol, m] = find_rot_axis_tilt(proj, angles, slice, offset, tilts, take_neg_log, number_of_stds, vol_shape, lamino, fixed_tilt)
 % Reconstruct slices from a single sinogram using a range of rotation axis
 % tilts.
 %
@@ -8,9 +8,9 @@ function [vol, m] = find_rot_axis_tilt(proj, angles, slice, offset, tilts, take_
 % mean of all absolute values, mean non-negative values, mean of isotropic
 % modulus of gradient, mean of Laplacian, entropy
 % 
-% Written by Julian Moosmann. Last modification: 2017-05-04
+% Written by Julian Moosmann. Last modification: 2017-10-30
 %
-% [vol, m] = find_rot_axis_tilt(proj, angles, slice, offset, tilts, take_neg_log, number_of_stds, vol_shape)
+% [vol, m] = find_rot_axis_tilt(proj, angles, slice, offset, tilts, take_neg_log, number_of_stds, vol_shape, lamino, fixed_tilt)
 
 %% Default arguments %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 if nargin < 3
@@ -30,6 +30,12 @@ if nargin < 7
 end
 if nargin < 8
     vol_shape = [];
+end
+if nargin < 9
+    lamino = 0;
+end
+if nargin < 10
+    fixed_tilt = 0;
 end
 mask_rad = 0.95;
 mask_val = 0;
@@ -95,7 +101,11 @@ for nn = 1:numel( tilts )
     tilt = tilts(nn);
     
     %% Reco
-    im = astra_parallel3D( permute( sino, [1 3 2]), angles, offset, vol_shape, vol_size, astra_pixel_size, link_data, tilt);
+    if ~lamino
+        im = astra_parallel3D( permute( sino, [1 3 2]), angles, offset, vol_shape, vol_size, astra_pixel_size, link_data, tilt, gpu_index, fixed_tilt);
+    else
+        im = astra_parallel3D( permute( sino, [1 3 2]), angles, offset, vol_shape, vol_size, astra_pixel_size, link_data, fixed_tilt, gpu_index, tilt);
+    end
     vol(:,:,nn) = FilterHisto(im, number_of_stds, filter_histo_roi);
     
     %% Metrics        

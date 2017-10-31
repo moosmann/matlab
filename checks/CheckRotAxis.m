@@ -18,7 +18,7 @@ fprintf('Rotation axis position along horizontal sections of width %u:\n',xWidth
 for nn = 0:nmax
     x = nn*xWidth +(1:xWidth);
     out = ImageCorrelation(im0(x,yRange),fliplr(im180(x,yRange)),0,0);
-    RotAxisPos = out.VerticalRotationAxisPosition;
+    RotAxisPos = out.rot_axis_pos2;
     rr(nn+1) = RotAxisPos;
     fprintf('%4u: %6.1f  ',x(1),RotAxisPos);
     if ~mod((nn+1),10)
