@@ -1,4 +1,4 @@
-function [vol, m] = find_rot_axis_tilt(proj, angles, slice, offset, tilts, take_neg_log, number_of_stds, vol_shape, lamino, fixed_tilt)
+function [vol, m] = find_rot_axis_tilt(proj, angles, slice, offset, tilts, take_neg_log, number_of_stds, vol_shape, lamino, fixed_tilt, gpu_index)
 % Reconstruct slices from a single sinogram using a range of rotation axis
 % tilts.
 %
@@ -36,6 +36,9 @@ if nargin < 9
 end
 if nargin < 10
     fixed_tilt = 0;
+end
+if nargin < 11
+    gpu_index = [];
 end
 mask_rad = 0.95;
 mask_val = 0;

@@ -3,7 +3,7 @@
 % % the best matching flat-field rois.
 %
 
-proj_ind = 607;
+proj_ind = 1000;
 num_flats = 20;
 if ~exist( 'proj_ind', 'var' )
     proj_ind = 1;

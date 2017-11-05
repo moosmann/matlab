@@ -26,17 +26,36 @@ close all hidden % close all open windows
 %dbstop if error
 
 %% PARAMETERS / SETTINGS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% INPUT %%%%%%%%%%%%
+% INPUT%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 scan_path = ...
+    '/asap3/petra3/gpfs/p05/2017/data/11003440/raw/syn73_cor_P1_5';
+    '/asap3/petra3/gpfs/p05/2017/data/11003440/raw/syn75_cor_P1_7';
+    '/asap3/petra3/gpfs/p05/2017/data/11003440/raw/syn71_cor_P1_3';
+    '/asap3/petra3/gpfs/p05/2017/data/11003440/raw/syn70_cor_P1_2';
+    '/asap3/petra3/gpfs/p05/2017/data/11003440/raw/syn64_CPDexplant';
+    '/asap3/petra3/gpfs/p05/2017/data/11003440/raw/syn65_94R_Mg5Gd_8w';
+    '/asap3/petra3/gpfs/p05/2017/data/11003440/raw/syn67_cor_Punkt1_previous_is_Punkt2'; 
+    '/asap3/petra3/gpfs/p05/2017/data/11003440/raw/syn68_cor_Punkt3';
+    '/asap3/petra3/gpfs/p05/2017/data/11003440/raw/syn66_cor_Punkt1';
+    '/asap3/petra3/gpfs/p05/2017/data/11003440/raw/syn64_CPDexplant';
+    '/asap3/petra3/gpfs/p05/2017/data/11003440/raw/syn60_cor';
+    '/asap3/petra3/gpfs/p05/2017/data/11003440/raw/syn52_95R_Mg5Gd_8w';
+    '/asap3/petra3/gpfs/p05/2017/data/11003440/raw/syn51_87R_Mg5Gd_4w';
+    '/asap3/petra3/gpfs/p05/2017/data/11003440/raw/syn50_99L_Mg5Gd_4w';
+    '/asap3/petra3/gpfs/p05/2017/data/11003440/raw/syn49_80L_Mg5Gd_8w';
+    '/asap3/petra3/gpfs/p05/2017/data/11003440/raw/syn48_89L_Mg5Gd_4w';
+    '/asap3/petra3/gpfs/p05/2017/data/11003440/raw/syn47_100AL_Mg5Gd_4w';
+    '/asap3/petra3/gpfs/p05/2017/data/11003440/raw/syn46_88R_Mg5Gd_4w';
+    '/asap3/petra3/gpfs/p05/2017/data/11003440/raw/syn45_101BL_Mg5Gd_4w';
     '/asap3/petra3/gpfs/p05/2017/data/11003440/raw/syn44_66L_Mg5Gd_12w';
     '/asap3/petra3/gpfs/p05/2017/data/11003440/raw/syn43_38L_PEEK_8w';
-     '/asap3/petra3/gpfs/p05/2017/data/11003440/raw/syn42_38L_PEEK_8w/';
+    '/asap3/petra3/gpfs/p05/2017/data/11003440/raw/syn42_38L_PEEK_8w/';    
     '/asap3/petra3/gpfs/p05/2017/data/11003440/raw/syn41_63L_Mg5Gd_12w';
     '/asap3/petra3/gpfs/p05/2017/data/11003440/raw/syn40_69L_Mg10Gd_12w';
     '/asap3/petra3/gpfs/p05/2017/data/11003440/raw/syn39_75L_Mg5Gd_8w';
-    % not all data copied '/asap3/petra3/gpfs/p05/2017/data/11003440/raw/syn34_79R_Mg10Gd_8w';
     '/asap3/petra3/gpfs/p05/2017/data/11003440/raw/syn38_73R_Mg10Gd_8w';
+    % not all data copied '/asap3/petra3/gpfs/p05/2017/data/11003440/raw/syn34_79R_Mg10Gd_8w';
     '/asap3/petra3/gpfs/p05/2017/data/11003440/raw/syn37_69L_Mg10Gd_12w';
     '/asap3/petra3/gpfs/p05/2017/data/11003440/raw/syn34_79R_Mg10Gd_8w';
     '/asap3/petra3/gpfs/p05/2017/data/11003440/raw/syn33_80R_Mg10Gd_8w';
@@ -59,7 +78,7 @@ read_flatcor = 0; % read flatfield-corrected images from disc, skips preprocessi
 read_flatcor_path = ''; % subfolder of 'flat_corrected' containing projections
 % PREPROCESSING %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 raw_roi = []; % [y0 y1] vertical roi.  skips first raw_roi(1)-1 lines, reads until raw_roi(2)
-raw_bin = 2; % projection binning factor: 1, 2, or 4
+raw_bin = 3; % projection binning factor: 1, 2, or 4
 excentric_rot_axis = 0; % off-centered rotation axis increasing FOV. -1: left, 0: centeerd, 1: right. influences rot_corr_area1
 crop_at_rot_axis = 0; % for recos of scans with excentric rotation axis but WITHOUT projection stitching
 stitch_projections = 0; % for 2 pi scans: stitch projection at rotation axis position
@@ -75,7 +94,7 @@ eff_pixel_size = []; % in m. if empty: read from log file. effective pixel size 
 dark_FiltPixThresh = [0.01 0.005]; % Dark fields: threshold parameter for hot/dark pixel filter, for details see 'FilterPixel'
 ref_FiltPixThresh = [0.01 0.005]; % Flat fields: threshold parameter for hot/dark pixel filter, for details see 'FilterPixel'
 proj_FiltPixThresh = [0.01 0.005]; % Raw projection: threshold parameter for hot/dark pixel filter, for details see 'FilterPixel'
-correlation_method = 'ssim-ml';'diff';'shift';'ssim';'std';'entropy';'cov';'corr';'cross-entropy12';'cross-entropy21';'cross-entropyx';
+correlation_method = 'ssim-ml';'entropy';'diff';'shift';'ssim';'std';'cov';'corr';'cross-entropy12';'cross-entropy21';'cross-entropyx';
     % 'ssim-ml' : Matlab's structural similarity index (SSIM), includes Gaussian smoothing
     % 'ssim' : own implementation of SSIM, smoothing not yet implemented
     % 'entropy' : entropy measure of proj over flat
@@ -137,7 +156,7 @@ write_reco = 1; % save reconstructed slices (if do_tomo=1)
 write_float = 1; % single precision (32-bit float) tiff
 write_16bit = 0; 
 write_8bit = 0; 
-reco_bin = 2; % binning factor of reconstructed volume
+reco_bin = 1; % binning factor of reconstructed volume
 write_float_binned = 1; % binned single precision (32-bit float) tiff
 write_16bit_binned = 0; 
 write_8bit_binned = 0; 
@@ -158,7 +177,7 @@ subfolder_reco = ''; % subfolder in 'reco'
 verbose = 1; % print information to standard output
 visual_output = 1; % show images and plots during reconstruction
 interactive_determination_of_rot_axis = 1; % reconstruct slices with different rotation axis offsets
-interactive_determination_of_rot_axis_tilt = 1; % reconstruct slices with different offset AND tilts of the rotation axis
+interactive_determination_of_rot_axis_tilt = 0; % reconstruct slices with different offset AND tilts of the rotation axis
 lamino = 1; % find laminography tilt instead camera rotation
 fixed_tilt = 0; % fixed other tilt
 interactive_determination_of_rot_axis_slice = 0.5; % slice number, default: 0.5. if in [0,1): relative, if in (1, N]: absolute
@@ -689,6 +708,10 @@ elseif ~read_flatcor
     PrintVerbose( verbose, '\n hot- / dark-pixel filter threshold : %f, %f', HotThresh, DarkThresh )    
     PrintVerbose( verbose && nn,'\n discarded empty projections : %u', nn )    
 
+    
+    %% STOP HERE FOR FLATFIELD CORRELATION MAPPING
+    
+    
     %% Flat field correction %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%        
     [proj, corr, proj_roi, flat_roi] = proj_flat_correlation( proj, flat, correlation_method, flat_corr_area1, flat_corr_area2, raw_im_shape_binned, corr_shift_max_pixelshift, corr_num_flats, decimal_round_precision, flatcor_path, verbose, visual_output);
     
@@ -1019,7 +1042,7 @@ if do_tomo(1)
         while ~isscalar( offset )
             
             % Reco
-            [vol, metrics_offset] = find_rot_axis_offset(proj, angles, slice, offset, rot_axis_tilt, fra_take_neg_log, fra_number_of_stds, fra_vol_shape, lamino, fixed_tilt);
+            [vol, metrics_offset] = find_rot_axis_offset(proj, angles, slice, offset, rot_axis_tilt, fra_take_neg_log, fra_number_of_stds, fra_vol_shape, lamino, fixed_tilt, gpu_index);
             
             % Metric minima
             [~, min_pos] = min(cell2mat({metrics_offset(:).val}));
@@ -1087,7 +1110,7 @@ if do_tomo(1)
                 while ~isscalar( tilt )
                     
                     % Reco
-                    [vol, metrics_tilt] = find_rot_axis_tilt( proj, angles, slice, offset, tilt, fra_take_neg_log, fra_number_of_stds, fra_vol_shape, lamino, fixed_tilt);
+                    [vol, metrics_tilt] = find_rot_axis_tilt( proj, angles, slice, offset, tilt, fra_take_neg_log, fra_number_of_stds, fra_vol_shape, lamino, fixed_tilt, gpu_index);
                     
                     % Metric minima
                     [~, min_pos] = min(cell2mat({metrics_tilt(:).val}));

@@ -1,4 +1,4 @@
-function [vol, m] = find_rot_axis_offset(proj, angles, slice, offsets, tilt, take_neg_log, number_of_stds, vol_shape, lamino, fixed_tilt)
+function [vol, m] = find_rot_axis_offset(proj, angles, slice, offsets, tilt, take_neg_log, number_of_stds, vol_shape, lamino, fixed_tilt, gpu_index)
 % Reconstruct slices from sinogram for a range of rotation axis positoin
 % offsets.
 %
@@ -37,6 +37,9 @@ if nargin < 9
 end
 if nargin < 10
     fixed_tilt = 0;
+end
+if nargin < 11
+    gpu_index = [];
 end
 mask_rad = 0.95;
 mask_val = 0;
