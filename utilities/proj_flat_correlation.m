@@ -18,6 +18,8 @@ switch correlation_method
         flat_median = median( flat, 3);
         proj = bsxfun( @times, proj, flat_median);
         corr = [];
+        proj_roi =[];
+        flat_roi = [];
         
     otherwise
         

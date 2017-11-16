@@ -3,8 +3,8 @@
 % % the best matching flat-field rois.
 %
 
-proj_ind = 1400;
-num_flats = 15;
+proj_ind = 300;
+num_flats = 230;
 corr_matrix = corr.ssim_ml;
 if ~exist( 'proj_ind', 'var' )
     proj_ind = 1;

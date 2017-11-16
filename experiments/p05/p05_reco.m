@@ -23,12 +23,28 @@
 % 2017-11-05
 
 close all hidden % close all open windows
-%dbstop if error
+dbstop if error
 
 %% PARAMETERS / SETTINGS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % INPUT%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-scan_path = ...
+scan_path = ... 
+    
+'/asap3/petra3/gpfs/p05/2017/commissioning/c20171115_000_kit_test/raw/test16_gain60_nb_occddist260mm';
+'/asap3/petra3/gpfs/p05/2017/commissioning/c20171115_000_kit_test/raw/test17_gain60_wwb_occddist260mm';
+'/asap3/petra3/gpfs/p05/2017/commissioning/c20171115_000_kit_test/raw/test20_gain60_wwbnf_occddist260mm';
+'/asap3/petra3/gpfs/p05/2017/commissioning/c20171115_000_kit_test/raw/test21_gain60_wwbnf_occddist260mm_600ref'; 
+'/asap3/petra3/gpfs/p05/2017/commissioning/c20171115_000_kit_test/raw/test17_gain60_wwb_occddist600mm';
+'/asap3/petra3/gpfs/p05/2017/commissioning/c20171115_000_kit_test/raw/test18_gain60_nb_occddist600mm';
+'/asap3/petra3/gpfs/p05/2017/commissioning/c20171115_000_kit_test/raw/test19_gain60_wwbnf_occddist600mm';
+'/asap3/petra3/gpfs/p05/2017/commissioning/c20171115_000_kit_test/raw/test22_gain60_wwbnf_occddist600mm_400proj';
+
+    '/asap3/petra3/gpfs/p05/2017/commissioning/c20171115_000_kit_test/raw/test13_gain61_wwb_occddist600mm';
+    '/asap3/petra3/gpfs/p05/2017/commissioning/c20171115_000_kit_test/raw/test13_gain61_wwb_occddist600mm';
+    '/asap3/petra3/gpfs/p05/2017/data/11003656/raw/szeb_01';     
+    '/asap3/petra3/gpfs/p05/2017/commissioning/c20171115_000_kit_test/raw/test11_gain60';
+    '/asap3/petra3/gpfs/p05/2017/commissioning/c20171115_000_kit_test/raw/test10';
+    '/asap3/petra3/gpfs/p05/2017/commissioning/c20171115_000_kit_test/raw/test9';
     '/asap3/petra3/gpfs/p05/2017/data/11003440/raw/syn99_43R';
     '/asap3/petra3/gpfs/p05/2017/data/11003440/raw/syn98_77L';
     '/asap3/petra3/gpfs/p05/2017/data/11003440/raw/syn96_82L';
@@ -89,7 +105,7 @@ read_flatcor = 0; % read flatfield-corrected images from disc, skips preprocessi
 read_flatcor_path = ''; % subfolder of 'flat_corrected' containing projections
 % PREPROCESSING %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 raw_roi = []; % [y0 y1] vertical roi.  skips first raw_roi(1)-1 lines, reads until raw_roi(2)
-raw_bin = 3; % projection binning factor: 1, 2, or 4
+raw_bin = 4; % projection binning factor: 1, 2, or 4
 excentric_rot_axis = 0; % off-centered rotation axis increasing FOV. -1: left, 0: centeerd, 1: right. influences rot_corr_area1
 crop_at_rot_axis = 0; % for recos of scans with excentric rotation axis but WITHOUT projection stitching
 stitch_projections = 0; % for 2 pi scans: stitch projection at rotation axis position
@@ -105,7 +121,7 @@ eff_pixel_size = []; % in m. if empty: read from log file. effective pixel size 
 dark_FiltPixThresh = [0.01 0.005]; % Dark fields: threshold parameter for hot/dark pixel filter, for details see 'FilterPixel'
 ref_FiltPixThresh = [0.01 0.005]; % Flat fields: threshold parameter for hot/dark pixel filter, for details see 'FilterPixel'
 proj_FiltPixThresh = [0.01 0.005]; % Raw projection: threshold parameter for hot/dark pixel filter, for details see 'FilterPixel'
-correlation_method = 'ssim-ml';'entropy';'diff';'shift';'ssim';'std';'cov';'corr';'cross-entropy12';'cross-entropy21';'cross-entropyx';
+correlation_method = 'ssim-ml';'entropy';'diff';'shift';'ssim';'std';'cov';'corr';'cross-entropy12';'cross-entropy21';'cross-entropyx';'none';
     % 'ssim-ml' : Matlab's structural similarity index (SSIM), includes Gaussian smoothing
     % 'ssim' : own implementation of SSIM, smoothing not yet implemented
     % 'entropy' : entropy measure of proj over flat
@@ -128,7 +144,8 @@ ring_filter_waveletfft_wname = 'db30';'db25'; % wavelet type for 'wavelet-fft'
 ring_filter_waveletfft_sigma = 2.4; %  suppression factor for 'wavelet-fft'
 ring_filter_jm_median_width = 11; % [3 11 21 31 39];
 % PHASE RETRIEVAL %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-do_phase_retrieval = 0; % See 'PhaseFilter' for detailed description of parameters !
+do_phase_retrieval = 1; % See 'PhaseFilter' for detailed description of parameters !
+phase_retrieval_before = 1; % before stitching, interactive mode, etc.
 phase_bin = 1; % Binning factor after phase retrieval, but before tomographic reconstruction
 phase_retrieval_method = 'tie';'qpcut';  'tie'; %'qp' 'ctf' 'tie' 'qp2' 'qpcut'
 phase_retrieval_reg_par = .5; % regularization parameter. larger values tend to blurrier images. smaller values tend to original data.
@@ -147,13 +164,13 @@ rot_corr_area1 = []; % ROI to correlate projections at angles 0 & pi. Use [0.75 
 rot_corr_area2 = []; % ROI to correlate projections at angles 0 & pi
 rot_corr_gradient = 0; % use gradient of intensity maps if signal variations are too weak to correlate projections
 rot_axis_tilt = 0; % in rad. camera tilt w.r.t rotation axis. if empty calculate from registration of projections at 0 and pi
-fbp_filter_type = 'Ram-Lak';'linear'; % Ram-Lak according to Kak/Slaney
+fbp_filter_type = 'linear';'Ram-Lak'; % Ram-Lak according to Kak/Slaney
 fpb_filter_freq_cutoff = 1; % Cut-off frequency in Fourier space of the above FBP filter
 fbp_filter_padding = 1; % symmetric padding for consistent boundary conditions, 0: no padding
 fbp_filter_padding_method = 'symmetric';
 butterworth_filter = 0; % use butterworth filter in addition to FBP filter
 butterworth_order = 1;
-butterworth_cutoff_frequ = 1;
+butterworth_cutoff_frequ = 0.9;
 astra_pixel_size = 1; % size of a detector pixel: if different from one 'vol_size' needs to be ajusted
 take_neg_log = []; % take negative logarithm. if empty, use 1 for attenuation contrast, 0 for phase contrast
 % OUTPUT %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -167,7 +184,7 @@ write_reco = 1; % save reconstructed slices (if do_tomo=1)
 write_float = 1; % single precision (32-bit float) tiff
 write_16bit = 0; 
 write_8bit = 0; 
-reco_bin = 1; % binning factor of reconstructed volume
+reco_bin = 2; % binning factor of reconstructed volume
 write_float_binned = 1; % binned single precision (32-bit float) tiff
 write_16bit_binned = 0; 
 write_8bit_binned = 0; 
@@ -179,14 +196,14 @@ compression_parameter = [0.20 0.15]; % compression-method specific parameter
     % 'threshold' : [LOW HIGH] = compression_parameter, eg. [-0.01 1]
     % 'std' : NUM = compression_parameter, mean +/- NUM*std, dynamic range is rescaled to within -/+ NUM standard deviations around the mean value
     % 'histo' : [LOW HIGH] = compression_parameter (100*LOW)% and (100*HIGH)% of the original histogram, e.g. [0.02 0.02]
-parfolder = ''; % parent folder for 'reco', 'sino', 'phase', and 'flat_corrected'
+parfolder = '';sprintf( 'cor_%s', correlation_method);''; % parent folder for 'reco', 'sino', 'phase', and 'flat_corrected'
 subfolder_flatcor = ''; % subfolder in 'flat_corrected'
 subfolder_phase_map = ''; % subfolder in 'phase_map'
 subfolder_sino = ''; % subfolder in 'sino'
 subfolder_reco = ''; % subfolder in 'reco'
 % INTERACTION %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 verbose = 1; % print information to standard output
-visual_output = 1; % show images and plots during reconstruction
+visual_output = 0; % show images and plots during reconstruction
 interactive_determination_of_rot_axis = 1; % reconstruct slices with different rotation axis offsets
 interactive_determination_of_rot_axis_tilt = 0; % reconstruct slices with different offset AND tilts of the rotation axis
 lamino = 1; % find laminography tilt instead camera rotation
@@ -398,6 +415,7 @@ if isempty( eff_pixel_size )
         eff_pixel_size = par.ccd_pixsize / par.magn * 1e-3 ;
     end
 end
+eff_pixel_size = abs( eff_pixel_size );
 eff_pixel_size_binned = raw_bin * eff_pixel_size;
 if isempty( sample_detector_distance )
     if isfield( par, 'camera_distance')
@@ -914,6 +932,82 @@ if do_phase_retrieval(1)
 else
     phase_bin = 0;
 end
+
+
+
+
+
+
+
+%% Phase retrieval %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+edp = [energy, sample_detector_distance, eff_pixel_size_binned];
+if do_phase_retrieval(1) && phase_retrieval_before(1)
+    PrintVerbose(verbose, '\nPhase retrieval')
+    t = toc;
+    PrintVerbose(verbose, '\n energy : %g eV', energy)
+    PrintVerbose(verbose, '\n sample detector distance : %g m', sample_detector_distance)
+    
+    if isempty( take_neg_log )
+        take_neg_log = 0;
+    end
+    
+    % Phase retrieval filter
+    im_shape = [size(proj,1) , size(proj,2)];
+    im_shape_pad = (1 + phase_padding) * im_shape;
+    [phase_filter, pha_appendix] = PhaseFilter( phase_retrieval_method, im_shape_pad, edp, phase_retrieval_reg_par, phase_retrieval_bin_filt, phase_retrieval_cutoff_frequ, 'single');
+    
+    % reco phase dir
+    if isempty( subfolder_reco )
+        reco_phase_path = [out_path, filesep, 'reco_phase', filesep, pha_appendix, filesep];
+    else
+        reco_phase_path = [out_path, filesep, 'reco_phase', filesep, pha_appendix, filesep, subfolder_reco, filesep];
+    end
+    CheckAndMakePath( reco_phase_path )
+    PrintVerbose(verbose, '\n reco_phase_path : %s', reco_phase_path)
+    PrintVerbose(verbose, '\n phase retrieval method : %s', phase_retrieval_method)
+    
+    % Retrieval
+    parfor nn = 1:size(proj, 3)
+        % combined GPU and parfor usage requires memory management
+        im = padarray( proj(:,:,nn), phase_padding * im_shape, 'symmetric', 'post' );
+        %im = padarray( gpuArray( proj(:,:,nn) ), raw_im_shape_binned, 'post', 'symmetric' );
+        im = -real( ifft2( phase_filter .* fft2( im ) ) );
+        proj(:,:,nn) = im(1:im_shape(1), 1:im_shape(2));
+        %proj(:,:,nn) = gather( im(1:raw_im_shape_binned1, 1:raw_im_shape_binned2) );
+    end
+    pause(0.01)
+    PrintVerbose(verbose, '\n done in %g s (%.2f min)', toc-t, (toc-t)/60)
+    
+    % Save phase maps
+    if write_phase_map(1)
+        t = toc;
+        PrintVerbose(verbose, '\nSave phase maps:')
+        phase_map_path = [phase_map_path, pha_appendix, filesep];
+        CheckAndMakePath( phase_map_path );
+        parfor nn = 1:size( proj, 3)
+            filename = sprintf( '%sphase_%06u.tif', phase_map_path, nn);
+            write32bitTIFfromSingle( filename, squeeze( rot90( proj( :, :, nn) ) ) )
+        end
+        pause(0.01)
+        PrintVerbose(verbose, ' Time elapsed: %.1f s (%.2f min)', toc-t, (toc-t)/60)
+    end
+end
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 tint = 0;
 if do_tomo(1)
     t = toc;
@@ -1025,7 +1119,11 @@ if do_tomo(1)
         fprintf( '\n number of pixels: %u', raw_im_shape_binned1)
         fprintf( '\n image center: %.1f', raw_im_shape_binned1 / 2)
         
-        fra_take_neg_log = 1;
+        if phase_retrieval_before(1)
+            fra_take_neg_log = 0;
+        else
+            fra_take_neg_log = 1;
+        end
         fra_number_of_stds = 4;
         fra_vol_shape = [];
         
@@ -1355,7 +1453,7 @@ end
 
 %% Phase retrieval %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 edp = [energy, sample_detector_distance, eff_pixel_size_binned];
-if do_phase_retrieval(1)
+if do_phase_retrieval(1) && ~phase_retrieval_before(1)
     PrintVerbose(verbose, '\nPhase retrieval')
     t = toc;
     PrintVerbose(verbose, '\n energy : %g eV', energy)
