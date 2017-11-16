@@ -12,15 +12,15 @@
 % HOW TO AUTOMATICALLY LOOP OVER RECONSTRUCTIONS:
 % To loop over different data or parameters sets see 'p05_reco_loop_template'.
 %
+% For some additional information see 'p05_notes'.
 %
 % Known errors:
-%
 % GPU CUDA error: device busy
 % Do not call 'gpuDevice()' when ASTRA toolbox is used with multi-GPU
 % support, or MATLAB terminates abnormally with a segmentation violation.
 %
 % Written by Julian Moosmann. First version: 2016-09-28. Last modifcation:
-% 2017-10-09
+% 2017-11-05
 
 close all hidden % close all open windows
 %dbstop if error
@@ -29,6 +29,17 @@ close all hidden % close all open windows
 % INPUT%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 scan_path = ...
+    '/asap3/petra3/gpfs/p05/2017/data/11003440/raw/syn99_43R';
+    '/asap3/petra3/gpfs/p05/2017/data/11003440/raw/syn98_77L';
+    '/asap3/petra3/gpfs/p05/2017/data/11003440/raw/syn96_82L';
+    '/asap3/petra3/gpfs/p05/2017/data/11003440/raw/syn97_74L';
+    '/asap3/petra3/gpfs/p05/2017/data/11003440/raw/syn98_77L';
+    '/asap3/petra3/gpfs/p05/2017/data/11003440/raw/syn99_43R';
+    '/asap3/petra3/gpfs/p05/2017/data/11003440/raw/syn77_cor_P2_2';
+    '/asap3/petra3/gpfs/p05/2017/data/11003440/raw/syn76_cor_P2_1';
+    %'/asap3/petra3/gpfs/p05/2017/data/11003440/raw/syn74_cor_P1_6';
+    '/asap3/petra3/gpfs/p05/2017/data/11003440/raw/syn69_cor_P1_I';
+    '/asap3/petra3/gpfs/p05/2017/data/11003440/raw/syn72_cor_P1_4';
     '/asap3/petra3/gpfs/p05/2017/data/11003440/raw/syn73_cor_P1_5';
     '/asap3/petra3/gpfs/p05/2017/data/11003440/raw/syn75_cor_P1_7';
     '/asap3/petra3/gpfs/p05/2017/data/11003440/raw/syn71_cor_P1_3';
@@ -707,12 +718,9 @@ elseif ~read_flatcor
     PrintVerbose( verbose, ' Time elapsed: %.1f s (%.2f min)', toc - t, ( toc - t ) / 60 )
     PrintVerbose( verbose, '\n hot- / dark-pixel filter threshold : %f, %f', HotThresh, DarkThresh )    
     PrintVerbose( verbose && nn,'\n discarded empty projections : %u', nn )    
-
     
+    %% Flat field correction %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     %% STOP HERE FOR FLATFIELD CORRELATION MAPPING
-    
-    
-    %% Flat field correction %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%        
     [proj, corr, proj_roi, flat_roi] = proj_flat_correlation( proj, flat, correlation_method, flat_corr_area1, flat_corr_area2, raw_im_shape_binned, corr_shift_max_pixelshift, corr_num_flats, decimal_round_precision, flatcor_path, verbose, visual_output);
     
     PrintVerbose(verbose, '\n sinogram size = [%g, %g, %g]', size( proj ) )

@@ -14,7 +14,7 @@ end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 scan_path = '';
-raw_bin = 2;
+raw_bin = 4;
 excentric_rot_axis = 0;
 crop_at_rot_axis = 0;
 stitch_projections = 0; 

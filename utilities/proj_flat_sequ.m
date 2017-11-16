@@ -3,8 +3,9 @@
 % % the best matching flat-field rois.
 %
 
-proj_ind = 1000;
-num_flats = 20;
+proj_ind = 1400;
+num_flats = 15;
+corr_matrix = corr.ssim_ml;
 if ~exist( 'proj_ind', 'var' )
     proj_ind = 1;
 end
@@ -14,11 +15,11 @@ end
 if ~exist( 'dyn_range', 'var' )
     dyn_range = [];
 end
+if ~exist( 'corr_matrix', 'var' )
+    corr_matrix = corr.mat;
+end
 
 %% Main %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-corr_matrix = corr.mat;
-
 [corr_matrix_val, corr_matrix_pos] = sort( normat(corr_matrix), 2 );
 
 pos = corr_matrix_pos(proj_ind,1:num_flats);

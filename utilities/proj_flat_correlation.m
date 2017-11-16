@@ -12,12 +12,12 @@ function [proj, corr, proj_roi, flat_roi] = proj_flat_correlation( proj, flat, c
 
 %% Projection / flat-field correlcation
 switch correlation_method
-
+    
     case {'none', ''}
         % Flat field correction without correlation
         flat_median = median( flat, 3);
         proj = bsxfun( @times, proj, flat_median);
-        corr = [];        
+        corr = [];
         
     otherwise
         
@@ -66,95 +66,90 @@ switch correlation_method
                 % projection
                 p = proj_roi(:,:,pp);
                 
-                switch correlation_method
+                if sum(strcmpi( correlation_method, {'shift','all'}))
+                    % shift via image cross correlation
+                    out = ImageCorrelation( p, f, 0, 0, 0, 0, 1);
+                    c_shift_1(pp,ff) = round( out.shift1, decimal_round_precision );
+                    c_shift_2(pp,ff) = round( out.shift2, decimal_round_precision) ; % relevant shift
                     
-                    case 'shift'
-                        % shift via image cross correlation
-                        out = ImageCorrelation( p, f, 0, 0, 0, 0, 1);
-                        c_shift_1(pp,ff) = round( out.shift1, decimal_round_precision );
-                        c_shift_2(pp,ff) = round( out.shift2, decimal_round_precision) ; % relevant shift
-                        
-                    case 'diff'
-                        
-                        % differences
-                        d1 =  abs( abs( p ) - abs( f ) ) ;
-                        d2 =  sqrt( abs( p.^2 - f.^2) );
-                        
-                        % anisotropic grad sum L1
-                        c_diff1_l1(pp,ff) = norm( d1(:), 1);
-                        
-                        % anisotropic grad sum L2
-                        c_diff1_l2(pp,ff) = norm( d1(:), 2);
-                        
-                        % isotropic grad sum L1
-                        c_diff2_l1(pp,ff) = norm( d2(:), 1);
-                        
-                        % isotropic grad sum L2
-                        c_diff2_l2(pp,ff) = norm( d2(:), 2);
-                        
-                        
-                    case 'std'
-                        % std : standard deviation of ratio of p and f
-                        c_std(pp,ff) = std2( p ./ f );
-                        
-                    case 'entropy'
-                        % entropy : entropy of ratio of p and f
-                        c_ent(pp,ff) = entropy( double( p ./ f ) );
-                        
-                    case {'cross-entropy12', 'cross-entropy21', 'cross-entropyx'}
-                        % cross entropy of proj and flat
-                        p1 = imhist( normat( p(:) ) ) ./ numel( p );
-                        p2 = imhist( normat( f(:) ), numel( p1 ) ) ./ numel( f );
-                        m = boolean( (p1 == 0) + (p2 == 0) );
-                        p1(m) = [];
-                        p2(m) = [];
-                        c_cross_entropy12(pp,ff) = - sum( p1 .* log( p2 ) );
-                        c_cross_entropy21(pp,ff) = - sum( p2 .* log( p1 ) );
-                        c_cross_entropyx(pp,ff) = sum( p2 .* log2( p1 ) - p1 .* log2( p2 ) );
-                        
-                    case {'cov', 'corr', 'ssim'}
-                        
-                        % Inputs
-                        p_mean = mean2( p );
-                        p_std = std2( p );
-                        f_mean = mean2( f );
-                        f_std = std2( f );
-                        cov_pf = mean2( ( p - p_mean ) .* (f - f_mean ) );
-                        
-                        % cov : cross covariance
-                        c_cov(pp,ff) = - cov_pf;
-                        
-                        % corr : cross correlation
-                        c_corr(pp,ff) = - cov_pf ./ ( p_std * f_std );
-                        
-                        
-                        % ssim : structural similarity index (SSIM)
-                        
-                        % Dynamic range of camera
-                        %                     switch lower( cam )
-                        %                         case 'kit'
-                        %                             L = 2^12;
-                        %                         case 'ehd'
-                        %                             L = 2^16;
-                        %                     end
-                        % L = round(max(max(flat_roi(:)),max(flat_roi(:))) - min(min(flat_roi(:)),min(flat_roi(:))));
-                        L = 1;
-                        
-                        % Parameters
-                        c1 = ( 0.01 * L )^2;
-                        c2 = ( 0.03 * L )^2;
-                        c3 = c2 / 2;
-                        
-                        % Components: luminance, contrast, structure
-                        c_l(pp,ff) = ( 2 * p_mean * f_mean + c1 ) / ( p_mean^2 + f_mean^2 + c1 );
-                        c_c(pp,ff) = ( 2 * p_std * f_std + c2 ) / ( p_std^2 + f_std^2 + c2 );
-                        c_s(pp,ff) = ( cov_pf + c3) / ( p_std * f_std + c3 );
-                        
-                        c_ssim(pp,ff) = - c_l(pp,ff) * c_c(pp,ff) * c_s(pp,ff);
-                        
-                    case 'ssim-ml'
-                        % Matlab's structural similarity index (SSIM)
-                        c_ssim_ml(pp,ff) = - ssim( proj_roi(:,:,pp), f ); %'DynamicRange', 'uint16'
+                elseif sum(strcmpi( correlation_method, {'diff','all'}))
+                    % differences
+                    d1 =  abs( abs( p ) - abs( f ) ) ;
+                    d2 =  sqrt( abs( p.^2 - f.^2) );
+                    
+                    % anisotropic grad sum L1
+                    c_diff1_l1(pp,ff) = norm( d1(:), 1);
+                    
+                    % anisotropic grad sum L2
+                    c_diff1_l2(pp,ff) = norm( d1(:), 2);
+                    
+                    % isotropic grad sum L1
+                    c_diff2_l1(pp,ff) = norm( d2(:), 1);
+                    
+                    % isotropic grad sum L2
+                    c_diff2_l2(pp,ff) = norm( d2(:), 2);
+                    
+                elseif sum(strcmpi( correlation_method, {'std','all'}))
+                    % std : standard deviation of ratio of p and f
+                    c_std(pp,ff) = std2( p ./ f );
+                    
+                elseif sum(strcmpi( correlation_method, {'entropy','all'}))
+                    % entropy : entropy of ratio of p and f
+                    c_ent(pp,ff) = entropy( double( p ./ f ) );
+                    
+                elseif sum(strcmpi( correlation_method, {'cross-entropy12', 'cross-entropy21', 'cross-entropyx','all'}))
+                    % cross entropy of proj and flat
+                    p1 = imhist( normat( p(:) ) ) ./ numel( p );
+                    p2 = imhist( normat( f(:) ), numel( p1 ) ) ./ numel( f );
+                    m = boolean( (p1 == 0) + (p2 == 0) );
+                    p1(m) = [];
+                    p2(m) = [];
+                    c_cross_entropy12(pp,ff) = - sum( p1 .* log( p2 ) );
+                    c_cross_entropy21(pp,ff) = - sum( p2 .* log( p1 ) );
+                    c_cross_entropyx(pp,ff) = sum( p2 .* log2( p1 ) - p1 .* log2( p2 ) );
+                    
+                elseif sum(strcmpi( correlation_method, {'cov', 'corr', 'ssim','all'}))
+                    % Inputs
+                    p_mean = mean2( p );
+                    p_std = std2( p );
+                    f_mean = mean2( f );
+                    f_std = std2( f );
+                    cov_pf = mean2( ( p - p_mean ) .* (f - f_mean ) );
+                    
+                    % cov : cross covariance
+                    c_cov(pp,ff) = - cov_pf;
+                    
+                    % corr : cross correlation
+                    c_corr(pp,ff) = - cov_pf ./ ( p_std * f_std );
+                    
+                    
+                    % ssim : structural similarity index (SSIM)
+                    
+                    % Dynamic range of camera
+                    %                     switch lower( cam )
+                    %                         case 'kit'
+                    %                             L = 2^12;
+                    %                         case 'ehd'
+                    %                             L = 2^16;
+                    %                     end
+                    % L = round(max(max(flat_roi(:)),max(flat_roi(:))) - min(min(flat_roi(:)),min(flat_roi(:))));
+                    L = 1;
+                    
+                    % Parameters
+                    c1 = ( 0.01 * L )^2;
+                    c2 = ( 0.03 * L )^2;
+                    c3 = c2 / 2;
+                    
+                    % Components: luminance, contrast, structure
+                    c_l(pp,ff) = ( 2 * p_mean * f_mean + c1 ) / ( p_mean^2 + f_mean^2 + c1 );
+                    c_c(pp,ff) = ( 2 * p_std * f_std + c2 ) / ( p_std^2 + f_std^2 + c2 );
+                    c_s(pp,ff) = ( cov_pf + c3) / ( p_std * f_std + c3 );
+                    
+                    c_ssim(pp,ff) = - c_l(pp,ff) * c_c(pp,ff) * c_s(pp,ff);
+                    
+                elseif sum(strcmpi( correlation_method, {'ssim-ml','all'}))
+                    % Matlab's structural similarity index (SSIM)
+                    c_ssim_ml(pp,ff) = - ssim( proj_roi(:,:,pp), f ); %'DynamicRange', 'uint16'
                 end
             end
         end
@@ -163,7 +158,7 @@ switch correlation_method
             case 'shift'
                 corr_mat = c_shift_2;
             case 'diff'
-                corr_mat = c_diff1_l2;                
+                corr_mat = c_diff1_l2;
             case 'std'
                 corr_mat = c_std;
             case 'entropy'
@@ -182,6 +177,22 @@ switch correlation_method
                 corr_mat = c_cov;
             case 'corr'
                 corr_mat = c_corr;
+            case 'all'                
+                corr.shift1 = c_shift_1;
+                corr.shift2 = c_shift_2;
+                corr.diff1_l1 = c_diff1_l1;
+                corr.diff1_l2 = c_diff1_l2;
+                corr.diff2_l1 = c_diff2_l1;
+                corr.diff2_l2 = c_diff2_l2;
+                corr.std = c_std;            
+                corr.entropy = c_ent;
+                corr.cross_entropy12 = c_cross_entropy12;
+                corr.cross_entropy21 = c_cross_entropy21;            
+                corr.cross_entropyx = c_cross_entropyx;
+                corr.ssim = c_ssim;
+                corr.ssim_ml = c_ssim_ml;
+                corr.cov = c_cov;
+                corr.corr = c_corr;
         end
         
         if strcmp( correlation_method, 'all' )
@@ -212,7 +223,7 @@ switch correlation_method
                     [~, flat_corr_shift_min_pos_x] =  min ( abs( c_shift_1), [], 2);
                     [~, flat_corr_shift_min_pos_y] =  min ( abs( c_shift_2), [], 2);
                     
-                    m = 2; n = 1;        
+                    m = 2; n = 1;
                     
                     subplot(m,n,1);
                     Y = abs(arrayfun(@(x) (c_shift_2(x,flat_corr_shift_min_pos_y(x))), 1:num_proj_used));
@@ -225,10 +236,9 @@ switch correlation_method
                     axis  tight
                     title(sprintf('minimal absolute horizontal shift (unused)'))
                     
-                case {'cov', 'corr', 'ssim'}
-                    
+                case {'cov', 'corr', 'ssim'}                    
                     m = 2; n = 1;
-                    subplot(m,n,1);                    
+                    subplot(m,n,1);
                     f = @(x) normat(x(1,:))';
                     Y = [ f(c_cov), f(c_corr), f(c_ssim)];
                     plot( Y, '-' )
@@ -243,29 +253,27 @@ switch correlation_method
                     legend( 'ssim', 'luminance', 'contrast', 'structure' )
                     axis tight
                     title(sprintf('SSIM and components: projection #1'))
-                
-                case 'all'
                     
-%                     m = 2; n = 1;
-%                     subplot(m,n,1);
-%                     %f = @(x) normat( min( x, [], 2));
-%                     f = @(x) normat(x(1,:))';
-%                     Y = [f(c_diff1_l2), f(c_std), f(c_ent), f(c_cross_entropy12), f(c_cross_entropy21), f(c_cross_entropyx), f(c_cov), f(c_corr), f(c_ssim), f(c_ssim_ml)];
-%                     plot( Y, '-' )
-%                     legend('iso diff L2', 'ratio std dev', 'ratio entropy', 'cross entropy 12', 'cross entropy 21','cross entropy x', 'cov', 'corr', 'ssim', 'ssim-ml' )
-%                     axis tight
-%                     title(sprintf('correlation measures: projection #1'))
-
+                case 'all'                    
+                    %% TODO                    
+                    %                     m = 2; n = 1;
+                    %                     subplot(m,n,1);
+                    %                     %f = @(x) normat( min( x, [], 2));
+                    %                     f = @(x) normat(x(1,:))';
+                    %                     Y = [f(c_diff1_l2), f(c_std), f(c_ent), f(c_cross_entropy12), f(c_cross_entropy21), f(c_cross_entropyx), f(c_cov), f(c_corr), f(c_ssim), f(c_ssim_ml)];
+                    %                     plot( Y, '-' )
+                    %                     legend('iso diff L2', 'ratio std dev', 'ratio entropy', 'cross entropy 12', 'cross entropy 21','cross entropy x', 'cov', 'corr', 'ssim', 'ssim-ml' )
+                    %                     axis tight
+                    %                     title(sprintf('correlation measures: projection #1'))
                     
                 otherwise
-                                        
                     mid = round( num_proj_used / 2 );
                     f = @(mat,pp) mat(pp,:)';
                     Y = [ f( corr_mat, 1), f( corr_mat, mid), f( corr_mat, num_proj_used) ];
                     plot( Y, '.' )
                     legend( 'first proj', 'mid proj', 'last proj' )
                     axis tight
-                    title(sprintf('correlation method: %s', correlation_method))      
+                    title(sprintf('correlation method: %s', correlation_method))
                     xlabel( 'flat field index' )
                     ylabel( 'measure' )
                     
@@ -280,7 +288,7 @@ switch correlation_method
         switch correlation_method
             case 'shift'
                 % best match
-                if corr_shift_max_pixelshift == 0                    
+                if corr_shift_max_pixelshift == 0
                     [~, pos] = min( abs( corr_mat ), [], 2 );
                     parfor nn = 1:num_proj_used
                         proj(:, :, nn) = proj(:, :, nn) ./ flat(:, :, pos(nn));
@@ -305,6 +313,13 @@ switch correlation_method
                 else
                     error('Value of maximum shift (%g) is not >= 0', corr_shift_max_pixelshift)
                 end
+                
+            case 'all'
+                % Save correlation matrix
+                CheckAndMakePath( flatcor_path )
+                save( sprintf( '%s/corr_all.mat', flatcor_path), 'corr' )
+                
+                fprintf( 'All available measures calulated. NO FLAT FIELD CORRECTION DONE.')
                 
             otherwise
                 
