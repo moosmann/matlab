@@ -29,7 +29,17 @@ dbstop if error
 % INPUT%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 scan_path = ... 
-    
+     '/asap3/petra3/gpfs/p05/2017/data/11003288/raw/syn146_58L_Mg_12_cmos_test'
+    '/asap3/petra3/gpfs/p05/2017/data/11003288/raw/syn145_58L_Mg_12_cmos_test'
+'/asap3/petra3/gpfs/p05/2017/data/11003773/raw/syn133_cor_mg5gd1p_12'    
+'/asap3/petra3/gpfs/p05/2017/data/11003773/raw/syn132_cor_mg5gd434s_mg10gd408s_12'
+'/asap3/petra3/gpfs/p05/2017/data/11003773/raw/syn131_cor_mg5gd428s_mg10gd407s_mg5gd8p_12'
+'/asap3/petra3/gpfs/p05/2017/data/11003773/raw/syn130_cor_mg5gd416s_mg10gd410s_mg5gd7p_12'
+'/asap3/petra3/gpfs/p05/2017/data/11003773/raw/syn129_cor_mg5gd413s_mg10gd409s_mg5gd3p_12'   
+'/asap3/petra3/gpfs/p05/2017/data/11003773/raw/syn128_cor_mg5gd432s_mg10gd418s_pmg10p_12'  
+'/asap3/petra3/gpfs/p05/2017/data/11003773/raw/syn127_cor_mg5gd430s_mg10gd413s_pmg9p_12';
+'/asap3/petra3/gpfs/p05/2017/data/11003656/raw/szeb_19_01'
+'/asap3/petra3/gpfs/p05/2017/commissioning/c20171115_000_kit_test/raw/test23_gain60_nb_occddist600mm_400proj';
 '/asap3/petra3/gpfs/p05/2017/commissioning/c20171115_000_kit_test/raw/test16_gain60_nb_occddist260mm';
 '/asap3/petra3/gpfs/p05/2017/commissioning/c20171115_000_kit_test/raw/test17_gain60_wwb_occddist260mm';
 '/asap3/petra3/gpfs/p05/2017/commissioning/c20171115_000_kit_test/raw/test20_gain60_wwbnf_occddist260mm';
@@ -100,7 +110,7 @@ scan_path = ...
     '/asap3/petra3/gpfs/p05/2017/data/11002839/raw/ehh_2017_019_b';
     '/asap3/petra3/gpfs/p05/2017/data/11003063/raw/hnee_01_hw_hk776_bn161514';    
     '/asap3/petra3/gpfs/p05/2017/data/11002839/raw/ehh_2017_015_a';
-'/asap3/petra3/gpfs/p05/2017/data/11003950/raw/syn01_48L_PEEK_12w_b';    
+    '/asap3/petra3/gpfs/p05/2017/data/11003950/raw/syn01_48L_PEEK_12w_b';    
 read_flatcor = 0; % read flatfield-corrected images from disc, skips preprocessing
 read_flatcor_path = ''; % subfolder of 'flat_corrected' containing projections
 % PREPROCESSING %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -134,7 +144,7 @@ correlation_method = 'ssim-ml';'entropy';'diff';'shift';'ssim';'std';'cov';'corr
 corr_shift_max_pixelshift = 0.25; % maximum pixelshift allowed for 'shift'-correlation method: if 0 use the best match (i.e. the one with the least shift), if > 0 uses all flats with shifts smaller than corr_shift_max_pixelshift
 corr_num_flats = 1; % number of flat fields used for average/median of flats. for 'shift'-correlation its the maximum number
 ring_current_normalization = 1; % normalize flat fields and projections by ring current
-flat_corr_area1 = [1 floor(100/raw_bin)]; % correlation area: index vector or relative/absolute position of [first pix, last pix]
+flat_corr_area1 = [0.98 1];[1 floor(100/raw_bin)]; % correlation area: index vector or relative/absolute position of [first pix, last pix]
 flat_corr_area2 = [0.2 0.8]; % correlation area: index vector or relative/absolute position of [first pix, last pix]
 decimal_round_precision = 2; % precision when rounding pixel shifts
 ring_filter = 1; % ring artifact filter
@@ -144,7 +154,7 @@ ring_filter_waveletfft_wname = 'db30';'db25'; % wavelet type for 'wavelet-fft'
 ring_filter_waveletfft_sigma = 2.4; %  suppression factor for 'wavelet-fft'
 ring_filter_jm_median_width = 11; % [3 11 21 31 39];
 % PHASE RETRIEVAL %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-do_phase_retrieval = 1; % See 'PhaseFilter' for detailed description of parameters !
+do_phase_retrieval = 0; % See 'PhaseFilter' for detailed description of parameters !
 phase_retrieval_before = 1; % before stitching, interactive mode, etc.
 phase_bin = 1; % Binning factor after phase retrieval, but before tomographic reconstruction
 phase_retrieval_method = 'tie';'qpcut';  'tie'; %'qp' 'ctf' 'tie' 'qp2' 'qpcut'
@@ -185,7 +195,7 @@ write_float = 1; % single precision (32-bit float) tiff
 write_16bit = 0; 
 write_8bit = 0; 
 reco_bin = 2; % binning factor of reconstructed volume
-write_float_binned = 1; % binned single precision (32-bit float) tiff
+write_float_binned = 0; % binned single precision (32-bit float) tiff
 write_16bit_binned = 0; 
 write_8bit_binned = 0; 
 write_8bit_segmented = 0; % experimental: threshold segmentation for histograms with 2 distinct peaks: __/\_/\__
@@ -203,7 +213,7 @@ subfolder_sino = ''; % subfolder in 'sino'
 subfolder_reco = ''; % subfolder in 'reco'
 % INTERACTION %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 verbose = 1; % print information to standard output
-visual_output = 0; % show images and plots during reconstruction
+visual_output = 1; % show images and plots during reconstruction
 interactive_determination_of_rot_axis = 1; % reconstruct slices with different rotation axis offsets
 interactive_determination_of_rot_axis_tilt = 0; % reconstruct slices with different offset AND tilts of the rotation axis
 lamino = 1; % find laminography tilt instead camera rotation
