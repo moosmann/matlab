@@ -1,4 +1,4 @@
-function [im, tif_info] = read_image(filename, filetype, roi, tif_info)
+function [im, tif_info] = read_image(filename, filetype, roi, tif_info, shape, dtype)
 % Reads 'tif', 'img', 'dar', 'ref', and 'edf' images and all the files
 % MATLAB's imread function can read without additional arguments than file
 % format.
@@ -20,8 +20,15 @@ end
 if nargin < 4
     tif_info = [];
 end
+if nargin < 5
+    shape = [];
+end
+if dtype < 6
+    dtype = '';
+end
 
 %% TODO: roi support for edf and tiff files
+%% TODO: check flip/rotation/transponation for raw data
 
 %% Main %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -61,7 +68,14 @@ switch lower( filetype )
                 error( 'Only vertical ROI supported for fast tif reading.' )
         end
     case {'img', 'dar', 'ref'}        
-            im = read_dat_jm( filename, roi );        
+            im = read_dat_jm( filename, roi );
+    case 'raw'
+        %im = rot90(read_raw( filename, shape, dtype, roi ), 1);
+        %im = rot90(read_raw( filename, shape, dtype, roi ), -1);
+        %im = read_raw( filename, shape, dtype, roi )';
+        %im = permute(read_raw( filename, shape, dtype, roi ), [2 1]);
+        im = rot90(read_raw( filename, shape, dtype, roi ), -1);
+        %% roi for raw is horizontal roi not verticall!!!!!!!!!!!
     otherwise
         im = imread( filename, filetype )';
 end

@@ -3,7 +3,7 @@ function [par, cur, cam] = p05_log( file )
 %
 % ARGUMENTS
 % file : string. Folder of or path to log file
-% 
+%
 % Written by Julian Moosmann, 2016-12-12. Last version: 2016-12-12
 %
 % [par, cur, cam] = p05_log(filename)
@@ -17,7 +17,7 @@ end
 
 %% Main %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 if exist( file , 'file') ~= 2
-    s = dir( [file '/*scan.log'] );    
+    s = dir( [file '/*scan.log'] );
     file = [s.folder filesep s.name];
 end
 
@@ -27,7 +27,7 @@ if length( name ) > 4
     [par, cur] = EHD_log( file );
 else
     cam = 'KIT';
-    [par, cur] = KIT_log( file ); 
+    [par, cur] = KIT_log( file );
 end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -100,17 +100,16 @@ end
 if ~isfield( par, 'angle_list' )
     par.angle_list = 180 * (0:num_proj - 1) / num_proj;
 end
-for nn = 1:numel( proj_cur )    
+for nn = 1:numel( proj_cur )
     cur.proj(nn).val = proj_cur(nn);
     cur.proj(nn).ind = nn - 1;
     cur.proj(nn).angle = par.angle_list(nn);
 end
-for nn = 1:numel( ref_cur )    
+for nn = 1:numel( ref_cur )
     cur.ref(nn).val = ref_cur(nn);
     cur.ref(nn).ind = nn - 1;
     cur.ref(nn).angle = 0;
 end
-
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -121,13 +120,18 @@ cl = {{[]}};
 cl_counter = 1;
 while 1
     c = textscan( fid, '%s', 1, 'Delimiter', {'\n', '\r'} );
-    s = c{1}{1};
-    if ~isempty( s ) && ~strcmpi( s(1), '*')
-        cl{1}{cl_counter} = s;
-        cl_counter = cl_counter + 1;
-    end
-    if ~isempty( c{1}{1} ) && strcmpi( c{1}{1}(1:6), '/PETRA' )
-        c_break = c;
+    if ~isempty( c{1} )
+        s = c{1}{1};
+        if ~isempty( s ) && ~strcmpi( s(1), '*')
+            cl{1}{cl_counter} = s;
+            cl_counter = cl_counter + 1;
+        end
+        if ~isempty( c{1}{1} ) && strcmpi( c{1}{1}(1:6), '/PETRA' )
+            c_break = c;
+            break
+        end
+    else
+        c_break = [];
         break
     end
 end
@@ -161,6 +165,7 @@ par.o_aperture = '%f';
 par.o_lens_changer = '%f';
 par.o_ccd_high = '%f';
 par.magn = '%f';
+par.eff_pix = '%f';
 
 % apparatus info
 par.pos_s_pos_x = '%f';
@@ -210,31 +215,35 @@ end
 % @1436994686180[89.39424@1436994686098]
 
 % Move back to first occurence of /PETRA...
-fseek( fid, - ( length( c_break{1}{1} ) + 1 ), 'cof' );
-
-% Read all current fields
-fs = '/%*s@%*f[%f@%*f]%s/%*s@%*f[%f@%*f]%*s';
-c  = textscan( fid, fs, 'Delimiter', {'\n', '\r'},  'MultipleDelimsAsOne', 1);
-
-ref_count = 1;
-proj_count = 1;
-for nn = 1:numel( c{1} )
-    str = c{2}{nn};
-    val = ( c{1}(nn) + c{3}(nn) ) / 2;
-    switch str(1:3)
-        case 'ref'
-            st_c = textscan(str, '%*s%s%f');
-            cur.ref(ref_count).ind = str2double(st_c{1}{1}(end-8:end-4));
-            cur.ref(ref_count).angle = st_c{2};
-            cur.ref(ref_count).val = val;
-            ref_count = ref_count + 1;
-        case 'img'
-            st_c = textscan(str, '%*s%s%f');
-            cur.proj(proj_count).ind = str2double(st_c{1}{1}(end-8:end-4));
-            cur.proj(proj_count).angle = st_c{2};
-            cur.proj(proj_count).val = val;
-            proj_count = proj_count + 1;
+if ~isempty( c_break )
+    fseek( fid, - ( length( c_break{1}{1} ) + 1 ), 'cof' );
+    
+    % Read all current fields
+    fs = '/%*s@%*f[%f@%*f]%s/%*s@%*f[%f@%*f]%*s';
+    c  = textscan( fid, fs, 'Delimiter', {'\n', '\r'},  'MultipleDelimsAsOne', 1);
+    
+    ref_count = 1;
+    proj_count = 1;
+    for nn = 1:numel( c{1} )
+        str = c{2}{nn};
+        val = ( c{1}(nn) + c{3}(nn) ) / 2;
+        switch str(1:3)
+            case 'ref'
+                st_c = textscan(str, '%*s%s%f');
+                cur.ref(ref_count).ind = str2double(st_c{1}{1}(end-8:end-4));
+                cur.ref(ref_count).angle = st_c{2};
+                cur.ref(ref_count).val = val;
+                ref_count = ref_count + 1;
+            case 'img'
+                st_c = textscan(str, '%*s%s%f');
+                cur.proj(proj_count).ind = str2double(st_c{1}{1}(end-8:end-4));
+                cur.proj(proj_count).angle = st_c{2};
+                cur.proj(proj_count).val = val;
+                proj_count = proj_count + 1;
+        end
     end
+else
+    cur = [];
 end
 
 fclose( fid );
