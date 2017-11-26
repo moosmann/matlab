@@ -1,5 +1,9 @@
 % Notes for P05 reconstruction pipeline 'p05_reco'.
 
+%% Rotation axis measures
+% iso-grad works for absorption contrast, local tomography, push-out
+% device, sample shift, scan
+
 %% Padding and phase retrieval
 % Symmetric padding of intensity maps before phase retrieval cleary reduces
 % artifacts in the retrieved phase maps which are due to inconistent

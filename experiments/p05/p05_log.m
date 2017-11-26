@@ -197,6 +197,27 @@ for nn = 1:numel( fn )
     
 end
 
+%% Fix inconsistent naming schemes
+if isfield( par, 'Energy' )
+    par.energy = par.Energy;
+end
+
+if isfield( par, 'eff_pix_size' )
+    par.eff_pixel_size = abs( par.eff_pix_size * 1e-3 );
+elseif isfield( par, 'eff_pix' )
+    par.eff_pixel_size = abs( par.eff_pix * 1e-3 );
+elseif isfield( par, 'ccd_pixsize' ) && isfield( par, 'magn' )
+    par.eff_pixel_size = abs( par.ccd_pixsize / par.magn * 1e-3 );
+end
+
+if isfield( par, 'camera_distance')
+    par.sample_detector_distance = par.camera_distance / 1000;
+elseif isfield( par, 'camera_dist')
+    par.sample_detector_distance = par.camera_dist / 1000;
+elseif isfield( par, 'o_ccd_dist')
+    par.sample_detector_distance = par.o_ccd_dist / 1000;
+end
+
 %% ring current
 
 % ************************************************

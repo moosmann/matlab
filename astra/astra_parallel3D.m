@@ -98,15 +98,20 @@ vectors = zeros( numel(angles), 12);
 for nn = 1:num_proj
     
     theta = angles( nn );
+    if isequal( numel( rotation_axis_offset ), 1 )
+        rao = rotation_axis_offset;
+    else
+        rao = rotation_axis_offset(nn);
+    end
 
     % source / ray direction
-    vectors(nn,1) = sin( theta );
-    vectors(nn,2) = -cos( theta );
+    vectors(nn,1) = rao * sin( theta );
+    vectors(nn,2) = - rao * cos( theta );
     vectors(nn,3) = -sin(tilt_lamino);
 
     % center of detector
-    vectors(nn,4) = -rotation_axis_offset * cos( theta );
-    vectors(nn,5) = -rotation_axis_offset * sin( theta );
+    vectors(nn,4) = -rao * cos( theta );
+    vectors(nn,5) = -rao * sin( theta );
     vectors(nn,6) = sin( tilt_lamino );
 
     % vector from detector pixel (0,0) to (0,1)

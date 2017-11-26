@@ -1,7 +1,12 @@
 %% TODO list for P05 reconstruction pipeline 'p05_reco'
 
+%% TODO: save reco loop script under current user directory
+
+% TODO: proper impementation of quick fixes for new shift acquistion scheme
+% TODO: update log file parameters
 % TODO: check missing proj mod for stitching etc
 % TODO: visual output for phase retrieval: phase map, fft(int), etc
+% TODO: interactive loop over tomo slices for different phase retrieval parameter
 % TODO: choose regulatrization parameter for phase retrieval via interactive mode 
 % TODO: physically consistent attenutation values of reconstructed slice 
 % TODO: check raw roi, transpose, rot90 for KIT and EHD camera
@@ -14,7 +19,6 @@
 % TODO: SSIM: include Gaussian blur filter, test
 % TODO: large data set management: parloop, memory, etc
 % TODO: stitching: optimize and refactor, memory efficency, interpolation method
-% TODO: interactive loop over tomo slices for different phase retrieval parameter
 % TODO: automatic determination of rot center
 % TODO: output file format option: 8-bit, 16-bit for sino, phase, proj
 % TODO: additional padding schemes for FBP filter
@@ -27,4 +31,5 @@
 % TODO: inverse Gaussian filter for phase retrieval, VZC theorem
 % TODO: flat-flat correlation and averaging before proj-flat correlation
 % TODO: proj-flat correlation: take negative logarithm or not?
-% TODO: Check impact of symmetric FBP ifft option        
+% TODO: Check impact of symmetric FBP ifft option
+% TODO: update NOTES

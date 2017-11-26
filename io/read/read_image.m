@@ -23,7 +23,7 @@ end
 if nargin < 5
     shape = [];
 end
-if dtype < 6
+if nargin < 6
     dtype = '';
 end
 
@@ -74,7 +74,7 @@ switch lower( filetype )
         %im = rot90(read_raw( filename, shape, dtype, roi ), -1);
         %im = read_raw( filename, shape, dtype, roi )';
         %im = permute(read_raw( filename, shape, dtype, roi ), [2 1]);
-        im = rot90(read_raw( filename, shape, dtype, roi ), -1);
+        im = flipud(rot90(read_raw( filename, shape, dtype, roi ), -1));
         %% roi for raw is horizontal roi not verticall!!!!!!!!!!!
     otherwise
         im = imread( filename, filetype )';
