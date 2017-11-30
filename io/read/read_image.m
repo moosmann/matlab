@@ -74,7 +74,11 @@ switch lower( filetype )
         %im = rot90(read_raw( filename, shape, dtype, roi ), -1);
         %im = read_raw( filename, shape, dtype, roi )';
         %im = permute(read_raw( filename, shape, dtype, roi ), [2 1]);
-        im = flipud(rot90(read_raw( filename, shape, dtype, roi ), -1));
+        if shape(1) > shape(2)
+            im = flipud( read_raw( filename, shape, dtype, roi ) );
+        else
+            im = flipud(rot90(read_raw( filename, shape, dtype, roi ), -1));
+        end
         %% roi for raw is horizontal roi not verticall!!!!!!!!!!!
     otherwise
         im = imread( filename, filetype )';

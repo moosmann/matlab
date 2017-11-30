@@ -30,98 +30,16 @@ close all hidden % close all open windows
 % INPUT%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 scan_path = ...
-    '/asap3/petra3/gpfs/p05/2017/data/11003288/raw/syn154_58L_Mg_12_cmos_test';
-    '/asap3/petra3/gpfs/p05/2017/data/11003773/raw/syn132_cor_mg5gd434s_mg10gd408s_12';
-    '/asap3/petra3/gpfs/p05/2017/data/11003288/raw/syn165_58L_Mg10Gd_12w_000'; %reconstruction is crap
-    '/asap3/petra3/gpfs/p05/2017/data/11003288/raw/syn166_104R_Mg10Gd_4w_000'; %reconstruction is crap
-    '/asap3/petra3/gpfs/p05/2017/data/11003288/raw/syn165_58L_Mg10Gd_12w_003';
-'/asap3/petra3/gpfs/p05/2017/data/11003288/raw/syn151_58L_Mg_12_000';
+    '/asap3/petra3/gpfs/p05/2017/commissioning/c20171115_000_kit_test/raw/fast_test';
 '/asap3/petra3/gpfs/p05/2017/data/11003288/raw/syn154_58L_Mg_12_cmos_test';
-'/asap3/petra3/gpfs/p05/2017/data/11003288/raw/syn146_58L_Mg_12_cmos_test';
-'/asap3/petra3/gpfs/p05/2017/data/11003288/raw/syn145_58L_Mg_12_cmos_test';
-'/asap3/petra3/gpfs/p05/2017/data/11003773/raw/syn133_cor_mg5gd1p_12';
-'/asap3/petra3/gpfs/p05/2017/data/11003773/raw/syn131_cor_mg5gd428s_mg10gd407s_mg5gd8p_12';
-'/asap3/petra3/gpfs/p05/2017/data/11003773/raw/syn130_cor_mg5gd416s_mg10gd410s_mg5gd7p_12';
-'/asap3/petra3/gpfs/p05/2017/data/11003773/raw/syn129_cor_mg5gd413s_mg10gd409s_mg5gd3p_12';
-'/asap3/petra3/gpfs/p05/2017/data/11003773/raw/syn128_cor_mg5gd432s_mg10gd418s_pmg10p_12';
-'/asap3/petra3/gpfs/p05/2017/data/11003773/raw/syn127_cor_mg5gd430s_mg10gd413s_pmg9p_12';
-'/asap3/petra3/gpfs/p05/2017/data/11003656/raw/szeb_19_01';
-'/asap3/petra3/gpfs/p05/2017/commissioning/c20171115_000_kit_test/raw/test23_gain60_nb_occddist600mm_400proj';
-'/asap3/petra3/gpfs/p05/2017/commissioning/c20171115_000_kit_test/raw/test16_gain60_nb_occddist260mm';
-'/asap3/petra3/gpfs/p05/2017/commissioning/c20171115_000_kit_test/raw/test17_gain60_wwb_occddist260mm';
-'/asap3/petra3/gpfs/p05/2017/commissioning/c20171115_000_kit_test/raw/test20_gain60_wwbnf_occddist260mm';
-'/asap3/petra3/gpfs/p05/2017/commissioning/c20171115_000_kit_test/raw/test21_gain60_wwbnf_occddist260mm_600ref';
-'/asap3/petra3/gpfs/p05/2017/commissioning/c20171115_000_kit_test/raw/test17_gain60_wwb_occddist600mm';
-'/asap3/petra3/gpfs/p05/2017/commissioning/c20171115_000_kit_test/raw/test18_gain60_nb_occddist600mm';
-'/asap3/petra3/gpfs/p05/2017/commissioning/c20171115_000_kit_test/raw/test19_gain60_wwbnf_occddist600mm';
-'/asap3/petra3/gpfs/p05/2017/commissioning/c20171115_000_kit_test/raw/test22_gain60_wwbnf_occddist600mm_400proj';
-'/asap3/petra3/gpfs/p05/2017/commissioning/c20171115_000_kit_test/raw/test13_gain61_wwb_occddist600mm';
-'/asap3/petra3/gpfs/p05/2017/commissioning/c20171115_000_kit_test/raw/test13_gain61_wwb_occddist600mm';
-'/asap3/petra3/gpfs/p05/2017/data/11003656/raw/szeb_01';
-'/asap3/petra3/gpfs/p05/2017/commissioning/c20171115_000_kit_test/raw/test11_gain60';
-'/asap3/petra3/gpfs/p05/2017/commissioning/c20171115_000_kit_test/raw/test10';
-'/asap3/petra3/gpfs/p05/2017/commissioning/c20171115_000_kit_test/raw/test9';
-'/asap3/petra3/gpfs/p05/2017/data/11003440/raw/syn99_43R';
-'/asap3/petra3/gpfs/p05/2017/data/11003440/raw/syn98_77L';
-'/asap3/petra3/gpfs/p05/2017/data/11003440/raw/syn96_82L';
-'/asap3/petra3/gpfs/p05/2017/data/11003440/raw/syn97_74L';
-'/asap3/petra3/gpfs/p05/2017/data/11003440/raw/syn98_77L';
-'/asap3/petra3/gpfs/p05/2017/data/11003440/raw/syn99_43R';
-'/asap3/petra3/gpfs/p05/2017/data/11003440/raw/syn77_cor_P2_2';
-'/asap3/petra3/gpfs/p05/2017/data/11003440/raw/syn76_cor_P2_1';
-%'/asap3/petra3/gpfs/p05/2017/data/11003440/raw/syn74_cor_P1_6';
-'/asap3/petra3/gpfs/p05/2017/data/11003440/raw/syn69_cor_P1_I';
-'/asap3/petra3/gpfs/p05/2017/data/11003440/raw/syn72_cor_P1_4';
-'/asap3/petra3/gpfs/p05/2017/data/11003440/raw/syn73_cor_P1_5';
-'/asap3/petra3/gpfs/p05/2017/data/11003440/raw/syn75_cor_P1_7';
-'/asap3/petra3/gpfs/p05/2017/data/11003440/raw/syn71_cor_P1_3';
-'/asap3/petra3/gpfs/p05/2017/data/11003440/raw/syn70_cor_P1_2';
-'/asap3/petra3/gpfs/p05/2017/data/11003440/raw/syn64_CPDexplant';
-'/asap3/petra3/gpfs/p05/2017/data/11003440/raw/syn65_94R_Mg5Gd_8w';
-'/asap3/petra3/gpfs/p05/2017/data/11003440/raw/syn67_cor_Punkt1_previous_is_Punkt2';
-'/asap3/petra3/gpfs/p05/2017/data/11003440/raw/syn68_cor_Punkt3';
-'/asap3/petra3/gpfs/p05/2017/data/11003440/raw/syn66_cor_Punkt1';
-'/asap3/petra3/gpfs/p05/2017/data/11003440/raw/syn64_CPDexplant';
-'/asap3/petra3/gpfs/p05/2017/data/11003440/raw/syn60_cor';
-'/asap3/petra3/gpfs/p05/2017/data/11003440/raw/syn52_95R_Mg5Gd_8w';
-'/asap3/petra3/gpfs/p05/2017/data/11003440/raw/syn51_87R_Mg5Gd_4w';
-'/asap3/petra3/gpfs/p05/2017/data/11003440/raw/syn50_99L_Mg5Gd_4w';
-'/asap3/petra3/gpfs/p05/2017/data/11003440/raw/syn49_80L_Mg5Gd_8w';
-'/asap3/petra3/gpfs/p05/2017/data/11003440/raw/syn48_89L_Mg5Gd_4w';
-'/asap3/petra3/gpfs/p05/2017/data/11003440/raw/syn47_100AL_Mg5Gd_4w';
-'/asap3/petra3/gpfs/p05/2017/data/11003440/raw/syn46_88R_Mg5Gd_4w';
-'/asap3/petra3/gpfs/p05/2017/data/11003440/raw/syn45_101BL_Mg5Gd_4w';
-'/asap3/petra3/gpfs/p05/2017/data/11003440/raw/syn44_66L_Mg5Gd_12w';
-'/asap3/petra3/gpfs/p05/2017/data/11003440/raw/syn43_38L_PEEK_8w';
-'/asap3/petra3/gpfs/p05/2017/data/11003440/raw/syn42_38L_PEEK_8w/';
-'/asap3/petra3/gpfs/p05/2017/data/11003440/raw/syn41_63L_Mg5Gd_12w';
-'/asap3/petra3/gpfs/p05/2017/data/11003440/raw/syn40_69L_Mg10Gd_12w';
-'/asap3/petra3/gpfs/p05/2017/data/11003440/raw/syn39_75L_Mg5Gd_8w';
-'/asap3/petra3/gpfs/p05/2017/data/11003440/raw/syn38_73R_Mg10Gd_8w';
-% not all data copied '/asap3/petra3/gpfs/p05/2017/data/11003440/raw/syn34_79R_Mg10Gd_8w';
-'/asap3/petra3/gpfs/p05/2017/data/11003440/raw/syn37_69L_Mg10Gd_12w';
-'/asap3/petra3/gpfs/p05/2017/data/11003440/raw/syn34_79R_Mg10Gd_8w';
-'/asap3/petra3/gpfs/p05/2017/data/11003440/raw/syn33_80R_Mg10Gd_8w';
-'/asap3/petra3/gpfs/p05/2017/data/11003440/raw/syn32_99R_Mg10Gd_4w';
-'/asap3/petra3/gpfs/p05/2017/data/11003440/raw/syn31_97R_Mg10Gd_4w';
-'/asap3/petra3/gpfs/p05/2017/data/11003440/raw/syn36_63L_Mg5Gd_12w';
-'/asap3/petra3/gpfs/p05/2017/data/11003440/raw/syn35_77R_Mg10Gd_8w';
-'/asap3/petra3/gpfs/p05/2017/data/11003700/raw/mpimm_12_a';
-'/asap3/petra3/gpfs/p05/2017/data/11003700/raw/mpimm_07_a';
-'/asap3/petra3/gpfs/p05/2017/data/11003700/raw/mpimm_04_a';
-'/asap3/petra3/gpfs/p05/2017/data/11003435/raw/ony_24'; % fly scan
-'/asap3/petra3/gpfs/p05/2017/data/11003435/raw/ony_42';
-'/asap3/petra3/gpfs/p05/2017/data/11003950/raw/syn13_55L_Mg10Gd_12w_load_00';
-'/asap3/petra3/gpfs/p05/2017/data/11002845/raw/ste_02_l1_bb';
-'/asap3/petra3/gpfs/p05/2017/data/11002839/raw/ehh_2017_019_b';
-'/asap3/petra3/gpfs/p05/2017/data/11003063/raw/hnee_01_hw_hk776_bn161514';
-'/asap3/petra3/gpfs/p05/2017/data/11002839/raw/ehh_2017_015_a';
-'/asap3/petra3/gpfs/p05/2017/data/11003950/raw/syn01_48L_PEEK_12w_b';
+'/asap3/petra3/gpfs/p05/2017/data/11003773/raw/syn132_cor_mg5gd434s_mg10gd408s_12';
+'/asap3/petra3/gpfs/p05/2017/data/11003288/raw/syn165_58L_Mg10Gd_12w_000'; %reconstruction is crap
+'/asap3/petra3/gpfs/p05/2017/data/11003288/raw/syn166_104R_Mg10Gd_4w_000'; %reconstruction is crap
 read_flatcor = 0; % read flatfield-corrected images from disc, skips preprocessing
 read_flatcor_path = ''; % subfolder of 'flat_corrected' containing projections
 % PREPROCESSING %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 raw_roi = []; % [y0 y1] vertical roi.  skips first raw_roi(1)-1 lines, reads until raw_roi(2)
-raw_bin = 2; % projection binning factor: 1, 2, or 4
+raw_bin = 4; % projection binning factor: 1, 2, or 4
 bin_before_filtering = 1; % Binning before pixel filtering; much faster but worse filtering
 excentric_rot_axis = 0; % off-centered rotation axis increasing FOV. -1: left, 0: centeerd, 1: right. influences rot_corr_area1
 crop_at_rot_axis = 0; % for recos of scans with excentric rotation axis but WITHOUT projection stitching
@@ -130,9 +48,9 @@ stitch_method = 'sine';'linear'; 'step'; %  ! adjust correlation area if necessa
 % 'step' : no interpolation, use step function
 % 'linear' : linear interpolation of overlap region
 % 'sine' : sinusoidal interpolation of overlap region
-proj_range = 2; % range of projections to be used (from all found). if empty or 1: all, if scalar: stride
-ref_range = 2;[]; % range of flat fields to be used (from all found). start:incr:end. if empty or 1: all. if scalar: stride
-energy = []; % in eV! if empty: read from log file
+proj_range = 1; % range of projections to be used (from all found). if empty or 1: all, if scalar: stride
+ref_range = []; % range of flat fields to be used (from all found). start:incr:end. if empty or 1: all. if scalar: stride
+energy = [30000]; % in eV! if empty: read from log file
 sample_detector_distance = []; % in m. if empty: read from log file
 eff_pixel_size = []; % in m. if empty: read from log file. effective pixel size =  detector pixel size / magnification
 dark_FiltPixThresh = [0.01 0.005]; % Dark fields: threshold parameter for hot/dark pixel filter, for details see 'FilterPixel'
@@ -161,7 +79,7 @@ ring_filter_waveletfft_wname = 'db30';'db25'; % wavelet type for 'wavelet-fft'
 ring_filter_waveletfft_sigma = 2.4; %  suppression factor for 'wavelet-fft'
 ring_filter_jm_median_width = 11; % [3 11 21 31 39];
 % PHASE RETRIEVAL %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-do_phase_retrieval = 0; % See 'PhaseFilter' for detailed description of parameters !
+do_phase_retrieval = 1; % See 'PhaseFilter' for detailed description of parameters !
 phase_retrieval_before = 1; % before stitching, interactive mode, etc.
 phase_bin = 1; % Binning factor after phase retrieval, but before tomographic reconstruction
 phase_retrieval_method = 'tie';'qpcut';  'tie'; %'qp' 'ctf' 'tie' 'qp2' 'qpcut'
@@ -181,7 +99,7 @@ rot_corr_area1 = []; % ROI to correlate projections at angles 0 & pi. Use [0.75 
 rot_corr_area2 = []; % ROI to correlate projections at angles 0 & pi
 rot_corr_gradient = 0; % use gradient of intensity maps if signal variations are too weak to correlate projections
 rot_axis_tilt = 0; % in rad. camera tilt w.r.t rotation axis. if empty calculate from registration of projections at 0 and pi
-fbp_filter_type = 'Ram-Lak';'linear'; % Ram-Lak according to Kak/Slaney
+fbp_filter_type = 'linear';'Ram-Lak'; % Ram-Lak according to Kak/Slaney
 fpb_filter_freq_cutoff = 1; % Cut-off frequency in Fourier space of the above FBP filter
 fbp_filter_padding = 1; % symmetric padding for consistent boundary conditions, 0: no padding
 fbp_filter_padding_method = 'symmetric';
@@ -213,7 +131,7 @@ compression_parameter = [0.20 0.15]; % compression-method specific parameter
 % 'threshold' : [LOW HIGH] = compression_parameter, eg. [-0.01 1]
 % 'std' : NUM = compression_parameter, mean +/- NUM*std, dynamic range is rescaled to within -/+ NUM standard deviations around the mean value
 % 'histo' : [LOW HIGH] = compression_parameter (100*LOW)% and (100*HIGH)% of the original histogram, e.g. [0.02 0.02]
-parfolder = '';sprintf( 'cor_%s', correlation_method);''; % parent folder for 'reco', 'sino', 'phase', and 'flat_corrected'
+parfolder = '';%sprintf( 'cor_%s', correlation_method);''; % parent folder for 'reco', 'sino', 'phase', and 'flat_corrected'
 subfolder_flatcor = ''; % subfolder in 'flat_corrected'
 subfolder_phase_map = ''; % subfolder in 'phase_map'
 subfolder_sino = ''; % subfolder in 'sino'
@@ -222,7 +140,7 @@ subfolder_reco = ''; % subfolder in 'reco'
 verbose = 1; % print information to standard output
 visual_output = 1; % show images and plots during reconstruction
 interactive_determination_of_rot_axis = 1; % reconstruct slices with different rotation axis offsets
-interactive_determination_of_rot_axis_tilt = 1; % reconstruct slices with different offset AND tilts of the rotation axis
+interactive_determination_of_rot_axis_tilt = 0; % reconstruct slices with different offset AND tilts of the rotation axis
 lamino = 0; % find laminography tilt instead camera rotation
 fixed_tilt = 0; % fixed other tilt
 interactive_determination_of_rot_axis_slice = 0.5; % slice number, default: 0.5. if in [0,1): relative, if in (1, N]: absolute
@@ -357,6 +275,11 @@ if isempty( proj_names )
 end
 if isempty( proj_names )
     proj_names =  FilenameCell( [scan_path, '*img*.raw'] );
+    raw_data = 1;
+end
+if isempty( proj_names )
+    proj_names =  FilenameCell( [scan_path, '*proj*.raw'] );
+    raw_data = 1;
 end
 num_proj_found = numel(proj_names);
 
@@ -414,22 +337,14 @@ tif_info = [];
 offset_shift = 0;
 if ~exist( h5log, 'file')
     
-    %% Image shape and ROI
-    filename = sprintf('%s%s', scan_path, ref_names{1});
-    [im_raw, tif_info] = read_image( filename );
-    raw_im_shape_uncropped = size( im_raw );
-    im_roi = read_image( filename, '', raw_roi, tif_info );
-    raw_im_shape = size( im_roi );
-    raw_im_shape_binned = floor( raw_im_shape / raw_bin );
-    raw_im_shape_binned1 = raw_im_shape_binned(1);
-    raw_im_shape_binned2 = raw_im_shape_binned(2);
-    
     %% P05 log-file
     str = dir( sprintf( '%s*scan.log', scan_path) );
     filename = sprintf( '%s/%s', str.folder, str.name);
     [par, cur, cam] = p05_log( filename );
     if isempty( energy )
-        energy = par.energy;
+        if isfield( par, 'energy')
+            energy = par.energy;
+        end
     end
     if isempty( eff_pixel_size )
         eff_pixel_size = par.eff_pixel_size;
@@ -438,6 +353,29 @@ if ~exist( h5log, 'file')
     if isempty( sample_detector_distance )
         sample_detector_distance = par.sample_detector_distance;
     end
+    
+    %% Image shape and ROI
+    filename = sprintf('%s%s', scan_path, ref_names{1});
+    if ~raw_data        
+        [im_raw, tif_info] = read_image( filename );
+        raw_im_shape_uncropped = size( im_raw );
+        im_roi = read_image( filename, '', raw_roi, tif_info );
+        raw_im_shape = size( im_roi );
+    else
+        switch lower( cam )
+            case 'ehd'
+                raw_im_shape_uncropped = [3056 3056];
+                dtype = 'uint16';
+            case 'kit'
+                raw_im_shape_uncropped = [5120 3840];
+                dtype = 'uint16';
+        end
+        raw_im_shape = raw_im_shape_uncropped;        
+        im_raw = read_raw( filename, raw_im_shape, dtype );        
+        %% TODO: FIX        
+        ring_current_normalization = 0;
+        rot_angle_full = pi; % FIX                
+    end    
 else
     
     %% P05 standard log file
@@ -477,9 +415,6 @@ else
     raw_im_shape = raw_im_shape_uncropped;
     filename = sprintf('%s%s', scan_path, ref_names{1});
     im_raw = read_raw( filename, raw_im_shape, 'uint16' );
-    raw_im_shape_binned = floor( raw_im_shape / raw_bin );
-    raw_im_shape_binned1 = raw_im_shape_binned(1);
-    raw_im_shape_binned2 = raw_im_shape_binned(2);
     
     ring_filter = 0; % % not needed
     
@@ -489,6 +424,9 @@ else
     rot_angle_full = pi; % FIX
     
 end
+raw_im_shape_binned = floor( raw_im_shape / raw_bin );
+raw_im_shape_binned1 = raw_im_shape_binned(1);
+raw_im_shape_binned2 = raw_im_shape_binned(2);
 PrintVerbose( verbose, '\n energy : %.1f keV', energy / 1e3 )
 PrintVerbose( verbose, '\n distance sample dector : %.1f mm', sample_detector_distance * 1000 )
 PrintVerbose( verbose, '\n effective pixel size unbinned : %.2f micron',  eff_pixel_size * 1e6)
@@ -548,7 +486,7 @@ if read_flatcor(1)
 elseif ~read_flatcor
     %% Dark field
     t = toc;
-    PrintVerbose(verbose, '\nProcessing dark fields.')
+    PrintVerbose(verbose, '\nProcessing dark fields.')    
     darks = zeros( [raw_im_shape_binned, num_dark], 'single');
     PrintVerbose( verbose, ' Allocated bytes: %.2f MiB.', Bytes( darks, 2 ) )
     parfor nn = 1:num_dark
