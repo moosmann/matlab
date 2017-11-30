@@ -30,6 +30,8 @@ close all hidden % close all open windows
 % INPUT%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 scan_path = ...
+    '/asap3/petra3/gpfs/p05/2017/data/11003288/raw/syn154_58L_Mg_12_cmos_test';
+    '/asap3/petra3/gpfs/p05/2017/data/11003773/raw/syn132_cor_mg5gd434s_mg10gd408s_12';
     '/asap3/petra3/gpfs/p05/2017/data/11003288/raw/syn165_58L_Mg10Gd_12w_000'; %reconstruction is crap
     '/asap3/petra3/gpfs/p05/2017/data/11003288/raw/syn166_104R_Mg10Gd_4w_000'; %reconstruction is crap
     '/asap3/petra3/gpfs/p05/2017/data/11003288/raw/syn165_58L_Mg10Gd_12w_003';
@@ -38,7 +40,6 @@ scan_path = ...
 '/asap3/petra3/gpfs/p05/2017/data/11003288/raw/syn146_58L_Mg_12_cmos_test';
 '/asap3/petra3/gpfs/p05/2017/data/11003288/raw/syn145_58L_Mg_12_cmos_test';
 '/asap3/petra3/gpfs/p05/2017/data/11003773/raw/syn133_cor_mg5gd1p_12';
-'/asap3/petra3/gpfs/p05/2017/data/11003773/raw/syn132_cor_mg5gd434s_mg10gd408s_12';
 '/asap3/petra3/gpfs/p05/2017/data/11003773/raw/syn131_cor_mg5gd428s_mg10gd407s_mg5gd8p_12';
 '/asap3/petra3/gpfs/p05/2017/data/11003773/raw/syn130_cor_mg5gd416s_mg10gd410s_mg5gd7p_12';
 '/asap3/petra3/gpfs/p05/2017/data/11003773/raw/syn129_cor_mg5gd413s_mg10gd409s_mg5gd3p_12';
@@ -121,7 +122,7 @@ read_flatcor_path = ''; % subfolder of 'flat_corrected' containing projections
 % PREPROCESSING %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 raw_roi = []; % [y0 y1] vertical roi.  skips first raw_roi(1)-1 lines, reads until raw_roi(2)
 raw_bin = 2; % projection binning factor: 1, 2, or 4
-bin_before_filtering = 0; % Binning before pixel filtering; much faster but worse filtering
+bin_before_filtering = 1; % Binning before pixel filtering; much faster but worse filtering
 excentric_rot_axis = 0; % off-centered rotation axis increasing FOV. -1: left, 0: centeerd, 1: right. influences rot_corr_area1
 crop_at_rot_axis = 0; % for recos of scans with excentric rotation axis but WITHOUT projection stitching
 stitch_projections = 0; % for 2 pi scans: stitch projection at rotation axis position
@@ -129,8 +130,8 @@ stitch_method = 'sine';'linear'; 'step'; %  ! adjust correlation area if necessa
 % 'step' : no interpolation, use step function
 % 'linear' : linear interpolation of overlap region
 % 'sine' : sinusoidal interpolation of overlap region
-proj_range = 1; % range of projections to be used (from all found). if empty or 1: all, if scalar: stride
-ref_range = []; % range of flat fields to be used (from all found). start:incr:end. if empty or 1: all. if scalar: stride
+proj_range = 2; % range of projections to be used (from all found). if empty or 1: all, if scalar: stride
+ref_range = 2;[]; % range of flat fields to be used (from all found). start:incr:end. if empty or 1: all. if scalar: stride
 energy = []; % in eV! if empty: read from log file
 sample_detector_distance = []; % in m. if empty: read from log file
 eff_pixel_size = []; % in m. if empty: read from log file. effective pixel size =  detector pixel size / magnification
@@ -150,7 +151,7 @@ correlation_method = 'ssim-ml';'entropy';'diff';'shift';'ssim';'std';'cov';'corr
 corr_shift_max_pixelshift = 0.25; % maximum pixelshift allowed for 'shift'-correlation method: if 0 use the best match (i.e. the one with the least shift), if > 0 uses all flats with shifts smaller than corr_shift_max_pixelshift
 corr_num_flats = 1; % number of flat fields used for average/median of flats. for 'shift'-correlation its the maximum number
 ring_current_normalization = 1; % normalize flat fields and projections by ring current
-flat_corr_area1 = [0.98 1];%[1 floor(100/raw_bin)]; % correlation area: index vector or relative/absolute position of [first pix, last pix]
+flat_corr_area1 = [1 floor(100/raw_bin)];%[0.98 1];% correlation area: index vector or relative/absolute position of [first pix, last pix]
 flat_corr_area2 = [0.2 0.8]; % correlation area: index vector or relative/absolute position of [first pix, last pix]
 decimal_round_precision = 2; % precision when rounding pixel shifts
 ring_filter = 1; % ring artifact filter
@@ -180,7 +181,7 @@ rot_corr_area1 = []; % ROI to correlate projections at angles 0 & pi. Use [0.75 
 rot_corr_area2 = []; % ROI to correlate projections at angles 0 & pi
 rot_corr_gradient = 0; % use gradient of intensity maps if signal variations are too weak to correlate projections
 rot_axis_tilt = 0; % in rad. camera tilt w.r.t rotation axis. if empty calculate from registration of projections at 0 and pi
-fbp_filter_type = 'linear';'Ram-Lak'; % Ram-Lak according to Kak/Slaney
+fbp_filter_type = 'Ram-Lak';'linear'; % Ram-Lak according to Kak/Slaney
 fpb_filter_freq_cutoff = 1; % Cut-off frequency in Fourier space of the above FBP filter
 fbp_filter_padding = 1; % symmetric padding for consistent boundary conditions, 0: no padding
 fbp_filter_padding_method = 'symmetric';
@@ -221,7 +222,7 @@ subfolder_reco = ''; % subfolder in 'reco'
 verbose = 1; % print information to standard output
 visual_output = 1; % show images and plots during reconstruction
 interactive_determination_of_rot_axis = 1; % reconstruct slices with different rotation axis offsets
-interactive_determination_of_rot_axis_tilt = 0; % reconstruct slices with different offset AND tilts of the rotation axis
+interactive_determination_of_rot_axis_tilt = 1; % reconstruct slices with different offset AND tilts of the rotation axis
 lamino = 0; % find laminography tilt instead camera rotation
 fixed_tilt = 0; % fixed other tilt
 interactive_determination_of_rot_axis_slice = 0.5; % slice number, default: 0.5. if in [0,1): relative, if in (1, N]: absolute
@@ -431,7 +432,7 @@ if ~exist( h5log, 'file')
         energy = par.energy;
     end
     if isempty( eff_pixel_size )
-        eff_pixel_size = par.eff_pix_size;
+        eff_pixel_size = par.eff_pixel_size;
     end
     eff_pixel_size_binned = raw_bin * eff_pixel_size;
     if isempty( sample_detector_distance )

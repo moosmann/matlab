@@ -49,6 +49,8 @@ mask_val = 0;
 butterworth_filtering = 0;
 
 %% Main %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+angles = double( angles );
+offsets = double( offsets );
 [num_pix, num_row, ~] = size( proj );
 if isempty( vol_shape )
     vol_shape = [num_pix, num_pix, 1];
@@ -107,13 +109,13 @@ end
 
 % Backprojection
 for nn = 1:numel( offsets )
-    offset = offsets(nn);
+    offset = offsets(nn) + offset_shift + eps;
     
     %% Reco
     if ~lamino
-        im = astra_parallel3D( permute( sino, [1 3 2]), angles, offset + offset_shift, vol_shape, vol_size, astra_pixel_size, link_data, tilt, gpu_index, fixed_tilt);
+        im = astra_parallel3D( permute( sino, [1 3 2]), angles, offset, vol_shape, vol_size, astra_pixel_size, link_data, tilt, gpu_index, fixed_tilt);
     else
-        im = astra_parallel3D( permute( sino, [1 3 2]), angles, offset + offset_shift, vol_shape, vol_size, astra_pixel_size, link_data, fixed_tilt, gpu_index, tilt);
+        im = astra_parallel3D( permute( sino, [1 3 2]), angles, offset, vol_shape, vol_size, astra_pixel_size, link_data, fixed_tilt, gpu_index, tilt);
     end
 
     vol(:,:,nn) = FilterHisto(im, number_of_stds, filter_histo_roi);    

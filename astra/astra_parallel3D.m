@@ -70,6 +70,9 @@ end
 
 %% Main %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+angles = double( angles );
+rotation_axis_offset = double( rotation_axis_offset );
+
 % GPU
 if isempty( gpu_index )
     astra_mex('set_gpu_index', 0:gpuDeviceCount - 1);
@@ -103,6 +106,7 @@ for nn = 1:num_proj
     else
         rao = rotation_axis_offset(nn);
     end
+    %rao = rao + eps;
 
     % source / ray direction
     vectors(nn,1) = rao * sin( theta );

@@ -1,9 +1,12 @@
 %% TODO list for P05 reconstruction pipeline 'p05_reco'
 
+%% TODO: WHY EPS for rao in astra_parallel3d!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
 %% TODO: save reco loop script under current user directory
 
+% TODO: help on FBP filters
 % TODO: proper impementation of quick fixes for new shift acquistion scheme
-% TODO: update log file parameters
+% TODO: update log file paameters
 % TODO: check missing proj mod for stitching etc
 % TODO: visual output for phase retrieval: phase map, fft(int), etc
 % TODO: interactive loop over tomo slices for different phase retrieval parameter
