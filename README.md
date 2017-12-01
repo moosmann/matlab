@@ -16,8 +16,7 @@ Installation:
    changes. New files that were created locally and which do
    not exist in the latest branch are not deleted.
 
-   git fetch origin master
-   git reset --hard origin/master
+   git fetch origin master & git reset --hard origin/master
 
    Before updating you can back-up local files by branching if necessary:
 

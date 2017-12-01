@@ -26,10 +26,10 @@
 close all hidden % close all open windows
 %dbstop if error
 
-%% PARAMETERS / SETTINGS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% PARAMETERS / SETTINGS %%
 scan_path = ...
-    '/asap3/petra3/gpfs/p05/2017/commissioning/c20171115_000_kit_test/raw/fast_test17';
-    '/asap3/petra3/gpfs/p05/2017/data/11003288/raw/syn166_104R_Mg10Gd_4w_000';    
+    '/asap3/petra3/gpfs/p05/2017/data/11003288/raw/syn166_104R_Mg10Gd_4w_001';
+    '/asap3/petra3/gpfs/p05/2017/commissioning/c20171115_000_kit_test/raw/fast_test17';    
 '/asap3/petra3/gpfs/p05/2017/data/11003773/raw/syn132_cor_mg5gd434s_mg10gd408s_12';
 '/asap3/petra3/gpfs/p05/2017/data/11003288/raw/syn165_58L_Mg10Gd_12w_000'; %reconstruction is crap
 '/asap3/petra3/gpfs/p05/2017/data/11003288/raw/syn166_104R_Mg10Gd_4w_000'; %reconstruction is crap
@@ -37,7 +37,7 @@ read_flatcor = 0; % read flatfield-corrected images from disc, skips preprocessi
 read_flatcor_path = ''; % subfolder of 'flat_corrected' containing projections
 % PREPROCESSING %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 raw_roi = []; % [y0 y1] vertical roi.  skips first raw_roi(1)-1 lines, reads until raw_roi(2)
-raw_bin = 4; % projection binning factor: 1, 2, or 4
+raw_bin = 2; % projection binning factor: 1, 2, or 4
 bin_before_filtering = 1; % Binning before pixel filtering; much faster but worse filtering
 excentric_rot_axis = 0; % off-centered rotation axis increasing FOV. -1: left, 0: centeerd, 1: right. influences rot_corr_area1
 crop_at_rot_axis = 0; % for recos of scans with excentric rotation axis but WITHOUT projection stitching
@@ -48,7 +48,7 @@ stitch_method = 'sine';'linear'; 'step'; %  ! adjust correlation area if necessa
 % 'sine' : sinusoidal interpolation of overlap region
 proj_range = 1; % range of projections to be used (from all found). if empty or 1: all, if scalar: stride
 ref_range = []; % range of flat fields to be used (from all found). start:incr:end. if empty or 1: all. if scalar: stride
-energy = [30000]; % in eV! if empty: read from log file
+energy = [34000]; % in eV! if empty: read from log file
 sample_detector_distance = []; % in m. if empty: read from log file
 eff_pixel_size = []; % in m. if empty: read from log file. effective pixel size =  detector pixel size / magnification
 dark_FiltPixThresh = [0.01 0.005]; % Dark fields: threshold parameter for hot/dark pixel filter, for details see 'FilterPixel'
@@ -77,7 +77,7 @@ ring_filter_waveletfft_wname = 'db30';'db25'; % wavelet type for 'wavelet-fft'
 ring_filter_waveletfft_sigma = 2.4; %  suppression factor for 'wavelet-fft'
 ring_filter_jm_median_width = 11; % [3 11 21 31 39];
 % PHASE RETRIEVAL %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-do_phase_retrieval = 1; % See 'PhaseFilter' for detailed description of parameters !
+do_phase_retrieval = 0; % See 'PhaseFilter' for detailed description of parameters !
 phase_retrieval_before = 1; % before stitching, interactive mode, etc.
 phase_bin = 1; % Binning factor after phase retrieval, but before tomographic reconstruction
 phase_retrieval_method = 'tie';'qpcut';  'tie'; %'qp' 'ctf' 'tie' 'qp2' 'qpcut'
@@ -97,7 +97,7 @@ rot_corr_area1 = []; % ROI to correlate projections at angles 0 & pi. Use [0.75 
 rot_corr_area2 = []; % ROI to correlate projections at angles 0 & pi
 rot_corr_gradient = 0; % use gradient of intensity maps if signal variations are too weak to correlate projections
 rot_axis_tilt = 0; % in rad. camera tilt w.r.t rotation axis. if empty calculate from registration of projections at 0 and pi
-fbp_filter_type = 'linear';'Ram-Lak'; % Ram-Lak according to Kak/Slaney
+fbp_filter_type = 'Ram-Lak'; 'linear'; % Ram-Lak according to Kak/Slaney
 fpb_filter_freq_cutoff = 1; % Cut-off frequency in Fourier space of the above FBP filter
 fbp_filter_padding = 1; % symmetric padding for consistent boundary conditions, 0: no padding
 fbp_filter_padding_method = 'symmetric';
@@ -147,7 +147,7 @@ poolsize = 0.80; % number of workers used in a parallel pool. if > 1: absolute n
 link_data = 1; % ASTRA data objects become references to Matlab arrays. Reduces memory issues.
 gpu_index = []; % GPU Device index to use, Matlab notation: index starts from 1. default: [], uses all
 
-%% END OF PARAMETERS / SETTINGS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% END OF PARAMETERS / SETTINGS %%
 
 %% External call: parameters set by 'p05_reco_loop' %%%%%%%%%%%%%%%%%%%%%%%
 if exist( 'external_parameter' ,'var')
@@ -418,7 +418,9 @@ else
     ring_filter = 0; % % not needed
     
     %% TODO: FIX
-    energy = 1; % NOT LOGGED AT ALL
+    if isempty( energy )
+        energy = 30000; % NOT LOGGED AT ALL
+    end
     ring_current_normalization = 0;
     rot_angle_full = pi; % FIX
     
@@ -1077,6 +1079,9 @@ if do_tomo(1)
     rot_corr_shift_y = round( out.shift2, decimal_round_precision) + rot_corr_area2(1) + (rot_corr_area1(end) - raw_im_shape_binned1) - 1;
     PrintVerbose(verbose, '\n relative shift: %g, %g', rot_corr_shift_x, rot_corr_shift_y)
     rot_axis_offset_calc = rot_corr_shift_x / 2;
+    if numel( offset_shift ) > 0
+        rot_axis_offset_calc = offset_shift(ind1) - offset_shift(ind2);
+    end
     rot_axis_pos_calc = raw_im_shape_binned1 / 2 + rot_axis_offset_calc;
     PrintVerbose(verbose, '\n calculated rotation axis offset: %.2f', rot_axis_offset_calc)
     % use calculated offset if both offset and position are empty

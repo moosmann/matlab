@@ -5,4 +5,6 @@ experiments/p05/path_to_latest_scan
 ./experiments/p05/pathtolastscan
 experiments/p05/path_to_latest_raw
 ./experiments/p05/pathtolastraw
+experiments/p05/data/*
+./experiments/p05/data/*
 

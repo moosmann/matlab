@@ -40,27 +40,5 @@
 % 'parfolder'}. Parameter setting to be printed at each loop iteration.
 % Useful in combination with RUN_RECO = 0 to check parameter setting for
 % the subset to loop over
-
-if nargin < 1
-    SUBSETS = [];
-end
-if nargin < 2
-    RUN_RECO = 0;
-end
-if nargin < 3
-    PRINT_PARAMETERS = '';
-end
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%% DEFAULT PARAMETERS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-% Define parameter here. Otherwise parameters are taken from the current
-% version of 'p05_reco' if net set in the section below.
-
-% Set default. Allows parameters to be changed before first data set is added
-SET_DEFAULT
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%% PARAMETER / DATA SETS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+% 
