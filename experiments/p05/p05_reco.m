@@ -27,11 +27,9 @@ close all hidden % close all open windows
 %dbstop if error
 
 %% PARAMETERS / SETTINGS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% INPUT%%%%%%%%%%%%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 scan_path = ...
-    '/asap3/petra3/gpfs/p05/2017/commissioning/c20171115_000_kit_test/raw/fast_test';
-'/asap3/petra3/gpfs/p05/2017/data/11003288/raw/syn154_58L_Mg_12_cmos_test';
+    '/asap3/petra3/gpfs/p05/2017/commissioning/c20171115_000_kit_test/raw/fast_test17';
+    '/asap3/petra3/gpfs/p05/2017/data/11003288/raw/syn166_104R_Mg10Gd_4w_000';    
 '/asap3/petra3/gpfs/p05/2017/data/11003773/raw/syn132_cor_mg5gd434s_mg10gd408s_12';
 '/asap3/petra3/gpfs/p05/2017/data/11003288/raw/syn165_58L_Mg10Gd_12w_000'; %reconstruction is crap
 '/asap3/petra3/gpfs/p05/2017/data/11003288/raw/syn166_104R_Mg10Gd_4w_000'; %reconstruction is crap
@@ -149,7 +147,7 @@ poolsize = 0.80; % number of workers used in a parallel pool. if > 1: absolute n
 link_data = 1; % ASTRA data objects become references to Matlab arrays. Reduces memory issues.
 gpu_index = []; % GPU Device index to use, Matlab notation: index starts from 1. default: [], uses all
 
-%% END OF PARAMETERS / SETTINGS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% END OF PARAMETERS / SETTINGS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %% External call: parameters set by 'p05_reco_loop' %%%%%%%%%%%%%%%%%%%%%%%
 if exist( 'external_parameter' ,'var')
@@ -272,6 +270,7 @@ end
 proj_names = FilenameCell( [scan_path, '*.img'] );
 if isempty( proj_names )
     proj_names =  FilenameCell( [scan_path, 'proj_*.tif'] );
+    raw_data = 0;
 end
 if isempty( proj_names )
     proj_names =  FilenameCell( [scan_path, '*img*.raw'] );
