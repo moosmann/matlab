@@ -1,7 +1,7 @@
 #!/bin/sh
 
 # NVIDIA CUDA
-CUDA_PATH=/usr/local/cuda
+CUDA_PATH=/usr/local/cuda-7.5
 export PYTHONPATH=$CUDA_PATH/lib64/:$PYTHONPATH
 
 # Set timezone. If empty it can raise a Matlab warning when batch jops are executed
