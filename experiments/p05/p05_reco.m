@@ -28,6 +28,8 @@ close all hidden % close all open windows
 
 %% PARAMETERS / SETTINGS %%
 scan_path = ...
+    '/asap3/petra3/gpfs/p05/2017/data/11003288/raw/syn150_58L_Mg_12_000';
+    '/asap3/petra3/gpfs/p05/2017/data/11003527/raw/szeb_78';
     '/asap3/petra3/gpfs/p05/2017/data/11003288/raw/syn166_104R_Mg10Gd_4w_001';
     '/asap3/petra3/gpfs/p05/2017/commissioning/c20171115_000_kit_test/raw/fast_test17';    
 '/asap3/petra3/gpfs/p05/2017/data/11003773/raw/syn132_cor_mg5gd434s_mg10gd408s_12';
@@ -38,7 +40,7 @@ read_flatcor_path = ''; % subfolder of 'flat_corrected' containing projections
 % PREPROCESSING %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 raw_roi = []; % [y0 y1] vertical roi.  skips first raw_roi(1)-1 lines, reads until raw_roi(2)
 raw_bin = 2; % projection binning factor: 1, 2, or 4
-bin_before_filtering = 1; % Binning before pixel filtering; much faster but worse filtering
+bin_before_filtering = 0; % Binning before pixel filtering is applied, much faster but less effective filtering
 excentric_rot_axis = 0; % off-centered rotation axis increasing FOV. -1: left, 0: centeerd, 1: right. influences rot_corr_area1
 crop_at_rot_axis = 0; % for recos of scans with excentric rotation axis but WITHOUT projection stitching
 stitch_projections = 0; % for 2 pi scans: stitch projection at rotation axis position
@@ -48,7 +50,7 @@ stitch_method = 'sine';'linear'; 'step'; %  ! adjust correlation area if necessa
 % 'sine' : sinusoidal interpolation of overlap region
 proj_range = 1; % range of projections to be used (from all found). if empty or 1: all, if scalar: stride
 ref_range = []; % range of flat fields to be used (from all found). start:incr:end. if empty or 1: all. if scalar: stride
-energy = [34000]; % in eV! if empty: read from log file
+energy = []; % in eV! if empty: read from log file
 sample_detector_distance = []; % in m. if empty: read from log file
 eff_pixel_size = []; % in m. if empty: read from log file. effective pixel size =  detector pixel size / magnification
 dark_FiltPixThresh = [0.01 0.005]; % Dark fields: threshold parameter for hot/dark pixel filter, for details see 'FilterPixel'
@@ -97,7 +99,7 @@ rot_corr_area1 = []; % ROI to correlate projections at angles 0 & pi. Use [0.75 
 rot_corr_area2 = []; % ROI to correlate projections at angles 0 & pi
 rot_corr_gradient = 0; % use gradient of intensity maps if signal variations are too weak to correlate projections
 rot_axis_tilt = 0; % in rad. camera tilt w.r.t rotation axis. if empty calculate from registration of projections at 0 and pi
-fbp_filter_type = 'Ram-Lak'; 'linear'; % Ram-Lak according to Kak/Slaney
+fbp_filter_type = 'Ram-Lak'; 'linear'; % see iradonDesignFilter for more options. Ram-Lak according to Kak/Slaney
 fpb_filter_freq_cutoff = 1; % Cut-off frequency in Fourier space of the above FBP filter
 fbp_filter_padding = 1; % symmetric padding for consistent boundary conditions, 0: no padding
 fbp_filter_padding_method = 'symmetric';
@@ -108,8 +110,8 @@ astra_pixel_size = 1; % size of a detector pixel: if different from one 'vol_siz
 take_neg_log = []; % take negative logarithm. if empty, use 1 for attenuation contrast, 0 for phase contrast
 % OUTPUT %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 out_path = '';% absolute path were output data will be stored. !!overwrites the write_to_scratch flag. if empty uses the beamtime directory and either 'processed' or 'scratch_cc'
-write_to_scratch = 0; % write to 'scratch_cc' instead of 'processed'
-write_flatcor = 0; % save preprocessed flat corrected projections
+write_to_scratch = 1; % write to 'scratch_cc' instead of 'processed'
+write_flatcor = 1; % save preprocessed flat corrected projections
 write_phase_map = 0; % save phase maps (if phase retrieval is not 0)
 write_sino = 0; % save sinograms (after preprocessing & before FBP filtering and phase retrieval)
 write_sino_phase = 0; % save sinograms of phase maps
@@ -387,24 +389,54 @@ else
     
     %% HDF5 log
     h5i = h5info( h5log );
-    
-    clear stimg_name stimg_key petra s_rot s_stage_x
-    
+        
     stimg_name.value = h5read( h5log, '/entry/scan/data/image_file/value');
-    stimg_name.time = h5read( h5log,'/entry/scan/data/image_file/time');
+    stimg_name.time = double( h5read( h5log,'/entry/scan/data/image_file/time') );
     stimg_key.value = h5read( h5log,'/entry/scan/data/image_key/value');
-    stimg_key.time = h5read( h5log,'/entry/scan/data/image_key/time');
+    stimg_key.time = double( h5read( h5log,'/entry/scan/data/image_key/time') );
     
-    petra.time = h5read( h5log,'/entry/hardware/beam_current/current/time');
+    petra.time = double( h5read( h5log,'/entry/hardware/beam_current/current/time') );
     petra.current = h5read( h5log,'/entry/hardware/beam_current/current/value');
+    petra.time([1:2,end-1]) = [];
+    petra.current([1:2,end-1]) = [];
     
-    s_rot.time = h5read( h5log, '/entry/scan/data/s_rot/time');
+    s_rot.time = double( h5read( h5log, '/entry/scan/data/s_rot/time') );
     s_rot.value = h5read( h5log, '/entry/scan/data/s_rot/value');
     
-    s_stage_x.time = h5read( h5log, '/entry/scan/data/s_stage_x/time');
-    s_stage_x.value = h5read( h5log, '/entry/scan/data/s_stage_x/value');
+    s_stage_x.time = double( h5read( h5log, '/entry/scan/data/s_stage_x/time') );
+    s_stage_x.value = h5read( h5log, '/entry/scan/data/s_stage_x/value');   
     
+    switch lower( cam )
+        %% CHECK camera1 / camera2 !!!!!!!!!!!!!!!!!!!!!!!!!!!!1
+        case 'ehd'
+            energy = double(h5read( h5log, '/entry/hardware/camera1/calibration/energy') );
+            exp_time = double(h5read( h5log, '/entry/hardware/camera1/calibration/exptime') );    
+        case 'kit'
+            energy = double(h5read( h5log, '/entry/hardware/camera2/calibration/energy') );
+            exp_time = double(h5read( h5log, '/entry/hardware/camera2/calibration/exptime') );    
+    end
+    
+    % wiggle di wiggle
     offset_shift = s_stage_x.value( ~boolean( stimg_key.value(par.n_dark+1:end) ) ) * 1e-3 / eff_pixel_size_binned;
+    
+    % ring current
+    [x, index] = unique( petra.time );
+    y = petra.current(index);
+    stimg_name.current = (interp1( x, y, stimg_name.time, 'next', 'extrap') + interp1( x, y, stimg_name.time + exp_time, 'previous', 'extrap') ) / 2;    
+    cur_ref_val = stimg_name.current( stimg_key.value == 1 );        
+    cur_ref_name = stimg_name.value( stimg_key.value == 1 );        
+    for nn = numel( cur_ref_name ):-1:1
+        cur.ref(nn).val = cur_ref_val(nn);
+        cur.ref(nn).name = cur_ref_name{nn};
+        cur.ref(nn).ind = str2double(cur.ref(nn).name(end-7:end-4));
+    end
+    cur_proj_val = stimg_name.current( stimg_key.value == 0);    
+    cur_proj_name = stimg_name.value( stimg_key.value == 0);
+    for nn = numel( cur_proj_name ):-1:1
+        cur.proj(nn).val = cur_proj_val(nn);
+        cur.proj(nn).name = cur_proj_name{nn};
+        cur.proj(nn).ind = str2double(cur.proj(nn).name(end-7:end-4));
+    end
     
     %% Image shape
     if strcmp( cam, 'EHD')
@@ -416,12 +448,6 @@ else
     im_raw = read_raw( filename, raw_im_shape, 'uint16' );
     
     ring_filter = 0; % % not needed
-    
-    %% TODO: FIX
-    if isempty( energy )
-        energy = 30000; % NOT LOGGED AT ALL
-    end
-    ring_current_normalization = 0;
     rot_angle_full = pi; % FIX
     
 end
@@ -516,7 +542,7 @@ elseif ~read_flatcor
     end
     % Median dark
     dark = squeeze( median(darks(:,:,darks_to_use), 3) );
-    clear darks
+    %clear darks
     dark_med_min = min( dark(:) );
     dark_med_max = max( dark(:) );
     PrintVerbose(verbose, ' Time elapsed: %.1f s', toc-t)
@@ -570,8 +596,7 @@ elseif ~read_flatcor
     % Ring current normalization
     if ring_current_normalization(1)
         switch lower( cam )
-            case 'kit'
-                %ref_ind = ref_nums + 1 ;
+            case 'kit'                
                 ref_check = ref_range - 1;
             case 'ehd'
                 ref_check = ref_nums;

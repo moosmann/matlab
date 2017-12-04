@@ -59,7 +59,7 @@ end
 % PREPROCESSING %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 raw_roi = []; % [y0 y1] vertical roi.  skips first raw_roi(1)-1 lines, reads until raw_roi(2)
 raw_bin = 2; % projection binning factor: 1, 2, or 4
-bin_before_filtering = 1; % Binning before pixel filtering; much faster but worse filtering
+bin_before_filtering = 0; % Binning before pixel filtering; much faster but worse filtering
 excentric_rot_axis = 0; % off-centered rotation axis increasing FOV. -1: left, 0: centeerd, 1: right. influences rot_corr_area1
 crop_at_rot_axis = 0; % for recos of scans with excentric rotation axis but WITHOUT projection stitching
 stitch_projections = 0; % for 2 pi scans: stitch projection at rotation axis position
@@ -134,7 +134,7 @@ write_8bit = 0;
 reco_bin = 2; % binning factor of reconstructed volume
 write_float_binned = 0; % binned single precision (32-bit float) tiff
 write_16bit_binned = 0;
-write_8bit_binned = 0;
+write_8bit_binned = 1;
 write_8bit_segmented = 0; % experimental: threshold segmentation for histograms with 2 distinct peaks: __/\_/\__
 compression_method = 'histo';'full'; 'std'; 'threshold'; % method to compression dynamic range into [0, 1]
 compression_parameter = [0.20 0.15]; % compression-method specific parameter
@@ -195,8 +195,11 @@ scan_path = [raw_path 'syn148_58L_Mg_12_cmos_test']; ADD
 
 scan_path = [raw_path 'syn149_58L_Mg_12_cmos_test']; ADD
 
-scan_path = [raw_path 'syn150_58L_Mg_12_000']; ADD
+% aborted
+%scan_path = [raw_path 'syn150_58L_Mg_12_000']; ADD
 
+rot_axis_offset = -192.10;
+parfolder = 'ring_current';
 scan_path = [raw_path 'syn151_58L_Mg_12_000']; ADD
 
 scan_path = [raw_path 'syn151_58L_Mg_12_001']; ADD
@@ -246,6 +249,7 @@ scan_path = [raw_path 'syn163_cor_mg5gd428s_mg10gd408s_mg5gd8p_23']; ADD
 scan_path = [raw_path 'syn164_cor_mg5gd434s_mg5gd1p_23']; ADD
 
 rot_axis_offset = -187.400000;
+interactive_determination_of_rot_axis = 1;
 scan_path = [raw_path 'syn165_58L_Mg10Gd_12w_000']; ADD
 
 scan_path = [raw_path 'syn165_58L_Mg10Gd_12w_001']; ADD

@@ -1,8 +1,10 @@
 % Notes for P05 reconstruction pipeline 'p05_reco'.
 
 %% Rotation axis measures
-% iso-grad works for absorption contrast, local tomography, push-out
-% device, sample shift, scan
+% absorption, local, center, wiggle, fresh bone + implant, load frame: iso-grad
+%
+% phase, local, center, wiggle, fixed embryos, water bath: grad, laplacian,
+% entropy have MAXIMUM, entropy-ML MIN
 
 %% Padding and phase retrieval
 % Symmetric padding of intensity maps before phase retrieval cleary reduces
