@@ -1,7 +1,7 @@
 % P05 reconstruction pipeline: preprocessing, filtering, phase retrieval,
 % tomographic reconstruction, simple segmentation, etc.
 %
-% USAGE
+% USAGE:
 % Set parameters in PARAMETERS / SETTINGS section below and run script.
 %
 % HOW TO RUN THE SCRIPT:
@@ -10,9 +10,10 @@
 % - Command Window: type 'p05_reco' and Enter
 %
 % HOW TO AUTOMATICALLY LOOP OVER RECONSTRUCTIONS:
-% To loop over different data or parameters sets see 'p05_reco_loop_template'.
+% To loop over different data or parameters sets see
+% 'p05_reco_loop_template' and/or 'p05_create_reco_loop_script'.
 %
-% For some additional information see 'p05_notes'.
+% For additional information see 'p05_notes'.
 %
 % Known errors:
 % GPU CUDA error: device busy
@@ -20,7 +21,7 @@
 % support, or MATLAB terminates abnormally with a segmentation violation.
 %
 % Written by Julian Moosmann. First version: 2016-09-28. Last modifcation:
-% 2017-11-26
+% 2017-12-08
 
 %clear all
 close all hidden % close all open windows
@@ -28,10 +29,10 @@ close all hidden % close all open windows
 
 %% PARAMETERS / SETTINGS %%
 scan_path = ...
-    '/asap3/petra3/gpfs/p05/2017/data/11003288/raw/syn150_58L_Mg_12_000';
-    '/asap3/petra3/gpfs/p05/2017/data/11003527/raw/szeb_78';
-    '/asap3/petra3/gpfs/p05/2017/data/11003288/raw/syn166_104R_Mg10Gd_4w_001';
-    '/asap3/petra3/gpfs/p05/2017/commissioning/c20171115_000_kit_test/raw/fast_test17';    
+    '/asap3/petra3/gpfs/p05/2017/data/11003288/raw/syn151_58L_Mg_12_000';
+'/asap3/petra3/gpfs/p05/2017/data/11003527/raw/szeb_78';
+'/asap3/petra3/gpfs/p05/2017/data/11003288/raw/syn166_104R_Mg10Gd_4w_001';
+'/asap3/petra3/gpfs/p05/2017/commissioning/c20171115_000_kit_test/raw/fast_test17';
 '/asap3/petra3/gpfs/p05/2017/data/11003773/raw/syn132_cor_mg5gd434s_mg10gd408s_12';
 '/asap3/petra3/gpfs/p05/2017/data/11003288/raw/syn165_58L_Mg10Gd_12w_000'; %reconstruction is crap
 '/asap3/petra3/gpfs/p05/2017/data/11003288/raw/syn166_104R_Mg10Gd_4w_000'; %reconstruction is crap
@@ -111,7 +112,7 @@ take_neg_log = []; % take negative logarithm. if empty, use 1 for attenuation co
 % OUTPUT %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 out_path = '';% absolute path were output data will be stored. !!overwrites the write_to_scratch flag. if empty uses the beamtime directory and either 'processed' or 'scratch_cc'
 write_to_scratch = 1; % write to 'scratch_cc' instead of 'processed'
-write_flatcor = 1; % save preprocessed flat corrected projections
+write_flatcor = 0; % save preprocessed flat corrected projections
 write_phase_map = 0; % save phase maps (if phase retrieval is not 0)
 write_sino = 0; % save sinograms (after preprocessing & before FBP filtering and phase retrieval)
 write_sino_phase = 0; % save sinograms of phase maps
@@ -143,7 +144,7 @@ interactive_determination_of_rot_axis = 1; % reconstruct slices with different r
 interactive_determination_of_rot_axis_tilt = 0; % reconstruct slices with different offset AND tilts of the rotation axis
 lamino = 0; % find laminography tilt instead camera rotation
 fixed_tilt = 0; % fixed other tilt
-interactive_determination_of_rot_axis_slice = 0.5; % slice number, default: 0.5. if in [0,1): relative, if in (1, N]: absolute
+slice_number = 0.5; % slice number, default: 0.5. if in [0,1): relative, if in (1, N]: absolute
 % HARDWARE / SOFTWARE %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 poolsize = 0.80; % number of workers used in a parallel pool. if > 1: absolute number. if 0 < poolsize < 1: relative amount of all cores to be used
 link_data = 1; % ASTRA data objects become references to Matlab arrays. Reduces memory issues.
@@ -357,7 +358,7 @@ if ~exist( h5log, 'file')
     
     %% Image shape and ROI
     filename = sprintf('%s%s', scan_path, ref_names{1});
-    if ~raw_data        
+    if ~raw_data
         [im_raw, tif_info] = read_image( filename );
         raw_im_shape_uncropped = size( im_raw );
         im_roi = read_image( filename, '', raw_roi, tif_info );
@@ -371,12 +372,12 @@ if ~exist( h5log, 'file')
                 raw_im_shape_uncropped = [5120 3840];
                 dtype = 'uint16';
         end
-        raw_im_shape = raw_im_shape_uncropped;        
-        im_raw = read_raw( filename, raw_im_shape, dtype );        
-        %% TODO: FIX        
+        raw_im_shape = raw_im_shape_uncropped;
+        im_raw = read_raw( filename, raw_im_shape, dtype );
+        %% TODO: FIX
         ring_current_normalization = 0;
-        rot_angle_full = pi; % FIX                
-    end    
+        rot_angle_full = pi; % FIX
+    end
 else
     
     %% P05 standard log file
@@ -389,7 +390,7 @@ else
     
     %% HDF5 log
     h5i = h5info( h5log );
-        
+    
     stimg_name.value = h5read( h5log, '/entry/scan/data/image_file/value');
     stimg_name.time = double( h5read( h5log,'/entry/scan/data/image_file/time') );
     stimg_key.value = h5read( h5log,'/entry/scan/data/image_key/value');
@@ -404,16 +405,16 @@ else
     s_rot.value = h5read( h5log, '/entry/scan/data/s_rot/value');
     
     s_stage_x.time = double( h5read( h5log, '/entry/scan/data/s_stage_x/time') );
-    s_stage_x.value = h5read( h5log, '/entry/scan/data/s_stage_x/value');   
+    s_stage_x.value = h5read( h5log, '/entry/scan/data/s_stage_x/value');
     
     switch lower( cam )
         %% CHECK camera1 / camera2 !!!!!!!!!!!!!!!!!!!!!!!!!!!!1
         case 'ehd'
             energy = double(h5read( h5log, '/entry/hardware/camera1/calibration/energy') );
-            exp_time = double(h5read( h5log, '/entry/hardware/camera1/calibration/exptime') );    
+            exp_time = double(h5read( h5log, '/entry/hardware/camera1/calibration/exptime') );
         case 'kit'
             energy = double(h5read( h5log, '/entry/hardware/camera2/calibration/energy') );
-            exp_time = double(h5read( h5log, '/entry/hardware/camera2/calibration/exptime') );    
+            exp_time = double(h5read( h5log, '/entry/hardware/camera2/calibration/exptime') );
     end
     
     % wiggle di wiggle
@@ -422,15 +423,15 @@ else
     % ring current
     [x, index] = unique( petra.time );
     y = petra.current(index);
-    stimg_name.current = (interp1( x, y, stimg_name.time, 'next', 'extrap') + interp1( x, y, stimg_name.time + exp_time, 'previous', 'extrap') ) / 2;    
-    cur_ref_val = stimg_name.current( stimg_key.value == 1 );        
-    cur_ref_name = stimg_name.value( stimg_key.value == 1 );        
+    stimg_name.current = (interp1( x, y, stimg_name.time, 'next', 'extrap') + interp1( x, y, stimg_name.time + exp_time, 'previous', 'extrap') ) / 2;
+    cur_ref_val = stimg_name.current( stimg_key.value == 1 );
+    cur_ref_name = stimg_name.value( stimg_key.value == 1 );
     for nn = numel( cur_ref_name ):-1:1
         cur.ref(nn).val = cur_ref_val(nn);
         cur.ref(nn).name = cur_ref_name{nn};
         cur.ref(nn).ind = str2double(cur.ref(nn).name(end-7:end-4));
     end
-    cur_proj_val = stimg_name.current( stimg_key.value == 0);    
+    cur_proj_val = stimg_name.current( stimg_key.value == 0);
     cur_proj_name = stimg_name.value( stimg_key.value == 0);
     for nn = numel( cur_proj_name ):-1:1
         cur.proj(nn).val = cur_proj_val(nn);
@@ -513,7 +514,7 @@ if read_flatcor(1)
 elseif ~read_flatcor
     %% Dark field
     t = toc;
-    PrintVerbose(verbose, '\nProcessing dark fields.')    
+    PrintVerbose(verbose, '\nProcessing dark fields.')
     darks = zeros( [raw_im_shape_binned, num_dark], 'single');
     PrintVerbose( verbose, ' Allocated bytes: %.2f MiB.', Bytes( darks, 2 ) )
     parfor nn = 1:num_dark
@@ -596,7 +597,7 @@ elseif ~read_flatcor
     % Ring current normalization
     if ring_current_normalization(1)
         switch lower( cam )
-            case 'kit'                
+            case 'kit'
                 ref_check = ref_range - 1;
             case 'ehd'
                 ref_check = ref_nums;
@@ -1141,6 +1142,16 @@ if do_tomo(1)
     end
     
     %% Determine rotation axis position
+    
+    % FULLY AUTOMATIC MODE %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    if automatic_mode(1)
+        pts = 10;
+        im_center = raw_im_shape_binned1 / 2;
+        offset_stride = floor( im_center / pts );
+        offset = -im_center:offset_stride:im_center;        
+    end
+    
+    % INTERACTIVE MODE %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     tint = 0;
     if interactive_determination_of_rot_axis(1)
         tint = toc;
@@ -1156,10 +1167,10 @@ if do_tomo(1)
         fra_number_of_stds = 4;
         fra_vol_shape = [];
         
-        if interactive_determination_of_rot_axis_slice > 1
-            slice = interactive_determination_of_rot_axis_slice;
-        elseif interactive_determination_of_rot_axis_slice <= 1 && interactive_determination_of_rot_axis_slice >= 0
-            slice = round((raw_im_shape_binned2 - 1) * interactive_determination_of_rot_axis_slice + 1 );
+        if slice_number > 1
+            slice = slice_number;
+        elseif slice_number <= 1 && slice_number >= 0
+            slice = round((raw_im_shape_binned2 - 1) * slice_number + 1 );
         end
         fprintf( '\n slice : %u', slice)
         
@@ -1168,6 +1179,13 @@ if do_tomo(1)
         fprintf( '\n calcul. rotation axis offset / position : %.2f, %.2f', rot_axis_offset_calc, rot_axis_pos_calc)
         fprintf( '\n default offset range : current ROT_AXIS_OFFSET + (-4:0.5:4)')
         offset = input( '\n\nENTER RANGE OF ROTATION AXIS OFFSETS (if empty use default range, if scalar skips interactive mode): ');
+        if strcmp( offset, 'slice' )
+            slice = input( '\n\nENTER ABSOLUTE OF RELATIVE SLICE NUMBER : ');
+            if slice <= 1 && slice >= 0
+                slice = round((raw_im_shape_binned2 - 1) * slice + 1 );
+            end
+            offset = input( '\n\nENTER RANGE OF ROTATION AXIS OFFSETS (if empty use default range, if scalar skips interactive mode): ');
+        end
         if isempty( offset )
             % default range is centered at the given or calculated offset
             offset = rot_axis_offset + (-4:0.5:4);
@@ -1220,6 +1238,17 @@ if do_tomo(1)
             
             % Input
             offset = input( '\n\nENTER ROTATION AXIS OFFSET OR A RANGE OF OFFSETS (if empty use current offset): ');
+            if strcmp( offset, 'slice' )
+                slice = input( '\n\nENTER ABSOLUTE OF RELATIVE SLICE NUMBER : ');
+                if slice <= 1 && slice >= 0
+                    slice = round((raw_im_shape_binned2 - 1) * slice + 1 );
+                end
+                offset = input( '\n\nENTER RANGE OF ROTATION AXIS OFFSETS (if empty use default range, if scalar skips interactive mode): ');
+            end
+            if strcmp( offset, 'debug')
+                keyboard
+                offset = input( '\n\nENTER RANGE OF ROTATION AXIS OFFSETS (if empty use default range, if scalar skips interactive mode): ');
+            end
             if isempty( offset )
                 offset = rot_axis_offset;
             end
@@ -1229,14 +1258,25 @@ if do_tomo(1)
                 rot_axis_offset = offset;
                 fprintf( '\n new rotation axis offset : %.2f', rot_axis_offset)
                 
+                % TILT %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
                 if interactive_determination_of_rot_axis_tilt(1)
-                    
-                    % Tilt
                     fprintf( '\n\nTILT:' )
                     fprintf( '\n current rotation axis tilt : %g rad = %g deg', rot_axis_tilt, rot_axis_tilt * 180 / pi)
                     fprintf( '\n calcul. rotation axis tilt : %g rad = %g deg', rot_axis_tilt_calc, rot_axis_tilt_calc * 180 / pi)
                     fprintf( '\n default tilt range is : current ROT_AXIS_TILT + (-0.005:0.001:0.005)')
                     tilt = input( '\n\nENTER TILT OF ROTATION AXIS OR RANGE OF TILTS (if empty use default):');
+                    % option to change which slice to reconstruct
+                    if strcmp( tilt, 'slice' )
+                        slice = input( '\n\nENTER ABSOLUTE OF RELATIVE SLICE NUMBER : ');
+                        if slice <= 1 && slice >= 0
+                            slice = round((raw_im_shape_binned2 - 1) * slice + 1 );
+                        end
+                        tilt = input( '\n\nENTER TILT OF ROTATION AXIS OR RANGE OF TILTS (if empty use default):');
+                    end
+                    if strcmp( tilt, 'debug')
+                        keyboard;
+                        tilt = input( '\n\nENTER TILT OF ROTATION AXIS OR RANGE OF TILTS (if empty use default):');
+                    end
                     if isempty( tilt )
                         % default range is centered at the given or calculated tilt
                         tilt = rot_axis_tilt + (-0.005:0.001:0.005);

@@ -134,7 +134,7 @@ write_8bit = 0;
 reco_bin = 2; % binning factor of reconstructed volume
 write_float_binned = 0; % binned single precision (32-bit float) tiff
 write_16bit_binned = 0;
-write_8bit_binned = 1;
+write_8bit_binned = 0;
 write_8bit_segmented = 0; % experimental: threshold segmentation for histograms with 2 distinct peaks: __/\_/\__
 compression_method = 'histo';'full'; 'std'; 'threshold'; % method to compression dynamic range into [0, 1]
 compression_parameter = [0.20 0.15]; % compression-method specific parameter
@@ -199,7 +199,6 @@ scan_path = [raw_path 'syn149_58L_Mg_12_cmos_test']; ADD
 %scan_path = [raw_path 'syn150_58L_Mg_12_000']; ADD
 
 rot_axis_offset = -192.10;
-parfolder = 'ring_current';
 scan_path = [raw_path 'syn151_58L_Mg_12_000']; ADD
 
 scan_path = [raw_path 'syn151_58L_Mg_12_001']; ADD
