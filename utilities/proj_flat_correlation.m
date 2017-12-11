@@ -16,7 +16,7 @@ switch correlation_method
     case {'none', ''}
         % Flat field correction without correlation
         flat_median = median( flat, 3);
-        proj = bsxfun( @times, proj, flat_median);
+        proj = bsxfun( @times, proj, 1./flat_median);
         corr = [];
         proj_roi =[];
         flat_roi = [];

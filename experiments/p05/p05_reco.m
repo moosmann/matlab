@@ -21,7 +21,7 @@
 % support, or MATLAB terminates abnormally with a segmentation violation.
 %
 % Written by Julian Moosmann. First version: 2016-09-28. Last modifcation:
-% 2017-12-08
+% 2017-12-11
 
 %clear all
 close all hidden % close all open windows
@@ -29,10 +29,9 @@ close all hidden % close all open windows
 
 %% PARAMETERS / SETTINGS %%
 scan_path = ...
-    '/asap3/petra3/gpfs/p05/2017/data/11003700/raw/mpimm_01_a';    
- '/asap3/petra3/gpfs/p05/2017/data/11003288/raw/syn156_berit';
+    '/asap3/petra3/gpfs/p05/2017/data/11003527/raw/szeb_86'; % 2 x stitching
 '/asap3/petra3/gpfs/p05/2017/data/11003288/raw/syn151_58L_Mg_12_000';
-'/asap3/petra3/gpfs/p05/2017/data/11003527/raw/szeb_86'; % 2 x stitching
+'/asap3/petra3/gpfs/p05/2017/data/11003288/raw/syn156_berit'; % 2 x stitching
 '/asap3/petra3/gpfs/p05/2017/data/11003527/raw/szeb_78';
 '/asap3/petra3/gpfs/p05/2017/data/11003288/raw/syn166_104R_Mg10Gd_4w_001';
 '/asap3/petra3/gpfs/p05/2017/commissioning/c20171115_000_kit_test/raw/fast_test17';
@@ -42,8 +41,8 @@ scan_path = ...
 read_flatcor = 0; % read flatfield-corrected images from disc, skips preprocessing
 read_flatcor_path = ''; % subfolder of 'flat_corrected' containing projections
 % PREPROCESSING %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-raw_roi = []; % [y0 y1] vertical roi.  skips first raw_roi(1)-1 lines, reads until raw_roi(2)
-raw_bin = 4; % projection binning factor: 1, 2, or 4
+raw_roi = []; % [y0 y1] vertical roi.  skips first raw_roi(1)-1 lines, reads until raw_roi(2). Not working for *.raw data where images are flipped.
+raw_bin = 3; % projection binning factor: 1, 2, or 4
 bin_before_filtering = 1; % Binning before pixel filtering is applied, much faster but less effective filtering
 excentric_rot_axis = 0; % off-centered rotation axis increasing FOV. -1: left, 0: centeerd, 1: right. influences rot_corr_area1
 crop_at_rot_axis = 0; % for recos of scans with excentric rotation axis but WITHOUT projection stitching
@@ -52,8 +51,8 @@ stitch_method = 'sine';'linear'; 'step'; %  ! adjust correlation area if necessa
 % 'step' : no interpolation, use step function
 % 'linear' : linear interpolation of overlap region
 % 'sine' : sinusoidal interpolation of overlap region
-proj_range = 4; % range of projections to be used (from all found, if empty or 1: all, if scalar: stride, if range: start:incr:end
-ref_range = 4; % range of flat fields to be used (from all found), if empty or 1: all. if scalar: stride, if range: start:incr:end
+proj_range = 3; % range of projections to be used (from all found, if empty or 1: all, if scalar: stride, if range: start:incr:end
+ref_range = 3; % range of flat fields to be used (from all found), if empty or 1: all. if scalar: stride, if range: start:incr:end
 energy = []; % in eV! if empty: read from log file
 sample_detector_distance = []; % in m. if empty: read from log file
 eff_pixel_size = []; % in m. if empty: read from log file. effective pixel size =  detector pixel size / magnification
@@ -72,11 +71,11 @@ correlation_method = 'ssim-ml';'entropy';'diff';'shift';'ssim';'std';'cov';'corr
 % 'none' : no correlation, use median flat
 corr_shift_max_pixelshift = 0.25; % maximum pixelshift allowed for 'shift'-correlation method: if 0 use the best match (i.e. the one with the least shift), if > 0 uses all flats with shifts smaller than corr_shift_max_pixelshift
 corr_num_flats = 1; % number of flat fields used for average/median of flats. for 'shift'-correlation its the maximum number
-ring_current_normalization = 1; % normalize flat fields and projections by ring current
+ring_current_normalization = 0; % normalize flat fields and projections by ring current
 flat_corr_area1 = [1 floor(100/raw_bin)];%[0.98 1];% correlation area: index vector or relative/absolute position of [first pix, last pix]
 flat_corr_area2 = [0.2 0.8]; % correlation area: index vector or relative/absolute position of [first pix, last pix]
 decimal_round_precision = 2; % precision when rounding pixel shifts
-ring_filter = 1; % ring artifact filter
+ring_filter = 1; % ring artifact filter (only for scans without wiggle di wiggle)
 ring_filter_method = 'jm';'wavelet-fft';
 ring_filter_waveletfft_dec_levels = 2:6; % decomposition levels for 'wavelet-fft'
 ring_filter_waveletfft_wname = 'db30';'db25'; % wavelet type for 'wavelet-fft'
@@ -93,8 +92,8 @@ phase_retrieval_cutoff_frequ = 1 * pi; % in radian. frequency cutoff in Fourier 
 phase_padding = 1; % padding of intensities before phase retrieval, 0: no padding
 % TOMOGRAPHY %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 do_tomo = 1; % run tomographic reconstruction
-vol_shape = [1528 1528 1528];% shape of the volume to be reconstructed, either in absolute number of voxels or in relative number w.r.t. the default volume which is given by the detector width and height
-vol_size = []; % if empty, unit voxel size is assumed
+vol_shape = [0.8 0.8 0.25]; % shape of reconstruction volume. in absolute number of voxels or in relative number w.r.t. the default volume which is given by the detector width and height
+vol_size = [-0.8 0.8 -0.8 0.8 -0.25 0.25]; % 6-component vector [xmin xmax ymin ymax zmin zmax]. if empty, volume is centerd within vol_shape. unit voxel size is assumed. if smaller than 10 values are interpreted as relative size w.r.t. the detector size. Take care bout minus signs.
 rot_angle_full = []; % in radians: empty ([]), full angle of rotation, or array of angles. if empty full rotation angles is determined automatically to pi or 2 pi
 rot_angle_offset = pi; % global rotation of reconstructed volume
 rot_axis_offset = []; % if empty use automatic computation
@@ -103,7 +102,7 @@ rot_corr_area1 = []; % ROI to correlate projections at angles 0 & pi. Use [0.75 
 rot_corr_area2 = []; % ROI to correlate projections at angles 0 & pi
 rot_corr_gradient = 0; % use gradient of intensity maps if signal variations are too weak to correlate projections
 rot_axis_tilt = 0; % in rad. camera tilt w.r.t rotation axis. if empty calculate from registration of projections at 0 and pi
-fbp_filter_type = 'Ram-Lak'; 'linear'; % see iradonDesignFilter for more options. Ram-Lak according to Kak/Slaney
+fbp_filter_type = 'linear';'Ram-Lak'; % see iradonDesignFilter for more options. Ram-Lak according to Kak/Slaney
 fpb_filter_freq_cutoff = 1; % Cut-off frequency in Fourier space of the above FBP filter
 fbp_filter_padding = 1; % symmetric padding for consistent boundary conditions, 0: no padding
 fbp_filter_padding_method = 'symmetric';
@@ -152,7 +151,9 @@ slice_number = 0.5; % slice number, default: 0.5. if in [0,1): relative, if in (
 poolsize = 0.80; % number of workers used in a parallel pool. if > 1: absolute number. if 0 < poolsize < 1: relative amount of all cores to be used
 link_data = 1; % ASTRA data objects become references to Matlab arrays. Reduces memory issues.
 gpu_index = []; % GPU Device index to use, Matlab notation: index starts from 1. default: [], uses all
-automatic_mode = 0;
+automatic_mode = 0; % Find rotation axis position automatically
+automatic_mode_coarse = 'entropy'; %
+automatic_mode_fine = 'iso-grad';
 
 %% END OF PARAMETERS / SETTINGS %%
 
@@ -423,7 +424,7 @@ else
     
     % wiggle di wiggle
     offset_shift = s_stage_x.value( ~boolean( stimg_key.value(par.n_dark+1:end) ) ) * 1e-3 / eff_pixel_size_binned;
-    
+    offset_shift = offset_shift(proj_range);
     % ring current
     [x, index] = unique( petra.time );
     y = petra.current(index);
@@ -688,17 +689,13 @@ elseif ~read_flatcor
     
     % Get absolute filter thresholds from percentage-wise pixel filtering
     % of 1st, middle, and last projection to speed up processing
-    if proj_FiltPixThresh(1) < 1 || proj_FiltPixThresh(2) < 0.5
-        
+    if proj_FiltPixThresh(1) < 1 || proj_FiltPixThresh(2) < 0.5        
         filename = sprintf('%s%s', scan_path, img_names_mat(num_proj_used, :));
-        [~, ht(3), dt(3)] = FilterPixel( read_image( filename, '', raw_roi, tif_info, raw_im_shape_uncropped, dtype ), proj_FiltPixThresh);
-        
+        [~, ht(3), dt(3)] = FilterPixel( read_image( filename, '', raw_roi, tif_info, raw_im_shape_uncropped, dtype ), proj_FiltPixThresh);        
         filename = sprintf('%s%s', scan_path, img_names_mat(1, :));
-        [~, ht(2), dt(2)] = FilterPixel( read_image( filename, '', raw_roi, tif_info, raw_im_shape_uncropped, dtype ), proj_FiltPixThresh);
-        
+        [~, ht(2), dt(2)] = FilterPixel( read_image( filename, '', raw_roi, tif_info, raw_im_shape_uncropped, dtype ), proj_FiltPixThresh);        
         filename = sprintf('%s%s', scan_path, img_names_mat(round(num_proj_used/2), :));
-        [~, ht(1), dt(1)] = FilterPixel( read_image( filename, '', raw_roi, tif_info, raw_im_shape_uncropped, dtype ), proj_FiltPixThresh);
-        
+        [~, ht(1), dt(1)] = FilterPixel( read_image( filename, '', raw_roi, tif_info, raw_im_shape_uncropped, dtype ), proj_FiltPixThresh);        
         HotThresh = median( ht );
         DarkThresh = median( dt );
     else
@@ -1148,10 +1145,55 @@ if do_tomo(1)
         end
     end
     
-    %% Determine rotation axis position
+    %% Volume shape
+    vol_shape1 = size( proj, 1);
+    vol_shape3 = size( proj, 2 );
+    if isempty( vol_shape )
+        % default volume given by the detector width and height
+        vol_shape = [vol_shape1, vol_shape1, vol_shape3];
+    else
+        vol_shape1 = size( proj, 1);
+        if vol_shape(1) <=  10
+            vol_shape(1) = round( 1 + vol_shape(1) * (vol_shape1 - 1) );
+        end
+        if vol_shape(2) <=  10
+            vol_shape(2) = round( 1 + vol_shape(2) * (vol_shape1 - 1) );
+        end
+        if vol_shape(3) <=  10
+            vol_shape(3) = round( 1 + vol_shape(3) * (vol_shape3 - 1) );
+        end
+    end
+    %% Volume shape and size
+    if isempty( vol_size )
+        vol_size = [-vol_shape(1)/2, vol_shape(1)/2, -vol_shape(2)/2, vol_shape(2)/2, -vol_shape(3)/2, vol_shape(3)/2];
+    else
+        if abs( vol_size(1) ) < 10
+            vol_size(1) = sign( vol_size(1) ) * round( 1 + abs( vol_size(1) ) * (raw_im_shape_binned1 - 1) );
+        end
+        if abs( vol_size(2) ) < 10
+            vol_size(2) = sign( vol_size(2) ) * round( 1 + abs( vol_size(2) ) *  (raw_im_shape_binned1 - 1) );
+        end
+        if abs( vol_size(3) ) < 10
+            vol_size(3) = sign( vol_size(3) ) * round( 1 + abs( vol_size(3) ) *  (raw_im_shape_binned1 - 1) );
+        end
+        if abs( vol_size(4) ) < 10
+            vol_size(4) = sign( vol_size(4) ) * round( 1 + abs( vol_size(4) ) *  (raw_im_shape_binned1 - 1) );
+        end
+        if abs( vol_size(5) ) < 10
+            vol_size(5) = sign( vol_size(5) ) * round( 1 + abs( vol_size(5) ) *  (raw_im_shape_binned2 - 1) );
+        end
+        if abs( vol_size(6) ) < 10
+            vol_size(6) = sign( vol_size(6) ) * round( 1 + abs( vol_size(6) ) *  (raw_im_shape_binned2 - 1) );
+        end
+    end
+    PrintVerbose(verbose, '\n volume shape: [%g %g %g]', vol_shape )
+    PrintVerbose(verbose, '\n volume size: [%g %g %g %g %g %g]', vol_size )
+    PrintVerbose(verbose, '\n memory required: %.2f GiB', prod( vol_shape ) * 4 / 1024^3 )
+        
+    %% Determine rotation axis position %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     
     % FULLY AUTOMATIC MODE %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    if automatic_mode(1)
+    if automatic_mode(1) % NOT IMPLEMENTED YET
         pts = 10;
         im_center = raw_im_shape_binned1 / 2;
         offset_stride = floor( im_center / pts );
@@ -1171,12 +1213,7 @@ if do_tomo(1)
         else
             fra_take_neg_log = 1;
         end
-        fra_number_of_stds = 4;
-        if isempty( vol_shape )
-            fra_vol_shape = [];
-        else
-            fra_vol_shape = [vol_shape(1) vol_shape(2) 1];
-        end        
+        fra_number_of_stds = 4;        
         if slice_number > 1
             slice = slice_number;
         elseif slice_number <= 1 && slice_number >= 0
@@ -1208,7 +1245,7 @@ if do_tomo(1)
         while ~isscalar( offset )
             
             % Reco
-            [vol, metrics_offset] = find_rot_axis_offset(proj, angles, slice, offset, rot_axis_tilt, fra_take_neg_log, fra_number_of_stds, fra_vol_shape, lamino, fixed_tilt, gpu_index, offset_shift);
+            [vol, metrics_offset] = find_rot_axis_offset(proj, angles, slice, offset, rot_axis_tilt, fra_take_neg_log, fra_number_of_stds, vol_shape, vol_size, lamino, fixed_tilt, gpu_index, offset_shift);
             
             % Metric minima
             [~, min_pos] = min(cell2mat({metrics_offset(:).val}));
@@ -1298,7 +1335,7 @@ if do_tomo(1)
                     while ~isscalar( tilt )
                         
                         % Reco
-                        [vol, metrics_tilt] = find_rot_axis_tilt( proj, angles, slice, offset, tilt, fra_take_neg_log, fra_number_of_stds, fra_vol_shape, lamino, fixed_tilt, gpu_index, offset_shift);
+                        [vol, metrics_tilt] = find_rot_axis_tilt( proj, angles, slice, offset, tilt, fra_take_neg_log, fra_number_of_stds, vol_shape, vol_size, lamino, fixed_tilt, gpu_index, offset_shift);
                         
                         % Metric minima
                         [~, min_pos] = min(cell2mat({metrics_tilt(:).val}));
@@ -1629,30 +1666,30 @@ if do_tomo(1)
         rot_axis_offset_reco = rot_axis_offset;
     end
     
-    %% Volume shape and size
-    if isempty( vol_shape )
-        % default volume given by the detector width and height
-        vol_shape1 = size( proj, 1);
-        vol_shape3 = size( proj, 2 );
-        vol_shape = [vol_shape1, vol_shape1, vol_shape3];
-    else
-        vol_shape1 = size( proj, 1);
-        if vol_shape(1) <=  1
-            vol_shape(1) = round( 1 + vol_shape(1) * (vol_shape1 - 1) );
-        end
-        if vol_shape(2) <=  1
-            vol_shape(2) = round( 1 + vol_shape(2) * (vol_shape1 - 1) );
-        end
-        if vol_shape(3) <=  1
-            vol_shape(3) = round( 1 + vol_shape(3) * (vol_shape3 - 1) );
-        end
-    end
-    if isempty( vol_size )
-        vol_size = [-vol_shape(1)/2, vol_shape(1)/2, -vol_shape(2)/2, vol_shape(2)/2, -vol_shape(3)/2, vol_shape(3)/2];
-    end
-    PrintVerbose(verbose, '\n shape of reconstructed volume: [%g, %g, %g]', vol_shape )
-    PrintVerbose(verbose, '\n memory required: %.2f GiB', prod( vol_shape ) * 4 / 1024^3 )
-    
+%     %% Volume shape and size
+%     if isempty( vol_shape )
+%         % default volume given by the detector width and height
+%         vol_shape1 = size( proj, 1);
+%         vol_shape3 = size( proj, 2 );
+%         vol_shape = [vol_shape1, vol_shape1, vol_shape3];
+%     else
+%         vol_shape1 = size( proj, 1);
+%         if vol_shape(1) <=  1
+%             vol_shape(1) = round( 1 + vol_shape(1) * (vol_shape1 - 1) );
+%         end
+%         if vol_shape(2) <=  1
+%             vol_shape(2) = round( 1 + vol_shape(2) * (vol_shape1 - 1) );
+%         end
+%         if vol_shape(3) <=  1
+%             vol_shape(3) = round( 1 + vol_shape(3) * (vol_shape3 - 1) );
+%         end
+%     end
+%     if isempty( vol_size )
+%         vol_size = [-vol_shape(1)/2, vol_shape(1)/2, -vol_shape(2)/2, vol_shape(2)/2, -vol_shape(3)/2, vol_shape(3)/2];
+%     end
+%     PrintVerbose(verbose, '\n shape of reconstructed volume: [%g, %g, %g]', vol_shape )
+%     PrintVerbose(verbose, '\n memory required: %.2f GiB', prod( vol_shape ) * 4 / 1024^3 )
+%     
     if isempty( take_neg_log )
         take_neg_log = 1;
     end
@@ -1705,23 +1742,22 @@ if do_tomo(1)
     
     % Show orthogonal vol cuts
     if visual_output(1)
-        figure('Name', 'Volum cuts');
         
-        subplot(1,3,1)
+        figure('Name', 'Volume cut z');        
         nn = round( size( vol, 3 ) / 2);
         imsc( squeeze( vol(:,:,nn) ) )
         axis equal tight
         title( sprintf( 'vol z = %u', nn ) )
         colorbar
         
-        subplot(1,3,2)
+        figure('Name', 'Volume cut y');        
         nn = round( size( vol, 2 ) / 2);
         imsc( squeeze( vol(:,nn,:) ) )
         axis equal tight
         title( sprintf( 'vol y = %u', nn ) )
         colorbar
-        
-        subplot(1,3,3)
+                
+        figure('Name', 'Volume cut x');        
         nn = round( size( vol, 1 ) / 2);
         imsc( squeeze( vol(nn,:,:) ) )
         axis equal tight
