@@ -47,6 +47,9 @@ end
 mask_rad = 0.95;
 mask_val = 0;
 butterworth_filtering = 0;
+astra_pixel_size = 1;
+link_data = 1;
+filter_histo_roi = 0.25;
 
 %% Main %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 angles = double( angles );
@@ -58,16 +61,13 @@ else
     vol_shape(3) = 1;
 end
 vol_size = [-num_pix/2 num_pix/2 -num_pix/2 num_pix/2 -0.5 0.5];
-astra_pixel_size = 1;
-link_data = 1;
-filter_histo_roi = 0.25;
 if isempty( slice )
     slice = round( num_row / 2 );
 end
 
 % Calculate required slab
-rot_axis_pos = offsets + num_pix / 2;
-l = max( max( rot_axis_pos) , max( abs( num_pix - rot_axis_pos ) ) );
+rot_axis_pos = offsets + vol_shape(1) / 2;
+l = max( max( rot_axis_pos) , max( abs( vol_shape(1) - rot_axis_pos ) ) );
 dz = ceil( sin( abs( tilt ) ) * l ); % maximum distance between sino plane and reco plane
 if slice - dz < 0 || slice + dz > num_row
     fprintf( '\nWARNING: Inclination of reconstruction plane, slice %u, exceeds sinogram volume. Better choose a more central slice or a smaller tilts.', slice)
@@ -102,7 +102,7 @@ m(6).name = 'entropy';
 m(7).name = 'entropy-ML';
 
 % Preallocation
-vol = zeros(num_pix, num_pix, numel(offsets));
+vol = zeros(vol_shape(1), vol_shape(2), numel(offsets));
 for nn = 1:numel(m)
     m(nn).val = zeros( numel(offsets), 1);
 end

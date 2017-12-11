@@ -29,7 +29,10 @@ close all hidden % close all open windows
 
 %% PARAMETERS / SETTINGS %%
 scan_path = ...
-    '/asap3/petra3/gpfs/p05/2017/data/11003288/raw/syn151_58L_Mg_12_000';
+    '/asap3/petra3/gpfs/p05/2017/data/11003700/raw/mpimm_01_a';    
+ '/asap3/petra3/gpfs/p05/2017/data/11003288/raw/syn156_berit';
+'/asap3/petra3/gpfs/p05/2017/data/11003288/raw/syn151_58L_Mg_12_000';
+'/asap3/petra3/gpfs/p05/2017/data/11003527/raw/szeb_86'; % 2 x stitching
 '/asap3/petra3/gpfs/p05/2017/data/11003527/raw/szeb_78';
 '/asap3/petra3/gpfs/p05/2017/data/11003288/raw/syn166_104R_Mg10Gd_4w_001';
 '/asap3/petra3/gpfs/p05/2017/commissioning/c20171115_000_kit_test/raw/fast_test17';
@@ -40,8 +43,8 @@ read_flatcor = 0; % read flatfield-corrected images from disc, skips preprocessi
 read_flatcor_path = ''; % subfolder of 'flat_corrected' containing projections
 % PREPROCESSING %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 raw_roi = []; % [y0 y1] vertical roi.  skips first raw_roi(1)-1 lines, reads until raw_roi(2)
-raw_bin = 2; % projection binning factor: 1, 2, or 4
-bin_before_filtering = 0; % Binning before pixel filtering is applied, much faster but less effective filtering
+raw_bin = 4; % projection binning factor: 1, 2, or 4
+bin_before_filtering = 1; % Binning before pixel filtering is applied, much faster but less effective filtering
 excentric_rot_axis = 0; % off-centered rotation axis increasing FOV. -1: left, 0: centeerd, 1: right. influences rot_corr_area1
 crop_at_rot_axis = 0; % for recos of scans with excentric rotation axis but WITHOUT projection stitching
 stitch_projections = 0; % for 2 pi scans: stitch projection at rotation axis position
@@ -49,8 +52,8 @@ stitch_method = 'sine';'linear'; 'step'; %  ! adjust correlation area if necessa
 % 'step' : no interpolation, use step function
 % 'linear' : linear interpolation of overlap region
 % 'sine' : sinusoidal interpolation of overlap region
-proj_range = 1; % range of projections to be used (from all found). if empty or 1: all, if scalar: stride
-ref_range = []; % range of flat fields to be used (from all found). start:incr:end. if empty or 1: all. if scalar: stride
+proj_range = 4; % range of projections to be used (from all found, if empty or 1: all, if scalar: stride, if range: start:incr:end
+ref_range = 4; % range of flat fields to be used (from all found), if empty or 1: all. if scalar: stride, if range: start:incr:end
 energy = []; % in eV! if empty: read from log file
 sample_detector_distance = []; % in m. if empty: read from log file
 eff_pixel_size = []; % in m. if empty: read from log file. effective pixel size =  detector pixel size / magnification
@@ -80,7 +83,7 @@ ring_filter_waveletfft_wname = 'db30';'db25'; % wavelet type for 'wavelet-fft'
 ring_filter_waveletfft_sigma = 2.4; %  suppression factor for 'wavelet-fft'
 ring_filter_jm_median_width = 11; % [3 11 21 31 39];
 % PHASE RETRIEVAL %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-do_phase_retrieval = 0; % See 'PhaseFilter' for detailed description of parameters !
+do_phase_retrieval = 1; % See 'PhaseFilter' for detailed description of parameters !
 phase_retrieval_before = 1; % before stitching, interactive mode, etc.
 phase_bin = 1; % Binning factor after phase retrieval, but before tomographic reconstruction
 phase_retrieval_method = 'tie';'qpcut';  'tie'; %'qp' 'ctf' 'tie' 'qp2' 'qpcut'
@@ -90,7 +93,7 @@ phase_retrieval_cutoff_frequ = 1 * pi; % in radian. frequency cutoff in Fourier 
 phase_padding = 1; % padding of intensities before phase retrieval, 0: no padding
 % TOMOGRAPHY %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 do_tomo = 1; % run tomographic reconstruction
-vol_shape = [];% shape of the volume to be reconstructed, either in absolute number of voxels or in relative number w.r.t. the default volume which is given by the detector width and height
+vol_shape = [1528 1528 1528];% shape of the volume to be reconstructed, either in absolute number of voxels or in relative number w.r.t. the default volume which is given by the detector width and height
 vol_size = []; % if empty, unit voxel size is assumed
 rot_angle_full = []; % in radians: empty ([]), full angle of rotation, or array of angles. if empty full rotation angles is determined automatically to pi or 2 pi
 rot_angle_offset = pi; % global rotation of reconstructed volume
@@ -149,6 +152,7 @@ slice_number = 0.5; % slice number, default: 0.5. if in [0,1): relative, if in (
 poolsize = 0.80; % number of workers used in a parallel pool. if > 1: absolute number. if 0 < poolsize < 1: relative amount of all cores to be used
 link_data = 1; % ASTRA data objects become references to Matlab arrays. Reduces memory issues.
 gpu_index = []; % GPU Device index to use, Matlab notation: index starts from 1. default: [], uses all
+automatic_mode = 0;
 
 %% END OF PARAMETERS / SETTINGS %%
 
@@ -271,9 +275,9 @@ end
 
 % Projection file names
 proj_names = FilenameCell( [scan_path, '*.img'] );
+    raw_data = 0;
 if isempty( proj_names )
     proj_names =  FilenameCell( [scan_path, 'proj_*.tif'] );
-    raw_data = 0;
 end
 if isempty( proj_names )
     proj_names =  FilenameCell( [scan_path, '*img*.raw'] );
@@ -831,7 +835,10 @@ elseif ~read_flatcor
     elseif exist( h5log, 'file')
         num_proj = double( par.n_angle );
         angles = s_rot.value( ~boolean( stimg_key.value(par.n_dark+1:end) ) ) * pi / 180;
+        %% Move out of if-condition ?
+        angles = angles(proj_range);
     else
+        %% MOVE TO LOG FILE READING
         if isfield( par, 'num_projections' )
             num_proj = double( par.num_projections );
         elseif isfield( par, 'projections' )
@@ -1105,7 +1112,7 @@ if do_tomo(1)
     rot_corr_shift_y = round( out.shift2, decimal_round_precision) + rot_corr_area2(1) + (rot_corr_area1(end) - raw_im_shape_binned1) - 1;
     PrintVerbose(verbose, '\n relative shift: %g, %g', rot_corr_shift_x, rot_corr_shift_y)
     rot_axis_offset_calc = rot_corr_shift_x / 2;
-    if numel( offset_shift ) > 0
+    if numel( offset_shift ) > 1
         rot_axis_offset_calc = offset_shift(ind1) - offset_shift(ind2);
     end
     rot_axis_pos_calc = raw_im_shape_binned1 / 2 + rot_axis_offset_calc;
@@ -1165,25 +1172,31 @@ if do_tomo(1)
             fra_take_neg_log = 1;
         end
         fra_number_of_stds = 4;
-        fra_vol_shape = [];
-        
+        if isempty( vol_shape )
+            fra_vol_shape = [];
+        else
+            fra_vol_shape = [vol_shape(1) vol_shape(2) 1];
+        end        
         if slice_number > 1
             slice = slice_number;
         elseif slice_number <= 1 && slice_number >= 0
             slice = round((raw_im_shape_binned2 - 1) * slice_number + 1 );
         end
-        fprintf( '\n slice : %u', slice)
-        
+        fprintf( '\n slice : %u', slice)        
         fprintf( '\n\nOFFSET:' )
         fprintf( '\n current rotation axis offset / position : %.2f, %.2f', rot_axis_offset, rot_axis_pos)
         fprintf( '\n calcul. rotation axis offset / position : %.2f, %.2f', rot_axis_offset_calc, rot_axis_pos_calc)
         fprintf( '\n default offset range : current ROT_AXIS_OFFSET + (-4:0.5:4)')
         offset = input( '\n\nENTER RANGE OF ROTATION AXIS OFFSETS (if empty use default range, if scalar skips interactive mode): ');
-        if strcmp( offset, 'slice' )
+        if strcmp( offset(1), 's' )
             slice = input( '\n\nENTER ABSOLUTE OF RELATIVE SLICE NUMBER : ');
             if slice <= 1 && slice >= 0
                 slice = round((raw_im_shape_binned2 - 1) * slice + 1 );
             end
+            offset = input( '\n\nENTER RANGE OF ROTATION AXIS OFFSETS (if empty use default range, if scalar skips interactive mode): ');
+        end
+        if strcmp( offset(1), 'd')
+            keyboard
             offset = input( '\n\nENTER RANGE OF ROTATION AXIS OFFSETS (if empty use default range, if scalar skips interactive mode): ');
         end
         if isempty( offset )
@@ -1238,14 +1251,14 @@ if do_tomo(1)
             
             % Input
             offset = input( '\n\nENTER ROTATION AXIS OFFSET OR A RANGE OF OFFSETS (if empty use current offset): ');
-            if strcmp( offset, 'slice' )
+            if strcmp( offset(1), 's' )
                 slice = input( '\n\nENTER ABSOLUTE OF RELATIVE SLICE NUMBER : ');
                 if slice <= 1 && slice >= 0
                     slice = round((raw_im_shape_binned2 - 1) * slice + 1 );
                 end
                 offset = input( '\n\nENTER RANGE OF ROTATION AXIS OFFSETS (if empty use default range, if scalar skips interactive mode): ');
             end
-            if strcmp( offset, 'debug')
+            if strcmp( offset(1), 'd')
                 keyboard
                 offset = input( '\n\nENTER RANGE OF ROTATION AXIS OFFSETS (if empty use default range, if scalar skips interactive mode): ');
             end
@@ -1266,14 +1279,14 @@ if do_tomo(1)
                     fprintf( '\n default tilt range is : current ROT_AXIS_TILT + (-0.005:0.001:0.005)')
                     tilt = input( '\n\nENTER TILT OF ROTATION AXIS OR RANGE OF TILTS (if empty use default):');
                     % option to change which slice to reconstruct
-                    if strcmp( tilt, 'slice' )
+                    if strcmp( tilt(1), 's' )
                         slice = input( '\n\nENTER ABSOLUTE OF RELATIVE SLICE NUMBER : ');
                         if slice <= 1 && slice >= 0
                             slice = round((raw_im_shape_binned2 - 1) * slice + 1 );
                         end
                         tilt = input( '\n\nENTER TILT OF ROTATION AXIS OR RANGE OF TILTS (if empty use default):');
                     end
-                    if strcmp( tilt, 'debug')
+                    if strcmp( tilt(1), 'd')
                         keyboard;
                         tilt = input( '\n\nENTER TILT OF ROTATION AXIS OR RANGE OF TILTS (if empty use default):');
                     end
