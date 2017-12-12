@@ -42,7 +42,7 @@ read_flatcor = 0; % read flatfield-corrected images from disc, skips preprocessi
 read_flatcor_path = ''; % subfolder of 'flat_corrected' containing projections
 % PREPROCESSING %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 raw_roi = []; % [y0 y1] vertical roi.  skips first raw_roi(1)-1 lines, reads until raw_roi(2). Not working for *.raw data where images are flipped.
-raw_bin = 3; % projection binning factor: 1, 2, or 4
+raw_bin = 2; % projection binning factor: 1, 2, or 4
 bin_before_filtering = 1; % Binning before pixel filtering is applied, much faster but less effective filtering
 excentric_rot_axis = 0; % off-centered rotation axis increasing FOV. -1: left, 0: centeerd, 1: right. influences rot_corr_area1
 crop_at_rot_axis = 0; % for recos of scans with excentric rotation axis but WITHOUT projection stitching
@@ -51,15 +51,15 @@ stitch_method = 'sine';'linear'; 'step'; %  ! adjust correlation area if necessa
 % 'step' : no interpolation, use step function
 % 'linear' : linear interpolation of overlap region
 % 'sine' : sinusoidal interpolation of overlap region
-proj_range = 3; % range of projections to be used (from all found, if empty or 1: all, if scalar: stride, if range: start:incr:end
-ref_range = 3; % range of flat fields to be used (from all found), if empty or 1: all. if scalar: stride, if range: start:incr:end
+proj_range = 2; % range of projections to be used (from all found, if empty or 1: all, if scalar: stride, if range: start:incr:end
+ref_range = 2; % range of flat fields to be used (from all found), if empty or 1: all. if scalar: stride, if range: start:incr:end
 energy = []; % in eV! if empty: read from log file
 sample_detector_distance = []; % in m. if empty: read from log file
 eff_pixel_size = []; % in m. if empty: read from log file. effective pixel size =  detector pixel size / magnification
 dark_FiltPixThresh = [0.01 0.005]; % Dark fields: threshold parameter for hot/dark pixel filter, for details see 'FilterPixel'
 ref_FiltPixThresh = [0.01 0.005]; % Flat fields: threshold parameter for hot/dark pixel filter, for details see 'FilterPixel'
 proj_FiltPixThresh = [0.01 0.005]; % Raw projection: threshold parameter for hot/dark pixel filter, for details see 'FilterPixel'
-correlation_method = 'ssim-ml';'entropy';'diff';'shift';'ssim';'std';'cov';'corr';'cross-entropy12';'cross-entropy21';'cross-entropyx';'none';
+correlation_method = 'none';'ssim-ml';'entropy';'diff';'shift';'ssim';'std';'cov';'corr';'cross-entropy12';'cross-entropy21';'cross-entropyx';'none';
 % 'ssim-ml' : Matlab's structural similarity index (SSIM), includes Gaussian smoothing
 % 'ssim' : own implementation of SSIM, smoothing not yet implemented
 % 'entropy' : entropy measure of proj over flat
@@ -86,7 +86,7 @@ do_phase_retrieval = 1; % See 'PhaseFilter' for detailed description of paramete
 phase_retrieval_before = 1; % before stitching, interactive mode, etc.
 phase_bin = 1; % Binning factor after phase retrieval, but before tomographic reconstruction
 phase_retrieval_method = 'tie';'qpcut';  'tie'; %'qp' 'ctf' 'tie' 'qp2' 'qpcut'
-phase_retrieval_reg_par = .5; % regularization parameter. larger values tend to blurrier images. smaller values tend to original data.
+phase_retrieval_reg_par = 1.5; % regularization parameter. larger values tend to blurrier images. smaller values tend to original data.
 phase_retrieval_bin_filt = 0.15; % threshold for quasiparticle retrieval 'qp', 'qp2'
 phase_retrieval_cutoff_frequ = 1 * pi; % in radian. frequency cutoff in Fourier space for 'qpcut' phase retrieval
 phase_padding = 1; % padding of intensities before phase retrieval, 0: no padding
@@ -394,41 +394,39 @@ else
     sample_detector_distance = par.o_ccd_dist / 1000;
     
     %% HDF5 log
-    h5i = h5info( h5log );
-    
-    stimg_name.value = h5read( h5log, '/entry/scan/data/image_file/value');
-    stimg_name.time = double( h5read( h5log,'/entry/scan/data/image_file/time') );
+    h5i = h5info( h5log );    
+    % images
+    stimg_name.value = h5read( h5log, '/entry/scan/data/image_file/value');    
+    stimg_name.time = h5read( h5log,'/entry/scan/data/image_file/time');    
     stimg_key.value = h5read( h5log,'/entry/scan/data/image_key/value');
     stimg_key.time = double( h5read( h5log,'/entry/scan/data/image_key/time') );
-    
-    petra.time = double( h5read( h5log,'/entry/hardware/beam_current/current/time') );
+    % PETRA ring current
+    [petra.time, index] = unique( h5read( h5log,'/entry/hardware/beam_current/current/time') );
     petra.current = h5read( h5log,'/entry/hardware/beam_current/current/value');
-    petra.time([1:2,end-1]) = [];
-    petra.current([1:2,end-1]) = [];
-    
+    petra.current = petra.current(index);
+    % rotation axis and wiggle
     s_rot.time = double( h5read( h5log, '/entry/scan/data/s_rot/time') );
-    s_rot.value = h5read( h5log, '/entry/scan/data/s_rot/value');
-    
+    s_rot.value = h5read( h5log, '/entry/scan/data/s_rot/value');    
     s_stage_x.time = double( h5read( h5log, '/entry/scan/data/s_stage_x/time') );
     s_stage_x.value = h5read( h5log, '/entry/scan/data/s_stage_x/value');
-    
+    % engery and exposure time
     switch lower( cam )
-        %% CHECK camera1 / camera2 !!!!!!!!!!!!!!!!!!!!!!!!!!!!1
+        %% CHECK camera1 / camera2 !!!!!!!!!!!!!!!!!!!!!!!!!!!!
         case 'ehd'
             energy = double(h5read( h5log, '/entry/hardware/camera1/calibration/energy') );
             exp_time = double(h5read( h5log, '/entry/hardware/camera1/calibration/exptime') );
         case 'kit'
             energy = double(h5read( h5log, '/entry/hardware/camera2/calibration/energy') );
             exp_time = double(h5read( h5log, '/entry/hardware/camera2/calibration/exptime') );
-    end
-    
+    end    
     % wiggle di wiggle
     offset_shift = s_stage_x.value( ~boolean( stimg_key.value(par.n_dark+1:end) ) ) * 1e-3 / eff_pixel_size_binned;
     offset_shift = offset_shift(proj_range);
     % ring current
-    [x, index] = unique( petra.time );
-    y = petra.current(index);
-    stimg_name.current = (interp1( x, y, stimg_name.time, 'next', 'extrap') + interp1( x, y, stimg_name.time + exp_time, 'previous', 'extrap') ) / 2;
+    X = double( petra.time );    
+    V = double( petra.current );
+    Xq = double( stimg_name.time );
+    stimg_name.current = (interp1( X, V, Xq, 'next', 100) + interp1( X, V, Xq + exp_time, 'previous', 100) ) / 2;
     cur_ref_val = stimg_name.current( stimg_key.value == 1 );
     cur_ref_name = stimg_name.value( stimg_key.value == 1 );
     for nn = numel( cur_ref_name ):-1:1
@@ -716,8 +714,7 @@ elseif ~read_flatcor
         
         % Check for zeros and reject images which is all zero
         num_zeros =  sum( sum( im < 1 ) );
-        projs_to_use(nn) = ~boolean( num_zeros  );
-        
+        projs_to_use(nn) = ~boolean( num_zeros  );        
         if projs_to_use(nn)
             proj(:, :, nn) = im;
         end
@@ -727,7 +724,7 @@ elseif ~read_flatcor
     proj(:,:,~projs_to_use) = [];
     
     raw_min = min( proj(:) );
-    raw_max = max( proj(:) );
+    raw_max = max( proj(:) );    
     
     % Dark field correction
     proj = bsxfun( @minus, proj, dark);
@@ -777,11 +774,13 @@ elseif ~read_flatcor
     
     raw_min2 = min( proj(:) );
     raw_max2 = max( proj(:) );
-    nn = sum( ~projs_to_use(:) );
-    num_proj_used = num_proj_used - nn;
+    num_empty = sum( ~projs_to_use(:) );
+    num_proj_used = num_proj_used - num_empty;
     PrintVerbose( verbose, ' Time elapsed: %.1f s (%.2f min)', toc - t, ( toc - t ) / 60 )
+    PrintVerbose( verbose && num_empty,'\n discarded empty projections : %u', num_empty )
     PrintVerbose( verbose, '\n hot- / dark-pixel filter threshold : %f, %f', HotThresh, DarkThresh )
-    PrintVerbose( verbose && nn,'\n discarded empty projections : %u', nn )
+    PrintVerbose( vebose, '\n min/max of all raws after filtering and binning:  %6g %6g', raw_min, raw_max);
+    PrintVerbose( vebose, '\n min/max of all raws after dark-field correction and ring current normalization:  %6g %6g', raw_min2, raw_max2);   
     
     %% Flat field correction %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     %% STOP HERE FOR FLATFIELD CORRELATION MAPPING
