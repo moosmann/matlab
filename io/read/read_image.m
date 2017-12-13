@@ -70,16 +70,19 @@ switch lower( filetype )
     case {'img', 'dar', 'ref'}        
             im = read_dat_jm( filename, roi );
     case 'raw'
-        %im = rot90(read_raw( filename, shape, dtype, roi ), 1);
-        %im = rot90(read_raw( filename, shape, dtype, roi ), -1);
-        %im = read_raw( filename, shape, dtype, roi )';
-        %im = permute(read_raw( filename, shape, dtype, roi ), [2 1]);
+        %% rot90 for FLI but not for KIT
         if shape(1) > shape(2)
             im = flipud( read_raw( filename, shape, dtype, roi ) );
-        else
-            im = flipud(rot90(read_raw( filename, shape, dtype, roi ), -1));
-        end
-        %% roi for raw is horizontal roi not verticall!!!!!!!!!!!
+        else            
+            %% roi for raw is horizontal roi not verticall!                        
+            if isempty( roi )
+                im = flipud(rot90(read_raw( filename, shape, dtype, [] ), -1));
+            else
+                im = read_raw( filename, shape, dtype, [] );
+                im = im(roi(1):roi(2),:);
+                im = flipud(rot90(im, -1));                
+            end
+        end        
     otherwise
         im = imread( filename, filetype )';
 end

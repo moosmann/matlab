@@ -448,14 +448,15 @@ else
     if strcmp( cam, 'EHD')
         raw_im_shape_uncropped = [3056 3056];
         dtype = 'uint16';
-    end
-    raw_im_shape = raw_im_shape_uncropped;
+    end        
     filename = sprintf('%s%s', scan_path, ref_names{1});
-    im_raw = read_raw( filename, raw_im_shape, 'uint16' );
+    %im_raw = read_raw( filename, raw_im_shape, 'uint16' );    
+    im_raw = read_image( filename, '', [], tif_info, raw_im_shape_uncropped, 'uint16' );
+    im_roi = read_image( filename, '', raw_roi, tif_info, raw_im_shape_uncropped, 'uint16' );
+    raw_im_shape = size( im_roi );
     
     ring_filter = 0; % % not needed
     rot_angle_full = pi; % FIX
-    
 end
 raw_im_shape_binned = floor( raw_im_shape / raw_bin );
 raw_im_shape_binned1 = raw_im_shape_binned(1);

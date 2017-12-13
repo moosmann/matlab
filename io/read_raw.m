@@ -26,6 +26,9 @@ if nargin < 4
 end
 
 %% Main %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+if ~strcmp( filename(end-2:end), 'raw' )
+    filename = sprintf( '%s.raw', filename );
+end
 
 % Open file for reading
 fid = fopen(filename, 'r');
