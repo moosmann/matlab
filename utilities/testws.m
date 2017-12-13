@@ -1,0 +1,3 @@
+function testws()
+
+callerIsBaseWorkspace

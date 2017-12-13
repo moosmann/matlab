@@ -21,9 +21,11 @@
 % support, or MATLAB terminates abnormally with a segmentation violation.
 %
 % Written by Julian Moosmann. First version: 2016-09-28. Last modifcation:
-% 2017-12-11
+% 2017-12-12
 
-%clear all
+if ~exist( 'external_parameter' ,'var')
+    clearvars
+end
 close all hidden % close all open windows
 %dbstop if error
 
@@ -42,7 +44,7 @@ read_flatcor = 0; % read flatfield-corrected images from disc, skips preprocessi
 read_flatcor_path = ''; % subfolder of 'flat_corrected' containing projections
 % PREPROCESSING %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 raw_roi = []; % [y0 y1] vertical roi.  skips first raw_roi(1)-1 lines, reads until raw_roi(2). Not working for *.raw data where images are flipped.
-raw_bin = 2; % projection binning factor: 1, 2, or 4
+raw_bin = 3; % projection binning factor: 1, 2, or 4
 bin_before_filtering = 1; % Binning before pixel filtering is applied, much faster but less effective filtering
 excentric_rot_axis = 0; % off-centered rotation axis increasing FOV. -1: left, 0: centeerd, 1: right. influences rot_corr_area1
 crop_at_rot_axis = 0; % for recos of scans with excentric rotation axis but WITHOUT projection stitching
@@ -51,8 +53,8 @@ stitch_method = 'sine';'linear'; 'step'; %  ! adjust correlation area if necessa
 % 'step' : no interpolation, use step function
 % 'linear' : linear interpolation of overlap region
 % 'sine' : sinusoidal interpolation of overlap region
-proj_range = 2; % range of projections to be used (from all found, if empty or 1: all, if scalar: stride, if range: start:incr:end
-ref_range = 2; % range of flat fields to be used (from all found), if empty or 1: all. if scalar: stride, if range: start:incr:end
+proj_range = 3; % range of projections to be used (from all found, if empty or 1: all, if scalar: stride, if range: start:incr:end
+ref_range = 3; % range of flat fields to be used (from all found), if empty or 1: all. if scalar: stride, if range: start:incr:end
 energy = []; % in eV! if empty: read from log file
 sample_detector_distance = []; % in m. if empty: read from log file
 eff_pixel_size = []; % in m. if empty: read from log file. effective pixel size =  detector pixel size / magnification
@@ -82,7 +84,7 @@ ring_filter_waveletfft_wname = 'db30';'db25'; % wavelet type for 'wavelet-fft'
 ring_filter_waveletfft_sigma = 2.4; %  suppression factor for 'wavelet-fft'
 ring_filter_jm_median_width = 11; % [3 11 21 31 39];
 % PHASE RETRIEVAL %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-do_phase_retrieval = 1; % See 'PhaseFilter' for detailed description of parameters !
+do_phase_retrieval = 0; % See 'PhaseFilter' for detailed description of parameters !
 phase_retrieval_before = 1; % before stitching, interactive mode, etc.
 phase_bin = 1; % Binning factor after phase retrieval, but before tomographic reconstruction
 phase_retrieval_method = 'tie';'qpcut';  'tie'; %'qp' 'ctf' 'tie' 'qp2' 'qpcut'
@@ -92,8 +94,8 @@ phase_retrieval_cutoff_frequ = 1 * pi; % in radian. frequency cutoff in Fourier 
 phase_padding = 1; % padding of intensities before phase retrieval, 0: no padding
 % TOMOGRAPHY %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 do_tomo = 1; % run tomographic reconstruction
-vol_shape = [0.8 0.8 0.25]; % shape of reconstruction volume. in absolute number of voxels or in relative number w.r.t. the default volume which is given by the detector width and height
-vol_size = [-0.8 0.8 -0.8 0.8 -0.25 0.25]; % 6-component vector [xmin xmax ymin ymax zmin zmax]. if empty, volume is centerd within vol_shape. unit voxel size is assumed. if smaller than 10 values are interpreted as relative size w.r.t. the detector size. Take care bout minus signs.
+vol_shape = [1.2 1.2 1]; % shape (voxels) of reconstruction volume. in absolute number of voxels or in relative number w.r.t. the default volume which is given by the detector width and height
+vol_size = [-1.2 1.2 -1.2 1.2 -1 1]; % 6-component vector [xmin xmax ymin ymax zmin zmax]. if empty, volume is centerd within vol_shape. unit voxel size is assumed. if smaller than 10 values are interpreted as relative size w.r.t. the detector size. Take care bout minus signs!
 rot_angle_full = []; % in radians: empty ([]), full angle of rotation, or array of angles. if empty full rotation angles is determined automatically to pi or 2 pi
 rot_angle_offset = pi; % global rotation of reconstructed volume
 rot_axis_offset = []; % if empty use automatic computation
@@ -122,7 +124,7 @@ write_reco = 1; % save reconstructed slices (if do_tomo=1)
 write_float = 1; % single precision (32-bit float) tiff
 write_16bit = 0;
 write_8bit = 0;
-reco_bin = 2; % binning factor of reconstructed volume
+reco_bin = 2; % binning factor of reconstructed volume if binned volumes are saved
 write_float_binned = 0; % binned single precision (32-bit float) tiff
 write_16bit_binned = 0;
 write_8bit_binned = 0;
@@ -151,7 +153,7 @@ slice_number = 0.5; % slice number, default: 0.5. if in [0,1): relative, if in (
 poolsize = 0.80; % number of workers used in a parallel pool. if > 1: absolute number. if 0 < poolsize < 1: relative amount of all cores to be used
 link_data = 1; % ASTRA data objects become references to Matlab arrays. Reduces memory issues.
 gpu_index = []; % GPU Device index to use, Matlab notation: index starts from 1. default: [], uses all
-automatic_mode = 0; % Find rotation axis position automatically
+automatic_mode = 0; % Find rotation axis position automatically. NOT IMPLEMNTED!
 automatic_mode_coarse = 'entropy'; %
 automatic_mode_fine = 'iso-grad';
 
@@ -779,8 +781,8 @@ elseif ~read_flatcor
     PrintVerbose( verbose, ' Time elapsed: %.1f s (%.2f min)', toc - t, ( toc - t ) / 60 )
     PrintVerbose( verbose && num_empty,'\n discarded empty projections : %u', num_empty )
     PrintVerbose( verbose, '\n hot- / dark-pixel filter threshold : %f, %f', HotThresh, DarkThresh )
-    PrintVerbose( vebose, '\n min/max of all raws after filtering and binning:  %6g %6g', raw_min, raw_max);
-    PrintVerbose( vebose, '\n min/max of all raws after dark-field correction and ring current normalization:  %6g %6g', raw_min2, raw_max2);   
+    PrintVerbose( verbose, '\n min/max of all raws after filtering and binning:  %6g %6g', raw_min, raw_max);
+    PrintVerbose( verbose, '\n min/max of all raws after dark-field correction and ring current normalization:  %6g %6g', raw_min2, raw_max2);   
     
     %% Flat field correction %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     %% STOP HERE FOR FLATFIELD CORRELATION MAPPING
