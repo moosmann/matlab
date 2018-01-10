@@ -1,111 +1,42 @@
-function [scan, cam, app, opt, cur] = p05_log(file)
-% Read log file of beamline P05.
-%
-% ARGUMENTS
-% file : string. Path to log file
-% 
-% Written by Julian Moosmann, 2016-12-12. Last version: 2016-12-12
-%
-% [scan, cam, app, opt, cur] = p05_log(filename)
+>> whos
+Name                         Size               Bytes  Class     Attributes
 
-if nargin < 1
-    file = '/asap3/petra3/gpfs/p05/2015/data/11001102/raw/hzg_wzb_mgag_14/hzg_wzb_mgag_14scan.log';
-end
+angles                       1x800               6400  double
+gpu_index                    1x2                   16  double
+link_data                    1x1                    8  double
+pixel_size                   1x1                    8  double
+rotation_axis_offset         1x1                    8  double
+sino                      1280x800            4096000  single
+tilt                         1x1                    8  double
+tilt_lamino                  1x1                    8  double
+vol_shape                    1x3                   24  double
+vol_size                     1x6                   48  double
 
-%% Main %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-fid = fopen( file );
 
-%% scan info
-textscan( fid, '%s', 2, 'Delimiter', '\n' ); % Skip first two lines
-scan.Energy = '%f';
-scan.n_dark = '%u';
-scan.n_ref_min = '%u';
-scan.n_ref_max = '%u';
-scan.n_img = '%u';
-scan.n_angle = '%u';
-scan.ref_count = '%u';
-scan.img_bin = '%u';
-scan.img_xmin = '%u';
-scan.img_xmax = '%u';
-scan.img_ymin = '%u';
-scan.img_ymax = '%u';
-scan.exptime = '%u';
+K>> sino(1)
+single
+-0.0383
 
-fn = fieldnames( scan );
-for nn = 1:numel( fn )
-    s = fn{nn};
-    v = scan.(s);   
-    c = textscan( fid, sprintf( '%s=%s', s, v ) );
-    scan.(s) = c{1};
-end
-textscan( fid, '%s', 1, 'Delimiter', '\n' );
-textscan( fid, '%s', 1, 'Delimiter', '\n' );
+K>> sino(end)
+single
+0.0266
 
-%% camera info 
-cam.ccd_pixsize = '%f';
-cam.ccd_xsize =  '%u';
-cam.ccd_ysize =  '%u';
-cam.o_screen_changer = '%f';
-cam.o_focus = '%f';
-cam.o_aperture = '%f';
-cam.o_lens_changer = '%f';
-cam.o_ccd_high = '%f';
-cam.magn = '%f';
+K>> angles(1) = 0
 
-fn = fieldnames( cam );
-for nn = 1:numel( fn )
-    s = fn{nn};
-    v = cam.(s);    
-    c = textscan( fid, sprintf( '%s:%s', s, v ) );
-    cam.(s) = c{1};
-end
+K>> angles(end) = 6.2753
 
-textscan( fid, '%s', 4, 'Delimiter', '\n');
-textscan( fid, '%s', 2, 'Delimiter', '\n');
+rotation_axis_offset = 580
 
-%% apparatus info
-app.pos_s_pos_x = '%f';
-app.pos_s_pos_y = '%f';
-app.pos_s_pos_z = '%f';
-app.pos_s_stage_z = '%f';
-app.s_in_pos = '%f';
-app.s_out_dist = '%f';
+vol_shape = 1280        1280           1
 
-fn = fieldnames( app );
-for nn = 1:numel( fn )
-    s = fn{nn};
-    v = app.(s);
-    % fprintf( 'fieldname: %s : ', s ); disp( v )   
-    c = textscan( fid, sprintf( '%s=%s', s, v ), 'Delimiter', '\n' );
-    app.(s) = c{1};
-end
-textscan( fid, '%s', 1, 'Delimiter', '\n');
+vol_size = -640.0000  640.0000 -640.0000  640.0000   -0.5000    0.5000
 
-%% optimization info
-opt.p05_dcm_xtal2_pitch_delta = '%f';
-opt.com_delta_threshhold =  '%f';
+pixel_size = 1
 
-fn = fieldnames( opt );
-for nn = 1:numel( fn )
-    s = fn{nn};
-    v = opt.(s);
-    c = textscan( fid, sprintf( '%s=%s', s, v ), 'Delimiter', '\n' );
-    opt.(s) = c{1};
-end
+link_data = 1
 
-%% ring current
-% ************************************************
-% /PETRA/Idc/Buffer-0/I.SCH
-% @1436994685507[89.40661@1436994685435]
-% 
-% ref /gpfs/current/raw/hzg_wzb_mgag_00/hzg_wzb_mgag_0000005.ref       0.00000
-% /PETRA/Idc/Buffer-0/I.SCH
-% @1436994686180[89.39424@1436994686098]
+tilt = 0
 
-formatSpec = '%*s\n%*s\n@%*f[%f@%f]\n\n%s /gpfs/current/raw/%s %f\n%*s\n@%*f[%f@%f]\n%*s\n';
-cur  = textscan( fid, formatSpec);
+gpu_index = 1     2
 
-%% End of Scan
-
-fclose( fid );
-% End %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+tilt_lamino = 0
