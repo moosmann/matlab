@@ -52,10 +52,10 @@ read_flatcor_path = ''; % subfolder of 'flat_corrected' containing projections
 % PREPROCESSING %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 raw_roi = [800 2200]; % [y0 y1] vertical roi.  skips first raw_roi(1)-1 lines, reads until raw_roi(2). Not working for *.raw data where images are flipped.
 raw_bin = 4; % projection binning factor: 1, 2, or 4
-bin_before_filtering = 1; % Binning before pixel filtering is applied, much faster but less effective filtering
+bin_before_filtering = 0; % Binning before pixel filtering is applied, much faster but less effective filtering
 excentric_rot_axis = 1; % off-centered rotation axis increasing FOV. -1: left, 0: centeerd, 1: right. influences rot_corr_area1
 crop_at_rot_axis = 0; % for recos of scans with excentric rotation axis but WITHOUT projection stitching
-stitch_projections = 1; % for 2 pi scans: stitch projection at rotation axis position
+stitch_projections = 1; % for 2 pi scans: stitch projection at rotation axis position. Recommended with phase retrieval to reduce artefacts. Standard absorption contrast data should work well without stitching. Subpixel stitching not supported (non-integer rotation axis position is rounded, less/no binning before reconstruction can be used to improve precision).
 stitch_method = 'sine';'linear'; 'step'; %  ! adjust correlation area if necessary !
 % 'step' : no interpolation, use step function
 % 'linear' : linear interpolation of overlap region
@@ -68,7 +68,7 @@ eff_pixel_size = []; % in m. if empty: read from log file. effective pixel size 
 dark_FiltPixThresh = [0.01 0.005]; % Dark fields: threshold parameter for hot/dark pixel filter, for details see 'FilterPixel'
 ref_FiltPixThresh = [0.01 0.005]; % Flat fields: threshold parameter for hot/dark pixel filter, for details see 'FilterPixel'
 proj_FiltPixThresh = [0.01 0.005]; % Raw projection: threshold parameter for hot/dark pixel filter, for details see 'FilterPixel'
-correlation_method = 'none';'ssim-ml';'entropy';'diff';'shift';'ssim';'std';'cov';'corr';'cross-entropy12';'cross-entropy21';'cross-entropyx';'none';
+correlation_method = 'ssim-ml';'entropy';'diff';'shift';'ssim';'std';'cov';'corr';'cross-entropy12';'cross-entropy21';'cross-entropyx';'none';
 % 'ssim-ml' : Matlab's structural similarity index (SSIM), includes Gaussian smoothing
 % 'ssim' : own implementation of SSIM, smoothing not yet implemented
 % 'entropy' : entropy measure of proj over flat
@@ -80,7 +80,7 @@ correlation_method = 'none';'ssim-ml';'entropy';'diff';'shift';'ssim';'std';'cov
 % 'none' : no correlation, use median flat
 corr_shift_max_pixelshift = 0.25; % maximum pixelshift allowed for 'shift'-correlation method: if 0 use the best match (i.e. the one with the least shift), if > 0 uses all flats with shifts smaller than corr_shift_max_pixelshift
 corr_num_flats = 1; % number of flat fields used for average/median of flats. for 'shift'-correlation its the maximum number
-ring_current_normalization = 0; % normalize flat fields and projections by ring current
+ring_current_normalization = 1; % normalize flat fields and projections by ring current
 flat_corr_area1 = [1 floor(100/raw_bin)];%[0.98 1];% correlation area: index vector or relative/absolute position of [first pix, last pix]
 flat_corr_area2 = [0.2 0.8]; % correlation area: index vector or relative/absolute position of [first pix, last pix]
 decimal_round_precision = 2; % precision when rounding pixel shifts
@@ -92,7 +92,7 @@ ring_filter_waveletfft_sigma = 2.4; %  suppression factor for 'wavelet-fft'
 ring_filter_jm_median_width = 11; % [3 11 21 31 39];
 % PHASE RETRIEVAL %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 do_phase_retrieval = 1; % See 'PhaseFilter' for detailed description of parameters !
-phase_retrieval_before = 1; % before stitching, interactive mode, etc.
+phase_retrieval_before = 0; % before stitching, interactive mode, etc. For phase-contrast data with an excentric rotation axis phase retrieval should be done afterwards. To find the rotataion axis position use this option in a first run, and then turn it of afterwards.
 phase_bin = 1; % Binning factor after phase retrieval, but before tomographic reconstruction
 phase_retrieval_method = 'tie';'qpcut';  'tie'; %'qp' 'ctf' 'tie' 'qp2' 'qpcut'
 phase_retrieval_reg_par = 2.5; % regularization parameter. larger values tend to blurrier images. smaller values tend to original data.
@@ -111,7 +111,7 @@ rot_corr_area1 = []; % ROI to correlate projections at angles 0 & pi. Use [0.75 
 rot_corr_area2 = []; % ROI to correlate projections at angles 0 & pi
 rot_corr_gradient = 0; % use gradient of intensity maps if signal variations are too weak to correlate projections
 rot_axis_tilt = 0; % in rad. camera tilt w.r.t rotation axis. if empty calculate from registration of projections at 0 and pi
-fbp_filter_type = 'Ram-Lak';'linear'; % see iradonDesignFilter for more options. Ram-Lak according to Kak/Slaney
+fbp_filter_type = 'linear';'Ram-Lak'; % see iradonDesignFilter for more options. Ram-Lak according to Kak/Slaney
 fpb_filter_freq_cutoff = 1; % Cut-off frequency in Fourier space of the above FBP filter
 fbp_filter_padding = 1; % symmetric padding for consistent boundary conditions, 0: no padding
 fbp_filter_padding_method = 'symmetric';
@@ -1165,52 +1165,7 @@ if do_tomo(1)
         else
             rot_axis_tilt = 0;
         end
-    end
-    
-    %% Volume shape
-    vol_shape1 = size( proj, 1);
-    vol_shape3 = size( proj, 2 );
-    if isempty( vol_shape )
-        % default volume given by the detector width and height
-        vol_shape = [vol_shape1, vol_shape1, vol_shape3];
-    else
-        vol_shape1 = size( proj, 1);
-        if vol_shape(1) <=  10
-            vol_shape(1) = round( 1 + vol_shape(1) * (vol_shape1 - 1) );
-        end
-        if vol_shape(2) <=  10
-            vol_shape(2) = round( 1 + vol_shape(2) * (vol_shape1 - 1) );
-        end
-        if vol_shape(3) <=  10
-            vol_shape(3) = round( 1 + vol_shape(3) * (vol_shape3 - 1) );
-        end
-    end
-    %% Volume shape and size
-    if isempty( vol_size )
-        vol_size = [-vol_shape(1)/2, vol_shape(1)/2, -vol_shape(2)/2, vol_shape(2)/2, -vol_shape(3)/2, vol_shape(3)/2];
-    else
-        if abs( vol_size(1) ) < 10
-            vol_size(1) = sign( vol_size(1) ) * round( 1 + abs( vol_size(1) ) * (raw_im_shape_binned1 - 1) );
-        end
-        if abs( vol_size(2) ) < 10
-            vol_size(2) = sign( vol_size(2) ) * round( 1 + abs( vol_size(2) ) * (raw_im_shape_binned1 - 1) );
-        end
-        if abs( vol_size(3) ) < 10
-            vol_size(3) = sign( vol_size(3) ) * round( 1 + abs( vol_size(3) ) * (raw_im_shape_binned1 - 1) );
-        end
-        if abs( vol_size(4) ) < 10
-            vol_size(4) = sign( vol_size(4) ) * round( 1 + abs( vol_size(4) ) * (raw_im_shape_binned1 - 1) );
-        end
-        if abs( vol_size(5) ) < 10
-            vol_size(5) = sign( vol_size(5) ) * round( 1 + abs( vol_size(5) ) * (raw_im_shape_binned2 - 1) );
-        end
-        if abs( vol_size(6) ) < 10
-            vol_size(6) = sign( vol_size(6) ) * round( 1 + abs( vol_size(6) ) * (raw_im_shape_binned2 - 1) );
-        end
-    end
-    prnt( '\n volume shape: [%g %g %g]', vol_shape )
-    prnt( '\n volume size: [%g %g %g %g %g %g]', vol_size )
-    prnt( '\n memory required: %.2f GiB', prod( vol_shape ) * 4 / 1024^3 )
+    end    
         
     %% Determine rotation axis position %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     
@@ -1231,11 +1186,11 @@ if do_tomo(1)
         fprintf( '\n image center: %.1f', raw_im_shape_binned1 / 2)
         
         if phase_retrieval_before(1) && do_phase_retrieval(1)
-            fra_take_neg_log = 0;
+            itake_neg_log = 0;
         else
-            fra_take_neg_log = 1;
+            itake_neg_log = 1;
         end
-        fra_number_of_stds = 4;        
+        inumber_of_stds = 4;        
         if slice_number > 1
             slice = slice_number;
         elseif slice_number <= 1 && slice_number >= 0
@@ -1263,11 +1218,19 @@ if do_tomo(1)
             offset = rot_axis_offset + (-4:0.5:4);
         end
         
+        if isscalar( offset )
+            fprintf( ' old rotation axis offset : %.2f', rot_axis_offset)
+            rot_axis_offset = offset;
+            fprintf( '\n new rotation axis offset : %.2f', rot_axis_offset)
+        end
+        
         % Loop over offsets
         while ~isscalar( offset )
             
+            [ivol_shape, ivol_size] = volshape_volsize( proj, vol_shape, vol_size, median(offset), verbose);
+            
             % Reco
-            [vol, metrics_offset] = find_rot_axis_offset(proj, angles, slice, offset, rot_axis_tilt, fra_take_neg_log, fra_number_of_stds, vol_shape, vol_size, lamino, fixed_tilt, gpu_index, offset_shift);
+            [vol, metrics_offset] = find_rot_axis_offset(proj, angles, slice, offset, rot_axis_tilt, itake_neg_log, inumber_of_stds, ivol_shape, ivol_size, lamino, fixed_tilt, gpu_index, offset_shift);
             
             % Metric minima
             [~, min_pos] = min(cell2mat({metrics_offset(:).val}));
@@ -1357,7 +1320,7 @@ if do_tomo(1)
                     while ~isscalar( tilt )
                         
                         % Reco
-                        [vol, metrics_tilt] = find_rot_axis_tilt( proj, angles, slice, offset, tilt, fra_take_neg_log, fra_number_of_stds, vol_shape, vol_size, lamino, fixed_tilt, gpu_index, offset_shift);
+                        [vol, metrics_tilt] = find_rot_axis_tilt( proj, angles, slice, offset, tilt, itake_neg_log, inumber_of_stds, ivol_shape, ivol_size, lamino, fixed_tilt, gpu_index, offset_shift);
                         
                         % Metric minima
                         [~, min_pos] = min(cell2mat({metrics_tilt(:).val}));
@@ -1464,6 +1427,7 @@ if do_tomo(1)
     prnt( '\n rotation axis offset: %.2f', rot_axis_offset );
     prnt( '\n rotation axis position: %.2f', rot_axis_pos );
     prnt( '\n rotation axis tilt: %g rad (%g deg)', rot_axis_tilt, rot_axis_tilt * 180 / pi)
+    [vol_shape, vol_size] = volshape_volsize( proj, vol_shape, vol_size, rot_axis_offset, verbose);
     
     if interactive_determination_of_rot_axis_tilt(1) && visual_output(1)
         h4 = figure('Name','Projections at 0 and pi cropped symmetrically to rotation center');
@@ -1532,7 +1496,7 @@ if stitch_projections(1)
                 im = cat(1, proj(xl,:,nn), flipud( proj(xr,:,nn2) ) );
             case {'linear', 'sine'}
                 % overlap region
-                overlap = 2 * rot_axis_pos - raw_im_shape_binned1 : raw_im_shape_binned1;
+                overlap = round(2 * rot_axis_pos) - raw_im_shape_binned1 : raw_im_shape_binned1;
                 % overlap ramp
                 x = (0:1/(numel(overlap)-1):1);
                 % 1D weight
@@ -1688,27 +1652,6 @@ if do_tomo(1)
         rot_axis_offset_reco = rot_axis_offset;
     end
     
-%     %% Volume shape and size
-%     if isempty( vol_shape )
-%         % default volume given by the detector width and height
-%         vol_shape1 = size( proj, 1);
-%         vol_shape3 = size( proj, 2 );
-%         vol_shape = [vol_shape1, vol_shape1, vol_shape3];
-%     else
-%         vol_shape1 = size( proj, 1);
-%         if vol_shape(1) <=  1
-%             vol_shape(1) = round( 1 + vol_shape(1) * (vol_shape1 - 1) );
-%         end
-%         if vol_shape(2) <=  1
-%             vol_shape(2) = round( 1 + vol_shape(2) * (vol_shape1 - 1) );
-%         end
-%         if vol_shape(3) <=  1
-%             vol_shape(3) = round( 1 + vol_shape(3) * (vol_shape3 - 1) );
-%         end
-%     end
-%     if isempty( vol_size )
-%         vol_size = [-vol_shape(1)/2, vol_shape(1)/2, -vol_shape(2)/2, vol_shape(2)/2, -vol_shape(3)/2, vol_shape(3)/2];
-%     end
 %     prnt( '\n shape of reconstructed volume: [%g, %g, %g]', vol_shape )
 %     prnt( '\n memory required: %.2f GiB', prod( vol_shape ) * 4 / 1024^3 )
 %     
@@ -1754,7 +1697,7 @@ if do_tomo(1)
     % Backprojection
     prnt( '\n Backproject:')
     t2 = toc;
-    vol = astra_parallel3D( permute(proj, [1 3 2]), rot_angle_offset + angles_reco, rot_axis_offset_reco + offset_shift, vol_shape, vol_size, astra_pixel_size, link_data, rot_axis_tilt, gpu_index, tilt_lamino);
+    vol = astra_parallel3D( permute(proj, [1 3 2]), rot_angle_offset + angles_reco, rot_axis_offset_reco + offset_shift, vol_shape, vol_size, astra_pixel_size, link_data, ~lamino*rot_axis_tilt, gpu_index, lamino*rot_axis_tilt);
     pause(0.01)
     prnt( ' done in %.2f min.', (toc - t2) / 60)
     

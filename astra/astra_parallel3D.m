@@ -71,7 +71,7 @@ end
 %% Main %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 angles = double( angles );
-rotation_axis_offset = double( rotation_axis_offset );
+%rotation_axis_offset = double( rotation_axis_offset );
 
 % GPU
 if isempty( gpu_index )
@@ -105,12 +105,11 @@ for nn = 1:num_proj
         rao = rotation_axis_offset;
     else
         rao = rotation_axis_offset(nn);
-    end
-    %rao = rao + eps;
+    end    
 
     % source / ray direction
-    vectors(nn,1) = rao * sin( theta );
-    vectors(nn,2) = - rao * cos( theta );
+    vectors(nn,1) =  sin( theta );
+    vectors(nn,2) = -cos( theta );
     vectors(nn,3) = -sin(tilt_lamino);
 
     % center of detector
