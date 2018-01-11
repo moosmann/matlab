@@ -108,6 +108,7 @@ for nn = 1:num_proj
     end    
 
     % source / ray direction
+    %% CHECK
     vectors(nn,1) =  sin( theta );
     vectors(nn,2) = -cos( theta );
     vectors(nn,3) = -sin(tilt_lamino);

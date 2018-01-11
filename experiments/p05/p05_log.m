@@ -31,26 +31,42 @@ else
 end
 
 %% Fix inconsistent naming schemes
-if isfield( par, 'Energy' )
+if isfield( par, 'Energy')
     par.energy = par.Energy;
+    par = rmfield( par, 'Energy');
 end
 
-if isfield( par, 'eff_pix_size' )
+if isfield( par, 'eff_pix_size')
     par.eff_pixel_size = abs( par.eff_pix_size * 1e-3 );
-elseif isfield( par, 'eff_pix' )
+    par = rmfield( par, 'eff_pix_size');
+elseif isfield( par, 'eff_pix')
     par.eff_pixel_size = abs( par.eff_pix * 1e-3 );
-elseif isfield( par, 'ccd_pixsize' ) && isfield( par, 'magn' )
+    par = rmfield( par, 'eff_pix');
+elseif isfield( par, 'ccd_pixsize') && isfield( par, 'magn')
     par.eff_pixel_size = abs( par.ccd_pixsize / par.magn * 1e-3 );
+    par = rmfield( par, 'ccd_pixsize');
 end
 
 if isfield( par, 'camera_distance')
     par.sample_detector_distance = par.camera_distance / 1000;
+        par = rmfield( par, 'camera_distance');
 elseif isfield( par, 'camera_dist')
     par.sample_detector_distance = par.camera_dist / 1000;
+    par = rmfield( par, 'camera_dist');
 elseif isfield( par, 'o_ccd_dist')
     par.sample_detector_distance = par.o_ccd_dist / 1000;
+    par = rmfield( par, 'o_ccd_dist');
 end
 
+if isfield( par, 'num_projections' )
+    par.num_proj = double( par.num_projections );
+elseif isfield( par, 'projections' )
+    par.num_proj = double( par.projections );
+elseif isfield( par, 'n_angles' )
+    par.num_proj = double( par.n_angles );
+elseif isfield( par, 'n_angle' )
+    par.num_proj = double( par.n_angle );
+end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function [par, cur] = KIT_log( file )
 fid = fopen( file );

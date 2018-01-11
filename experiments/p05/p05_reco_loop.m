@@ -2,7 +2,7 @@ function p05_reco_loop(SUBSETS, RUN_RECO, PRINT_PARAMETERS)
 % Script to loop over sets of paramters of reconstruction script 'p05_reco'
 % as defined in global cell array 'PARAMETER_CELL' below.
 %
-% Visual output ('visualOutput') and user interaction
+% Visual output ('visual_output') and user interaction
 % ('interactive_determination_of_rot_axis') are turned off by default if
 % not set otherwise.
 %
@@ -44,20 +44,29 @@ try
                     for mm = 1:numel( PRINT_PARAMETERS )
                         fn = PRINT_PARAMETERS{mm};
                         fprintf( '        %s = ', fn)
-                        out = external_parameter.(fn);
+                        %out = external_parameter.(fn);
+                        out = eval(sprintf( 'external_parameter.%s', fn));
                         if isempty( out )
                             fprintf( '\n' )
                         else
+                            if isstruct( out )
+                                fprintf( '\n' )
+                            end
                             disp( out )
                         end
                     end
                 else
                     fprintf('%3u : %s', num, name )
                     fprintf( ', %s = ', PRINT_PARAMETERS)
-                    out = external_parameter.(PRINT_PARAMETERS);
+                    %out = external_parameter.(PRINT_PARAMETERS);
+                    fn = PRINT_PARAMETERS;
+                    out = eval(sprintf( 'external_parameter.%s', fn));
                     if isempty( out )
                         fprintf( '\n' )
                     else
+                        if isstruct( out )
+                            fprintf( '\n' )
+                        end
                         disp( out )
                     end
                 end

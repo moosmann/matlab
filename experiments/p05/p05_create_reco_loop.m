@@ -1,4 +1,4 @@
-function p05_create_reco_loop_script( raw_path, folder_pattern, appendix, out_path)
+function p05_create_reco_loop( raw_path, folder_pattern, exp_name, out_path)
 % Create template file to loop over reconstruction for all data sets, i.e.
 % folder, found in 'raw_path' matching the 'folder_pattern'. Created file
 % will be immediately opened in the MATLAB editor for editing.
@@ -13,13 +13,13 @@ function p05_create_reco_loop_script( raw_path, folder_pattern, appendix, out_pa
 %   e.g. 'dataSetNamePrefix*'. Asterisk (*) is required to match pattern.
 % out_path : path where loop script will be stored. It's recommended to a
 %   path within the MATLAB search path.
-% appendix : str. Default: ''. String to append to filename of the script.
+% exp_name : str. Default: ''. String to append to filename of the script.
 %   If empty a two-digit number is used to avoid overwriting existing
 %   scripts.
 %   
 % Written by Julian Moosmann, 2017-10-10. Last version: 2017-12-01
 %
-% p05_create_reco_loop_script( raw_path, folder_pattern, appendix, out_path)
+% p05_create_reco_loop( raw_path, folder_pattern, exp_name, out_path)
 
 % TODO: Option to overwrite existing file 
 % TODO: file location: add search path
@@ -32,7 +32,7 @@ if nargin < 2
     folder_pattern = '';
 end
 if nargin < 3
-    appendix = '';
+    exp_name = '';
 end
 if nargin < 4
     out_path = '';
@@ -67,13 +67,13 @@ end
 
 %% Create new, non-existing filename
 
-func_name0 = 'p05_reco_loop_script';
+func_name0 = 'p05_reco_loop_';
 %processed_path = [raw_path_prefix  filesep 'processed'];
 %parent_path = [processed_path filesep];
 parent_path = out_path;
 
-if ~isempty( appendix )
-    func_name0 = [func_name0 '_', appendix ];
+if ~isempty( exp_name )
+    func_name0 = [func_name0 '_', exp_name ];
 end
 nn = 0;
 func_name = sprintf( '%s_%03u', func_name0, nn);

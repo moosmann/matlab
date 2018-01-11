@@ -13,15 +13,10 @@
 % To loop over different data or parameters sets see
 % 'p05_reco_loop_template' and/or 'p05_create_reco_loop_script'.
 %
-% For additional information see 'p05_notes'.
-%
-% Known errors:
-% GPU CUDA error: device busy
-% Do not call 'gpuDevice()' when ASTRA toolbox is used with multi-GPU
-% support, or MATLAB terminates abnormally with a segmentation violation.
+% For additional information see 'p05_reco_NOTES'.
 %
 % Written by Julian Moosmann. First version: 2016-09-28. Last modifcation:
-% 2018-10-01
+% 2018-11-01
 
 if ~exist( 'external_parameter' ,'var')
     clearvars
@@ -51,12 +46,12 @@ read_flatcor = 0; % read flatfield-corrected images from disc, skips preprocessi
 read_flatcor_path = ''; % subfolder of 'flat_corrected' containing projections
 % PREPROCESSING %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 raw_roi = [800 2200]; % [y0 y1] vertical roi.  skips first raw_roi(1)-1 lines, reads until raw_roi(2). Not working for *.raw data where images are flipped.
-raw_bin = 4; % projection binning factor: 1, 2, or 4
+raw_bin = 3; % projection binning factor: 1, 2, or 4
 bin_before_filtering = 0; % Binning before pixel filtering is applied, much faster but less effective filtering
 excentric_rot_axis = 1; % off-centered rotation axis increasing FOV. -1: left, 0: centeerd, 1: right. influences rot_corr_area1
 crop_at_rot_axis = 0; % for recos of scans with excentric rotation axis but WITHOUT projection stitching
 stitch_projections = 1; % for 2 pi scans: stitch projection at rotation axis position. Recommended with phase retrieval to reduce artefacts. Standard absorption contrast data should work well without stitching. Subpixel stitching not supported (non-integer rotation axis position is rounded, less/no binning before reconstruction can be used to improve precision).
-stitch_method = 'sine';'linear'; 'step'; %  ! adjust correlation area if necessary !
+stitch_method = 'step';'linear';'sine'; %  ! adjust correlation area if necessary !
 % 'step' : no interpolation, use step function
 % 'linear' : linear interpolation of overlap region
 % 'sine' : sinusoidal interpolation of overlap region
@@ -84,28 +79,29 @@ ring_current_normalization = 1; % normalize flat fields and projections by ring 
 flat_corr_area1 = [1 floor(100/raw_bin)];%[0.98 1];% correlation area: index vector or relative/absolute position of [first pix, last pix]
 flat_corr_area2 = [0.2 0.8]; % correlation area: index vector or relative/absolute position of [first pix, last pix]
 decimal_round_precision = 2; % precision when rounding pixel shifts
-ring_filter = 1; % ring artifact filter (only for scans without wiggle di wiggle)
-ring_filter_method = 'jm';'wavelet-fft';
-ring_filter_waveletfft_dec_levels = 2:6; % decomposition levels for 'wavelet-fft'
-ring_filter_waveletfft_wname = 'db30';'db25'; % wavelet type for 'wavelet-fft'
-ring_filter_waveletfft_sigma = 2.4; %  suppression factor for 'wavelet-fft'
-ring_filter_jm_median_width = 11; % [3 11 21 31 39];
+ring_filter.apply = 1; % ring artifact filter (only for scans without wiggle di wiggle)
+ring_filter.apply_before_stitching = 1; % ! Consider when phase retrieval is applied !
+ring_filter.method = 'wavelet-fft';'jm';
+ring_filter.waveletfft.dec_levels = 2:6; % decomposition levels for 'wavelet-fft'
+ring_filter.waveletfft.wname = 'db25';'db30'; % wavelet type for 'wavelet-fft'
+ring_filter.waveletfft.sigma = 2.4; %  suppression factor for 'wavelet-fft'
+ring_filter.jm.median_width = 11; % [3 11 21 31 39];
 % PHASE RETRIEVAL %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-do_phase_retrieval = 1; % See 'PhaseFilter' for detailed description of parameters !
-phase_retrieval_before = 0; % before stitching, interactive mode, etc. For phase-contrast data with an excentric rotation axis phase retrieval should be done afterwards. To find the rotataion axis position use this option in a first run, and then turn it of afterwards.
+phase_retrieval.apply = 1; % See 'PhaseFilter' for detailed description of parameters !
+phase_retrieval.apply_before = 1; % before stitching, interactive mode, etc. For phase-contrast data with an excentric rotation axis phase retrieval should be done afterwards. To find the rotataion axis position use this option in a first run, and then turn it of afterwards.
 phase_bin = 1; % Binning factor after phase retrieval, but before tomographic reconstruction
-phase_retrieval_method = 'tie';'qpcut';  'tie'; %'qp' 'ctf' 'tie' 'qp2' 'qpcut'
-phase_retrieval_reg_par = 2.5; % regularization parameter. larger values tend to blurrier images. smaller values tend to original data.
-phase_retrieval_bin_filt = 0.15; % threshold for quasiparticle retrieval 'qp', 'qp2'
-phase_retrieval_cutoff_frequ = 1 * pi; % in radian. frequency cutoff in Fourier space for 'qpcut' phase retrieval
-phase_padding = 1; % padding of intensities before phase retrieval, 0: no padding
+phase_retrieval.method = 'tie';'qpcut';  'tie'; %'qp' 'ctf' 'tie' 'qp2' 'qpcut'
+phase_retrieval.reg_par = 2.5; % regularization parameter. larger values tend to blurrier images. smaller values tend to original data.
+phase_retrieval.bin_filt = 0.15; % threshold for quasiparticle retrieval 'qp', 'qp2'
+phase_retrieval.cutoff_frequ = 1 * pi; % in radian. frequency cutoff in Fourier space for 'qpcut' phase retrieval
+phase_retrieval.padding = 1; % padding of intensities before phase retrieval, 0: no padding
 % TOMOGRAPHY %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 do_tomo = 1; % run tomographic reconstruction
 vol_shape = [];%[1.2 1.2 1]; % shape (voxels) of reconstruction volume. in absolute number of voxels or in relative number w.r.t. the default volume which is given by the detector width and height
 vol_size = [];%[-1.2 1.2 -1.2 1.2 -1 1]; % 6-component vector [xmin xmax ymin ymax zmin zmax]. if empty, volume is centerd within vol_shape. unit voxel size is assumed. if smaller than 10 values are interpreted as relative size w.r.t. the detector size. Take care bout minus signs!
 rot_angle_full = []; % in radians: empty ([]), full angle of rotation, or array of angles. if empty full rotation angles is determined automatically to pi or 2 pi
 rot_angle_offset = pi; % global rotation of reconstructed volume
-rot_axis_offset = []; % if empty use automatic computation
+rot_axis_offset = 4*585.5 / raw_bin; % if empty use automatic computation
 rot_axis_pos = []; % if empty use automatic computation. either offset or pos has to be empty. can't use both
 rot_corr_area1 = []; % ROI to correlate projections at angles 0 & pi. Use [0.75 1] or so for scans with an excentric rotation axis
 rot_corr_area2 = []; % ROI to correlate projections at angles 0 & pi
@@ -115,27 +111,27 @@ fbp_filter_type = 'linear';'Ram-Lak'; % see iradonDesignFilter for more options.
 fpb_filter_freq_cutoff = 1; % Cut-off frequency in Fourier space of the above FBP filter
 fbp_filter_padding = 1; % symmetric padding for consistent boundary conditions, 0: no padding
 fbp_filter_padding_method = 'symmetric';
-butterworth_filter = 1; % use butterworth filter in addition to FBP filter
+butterworth_filter = 0; % use butterworth filter in addition to FBP filter
 butterworth_order = 1;
 butterworth_cutoff_frequ = 0.9;
 astra_pixel_size = 1; % size of a detector pixel: if different from one 'vol_size' needs to be ajusted
 take_neg_log = []; % take negative logarithm. if empty, use 1 for attenuation contrast, 0 for phase contrast
 % OUTPUT %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-out_path = '';% absolute path were output data will be stored. !!overwrites the write_to_scratch flag. if empty uses the beamtime directory and either 'processed' or 'scratch_cc'
-write_to_scratch = 1; % write to 'scratch_cc' instead of 'processed'
-write_flatcor = 0; % save preprocessed flat corrected projections
-write_phase_map = 0; % save phase maps (if phase retrieval is not 0)
-write_sino = 0; % save sinograms (after preprocessing & before FBP filtering and phase retrieval)
-write_sino_phase = 0; % save sinograms of phase maps
-write_reco = 1; % save reconstructed slices (if do_tomo=1)
-write_float = 1; % single precision (32-bit float) tiff
-write_16bit = 0;
-write_8bit = 0;
+out_path = '';% absolute path were output data will be stored. !!overwrites the write.to_scratch flag. if empty uses the beamtime directory and either 'processed' or 'scratch_cc'
+write.to_scratch = 1; % write to 'scratch_cc' instead of 'processed'
+write.flatcor = 0; % save preprocessed flat corrected projections
+write.phase_map = 0; % save phase maps (if phase retrieval is not 0)
+write.sino = 0; % save sinograms (after preprocessing & before FBP filtering and phase retrieval)
+write.phase_sino = 0; % save sinograms of phase maps
+write.reco = 1; % save reconstructed slices (if do_tomo=1)
+write.float = 1; % single precision (32-bit float) tiff
+write.uint16 = 0;
+write.uint8 = 0;
 reco_bin = 2; % binning factor of reconstructed volume if binned volumes are saved
-write_float_binned = 0; % binned single precision (32-bit float) tiff
-write_16bit_binned = 0;
-write_8bit_binned = 0;
-write_8bit_segmented = 0; % experimental: threshold segmentation for histograms with 2 distinct peaks: __/\_/\__
+write.float_binned = 0; % binned single precision (32-bit float) tiff
+write.uint16_binned = 0;
+write.uint8_binned = 0;
+write.uint8_segmented = 0; % experimental: threshold segmentation for histograms with 2 distinct peaks: __/\_/\__
 compression_method = 'histo';'full'; 'std'; 'threshold'; % method to compression dynamic range into [0, 1]
 compression_parameter = [0.20 0.15]; % compression-method specific parameter
 % dynamic range is compressed s.t. new dynamic range assumes
@@ -143,7 +139,7 @@ compression_parameter = [0.20 0.15]; % compression-method specific parameter
 % 'threshold' : [LOW HIGH] = compression_parameter, eg. [-0.01 1]
 % 'std' : NUM = compression_parameter, mean +/- NUM*std, dynamic range is rescaled to within -/+ NUM standard deviations around the mean value
 % 'histo' : [LOW HIGH] = compression_parameter (100*LOW)% and (100*HIGH)% of the original histogram, e.g. [0.02 0.02]
-parfolder = '';%sprintf( 'cor_%s', correlation_method);''; % parent folder for 'reco', 'sino', 'phase', and 'flat_corrected'
+parfolder = '';% parent folder for 'reco', 'sino', 'phase', and 'flat_corrected'
 subfolder_flatcor = ''; % subfolder in 'flat_corrected'
 subfolder_phase_map = ''; % subfolder in 'phase_map'
 subfolder_sino = ''; % subfolder in 'sino'
@@ -224,7 +220,7 @@ fclose( fid );
 
 %% Folders: output
 out_folder = 'processed';
-if write_to_scratch(1)
+if write.to_scratch
     out_folder = 'scratch_cc';
 end
 if isempty( out_path )
@@ -242,7 +238,7 @@ if isempty( subfolder_flatcor )
 else
     flatcor_path = [out_path, filesep, 'flat_corrected', filesep, subfolder_flatcor, filesep];
 end
-PrintVerbose(verbose & write_flatcor, '\n flatcor_path: %s', flatcor_path)
+PrintVerbose(verbose & write.flatcor, '\n flatcor_path: %s', flatcor_path)
 
 % Path to retreived phase maps
 if isempty( subfolder_phase_map )
@@ -250,7 +246,7 @@ if isempty( subfolder_phase_map )
 else
     phase_map_path = [out_path, filesep, 'phase_map', filesep, subfolder_phase_map, filesep];
 end
-PrintVerbose(verbose & write_phase_map, '\n phase_map_path: %s', phase_map_path)
+PrintVerbose(verbose & write.phase_map, '\n phase_map_path: %s', phase_map_path)
 
 % Sinogram path
 if isempty( subfolder_sino )
@@ -260,8 +256,8 @@ else
     sino_path = [out_path, filesep, 'sino', filesep, subfolder_sino, filesep];
     sino_phase_path = [out_path, filesep, 'sino_phase', filesep, subfolder_sino, filesep];
 end
-PrintVerbose(verbose & write_sino, '\n sino_path: %s', sino_path)
-PrintVerbose(verbose & write_sino_phase, '\n sino_phase_path: %s', sino_phase_path)
+PrintVerbose(verbose & write.sino, '\n sino_path: %s', sino_path)
+PrintVerbose(verbose & write.phase_sino, '\n sino_phase_path: %s', sino_phase_path)
 
 % Reco path
 if isempty( subfolder_reco )
@@ -356,30 +352,29 @@ prnt( '\n number of projections found : %g', num_proj_found)
 prnt( '\n number of projections used : %g', num_proj_used)
 prnt( '\n projection range used : first:stride:last =  %g:%g:%g', proj_range(1), proj_range(2) - proj_range(1), proj_range(end))
 
+%% Log file %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 h5log = sprintf('%s%s_nexus.h5',scan_path,scan_name);
 raw_im_shape_uncropped = [];
 dtype = '';
 tif_info = [];
 offset_shift = 0;
+%% P05 log-file
+str = dir( sprintf( '%s*scan.log', scan_path) );
+filename = sprintf( '%s/%s', str.folder, str.name);
+[par, cur, cam] = p05_log( filename );
+if isempty( eff_pixel_size )
+    eff_pixel_size = par.eff_pixel_size;
+end
+eff_pixel_size_binned = raw_bin * eff_pixel_size;
+if isempty( energy )
+    if isfield( par, 'energy')
+        energy = par.energy;
+    end
+end
+if isempty( sample_detector_distance )
+    sample_detector_distance = par.sample_detector_distance;
+end
 if ~exist( h5log, 'file')
-    
-    %% P05 log-file
-    str = dir( sprintf( '%s*scan.log', scan_path) );
-    filename = sprintf( '%s/%s', str.folder, str.name);
-    [par, cur, cam] = p05_log( filename );
-    if isempty( energy )
-        if isfield( par, 'energy')
-            energy = par.energy;
-        end
-    end
-    if isempty( eff_pixel_size )
-        eff_pixel_size = par.eff_pixel_size;
-    end
-    eff_pixel_size_binned = raw_bin * eff_pixel_size;
-    if isempty( sample_detector_distance )
-        sample_detector_distance = par.sample_detector_distance;
-    end
-    
     %% Image shape and ROI
     filename = sprintf('%s%s', scan_path, ref_names{1});
     if ~raw_data
@@ -399,21 +394,25 @@ if ~exist( h5log, 'file')
         raw_im_shape = raw_im_shape_uncropped;
         im_raw = read_raw( filename, raw_im_shape, dtype );
         %% TODO: FIX
-        ring_current_normalization = 0;
-        rot_angle_full = pi; % FIX
+        %ring_current_normalization = 0;
+        %rot_angle_full = pi; % FIX
     end
-else
-    
-    %% P05 standard log file
-    str = dir( sprintf( '%s*scan.log', scan_path) );
-    filename = sprintf( '%s/%s', str.folder, str.name);
-    [par, cur, cam] = p05_log( filename );
-    eff_pixel_size = par.eff_pixel_size;
-    eff_pixel_size_binned = raw_bin * eff_pixel_size;
-    sample_detector_distance = par.o_ccd_dist / 1000;
+else     
     
     %% HDF5 log
-    h5i = h5info( h5log );    
+    h5i = h5info( h5log );
+    % engery, exposure time, image shape
+    switch lower( cam )
+        %% CHECK h5 entry of camera1 / camera2 !!!!!!!!!!!!!!!!!!!!!!!!
+        case 'ehd'
+            energy = double(h5read( h5log, '/entry/hardware/camera1/calibration/energy') );
+            exp_time = double(h5read( h5log, '/entry/hardware/camera1/calibration/exptime') );
+            raw_im_shape_uncropped = [3056 3056];
+            dtype = 'uint16';
+        case 'kit'
+            energy = double(h5read( h5log, '/entry/hardware/camera2/calibration/energy') );
+            exp_time = double(h5read( h5log, '/entry/hardware/camera2/calibration/exptime') );
+    end    
     % images
     stimg_name.value = h5read( h5log, '/entry/scan/data/image_file/value');    
     stimg_name.time = h5read( h5log,'/entry/scan/data/image_file/time');    
@@ -428,16 +427,6 @@ else
     s_rot.value = h5read( h5log, '/entry/scan/data/s_rot/value');    
     s_stage_x.time = double( h5read( h5log, '/entry/scan/data/s_stage_x/time') );
     s_stage_x.value = h5read( h5log, '/entry/scan/data/s_stage_x/value');
-    % engery and exposure time
-    switch lower( cam )
-        %% CHECK camera1 / camera2 !!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        case 'ehd'
-            energy = double(h5read( h5log, '/entry/hardware/camera1/calibration/energy') );
-            exp_time = double(h5read( h5log, '/entry/hardware/camera1/calibration/exptime') );
-        case 'kit'
-            energy = double(h5read( h5log, '/entry/hardware/camera2/calibration/energy') );
-            exp_time = double(h5read( h5log, '/entry/hardware/camera2/calibration/exptime') );
-    end    
     % wiggle di wiggle
     offset_shift = s_stage_x.value( ~boolean( stimg_key.value(par.n_dark+1:end) ) ) * 1e-3 / eff_pixel_size_binned;
     offset_shift = offset_shift(proj_range);
@@ -461,18 +450,12 @@ else
         cur.proj(nn).ind = str2double(cur.proj(nn).name(end-7:end-4));
     end
     
-    %% Image shape
-    if strcmp( cam, 'EHD')
-        raw_im_shape_uncropped = [3056 3056];
-        dtype = 'uint16';
-    end        
-    filename = sprintf('%s%s', scan_path, ref_names{1});
-    %im_raw = read_raw( filename, raw_im_shape, 'uint16' );    
-    im_raw = read_image( filename, '', [], tif_info, raw_im_shape_uncropped, 'uint16' );
-    im_roi = read_image( filename, '', raw_roi, tif_info, raw_im_shape_uncropped, 'uint16' );
-    raw_im_shape = size( im_roi );
-    
-    ring_filter = 0; % % not needed
+    %% Image shape    
+    filename = sprintf('%s%s', scan_path, ref_names{1});    
+    im_raw = read_image( filename, '', [], tif_info, raw_im_shape_uncropped, dtype );
+    im_roi = read_image( filename, '', raw_roi, tif_info, raw_im_shape_uncropped, dtype );
+    raw_im_shape = size( im_roi );    
+    ring_filter.apply = 0; % % not needed for sample wiggling mode
     rot_angle_full = pi; % FIX
 end
 raw_im_shape_binned = floor( raw_im_shape / raw_bin );
@@ -851,20 +834,11 @@ elseif ~read_flatcor
         else
             angles = angles(proj_range);
         end
-    elseif exist( h5log, 'file')
-        num_proj = double( par.n_angle );
-        angles = s_rot.value( ~boolean( stimg_key.value(par.n_dark+1:end) ) ) * pi / 180;
-        %% Move out of if-condition ?
+    elseif exist( h5log, 'file')        
+        angles = s_rot.value( ~boolean( stimg_key.value(par.n_dark+1:end) ) ) * pi / 180;        
         angles = angles(proj_range);
-    else
-        %% MOVE TO LOG FILE READING
-        if isfield( par, 'num_projections' )
-            num_proj = double( par.num_projections );
-        elseif isfield( par, 'projections' )
-            num_proj = double( par.projections );
-        elseif isfield( par, 'n_angles' )
-            num_proj = double( par.n_angles );
-        end
+    else        
+        num_proj = par.num_proj;
         switch lower( cam )
             case 'ehd'
                 angles = rot_angle_full * (0:num_proj - 1) / (num_proj - 1); % EHD: ok
@@ -874,118 +848,16 @@ elseif ~read_flatcor
     end
     % drop angles where projections are empty
     angles(~projs_to_use) = [];
-    % sort angles for displaying and non-contiguous acquisition
-    [~, sorted_angle_index] = sort( angles );
-    
-    %% Ring artifact filter
-    sino_slice = round( size( proj, 2) / 2 );
-    sino_unfilt = squeeze( proj(:,sino_slice,sorted_angle_index) )';
-    if ring_filter(1)
-        t = toc;
-        prnt( '\nFilter ring artifacts using %s. ', ring_filter_method)
-        switch lower( ring_filter_method )
-            
-            % Combined wavelet-FFT filter to remove ring artrifacts
-            case 'wavelet-fft'
-                
-                parfor nn = 1:size( proj, 2)
-                    sino = squeeze( proj(:,nn,:) )';
-                    [d2, d1] = size( sino );
-                    sino = FilterStripesCombinedWaveletFFT( sino, ring_filter_waveletfft_dec_levels, ring_filter_waveletfft_wname, ring_filter_waveletfft_sigma )';
-                    sino = sino( 1:d1, 1:d2 );
-                    proj(:,nn,:) = sino;
-                end
-                prnt( ' Time elapsed: %.1f s (%.2f min)', toc-t, (toc-t)/60)
-                sino_filt = squeeze( proj(:,sino_slice,sorted_angle_index) )';
-                
-                if visual_output(1)
-                    
-                    h3 = figure('Name', 'Sinogram and ring filter');
-                    
-                    subplot(3,1,1)
-                    imsc( sino_unfilt )
-                    axis equal tight
-                    title(sprintf('sino unfiltered, y = %u', sino_slice))
-                    colorbar
-                    
-                    subplot(3,1,2)
-                    imsc( sino_filt )
-                    axis equal tight
-                    title(sprintf('sino filtered, y = %u', sino_slice))
-                    colorbar
-                    
-                    subplot(3,1,3)
-                    imsc( sino_filt - sino_unfilt )
-                    axis equal tight
-                    title(sprintf('sino filt - sino, y = %u', sino_slice))
-                    colorbar
-                    
-                    drawnow
-                end
-                
-                % Simple ring artifact filter
-            case 'jm'
-                if numel( ring_filter_jm_median_width ) > 1
-                    %% Combine if/else
-                    for nn = ring_filter_jm_median_width
-                        %m=sum(im);
-                        proj_mean = sum( proj, 3);
-                        
-                        %md=medfilt1(m,nn);
-                        proj_mean_med = medfilt2( proj_mean, [nn, 1], 'symmetric' );
-                        
-                        %f=md./m;
-                        mask = proj_mean_med ./ proj_mean;
-                        
-                        %im=bsxfun(@times,im,f);
-                        proj = bsxfun( @times, proj, mask);
-                    end
-                else
-                    proj_mean = mean( proj, 3);
-                    proj_mean_med = medfilt2( proj_mean, [ring_filter_jm_median_width, 1], 'symmetric' );
-                    mask = proj_mean_med ./ proj_mean;
-                    proj = bsxfun( @times, proj, mask);
-                end
-                sino_filt = squeeze( proj(:,sino_slice,sorted_angle_index) )';
-                
-                prnt( ' Time elapsed: %.1f s (%.2f min)', toc-t, (toc-t)/60)
-                prnt( '\n ring filter mask min/max: %f, %f', min( mask(:) ), max( mask(:) ) )
-                if visual_output(1)
-                    h3 = figure('Name', 'Sinogram and ring filter');
-                    
-                    subplot(2,2,1)
-                    imsc( sino_unfilt )
-                    axis equal tight
-                    title(sprintf('sino unfiltered, y = %u', sino_slice))
-                    colorbar %('Location', 'southoutside')
-                    
-                    subplot(2,2,2)
-                    imsc( sino_filt - sino_unfilt )
-                    axis equal tight
-                    title(sprintf('sino filt - sino, y = %u', sino_slice))
-                    colorbar %('Location', 'southoutside')
-                    
-                    subplot(2,2,3)
-                    imsc1( proj_mean )
-                    axis equal tight
-                    title(sprintf('mean projection'))
-                    colorbar %('Location', 'southoutside')
-                    
-                    subplot(2,2,4)
-                    imsc1( FilterHisto( mask, 5 ) )
-                    axis equal tight
-                    title(sprintf('mask for normalization'))
-                    colorbar %('Location', 'southoutside')
-                    
-                    drawnow
-                end
-        end
+
+    %% Ring artifact filter    
+    if ring_filter.apply && ring_filter.apply_before_stitching
+        [proj, h] = p05_filter_ring_artefacts( ring_filter, proj, angles, verbose, visual_output);
     end
     proj_min = min( proj(:) );
     proj_max = max( proj(:) );
     
     %% Write corrected projections
-    if write_flatcor(1)
+    if write.flatcor
         t = toc;
         prnt( '\nSave flat-corrected projections.')
         CheckAndMakePath( flatcor_path )
@@ -998,69 +870,18 @@ elseif ~read_flatcor
     end
 end
 
-%% Rotation axis position and tomgraphic reconstruction parameters %%%%%%%%
-if do_phase_retrieval(1)
-    if isempty( take_neg_log )
-        take_neg_log = 0;
-    end
-else
-    phase_bin = 0;
-end
-
 %% Phase retrieval %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-edp = [energy, sample_detector_distance, eff_pixel_size_binned];
-if do_phase_retrieval(1) && phase_retrieval_before(1)
-    prnt( '\nPhase retrieval')
-    t = toc;
-    prnt( '\n energy : %g eV', energy)
-    prnt( '\n sample detector distance : %g m', sample_detector_distance)
-    
+if phase_retrieval.apply
     if isempty( take_neg_log )
         take_neg_log = 0;
     end
-    
-    % Phase retrieval filter
-    im_shape = [size(proj,1) , size(proj,2)];
-    im_shape_pad = (1 + phase_padding) * im_shape;
-    [phase_filter, pha_appendix] = PhaseFilter( phase_retrieval_method, im_shape_pad, edp, phase_retrieval_reg_par, phase_retrieval_bin_filt, phase_retrieval_cutoff_frequ, 'single');
-    
-    % reco phase dir
-    if isempty( subfolder_reco )
-        reco_phase_path = [out_path, filesep, 'reco_phase', filesep, pha_appendix, filesep];
-    else
-        reco_phase_path = [out_path, filesep, 'reco_phase', filesep, pha_appendix, filesep, subfolder_reco, filesep];
-    end
-    CheckAndMakePath( reco_phase_path )
-    prnt( '\n reco_phase_path : %s', reco_phase_path)
-    prnt( '\n phase retrieval method : %s', phase_retrieval_method)
-    
-    % Retrieval
-    parfor nn = 1:size(proj, 3)
-        % combined GPU and parfor usage requires memory management
-        im = padarray( proj(:,:,nn), phase_padding * im_shape, 'symmetric', 'post' );
-        %im = padarray( gpuArray( proj(:,:,nn) ), raw_im_shape_binned, 'post', 'symmetric' );
-        im = -real( ifft2( phase_filter .* fft2( im ) ) );
-        proj(:,:,nn) = im(1:im_shape(1), 1:im_shape(2));
-        %proj(:,:,nn) = gather( im(1:raw_im_shape_binned1, 1:raw_im_shape_binned2) );
-    end
-    pause(0.01)
-    prnt( '\n done in %g s (%.2f min)', toc-t, (toc-t)/60)
-    
-    % Save phase maps
-    if write_phase_map(1)
-        t = toc;
-        prnt( '\nSave phase maps:')
-        phase_map_path = [phase_map_path, pha_appendix, filesep];
-        CheckAndMakePath( phase_map_path );
-        parfor nn = 1:size( proj, 3)
-            filename = sprintf( '%sphase_%06u.tif', phase_map_path, nn);
-            write32bitTIFfromSingle( filename, squeeze( rot90( proj( :, :, nn) ) ) )
-        end
-        pause(0.01)
-        prnt( ' Time elapsed: %.1f s (%.2f min)', toc-t, (toc-t)/60)
+    if phase_retrieval.apply_before
+        edp = [energy, sample_detector_distance, eff_pixel_size_binned];
+        [proj, reco_phase_path] = p05_phase_retrieval( phase_retrieval, edp, proj, out_path, subfolder_reco, write, phase_map_path, verbose, visual_output);
     end
 end
 
+%% Rotation axis position and tomgraphic reconstruction parameters %%%%%%%%
 tint = 0;
 if do_tomo(1)
     t = toc;
@@ -1185,7 +1006,7 @@ if do_tomo(1)
         fprintf( '\n number of pixels: %u', raw_im_shape_binned1)
         fprintf( '\n image center: %.1f', raw_im_shape_binned1 / 2)
         
-        if phase_retrieval_before(1) && do_phase_retrieval(1)
+        if phase_retrieval.apply && phase_retrieval.apply_before
             itake_neg_log = 0;
         else
             itake_neg_log = 1;
@@ -1525,10 +1346,17 @@ if stitch_projections(1)
     prnt( '\n memory allocated : %.2f GiB', Bytes( proj, 3 ) )
 end
 
+%% Ring artifact filter
+if ring_filter.apply && ~ring_filter.apply_before_stitching    
+    [proj, h] = p05_filter_ring_artefacts( ring_filter, proj, angles, verbose, visual_output);
+    proj_min = min( proj(:) );
+    proj_max = max( proj(:) );
+end
+
 %% Crop projections at rotation axis position
-% This is to avoid oversampling for scans with excentric rotation axis and
-% reconstructing WITHOUT stitching
 if crop_at_rot_axis(1)
+    % This is to avoid oversampling for scans with excentric rotation axis
+    % and reconstructing WITHOUT stitching
     switch excentric_rot_axis
         case 1
             proj( ceil(rot_axis_pos) + 1:end, :, :) = [];
@@ -1542,7 +1370,7 @@ if crop_at_rot_axis(1)
 end
 
 %% Save sinograms
-if write_sino(1)
+if write.sino
     t = toc;
     prnt( '\nSave sinogram:')
     CheckAndMakePath(sino_path)
@@ -1557,61 +1385,13 @@ if write_sino(1)
 end
 
 %% Phase retrieval %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-edp = [energy, sample_detector_distance, eff_pixel_size_binned];
-if do_phase_retrieval(1) && ~phase_retrieval_before(1)
-    prnt( '\nPhase retrieval')
-    t = toc;
-    prnt( '\n energy : %g eV', energy)
-    prnt( '\n sample detector distance : %g m', sample_detector_distance)
-    
-    if isempty( take_neg_log )
-        take_neg_log = 0;
-    end
-    
-    % Phase retrieval filter
-    im_shape = [size(proj,1) , size(proj,2)];
-    im_shape_pad = (1 + phase_padding) * im_shape;
-    [phase_filter, pha_appendix] = PhaseFilter( phase_retrieval_method, im_shape_pad, edp, phase_retrieval_reg_par, phase_retrieval_bin_filt, phase_retrieval_cutoff_frequ, 'single');
-    
-    % reco phase dir
-    if isempty( subfolder_reco )
-        reco_phase_path = [out_path, filesep, 'reco_phase', filesep, pha_appendix, filesep];
-    else
-        reco_phase_path = [out_path, filesep, 'reco_phase', filesep, pha_appendix, filesep, subfolder_reco, filesep];
-    end
-    CheckAndMakePath( reco_phase_path )
-    prnt( '\n reco_phase_path : %s', reco_phase_path)
-    prnt( '\n phase retrieval method : %s', phase_retrieval_method)
-    
-    % Retrieval
-    parfor nn = 1:size(proj, 3)
-        % combined GPU and parfor usage requires memory management
-        im = padarray( proj(:,:,nn), phase_padding * im_shape, 'symmetric', 'post' );
-        %im = padarray( gpuArray( proj(:,:,nn) ), raw_im_shape_binned, 'post', 'symmetric' );
-        im = -real( ifft2( phase_filter .* fft2( im ) ) );
-        proj(:,:,nn) = im(1:im_shape(1), 1:im_shape(2));
-        %proj(:,:,nn) = gather( im(1:raw_im_shape_binned1, 1:raw_im_shape_binned2) );
-    end
-    pause(0.01)
-    prnt( '\n done in %g s (%.2f min)', toc-t, (toc-t)/60)
-    
-    % Save phase maps
-    if write_phase_map(1)
-        t = toc;
-        prnt( '\nSave phase maps:')
-        phase_map_path = [phase_map_path, pha_appendix, filesep];
-        CheckAndMakePath( phase_map_path );
-        parfor nn = 1:size( proj, 3)
-            filename = sprintf( '%sphase_%06u.tif', phase_map_path, nn);
-            write32bitTIFfromSingle( filename, squeeze( rot90( proj( :, :, nn) ) ) )
-        end
-        pause(0.01)
-        prnt( ' Time elapsed: %.1f s (%.2f min)', toc-t, (toc-t)/60)
-    end
+if phase_retrieval.apply && ~phase_retrieval.apply_before
+    edp = [energy, sample_detector_distance, eff_pixel_size_binned];    
+    [proj, reco_phase_path] = p05_phase_retrieval( phase_retrieval, edp, proj, out_path, subfolder_reco, write, phase_map_path, verbose, visual_output);
 end
 
 %% Save sinograms of phase maps
-if do_phase_retrieval(1) && write_sino_phase(1)
+if phase_retrieval.apply && write.phase_sino
     t = toc;
     prnt( '\nSave phase map sinogram:')
     CheckAndMakePath(sino_phase_path)
@@ -1626,9 +1406,9 @@ if do_phase_retrieval(1) && write_sino_phase(1)
 end
 
 %% Post phase retrieval binning
-if do_phase_retrieval(1) && ( phase_bin(1) > 1)
+if phase_retrieval.apply && ( phase_bin(1) > 1)
     t = toc;
-    prnt( 'Post phase retrieval binning:')
+    prnt( '\nPost phase retrieval binning:')
     proj_bin = zeros( floor(size( proj ) ./ [2 2 1] ), 'single');
     parfor nn = 1:size( proj, 3)
         proj_bin(:,:,nn) = Binning( proj(:,:,nn), phase_bin ) / phase_bin^2;
@@ -1637,6 +1417,7 @@ if do_phase_retrieval(1) && ( phase_bin(1) > 1)
     clear proj_bin;
     rot_axis_pos = rot_axis_pos / phase_bin;
     rot_axis_offset = rot_axis_offset / phase_bin;
+    [vol_shape, vol_size] = volshape_volsize( proj, [], [], 0);    
     prnt( ' done in %g s (%.2f min)', toc - t, (toc - t) / 60)
 end
 
@@ -1651,10 +1432,9 @@ if do_tomo(1)
     else
         rot_axis_offset_reco = rot_axis_offset;
     end
+    prnt( '\n shape of reconstructed volume: [%g, %g, %g]', vol_shape )
+    prnt( '\n memory required: %.2f GiB', prod( vol_shape ) * 4 / 1024^3 )
     
-%     prnt( '\n shape of reconstructed volume: [%g, %g, %g]', vol_shape )
-%     prnt( '\n memory required: %.2f GiB', prod( vol_shape ) * 4 / 1024^3 )
-%     
     if isempty( take_neg_log )
         take_neg_log = 1;
     end
@@ -1716,14 +1496,24 @@ if do_tomo(1)
         
         figure('Name', 'Volume cut y');        
         nn = round( size( vol, 2 ) / 2);
-        imsc( squeeze( vol(:,nn,:) ) )
+        im = squeeze( vol(:,nn,:) );
+        if size( im , 1) < size( im , 2)
+            imsc( im )
+        else
+            imsc( im' )
+        end
         axis equal tight
         title( sprintf( 'vol y = %u', nn ) )
         colorbar
                 
         figure('Name', 'Volume cut x');        
         nn = round( size( vol, 1 ) / 2);
-        imsc( squeeze( vol(nn,:,:) ) )
+        im = squeeze( vol(nn,:,:) );
+        if size( im , 1) < size( im , 2)
+            imsc( im )
+        else
+            imsc( im' )
+        end        
         axis equal tight
         title( sprintf( 'vol x = %u', nn ) )
         colorbar
@@ -1732,8 +1522,8 @@ if do_tomo(1)
     end
     
     % Save volume
-    if write_reco(1)
-        if do_phase_retrieval(1)
+    if write.reco
+        if phase_retrieval.apply
             reco_path = reco_phase_path;
         end
         CheckAndMakePath( reco_path )
@@ -1745,10 +1535,10 @@ if do_tomo(1)
         fclose( fid );
         
         % Single precision: 32-bit float tiff
-        write_volume( write_float, vol, 'float', reco_path, raw_bin, phase_bin, 1, 0, verbose);
+        write_volume( write.float, vol, 'float', reco_path, raw_bin, phase_bin, 1, 0, verbose);
         
         % Compression of dynamic range
-        if write_8bit || write_8bit_binned || write_16bit || write_16bit_binned
+        if write.uint8 || write.uint8_binned || write.uint16 || write.uint16_binned
             [tlow, thigh] = compression( vol, compression_method, compression_parameter );
         else
             tlow = 0;
@@ -1756,13 +1546,13 @@ if do_tomo(1)
         end
         
         % 16-bit tiff
-        write_volume( write_16bit, (vol - tlow)/(thigh - tlow), 'uint16', reco_path, raw_bin, phase_bin, 1, 0, verbose);
+        write_volume( write.uint16, (vol - tlow)/(thigh - tlow), 'uint16', reco_path, raw_bin, phase_bin, 1, 0, verbose);
         
         % 8-bit tiff
-        write_volume( write_8bit, (vol - tlow)/(thigh - tlow), 'uint8', reco_path, raw_bin, phase_bin, 1, 0, verbose);
+        write_volume( write.uint8, (vol - tlow)/(thigh - tlow), 'uint8', reco_path, raw_bin, phase_bin, 1, 0, verbose);
         
         % Bin data
-        if write_float_binned || write_16bit_binned || write_8bit_binned || write_8bit_segmented
+        if write.float_binned || write.uint16_binned || write.uint8_binned || write.uint8_segmented
             prnt( '\n Binning:')
             t2 = toc;
             vol = Binning( vol, reco_bin ) / reco_bin^3;
@@ -1770,16 +1560,16 @@ if do_tomo(1)
         end
         
         % Binned single precision: 32-bit float tiff
-        write_volume( write_float_binned, vol, 'float', reco_path, raw_bin, phase_bin, reco_bin, 0, verbose);
+        write_volume( write.float_binned, vol, 'float', reco_path, raw_bin, phase_bin, reco_bin, 0, verbose);
         
         % 16-bit tiff binned
-        write_volume( write_16bit_binned, (vol - tlow)/(thigh - tlow), 'uint16', reco_path, raw_bin, phase_bin, reco_bin, 0, verbose);
+        write_volume( write.uint16_binned, (vol - tlow)/(thigh - tlow), 'uint16', reco_path, raw_bin, phase_bin, reco_bin, 0, verbose);
         
         % 8-bit tiff binned
-        write_volume( write_8bit_binned, (vol - tlow)/(thigh - tlow), 'uint8', reco_path, raw_bin, phase_bin, reco_bin, 0, verbose);
+        write_volume( write.uint8_binned, (vol - tlow)/(thigh - tlow), 'uint8', reco_path, raw_bin, phase_bin, reco_bin, 0, verbose);
         
         % segmentation
-        if write_8bit_segmented(1)
+        if write.uint8_segmented
             [vol, out] = segment_volume(vol, 2^10, visual_output, verbose);
             save_path = write_volume( 1, vol/255, 'uint8', reco_path, raw_bin, phase_bin, reco_bin, 0, verbose, '_segmented');
             save( sprintf( '%ssegmentation_info.m', save_path), 'out', '-mat', '-v7.3')
@@ -1791,7 +1581,7 @@ if do_tomo(1)
 end
 
 %% Log file
-if write_reco(1)
+if write.reco
     logfile_path = reco_path;
 else
     logfile_path = out_path;
@@ -1838,14 +1628,14 @@ if ~read_flatcor
     fprintf(fid, 'min_max_of_all_flat_corr_projs : %g %g \n', proj_min, proj_max);
 end
 % Phase retrieval
-if do_phase_retrieval(1)
-    fprintf(fid, 'do_phase_retrieval : %u\n', do_phase_retrieval);
-    fprintf(fid, 'phase_bin : %u\n', phase_bin);
-    fprintf(fid, 'phase_retrieval_method : %s\n', phase_retrieval_method);
-    fprintf(fid, 'phase_retrieval_regularisation_parameter : %f\n', phase_retrieval_reg_par);
-    fprintf(fid, 'phase_retrieval_binary_filter_threshold : %f\n', phase_retrieval_bin_filt);
-    fprintf(fid, 'phase_retrieval_cutoff_frequ : %f pi\n', phase_retrieval_cutoff_frequ / pi);
-    fprintf(fid, 'phase_padding : %u\n', phase_padding);
+fprintf(fid, 'phase_retrieval.apply : %u\n', phase_retrieval.apply);
+if phase_retrieval.apply    
+    fprintf(fid, 'phase_retrieval.padding : %u\n', phase_retrieval.padding);    
+    fprintf(fid, 'phase_retrieval.method : %s\n', phase_retrieval.method);
+    fprintf(fid, 'phase_retrieval.regularisation_parameter : %f\n', phase_retrieval.reg_par);
+    fprintf(fid, 'phase_retrieval.binary_filter_threshold : %f\n', phase_retrieval.bin_filt);
+    fprintf(fid, 'phase_retrieval.cutoff_frequency : %f pi\n', phase_retrieval.cutoff_frequ / pi);
+    fprintf(fid, 'phase_bin : %u\n', phase_bin);    
 end
 % Volume
 fprintf(fid, 'volume_shape : %u %u %u\n', vol_shape(1), vol_shape(2), vol_shape(3));
@@ -1868,10 +1658,21 @@ fprintf(fid, 'raw_image_binned_center : %f\n', raw_im_shape_binned1 / 2);
 fprintf(fid, 'rotation_correlation_area_1 : %u:%u:%u\n', rot_corr_area1(1), rot_corr_area1(2) - rot_corr_area1(1), rot_corr_area1(end));
 fprintf(fid, 'rotation_correlation_area_2 : %u:%u:%u\n', rot_corr_area2(1), rot_corr_area2(2) - rot_corr_area2(1), rot_corr_area2(end));
 fprintf(fid, 'interactive_determination_of_rot_axis : %u\n', interactive_determination_of_rot_axis);
+% Ring filter
+fprintf(fid, 'ring_filter.apply : %u\n', ring_filter.apply);
+if ring_filter.apply
+    fprintf(fid, 'ring_filter.method : %s\n', ring_filter.method);
+    fprintf(fid, 'ring_filter.apply_before_stitching : %u\n', ring_filter.apply_before_stitching);
+    switch lower( ring_filter.method )
+        case 'waveletfft'
+            ring_filter.waveletfft.dec_levels = 2:6; % decomposition levels for 'wavelet-fft'
+            ring_filter.waveletfft.wname = 'db30';'db25'; % wavelet type for 'wavelet-fft'
+            ring_filter.waveletfft.sigma = 2.4; %  suppression factor for 'wavelet-fft'
+        case 'jm'
+            fprintf(fid, 'ring_filter.jm.median_width : %s\n', sprintf( '%u ', ring_filter.jm.median_width) );
+    end
+end
 % FBP
-fprintf(fid, 'ring_filter : %u\n', ring_filter);
-fprintf(fid, 'ring_filter_method : %s\n', ring_filter_method);
-fprintf(fid, 'ring_filter_jm_median_width : %s\n', sprintf( '%u ', ring_filter_jm_median_width) );
 fprintf(fid, 'fbp_filter_type : %s\n', fbp_filter_type);
 fprintf(fid, 'fpb_filter_freq_cutoff : %f\n', fpb_filter_freq_cutoff);
 fprintf(fid, 'fbp_filter_padding : %u\n', fbp_filter_padding);
@@ -1885,10 +1686,12 @@ fprintf(fid, 'gpu_name : %s\n', gpu.Name);
 if exist( 'vol_min', 'var')
     fprintf(fid, 'volume_min-max : %g %g\n', vol_min, vol_max);
 end
-fprintf(fid, 'write_float : %u\n', write_float);
-fprintf(fid, 'write_16bit : %g\n', write_16bit);
-fprintf(fid, 'write_8bit : %u\n', write_8bit);
-fprintf(fid, 'write_8bit_binned : %u\n', write_8bit_binned);
+fprintf(fid, 'write.float : %u\n', write.float);
+fprintf(fid, 'write.float_binned : %u\n', write.float_binned);
+fprintf(fid, 'write.uint16 : %g\n', write.uint16);
+fprintf(fid, 'write.uint16_binned : %g\n', write.uint16_binned);
+fprintf(fid, 'write.uint8 : %u\n', write.uint8);
+fprintf(fid, 'write.uint8_binned : %u\n', write.uint8_binned);
 fprintf(fid, 'compression_method : %s\n', compression_method);
 fprintf(fid, 'compression_limits : %f %f\n', tlow, thigh);
 fprintf(fid, 'reco_bin : %u\n', reco_bin);

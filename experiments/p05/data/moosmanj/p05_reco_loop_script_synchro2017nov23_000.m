@@ -63,10 +63,6 @@ bin_before_filtering = 0; % Binning before pixel filtering; much faster but wors
 excentric_rot_axis = 0; % off-centered rotation axis increasing FOV. -1: left, 0: centeerd, 1: right. influences rot_corr_area1
 crop_at_rot_axis = 0; % for recos of scans with excentric rotation axis but WITHOUT projection stitching
 stitch_projections = 0; % for 2 pi scans: stitch projection at rotation axis position
-stitch_method = 'sine';'linear'; 'step'; %  ! adjust correlation area if necessary !
-% 'step' : no interpolation, use step function
-% 'linear' : linear interpolation of overlap region
-% 'sine' : sinusoidal interpolation of overlap region
 proj_range = 1; % range of projections to be used (from all found). if empty or 1: all, if scalar: stride
 ref_range = []; % range of flat fields to be used (from all found). start:incr:end. if empty or 1: all. if scalar: stride
 energy = 34000; % in eV! if empty: read from log file
@@ -76,15 +72,6 @@ dark_FiltPixThresh = [0.01 0.005]; % Dark fields: threshold parameter for hot/da
 ref_FiltPixThresh = [0.01 0.005]; % Flat fields: threshold parameter for hot/dark pixel filter, for details see 'FilterPixel'
 proj_FiltPixThresh = [0.01 0.005]; % Raw projection: threshold parameter for hot/dark pixel filter, for details see 'FilterPixel'
 correlation_method = 'ssim-ml';'entropy';'diff';'shift';'ssim';'std';'cov';'corr';'cross-entropy12';'cross-entropy21';'cross-entropyx';'none';
-% 'ssim-ml' : Matlab's structural similarity index (SSIM), includes Gaussian smoothing
-% 'ssim' : own implementation of SSIM, smoothing not yet implemented
-% 'entropy' : entropy measure of proj over flat
-% 'cov' : cross covariance
-% 'corr' : cross correlation = normalized cross covariance
-% 'std' : standard deviation of proj over flat
-% 'diff': difference of proj and flat
-% 'shift': computes relative shift from peak of cross-correlation map
-% 'none' : no correlation, use median flat
 corr_shift_max_pixelshift = 0.25; % maximum pixelshift allowed for 'shift'-correlation method: if 0 use the best match (i.e. the one with the least shift), if > 0 uses all flats with shifts smaller than corr_shift_max_pixelshift
 corr_num_flats = 1; % number of flat fields used for average/median of flats. for 'shift'-correlation its the maximum number
 ring_current_normalization = 1; % normalize flat fields and projections by ring current

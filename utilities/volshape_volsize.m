@@ -16,13 +16,13 @@ function [vol_shape, vol_size] = volshape_volsize( proj, vol_shape, vol_size, ro
 % [vol_shape, vol_size] = volshape_volsize( proj, vol_shape, vol_size, rot_axis_offset, verbose, abs_rel_thresh)
 
 %% Default arguments %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-if nargin < 3
+if nargin < 4
     rot_axis_offset = 0;
 end
-if nargin < 4
+if nargin < 5
     verbose = 0;
 end
-if nargin < 5
+if nargin < 6
     abs_rel_thresh = 10;
 end
 
