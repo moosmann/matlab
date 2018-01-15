@@ -1,0 +1,22 @@
+<?xml version="1.0"?>
+<!-- Copyright 2015-2017 The MathWorks, Inc. -->
+<rsccat version="1.0" locale="en_US" product="parallel_supportpackages">
+  <message>
+    <!-- Please keep entries in sorted order -->
+    <entry key="BackupFailureMessage">Failed to save backup of integration scripts to:\n{0}\n\nConsider performing a manual backup of the following location before continuing:\n{1}</entry>
+    <entry key="BackupFailureTitle">Backup failed</entry>
+    <entry key="BackupLocationQueryTitle">Save backup of integration scripts</entry>
+    <entry key="BackupSuccessMessage">Saved backup of integration scripts to:\n{0}</entry>
+    <entry key="BackupSuccessTitle">Backup complete</entry>
+    <entry key="BadBackupLocationMessage">You cannot specify the installation directory as the backup location. Please choose a different location.</entry>
+    <entry key="BadBackupLocationTitle">Warning</entry>
+    <entry key="InstallationCompleteTitle">Installation Complete</entry>
+    <entry key="InstallationCompleteMessage">The support package for the {0} scheduler has been installed to:\n{1}\n\nThe following wizard will help you set up a profile for your cluster.</entry>
+
+    <entry key="UninstallBackupQueryMessage">You are about to remove MATLAB files and shell scripts used to integrate with {0}, located here:\n{1}\n\nAny customizations you have made will be lost. If you are updating or reinstalling, create a backup to retain them for future reference.\nDo you want to create a backup?</entry>
+    <entry key="UninstallBackupQueryTitle">Uninstall</entry>
+    
+    <entry key="WizardTitle">Generic Profile Wizard</entry>
+    <entry key="WizardTitlePostInstall">Generic Profile Wizard for {0}</entry>
+  </message>
+</rsccat>

@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<productData>
+  <altDependencies>
+    <product>
+      <productBaseCode>DM</productBaseCode>
+      <productName>Parallel Computing Toolbox</productName>
+      <productNumber>80</productNumber>
+      <productVersion>6.11</productVersion>
+      <releaseDescription>R2017b</releaseDescription>
+      <releaseFamily>R2017b</releaseFamily>
+    </product>
+  </altDependencies>
+  <dependsOn>
+    <component>
+      <name>hardwaresupportpkgs/licenses/asla_license_common</name>
+      <instrset>0</instrset>
+      <locale />
+      <platformList>
+        <platform>glnxa64</platform>
+        <platform>maci64</platform>
+        <platform>win64</platform>
+      </platformList>
+      <version>1493829372</version>
+    </component>
+    <component>
+      <name>softwaresupportpkgs/parallel/slurm_common</name>
+      <instrset>0</instrset>
+      <locale />
+      <platformList>
+        <platform>glnxa64</platform>
+        <platform>maci64</platform>
+        <platform>win64</platform>
+      </platformList>
+      <version>1505502623</version>
+    </component>
+    <component>
+      <name>softwaresupportpkgs/parallel/generic_scheduler_resources_common</name>
+      <instrset>0</instrset>
+      <locale />
+      <platformList>
+        <platform>glnxa64</platform>
+        <platform>maci64</platform>
+        <platform>win64</platform>
+      </platformList>
+      <version>1485279578</version>
+    </component>
+    <component>
+      <name>softwaresupportpkgs/parallel/generic_scheduler_installer_common</name>
+      <instrset>0</instrset>
+      <locale />
+      <platformList>
+        <platform>glnxa64</platform>
+        <platform>maci64</platform>
+        <platform>win64</platform>
+      </platformList>
+      <version>1500943667</version>
+    </component>
+    <component>
+      <name>softwaresupportpkgs/parallel/generic_scheduler_installer_web_common</name>
+      <instrset>0</instrset>
+      <locale />
+      <platformList>
+        <platform>glnxa64</platform>
+        <platform>maci64</platform>
+        <platform>win64</platform>
+      </platformList>
+      <version>1503560989</version>
+    </component>
+  </dependsOn>
+  <installerUsage>
+    <usage>professional</usage>
+  </installerUsage>
+  <isControllingProduct>false</isControllingProduct>
+  <licenseAgreementType>ASLA</licenseAgreementType>
+  <platformList>
+    <platform>glnxa64</platform>
+    <platform>maci64</platform>
+    <platform>win64</platform>
+  </platformList>
+  <productBaseCode>PCT_SLURM</productBaseCode>
+  <productName>Parallel Computing Toolbox integration for MATLAB Distributed Computing Server with Slurm</productName>
+  <productNumber>2141</productNumber>
+  <productVersion>17.2.0</productVersion>
+  <releaseDescription>R2017b</releaseDescription>
+  <releaseFamily>R2017b</releaseFamily>
+  <requiredProducts />
+</productData>
+

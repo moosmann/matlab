@@ -29,7 +29,7 @@ end
 %% Main %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %% Shape
-vol_shape_hor = round( 2 * ( size( proj, 1)/2 + rot_axis_offset ) );
+vol_shape_hor = max( size( proj, 1), round( 2 * ( size( proj, 1)/2 + rot_axis_offset ) ) );
 vol_shape_vert = size( proj, 2 );
 if isempty( vol_shape )
     % default volume given by the detector width and height

@@ -78,14 +78,15 @@ ring_current_normalization = 1; % normalize flat fields and projections by ring 
 flat_corr_area1 = [1 floor(100/raw_bin)];%[0.98 1];% correlation area: index vector or relative/absolute position of [first pix, last pix]
 flat_corr_area2 = [0.2 0.8]; % correlation area: index vector or relative/absolute position of [first pix, last pix]
 decimal_round_precision = 2; % precision when rounding pixel shifts
-ring_filter = 1; % ring artifact filter
-ring_filter_method = 'jm';'wavelet-fft';
-ring_filter_waveletfft_dec_levels = 2:6; % decomposition levels for 'wavelet-fft'
-ring_filter_waveletfft_wname = 'db30';'db25'; % wavelet type for 'wavelet-fft'
-ring_filter_waveletfft_sigma = 2.4; %  suppression factor for 'wavelet-fft'
-ring_filter_jm_median_width = 11; % [3 11 21 31 39];
+ring_filter.apply = 1; % ring artifact filter (only for scans without wiggle di wiggle)
+ring_filter.apply_before_stitching = 1; % ! Consider when phase retrieval is applied !
+ring_filter.method = 'wavelet-fft';'jm';
+ring_filter.waveletfft.dec_levels = 2:6; % decomposition levels for 'wavelet-fft'
+ring_filter.waveletfft.wname = 'db25';'db30'; % wavelet type for 'wavelet-fft'
+ring_filter.waveletfft.sigma = 2.4; %  suppression factor for 'wavelet-fft'
+ring_filter.jm.median_width = 11; % [3 11 21 31 39];
 % PHASE RETRIEVAL %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-do_phase_retrieval = 0; % See 'PhaseFilter' for detailed description of parameters !
+phase_retrieval.apply = 0;
 % TOMOGRAPHY %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 do_tomo = 1; % run tomographic reconstruction
 vol_shape = [];% shape of the volume to be reconstructed, either in absolute number of voxels or in relative number w.r.t. the default volume which is given by the detector width and height
@@ -108,21 +109,21 @@ butterworth_cutoff_frequ = 0.9;
 astra_pixel_size = 1; % size of a detector pixel: if different from one 'vol_size' needs to be ajusted
 take_neg_log = []; % take negative logarithm. if empty, use 1 for attenuation contrast, 0 for phase contrast
 % OUTPUT %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-out_path = '';% absolute path were output data will be stored. !!overwrites the write_to_scratch flag. if empty uses the beamtime directory and either 'processed' or 'scratch_cc'
-write_to_scratch = 0; % write to 'scratch_cc' instead of 'processed'
-write_flatcor = 0; % save preprocessed flat corrected projections
-write_phase_map = 0; % save phase maps (if phase retrieval is not 0)
-write_sino = 0; % save sinograms (after preprocessing & before FBP filtering and phase retrieval)
-write_sino_phase = 0; % save sinograms of phase maps
-write_reco = 1; % save reconstructed slices (if do_tomo=1)
-write_float = 1; % single precision (32-bit float) tiff
-write_16bit = 0;
-write_8bit = 0;
-reco_bin = 2; % binning factor of reconstructed volume
-write_float_binned = 0; % binned single precision (32-bit float) tiff
-write_16bit_binned = 0;
-write_8bit_binned = 0;
-write_8bit_segmented = 0; % experimental: threshold segmentation for histograms with 2 distinct peaks: __/\_/\__
+out_path = '';
+write.to_scratch = 1; % write to 'scratch_cc' instead of 'processed'
+write.flatcor = 0; % save preprocessed flat corrected projections
+write.phase_map = 0; % save phase maps (if phase retrieval is not 0)
+write.sino = 0; % save sinograms (after preprocessing & before FBP filtering and phase retrieval)
+write.phase_sino = 0; % save sinograms of phase maps
+write.reco = 1; % save reconstructed slices (if do_tomo=1)
+write.float = 1; % single precision (32-bit float) tiff
+write.uint16 = 0;
+write.uint8 = 0;
+reco_bin = 2; % binning factor of reconstructed volume if binned volumes are saved
+write.float_binned = 0; % binned single precision (32-bit float) tiff
+write.uint16_binned = 0;
+write.uint8_binned = 0;
+write.uint8_segmented = 0;
 compression_method = 'histo';'full'; 'std'; 'threshold'; % method to compression dynamic range into [0, 1]
 compression_parameter = [0.20 0.15]; % compression-method specific parameter
 % dynamic range is compressed s.t. new dynamic range assumes
@@ -186,6 +187,7 @@ scan_path = [raw_path 'syn149_58L_Mg_12_cmos_test']; ADD
 %scan_path = [raw_path 'syn150_58L_Mg_12_000']; ADD
 
 rot_axis_offset = -192.10;
+interactive_determination_of_rot_axis = 1;
 scan_path = [raw_path 'syn151_58L_Mg_12_000']; ADD
 
 scan_path = [raw_path 'syn151_58L_Mg_12_001']; ADD

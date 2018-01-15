@@ -1,0 +1,30 @@
+Copyright 2010-2017 The MathWorks, Inc.
+
+MATLAB and Simulink are registered trademarks of The MathWorks, Inc.
+See www.mathworks.com/trademarks for a list of additional trademarks.
+Other product or brand names may be trademarks or registered trademarks of their respective holders.
+
+This folder contains a number of files to allow Parallel Computing Toolbox
+to be used with Slurm via the generic cluster interface.
+
+Note that all the files in this directory will work only for clusters that are
+running on UNIX.
+
+RUNNING JOBS WHEN CLIENT AND CLUSTER SHARE A FILE SYSTEM
+========================================================
+
+If the client machine is able to submit directly to the cluster
+and there is a shared file system present between the client and
+the cluster machines, use the files in the "shared" folder.
+
+If the client machine is not able to submit directly to the cluster
+(for example if the cluster's client utilities are not installed)
+and there is a shared file system present between the client and
+the cluster machines, use the files in the "remote" folder.
+
+
+RUNNING JOBS WHEN CLIENT AND CLUSTER DO NOT SHARE A FILE SYSTEM
+===============================================================
+
+To run jobs in the absence of a shared file system between client and
+cluster machines, use the files in the "nonshared" folder.

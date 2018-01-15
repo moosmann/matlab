@@ -45,8 +45,8 @@ scan_path = ...
 read_flatcor = 0; % read flatfield-corrected images from disc, skips preprocessing
 read_flatcor_path = ''; % subfolder of 'flat_corrected' containing projections
 % PREPROCESSING %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-raw_roi = [800 2200]; % [y0 y1] vertical roi.  skips first raw_roi(1)-1 lines, reads until raw_roi(2). Not working for *.raw data where images are flipped.
-raw_bin = 3; % projection binning factor: 1, 2, or 4
+raw_roi = [1 2400]; % [y0 y1] vertical roi.  skips first raw_roi(1)-1 lines, reads until raw_roi(2). Not working for *.raw data where images are flipped.
+raw_bin = 2; % projection binning factor: 1, 2, or 4
 bin_before_filtering = 0; % Binning before pixel filtering is applied, much faster but less effective filtering
 excentric_rot_axis = 1; % off-centered rotation axis increasing FOV. -1: left, 0: centeerd, 1: right. influences rot_corr_area1
 crop_at_rot_axis = 0; % for recos of scans with excentric rotation axis but WITHOUT projection stitching
@@ -153,7 +153,8 @@ lamino = 0; % find laminography tilt instead camera rotation
 fixed_tilt = 0; % fixed other tilt
 slice_number = 0.5; % slice number, default: 0.5. if in [0,1): relative, if in (1, N]: absolute
 % HARDWARE / SOFTWARE %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-poolsize = 0.60; % number of workers used in a parallel pool. if > 1: absolute number. if 0 < poolsize < 1: relative amount of all cores to be used
+use_cluster = 1; % on MAXWELL nodes disp/nova/wga/wgs cluster computation can be used. Only use for large data sets since parpool creation and data transfer implies a lot of overhead.
+poolsize = 0.60; % number of workers used in a local parallel pool. if 0: use current config. if >= 1: absolute number. if 0 < poolsize < 1: relative amount of all cores to be used. if SLURM scheduling is available, a default number of workers is used.
 link_data = 1; % ASTRA data objects become references to Matlab arrays. Reduces memory issues.
 gpu_index = []; % GPU Device index to use, Matlab notation: index starts from 1. default: [], uses all
 automatic_mode = 0; % Find rotation axis position automatically. NOT IMPLEMENTED!
@@ -181,7 +182,6 @@ imsc1 = @(im) imsc( flipud( im' ) );
 prnt = @(varargin) PrintVerbose( verbose, varargin{:});
 prnt( 'Start reconstruction of ')
 warning( 'off', 'MATLAB:imagesci:rtifc:missingPhotometricTag');
-cdscandir = cd( scan_path );
 NameCellToMat = @(name_cell) reshape(cell2mat(name_cell), [numel(name_cell{1}), numel(name_cell)])';
 astra_clear % if reco was aborted, ASTRA memory is not cleared
 if ~isempty( rot_axis_offset ) && ~isempty( rot_axis_pos )
@@ -472,12 +472,10 @@ prnt( '\n raw bining before pixel filtering : %u', bin_before_filtering)
 
 %% Start parallel CPU pool
 t = toc;
-if poolsize <= 1 && poolsize > 0
-    poolsize = max( floor( poolsize * feature('numCores') ), 1 );
-end
-PrintVerbose( verbose && (poolsize > 1), '\nStart parallel pool of %u workers. ', poolsize)
-OpenParpool(poolsize);
-PrintVerbose( verbose && (poolsize > 1), ' Time elapsed: %.1f s', toc-t)
+[poolobj, poolsize] = OpenParpool(poolsize, use_cluster);
+PrintVerbose( verbose && (poolsize > 1), '\nParpool opened on %s using %u workers. ', poolobj.Cluster.Profile, poolobj.Cluster.NumWorkers)
+PrintVerbose( verbose && (poolsize > 1), ' Time elapsed: %.1f s (%.2f min)', toc - t, ( toc - t ) / 60 );
+cdscandir = cd( scan_path );
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Read flat corrected projection
@@ -1022,17 +1020,17 @@ if do_tomo(1)
         fprintf( '\n current rotation axis offset / position : %.2f, %.2f', rot_axis_offset, rot_axis_pos)
         fprintf( '\n calcul. rotation axis offset / position : %.2f, %.2f', rot_axis_offset_calc, rot_axis_pos_calc)
         fprintf( '\n default offset range : current ROT_AXIS_OFFSET + (-4:0.5:4)')
-        offset = input( '\n\nENTER RANGE OF ROTATION AXIS OFFSETS (if empty use default range, if scalar skips interactive mode): ');
+        offset = input( '\n\nENTER RANGE OF ROTATION AXIS OFFSETS\n (if empty use default range, if scalar skips interactive mode): ');
         if strcmp( offset(1), 's' )
             slice = input( sprintf( '\n\nENTER ABSOLUTE [1,%u] OR RELATIVE [0,1] SLICE NUMBER : ', raw_im_shape_binned2) );            
             if slice <= 1 && slice >= 0
                 slice = round((raw_im_shape_binned2 - 1) * slice + 1 );
             end
-            offset = input( '\n\nENTER RANGE OF ROTATION AXIS OFFSETS (if empty use default range, if scalar skips interactive mode): ');
+            offset = input( '\n\nENTER RANGE OF ROTATION AXIS OFFSETS\n (if empty use default range, if scalar skips interactive mode): ');
         end
         if strcmp( offset(1), 'd')
             keyboard
-            offset = input( '\n\nENTER RANGE OF ROTATION AXIS OFFSETS (if empty use default range, if scalar skips interactive mode): ');
+            offset = input( '\n\nENTER RANGE OF ROTATION AXIS OFFSETS\n (if empty use default range, if scalar skips interactive mode): ');
         end
         if isempty( offset )
             % default range is centered at the given or calculated offset
@@ -1093,17 +1091,17 @@ if do_tomo(1)
             nimplay(vol, 1, [], 'OFFSET: sequence of reconstructed slices using different rotation axis offsets')
             
             % Input
-            offset = input( '\n\nENTER ROTATION AXIS OFFSET OR A RANGE OF OFFSETS (if empty use current offset, ''s'' to change slice number, ''d'' for debug mode): ');
+            offset = input( '\n\nENTER ROTATION AXIS OFFSET OR A RANGE OF OFFSETS\n (if empty use current offset, ''s'' to change slice number, ''d'' for debug mode): ');
             if strcmp( offset(1), 's' )
                 slice = input( sprintf( '\n\nENTER ABSOLUTE [1,%u] OR RELATIVE [0,1] SLICE NUMBER : ', raw_im_shape_binned2) );
                 if slice <= 1 && slice >= 0
                     slice = round((raw_im_shape_binned2 - 1) * slice + 1 );
                 end
-                offset = input( '\n\nENTER RANGE OF ROTATION AXIS OFFSETS (if empty use default range, if scalar skips interactive mode): ');
+                offset = input( '\n\nENTER RANGE OF ROTATION AXIS OFFSETS\n (if empty use default range, if scalar skips interactive mode): ');
             end
             if strcmp( offset(1), 'd')
                 keyboard
-                offset = input( '\n\nENTER RANGE OF ROTATION AXIS OFFSETS (if empty use default range, if scalar skips interactive mode): ');
+                offset = input( '\n\nENTER RANGE OF ROTATION AXIS OFFSETS\n (if empty use default range, if scalar skips interactive mode): ');
             end
             if isempty( offset )
                 offset = rot_axis_offset;
@@ -1120,18 +1118,18 @@ if do_tomo(1)
                     fprintf( '\n current rotation axis tilt : %g rad = %g deg', rot_axis_tilt, rot_axis_tilt * 180 / pi)
                     fprintf( '\n calcul. rotation axis tilt : %g rad = %g deg', rot_axis_tilt_calc, rot_axis_tilt_calc * 180 / pi)
                     fprintf( '\n default tilt range is : current ROT_AXIS_TILT + (-0.005:0.001:0.005)')
-                    tilt = input( '\n\nENTER TILT OF ROTATION AXIS OR RANGE OF TILTS (if empty use default, ''s'' to change slice number, ''d'' for debug mode):');
+                    tilt = input( '\n\nENTER TILT OF ROTATION AXIS OR RANGE OF TILTS\n (if empty use default, ''s'' to change slice number, ''d'' for debug mode):');
                     % option to change which slice to reconstruct
                     if strcmp( tilt(1), 's' )                                                
                         slice = input( sprintf( '\n\nENTER ABSOLUTE [1,%u] OR RELATIVE [0,1] SLICE NUMBER : ', raw_im_shape_binned2) );
                         if slice <= 1 && slice >= 0
                             slice = round((raw_im_shape_binned2 - 1) * slice + 1 );
                         end
-                        tilt = input( '\n\nENTER TILT OF ROTATION AXIS OR RANGE OF TILTS (if empty use default):');
+                        tilt = input( '\n\nENTER TILT OF ROTATION AXIS OR RANGE OF TILTS\n (if empty use default):');
                     end
                     if strcmp( tilt(1), 'd')
                         keyboard;
-                        tilt = input( '\n\nENTER TILT OF ROTATION AXIS OR RANGE OF TILTS (if empty use default):');
+                        tilt = input( '\n\nENTER TILT OF ROTATION AXIS OR RANGE OF TILTS\n (if empty use default):');
                     end
                     if isempty( tilt )
                         % default range is centered at the given or calculated tilt
@@ -1180,7 +1178,7 @@ if do_tomo(1)
                         nimplay(vol, 1, [], 'TILT: sequence of reconstructed slices using different rotation axis tilts')
                         
                         % Input
-                        tilt = input( '\nENTER TILT OF ROTATION AXIS OR RANGE OF TILTS (if empty use current tilt):');
+                        tilt = input( '\nENTER TILT OF ROTATION AXIS OR RANGE OF TILTS\n (if empty use current tilt):');
                         if isempty( tilt )
                             tilt = rot_axis_tilt;
                         end
@@ -1221,7 +1219,7 @@ if do_tomo(1)
                             name = sprintf( 'projections at 0 and 180 degree. corrected. CALCULATED rot axis tilt: %g, rot axis offset: %g', rot_axis_tilt_calc, rot_axis_offset);
                             nimplay( cat(3, im1c(x:end-x,x:end-x)', im2c_warped_calc(x:end-x,x:end-x)'), 1, 0, name)
                             
-                            tilt = input( '\nENTER ROTATION AXIS TILT (if empty use current value): ');
+                            tilt = input( '\nENTER ROTATION AXIS TILT\n (if empty use current value): ');
                             if isempty( tilt )
                                 tilt = rot_axis_tilt;
                             else

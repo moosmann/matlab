@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<productAdditionalComps>
+  <dependsOn />
+  <isControllingProduct>false</isControllingProduct>
+  <licenseAgreementType>ASLA</licenseAgreementType>
+  <platform>glnxa64</platform>
+  <productBaseCode>PCT_SLURM</productBaseCode>
+  <productName>Parallel Computing Toolbox integration for MATLAB Distributed Computing Server with Slurm</productName>
+  <productNumber>2141</productNumber>
+  <productVersion>17.2.0</productVersion>
+  <releaseDescription>R2017b</releaseDescription>
+  <releaseFamily>R2017b</releaseFamily>
+</productAdditionalComps>
+

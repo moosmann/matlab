@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<componentData>
+  <component>
+    <componentBaseName>hardwaresupportpkgs/licenses/asla_license</componentBaseName>
+    <componentFileName>hardwaresupportpkgs/licenses/asla_license_common_1493829372.zip</componentFileName>
+    <componentName>hardwaresupportpkgs/licenses/asla_license_common</componentName>
+    <componentVersion>1493829372</componentVersion>
+    <instrset>0</instrset>
+    <locale />
+    <locationId>1</locationId>
+    <numFiles>1</numFiles>
+    <platformList>
+      <platform>glnxa64</platform>
+      <platform>maci64</platform>
+      <platform>win64</platform>
+    </platformList>
+    <releaseFamily>R2017b</releaseFamily>
+    <size>5333</size>
+    <type />
+    <uncompressedBytes>14057</uncompressedBytes>
+  </component>
+</componentData>
+

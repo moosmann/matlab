@@ -1,31 +1,63 @@
-function OpenParpool(poolsize)
+function [poolobj, poolsize] = OpenParpool(poolsize, use_cluster)
 % Open pool of parallel worker if it doesn't exist or if it is smaller than
 % the desired pool size.
 %
 % poolsize: scalar. Number of workers desired.
+% use_cluster : bool. use parpool on cluster with 256 cores using SLURM
+%   scheduling.
 %
-% Written by Julian Moosmann. Last modification: 2016-10-06
+% Written by Julian Moosmann. Last modification: 2016-10-06, 2018-01-15
 %
-% OpenParpool(poolsize)
+% [poolobj, poolsize] = OpenParpool(poolsize)
+
 
 %% Main %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+if poolsize < 1 && poolsize > 0
+    poolsize = max( floor( poolsize * feature('numCores') ), 1 );
+end
 
 % check if more than 1 worker is desired
 if poolsize > 1
     
+    % check if cluster computation is available
+    hostname = getenv('HOSTNAME');    
+    if use_cluster && sum( strcmp( hostname(1:8), {'max-disp','max-nova', 'max-wgs', 'max-wga'}) )
+        % above nodes support SLURM scheduling
+        clust = 'maxwell';
+        poolsize = 256;
+    else
+        clust = 'local';
+    end
+    
+    cpath = pwd;
+    cd( getenv( 'HOME' ) );
     % check if already parpool exists
     if isempty(gcp('nocreate'))
         %if not open parpool
-        parpool( poolsize);
+        poolobj = parpool( clust, poolsize);
     else
         % get current pool
         poolobj = gcp;
-        % if number of workers of current pool is smaller than poolsize,
+        
+        % check if current pool is desired pool
+        pflag = 0;
+        if ~strcmp( poolobj.Cluster.Profile, clust )
+            pflag = 1;
+        end
+        
+        % check if number of workers of current pool is smaller than poolsize
+        if strcmp( clust, 'local' )  && poolobj.NumWorkers < poolsize
+            pflag = 1;
+        end
+        
         % delete current pool and open new one
-        if poolobj.NumWorkers < poolsize
+        if pflag
             fprintf('\n')
             poolobj.delete;
-            parpool( poolsize);
-        end        
+            poolobj = parpool( poolsize);
+        end
     end
+    
+    cd( cpath );
 end
