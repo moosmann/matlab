@@ -46,7 +46,7 @@ read_flatcor = 0; % read flatfield-corrected images from disc, skips preprocessi
 read_flatcor_path = ''; % subfolder of 'flat_corrected' containing projections
 % PREPROCESSING %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 raw_roi = [1 2400]; % [y0 y1] vertical roi.  skips first raw_roi(1)-1 lines, reads until raw_roi(2). Not working for *.raw data where images are flipped.
-raw_bin = 2; % projection binning factor: 1, 2, or 4
+raw_bin = 1; % projection binning factor: 1, 2, or 4
 bin_before_filtering = 0; % Binning before pixel filtering is applied, much faster but less effective filtering
 excentric_rot_axis = 1; % off-centered rotation axis increasing FOV. -1: left, 0: centeerd, 1: right. influences rot_corr_area1
 crop_at_rot_axis = 0; % for recos of scans with excentric rotation axis but WITHOUT projection stitching
@@ -88,8 +88,8 @@ ring_filter.waveletfft.sigma = 2.4; %  suppression factor for 'wavelet-fft'
 ring_filter.jm.median_width = 11; % [3 11 21 31 39];
 % PHASE RETRIEVAL %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 phase_retrieval.apply = 1; % See 'PhaseFilter' for detailed description of parameters !
-phase_retrieval.apply_before = 1; % before stitching, interactive mode, etc. For phase-contrast data with an excentric rotation axis phase retrieval should be done afterwards. To find the rotataion axis position use this option in a first run, and then turn it of afterwards.
-phase_bin = 1; % Binning factor after phase retrieval, but before tomographic reconstruction
+phase_retrieval.apply_before = 0; % before stitching, interactive mode, etc. For phase-contrast data with an excentric rotation axis phase retrieval should be done afterwards. To find the rotataion axis position use this option in a first run, and then turn it of afterwards.
+phase_bin = 2; % Binning factor after phase retrieval, but before tomographic reconstruction
 phase_retrieval.method = 'tie';'qpcut';  'tie'; %'qp' 'ctf' 'tie' 'qp2' 'qpcut'
 phase_retrieval.reg_par = 2.5; % regularization parameter. larger values tend to blurrier images. smaller values tend to original data.
 phase_retrieval.bin_filt = 0.15; % threshold for quasiparticle retrieval 'qp', 'qp2'
@@ -1021,6 +1021,10 @@ if do_tomo(1)
         fprintf( '\n calcul. rotation axis offset / position : %.2f, %.2f', rot_axis_offset_calc, rot_axis_pos_calc)
         fprintf( '\n default offset range : current ROT_AXIS_OFFSET + (-4:0.5:4)')
         offset = input( '\n\nENTER RANGE OF ROTATION AXIS OFFSETS\n (if empty use default range, if scalar skips interactive mode): ');
+        if isempty( offset )
+            % default range is centered at the given or calculated offset
+            offset = rot_axis_offset + (-4:0.5:4);
+        end
         if strcmp( offset(1), 's' )
             slice = input( sprintf( '\n\nENTER ABSOLUTE [1,%u] OR RELATIVE [0,1] SLICE NUMBER : ', raw_im_shape_binned2) );            
             if slice <= 1 && slice >= 0
@@ -1031,10 +1035,6 @@ if do_tomo(1)
         if strcmp( offset(1), 'd')
             keyboard
             offset = input( '\n\nENTER RANGE OF ROTATION AXIS OFFSETS\n (if empty use default range, if scalar skips interactive mode): ');
-        end
-        if isempty( offset )
-            % default range is centered at the given or calculated offset
-            offset = rot_axis_offset + (-4:0.5:4);
         end
         
         if isscalar( offset )
@@ -1092,6 +1092,9 @@ if do_tomo(1)
             
             % Input
             offset = input( '\n\nENTER ROTATION AXIS OFFSET OR A RANGE OF OFFSETS\n (if empty use current offset, ''s'' to change slice number, ''d'' for debug mode): ');
+            if isempty( offset )
+                offset = rot_axis_offset;
+            end
             if strcmp( offset(1), 's' )
                 slice = input( sprintf( '\n\nENTER ABSOLUTE [1,%u] OR RELATIVE [0,1] SLICE NUMBER : ', raw_im_shape_binned2) );
                 if slice <= 1 && slice >= 0
@@ -1102,10 +1105,7 @@ if do_tomo(1)
             if strcmp( offset(1), 'd')
                 keyboard
                 offset = input( '\n\nENTER RANGE OF ROTATION AXIS OFFSETS\n (if empty use default range, if scalar skips interactive mode): ');
-            end
-            if isempty( offset )
-                offset = rot_axis_offset;
-            end
+            end            
             
             if isscalar( offset )
                 fprintf( ' old rotation axis offset : %.2f', rot_axis_offset)
@@ -1119,6 +1119,10 @@ if do_tomo(1)
                     fprintf( '\n calcul. rotation axis tilt : %g rad = %g deg', rot_axis_tilt_calc, rot_axis_tilt_calc * 180 / pi)
                     fprintf( '\n default tilt range is : current ROT_AXIS_TILT + (-0.005:0.001:0.005)')
                     tilt = input( '\n\nENTER TILT OF ROTATION AXIS OR RANGE OF TILTS\n (if empty use default, ''s'' to change slice number, ''d'' for debug mode):');
+                    if isempty( tilt )
+                        % default range is centered at the given or calculated tilt
+                        tilt = rot_axis_tilt + (-0.005:0.001:0.005);
+                    end
                     % option to change which slice to reconstruct
                     if strcmp( tilt(1), 's' )                                                
                         slice = input( sprintf( '\n\nENTER ABSOLUTE [1,%u] OR RELATIVE [0,1] SLICE NUMBER : ', raw_im_shape_binned2) );
@@ -1130,10 +1134,6 @@ if do_tomo(1)
                     if strcmp( tilt(1), 'd')
                         keyboard;
                         tilt = input( '\n\nENTER TILT OF ROTATION AXIS OR RANGE OF TILTS\n (if empty use default):');
-                    end
-                    if isempty( tilt )
-                        % default range is centered at the given or calculated tilt
-                        tilt = rot_axis_tilt + (-0.005:0.001:0.005);
                     end
                     
                     while ~isscalar( tilt )
