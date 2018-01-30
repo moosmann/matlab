@@ -1,4 +1,4 @@
-function [poolobj, poolsize] = OpenParpool(poolsize, use_cluster)
+function [poolobj, poolsize] = OpenParpool(poolsize, use_cluster, tmp_folder)
 % Open pool of parallel worker if it doesn't exist or if it is smaller than
 % the desired pool size.
 %
@@ -10,6 +10,7 @@ function [poolobj, poolsize] = OpenParpool(poolsize, use_cluster)
 %
 % [poolobj, poolsize] = OpenParpool(poolsize)
 
+cluster_poolsize = 250; % max 256
 
 %% Main %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -25,16 +26,17 @@ if poolsize > 1
     if use_cluster && sum( strcmp( hostname(1:8), {'max-disp','max-nova', 'max-wgs', 'max-wga'}) )
         % above nodes support SLURM scheduling
         clust = 'maxwell';
-        poolsize = 256;
+        poolsize = cluster_poolsize;
     else
         clust = 'local';
     end
     
     cpath = pwd;
-    cd( getenv( 'HOME' ) );
+    cd( tmp_folder );
     % check if already parpool exists
     if isempty(gcp('nocreate'))
         %if not open parpool
+        fprintf('\n')
         poolobj = parpool( clust, poolsize);
     else
         % get current pool

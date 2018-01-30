@@ -56,6 +56,7 @@ ADD('d')
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 scan_path = '/asap3/petra3/gpfs/p05/2017/data/11002845/raw/ste_03_g4l_aa';
+% Functional structures in 400 Million years old visual systems”, Frauke Stebner, Uni Bonn, April 2017
 parfolder = 'jm';
 out_path = '/asap3/petra3/gpfs/p05/2017/data/11002845/processed/ste_03_g4l';
 rot_axis_offset = -3.6/ raw_bin;
@@ -65,6 +66,8 @@ ADD
 
 %% 2016 nov
 raw = '/asap3/petra3/gpfs/p05/2016/data/11001978/raw/';
+% "Characterizing structural properties and mechanical behavior of
+% biodegradable metal implants in bone", Galli, November 2016
 scan_path = [raw 'mah_01'];
 raw_roi = [293 1492];
 rot_axis_offset = -135.5 / raw_bin;
@@ -86,6 +89,7 @@ ADD
 
 %% 2017 may
 raw = '/asap3/petra3/gpfs/p05/2017/data/11003950/raw/';
+
 
 % Combined wavelet FFT
 scan_path = [raw 'syn13_55L_Mg10Gd_12w_load_00'];

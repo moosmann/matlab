@@ -293,7 +293,9 @@ switch correlation_method
                 if corr_shift_max_pixelshift == 0
                     [~, pos] = min( abs( corr_mat ), [], 2 );
                     parfor nn = 1:num_proj_used
-                        proj(:, :, nn) = proj(:, :, nn) ./ flat(:, :, pos(nn));
+                        %proj(:, :, nn) = proj(:, :, nn) ./ flat(:, :, pos(nn));
+                        f = flat(:, :, pos(nn));
+                        proj(:, :, nn) = proj(:, :, nn) ./ f;
                     end
                     
                     % use all flats which are shifted less pixels than corr_shift_max_pixelshift
@@ -309,7 +311,8 @@ switch correlation_method
                             [~, flat_ind] = min( abs( c_shift_2(nn, :) ) );
                         end
                         nflats(nn) = numel(flat_ind);
-                        proj(:, :, nn) = proj(:, :, nn) ./ squeeze( mean( flat(:, :, flat_ind), 3) );
+                        f = squeeze( mean( flat(:, :, flat_ind), 3) );
+                        proj(:, :, nn) = proj(:, :, nn) ./ f;
                     end
                     PrintVerbose(verbose, '\n number of flats used per projection: [mean, min, max] = [%g, %g, %g]', mean( nflats ), min( nflats ), max( nflats) )
                 else

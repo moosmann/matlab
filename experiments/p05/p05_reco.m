@@ -46,12 +46,12 @@ read_flatcor = 0; % read flatfield-corrected images from disc, skips preprocessi
 read_flatcor_path = ''; % subfolder of 'flat_corrected' containing projections
 % PREPROCESSING %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 raw_roi = [1 2400]; % [y0 y1] vertical roi.  skips first raw_roi(1)-1 lines, reads until raw_roi(2). Not working for *.raw data where images are flipped.
-raw_bin = 1; % projection binning factor: 1, 2, or 4
+raw_bin = 4; % projection binning factor: 1, 2, or 4
 bin_before_filtering = 0; % Binning before pixel filtering is applied, much faster but less effective filtering
 excentric_rot_axis = 1; % off-centered rotation axis increasing FOV. -1: left, 0: centeerd, 1: right. influences rot_corr_area1
 crop_at_rot_axis = 0; % for recos of scans with excentric rotation axis but WITHOUT projection stitching
 stitch_projections = 1; % for 2 pi scans: stitch projection at rotation axis position. Recommended with phase retrieval to reduce artefacts. Standard absorption contrast data should work well without stitching. Subpixel stitching not supported (non-integer rotation axis position is rounded, less/no binning before reconstruction can be used to improve precision).
-stitch_method = 'step';'linear';'sine'; %  ! adjust correlation area if necessary !
+stitch_method = 'sine'; 'step';'linear'; %  ! CHECK correlation area !
 % 'step' : no interpolation, use step function
 % 'linear' : linear interpolation of overlap region
 % 'sine' : sinusoidal interpolation of overlap region
@@ -63,7 +63,7 @@ eff_pixel_size = []; % in m. if empty: read from log file. effective pixel size 
 dark_FiltPixThresh = [0.01 0.005]; % Dark fields: threshold parameter for hot/dark pixel filter, for details see 'FilterPixel'
 ref_FiltPixThresh = [0.01 0.005]; % Flat fields: threshold parameter for hot/dark pixel filter, for details see 'FilterPixel'
 proj_FiltPixThresh = [0.01 0.005]; % Raw projection: threshold parameter for hot/dark pixel filter, for details see 'FilterPixel'
-correlation_method = 'ssim-ml';'entropy';'diff';'shift';'ssim';'std';'cov';'corr';'cross-entropy12';'cross-entropy21';'cross-entropyx';'none';
+correlation_method = 'entropy';'ssim-ml';'diff';'shift';'ssim';'std';'cov';'corr';'cross-entropy12';'cross-entropy21';'cross-entropyx';'none';
 % 'ssim-ml' : Matlab's structural similarity index (SSIM), includes Gaussian smoothing
 % 'ssim' : own implementation of SSIM, smoothing not yet implemented
 % 'entropy' : entropy measure of proj over flat
@@ -80,7 +80,7 @@ flat_corr_area1 = [1 floor(100/raw_bin)];%[0.98 1];% correlation area: index vec
 flat_corr_area2 = [0.2 0.8]; % correlation area: index vector or relative/absolute position of [first pix, last pix]
 decimal_round_precision = 2; % precision when rounding pixel shifts
 ring_filter.apply = 1; % ring artifact filter (only for scans without wiggle di wiggle)
-ring_filter.apply_before_stitching = 1; % ! Consider when phase retrieval is applied !
+ring_filter.apply_before_stitching = 0; % ! Consider when phase retrieval is applied !
 ring_filter.method = 'wavelet-fft';'jm';
 ring_filter.waveletfft.dec_levels = 2:6; % decomposition levels for 'wavelet-fft'
 ring_filter.waveletfft.wname = 'db25';'db30'; % wavelet type for 'wavelet-fft'
@@ -89,7 +89,7 @@ ring_filter.jm.median_width = 11; % [3 11 21 31 39];
 % PHASE RETRIEVAL %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 phase_retrieval.apply = 1; % See 'PhaseFilter' for detailed description of parameters !
 phase_retrieval.apply_before = 0; % before stitching, interactive mode, etc. For phase-contrast data with an excentric rotation axis phase retrieval should be done afterwards. To find the rotataion axis position use this option in a first run, and then turn it of afterwards.
-phase_bin = 2; % Binning factor after phase retrieval, but before tomographic reconstruction
+phase_bin = 1; % Binning factor after phase retrieval, but before tomographic reconstruction
 phase_retrieval.method = 'tie';'qpcut';  'tie'; %'qp' 'ctf' 'tie' 'qp2' 'qpcut'
 phase_retrieval.reg_par = 2.5; % regularization parameter. larger values tend to blurrier images. smaller values tend to original data.
 phase_retrieval.bin_filt = 0.15; % threshold for quasiparticle retrieval 'qp', 'qp2'
@@ -101,7 +101,7 @@ vol_shape = [];%[1.2 1.2 1]; % shape (voxels) of reconstruction volume. in absol
 vol_size = [];%[-1.2 1.2 -1.2 1.2 -1 1]; % 6-component vector [xmin xmax ymin ymax zmin zmax]. if empty, volume is centerd within vol_shape. unit voxel size is assumed. if smaller than 10 values are interpreted as relative size w.r.t. the detector size. Take care bout minus signs!
 rot_angle_full = []; % in radians: empty ([]), full angle of rotation, or array of angles. if empty full rotation angles is determined automatically to pi or 2 pi
 rot_angle_offset = pi; % global rotation of reconstructed volume
-rot_axis_offset = 4*585.5 / raw_bin; % if empty use automatic computation
+rot_axis_offset = 2341 / raw_bin; % if empty use automatic computation
 rot_axis_pos = []; % if empty use automatic computation. either offset or pos has to be empty. can't use both
 rot_corr_area1 = []; % ROI to correlate projections at angles 0 & pi. Use [0.75 1] or so for scans with an excentric rotation axis
 rot_corr_area2 = []; % ROI to correlate projections at angles 0 & pi
@@ -113,7 +113,7 @@ fbp_filter_padding = 1; % symmetric padding for consistent boundary conditions, 
 fbp_filter_padding_method = 'symmetric';
 butterworth_filter = 0; % use butterworth filter in addition to FBP filter
 butterworth_order = 1;
-butterworth_cutoff_frequ = 0.9;
+butterworth_cutoff_frequ = 0.8;
 astra_pixel_size = 1; % size of a detector pixel: if different from one 'vol_size' needs to be ajusted
 take_neg_log = []; % take negative logarithm. if empty, use 1 for attenuation contrast, 0 for phase contrast
 % OUTPUT %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -147,13 +147,13 @@ subfolder_reco = ''; % subfolder in 'reco'
 % INTERACTION %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 verbose = 1; % print information to standard output
 visual_output = 1; % show images and plots during reconstruction
-interactive_determination_of_rot_axis = 1; % reconstruct slices with different rotation axis offsets
+interactive_determination_of_rot_axis = 0; % reconstruct slices with different rotation axis offsets
 interactive_determination_of_rot_axis_tilt = 0; % reconstruct slices with different offset AND tilts of the rotation axis
 lamino = 0; % find laminography tilt instead camera rotation
 fixed_tilt = 0; % fixed other tilt
 slice_number = 0.5; % slice number, default: 0.5. if in [0,1): relative, if in (1, N]: absolute
 % HARDWARE / SOFTWARE %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-use_cluster = 1; % on MAXWELL nodes disp/nova/wga/wgs cluster computation can be used. Only use for large data sets since parpool creation and data transfer implies a lot of overhead.
+use_cluster = 0; % if available: on MAXWELL nodes disp/nova/wga/wgs cluster computation can be used. Recommended only for large data sets since parpool creation and data transfer implies a lot of overhead.
 poolsize = 0.60; % number of workers used in a local parallel pool. if 0: use current config. if >= 1: absolute number. if 0 < poolsize < 1: relative amount of all cores to be used. if SLURM scheduling is available, a default number of workers is used.
 link_data = 1; % ASTRA data objects become references to Matlab arrays. Reduces memory issues.
 gpu_index = []; % GPU Device index to use, Matlab notation: index starts from 1. default: [], uses all
@@ -472,7 +472,7 @@ prnt( '\n raw bining before pixel filtering : %u', bin_before_filtering)
 
 %% Start parallel CPU pool
 t = toc;
-[poolobj, poolsize] = OpenParpool(poolsize, use_cluster);
+[poolobj, poolsize] = OpenParpool(poolsize, use_cluster, [beamtime_path filesep 'scratch_cc']);
 PrintVerbose( verbose && (poolsize > 1), '\nParpool opened on %s using %u workers. ', poolobj.Cluster.Profile, poolobj.Cluster.NumWorkers)
 PrintVerbose( verbose && (poolsize > 1), ' Time elapsed: %.1f s (%.2f min)', toc - t, ( toc - t ) / 60 );
 cdscandir = cd( scan_path );
@@ -520,7 +520,7 @@ elseif ~read_flatcor
     t = toc;
     prnt( '\nProcessing dark fields.')
     darks = zeros( [raw_im_shape_binned, num_dark], 'single');
-    prnt( ' Allocated bytes: %.2f MiB.', Bytes( darks, 2 ) )
+    prnt( ' allocated memory: %.2f MiB,', Bytes( darks, 2 ) )
     parfor nn = 1:num_dark
         filename = sprintf('%s%s', scan_path, dark_names{nn});
         im = single( read_image( filename, '', raw_roi, tif_info, raw_im_shape_uncropped, dtype) );
@@ -550,7 +550,7 @@ elseif ~read_flatcor
     %clear darks
     dark_med_min = min( dark(:) );
     dark_med_max = max( dark(:) );
-    prnt( ' Time elapsed: %.1f s', toc-t)
+    prnt( ' done in %.1f s', toc-t)
     if visual_output(1)
         h1 = figure('Name', 'data and flat-and-dark-field correction');
         subplot(2,3,1)
@@ -564,11 +564,11 @@ elseif ~read_flatcor
     
     %% Flat field
     t = toc;
-    prnt( '\nProcessing flat fields.')
+    prnt( '\nProcessing flat fields:')
     % Preallocation
     flat = zeros( [raw_im_shape_binned, num_ref_used], 'single');
     num_zeros = zeros( 1, num_ref_used );
-    prnt( ' Allocated bytes: %.2f GiB.', Bytes( flat, 3 ) )    
+    prnt( ' allocated memory: %.2f GiB,', Bytes( flat, 3 ) )
     % Parallel loop
     refs_to_use = zeros( 1, size( flat,3), 'logical');
     parfor nn = 1:num_ref_used
@@ -636,7 +636,7 @@ elseif ~read_flatcor
     
     nn = sum( ~refs_to_use(:) );
     num_ref_used = num_ref_used - nn;
-    prnt( ' Time elapsed: %.1f s', toc-t)
+    prnt( ' done in %.1f s', toc-t)
     PrintVerbose( verbose && nn,'\n discarded empty refs : %u', nn )
     if sum( num_zeros )
         prnt( '\n zeros found in flat fields :' )
@@ -661,10 +661,10 @@ elseif ~read_flatcor
     
     %% Projections
     t = toc;
-    prnt( '\nRead and filter projections.')
+    prnt( '\nRead and filter projections: ')
     % Preallocation
     proj = zeros( raw_im_shape_binned(1), raw_im_shape_binned(2), num_proj_used, 'single');
-    prnt( ' Allocated bytes: %.2f GiB.', Bytes( proj, 3 ) )
+    prnt( ' allocated memory: %.2f GiB,', Bytes( proj, 3 ) )
     img_names_mat = NameCellToMat( proj_names(proj_range) );
     
     % Display first raw image
@@ -776,7 +776,7 @@ elseif ~read_flatcor
     raw_max2 = max( proj(:) );
     num_empty = sum( ~projs_to_use(:) );
     num_proj_used = num_proj_used - num_empty;
-    prnt( ' Time elapsed: %.1f s (%.2f min)', toc - t, ( toc - t ) / 60 )
+    prnt( ' done in %.1f s (%.2f min)', toc - t, ( toc - t ) / 60 )
     PrintVerbose( verbose && num_empty,'\n discarded empty projections : %u', num_empty )
      if sum( num_zeros )
         prnt( '\n zeros found in flat fields :' )
@@ -883,7 +883,6 @@ end
 tint = 0;
 if do_tomo(1)
     t = toc;
-    
     % ROI for correlation of projections at angles 0 & pi
     if isempty( rot_corr_area1 )
         switch excentric_rot_axis
@@ -934,7 +933,7 @@ if do_tomo(1)
     % ROI
     im1 = proj( rot_corr_area1, rot_corr_area2, ind1);
     im2 = flipud( proj( rot_corr_area1, rot_corr_area2, ind2) );
-    prnt( '\n correlation of images : [filename index, projection index, angle / pi] = [%g, %g, %g] and [%g, %g, %g]', ...
+    prnt( '\n correlated images : [filename index, projection index, angle / pi] = [%g, %g, %g] and [%g, %g, %g]', ...
         proj_nums(ind1), ind1, val1 / pi, proj_nums(ind2), ind2, (val2 + pi) / pi )
     if rot_corr_gradient(1)
         l = 2;
@@ -988,7 +987,7 @@ if do_tomo(1)
         
     %% Determine rotation axis position %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     
-    % FULLY AUTOMATIC MODE %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    % AUTOMATIC MODE %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     if automatic_mode(1) % NOT IMPLEMENTED YET
         pts = 10;
         im_center = raw_im_shape_binned1 / 2;
@@ -1339,7 +1338,7 @@ if stitch_projections(1)
     proj = proj_sti;
     clear proj_sti;
     angles = angles(1:num_proj_sti);
-    prnt( ' Time elapsed: %.1f (%.2f min)', toc-t, (toc-t)/60)
+    prnt( ' done in %.1f (%.2f min)', toc-t, (toc-t)/60)
     prnt( '\n shape of stitched projections : %u %u %u', size( proj ) )
     prnt( '\n memory allocated : %.2f GiB', Bytes( proj, 3 ) )
 end
@@ -1398,16 +1397,15 @@ if phase_retrieval.apply && write.phase_sino
         filename = sprintf( '%ssino_%06u.tif', sino_phase_path, nn);
         write32bitTIFfromSingle( filename, squeeze( proj( :, nn, :) )' )
     end
-    pause(0.01)
-    prnt( ' done.')
-    prnt( ' Time elapsed: %.1f s (%.2f min)', toc - t, (toc - t) / 60)
+    pause(0.01)    
+    prnt( ' done in %.1f s (%.2f min)', toc - t, (toc - t) / 60)
 end
 
 %% Post phase retrieval binning
 if phase_retrieval.apply && ( phase_bin(1) > 1)
     t = toc;
     prnt( '\nPost phase retrieval binning:')
-    proj_bin = zeros( floor(size( proj ) ./ [2 2 1] ), 'single');
+    proj_bin = zeros( floor(size( proj ) ./ [phase_bin phase_bin 1] ), 'single');
     parfor nn = 1:size( proj, 3)
         proj_bin(:,:,nn) = Binning( proj(:,:,nn), phase_bin ) / phase_bin^2;
     end
@@ -1415,13 +1413,19 @@ if phase_retrieval.apply && ( phase_bin(1) > 1)
     clear proj_bin;
     rot_axis_pos = rot_axis_pos / phase_bin;
     rot_axis_offset = rot_axis_offset / phase_bin;
-    [vol_shape, vol_size] = volshape_volsize( proj, [], [], 0);    
+    [vol_shape, vol_size] = volshape_volsize( proj, [], [], 0);
     prnt( ' done in %g s (%.2f min)', toc - t, (toc - t) / 60)
 end
 
 %% Tomographic reco
 if do_tomo(1)
     prnt( '\nTomographic reconstruction:')
+    
+    vol = zeros( vol_shape, 'single' );
+
+    prnt( '\n volume shape: [%g, %g, %g]', vol_shape )
+    prnt( '\n volume memory allocated: %.2f GiB', Bytes( vol, 3 ) )
+    %prod( vol_shape ) * 4 / 1024^3 ;
     
     if stitch_projections(1)
         rot_axis_offset_reco = 0;
@@ -1430,14 +1434,13 @@ if do_tomo(1)
     else
         rot_axis_offset_reco = rot_axis_offset;
     end
-    prnt( '\n shape of reconstructed volume: [%g, %g, %g]', vol_shape )
-    prnt( '\n memory required: %.2f GiB', prod( vol_shape ) * 4 / 1024^3 )
     
     if isempty( take_neg_log )
         take_neg_log = 1;
     end
-    angles_reco = angles;
+    
     % Delete redundant projection
+    angles_reco = angles;
     if isequal( angles(1), angles(end) )
         angles_reco(end) = [];
         proj(:,:,end) = [];
@@ -1519,11 +1522,13 @@ if do_tomo(1)
         drawnow
     end
     
+    
+    if phase_retrieval.apply
+        reco_path = reco_phase_path;
+    end
     % Save volume
     if write.reco
-        if phase_retrieval.apply
-            reco_path = reco_phase_path;
-        end
+        
         CheckAndMakePath( reco_path )
         
         % Save reco path to file
@@ -1575,7 +1580,7 @@ if do_tomo(1)
         
     end
     
-    prnt( ' Time elapsed: %.1f s (%.2f min)', toc-t, (toc-t)/60 )
+    prnt( ' done in %.1f s (%.2f min)', toc-t, (toc-t)/60 )
 end
 
 %% Log file

@@ -6,13 +6,13 @@ function stack = Readstack(InputPath,StepSize_or_VecOfImagesToRead,FilenamePatte
 
 %% Default arguments.
 if nargin < 1
-    InputPath = '';
+    InputPath = '.';
 end
 if nargin < 2
     StepSize_or_VecOfImagesToRead = 1;
 end
 if nargin < 3
-    FilenamePattern = '*.tif';
+    FilenamePattern = '*.tif*';
 end
 
 %% MAIN %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -22,9 +22,6 @@ tic
 if isnumeric(InputPath)
     fprintf('\nERROR: First input argument must be string.\n\n')
     return
-end
-if isempty(InputPath)
-    InputPath = '.';
 end
 CheckTrailingSlash(InputPath);
 files = FilenameCell(sprintf('%s%s',InputPath,FilenamePattern));

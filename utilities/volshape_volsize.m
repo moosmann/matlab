@@ -79,4 +79,4 @@ end
 %% Print info
 PrintVerbose( verbose, '\n volume shape: [%g %g %g]', vol_shape )
 PrintVerbose( verbose, '\n volume size: [%g %g %g %g %g %g]', vol_size )
-PrintVerbose( verbose, '\n memory required: %.2f GiB', prod( vol_shape ) * 4 / 1024^3 )
+PrintVerbose( verbose, '\n memory required before stitching and binning: %.2f GiB', prod( vol_shape ) * 4 / 1024^3 )

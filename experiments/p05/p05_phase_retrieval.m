@@ -6,7 +6,7 @@ function [proj, reco_phase_path] = p05_phase_retrieval( phase_retrieval_paramete
 % [proj, reco_phase_path] = p05_phase_retrieval( phase_retrieval_parameter, edp, proj, subfolder_reco, write, phase_map_path, verbose, visual_output)
 
 t = toc;
-PrintVerbose( verbose, '\nPhase retrieval')
+PrintVerbose( verbose, '\nPhase retrieval: ')
 PrintVerbose( verbose, '\n energy : %g eV', edp(1))
 PrintVerbose( verbose, '\n sample detector distance : %g m', edp(2))
 PrintVerbose( verbose, '\n pixel size : %g micron', edp(3) * 1e6)

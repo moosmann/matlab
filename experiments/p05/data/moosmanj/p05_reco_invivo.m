@@ -53,6 +53,7 @@ ADD('d')
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 raw_path = '/asap3/petra3/gpfs/p05/2016/data/11001994/raw/';
+% - "Neurulation in developing fishes studied by in vivo time-lapse tomography", Benjamin Nauman, Friedrich-Schiller-Universitaet, November 2016
 
 % strong movement: 0/pi proj do not match
 scan_path = [raw_path 'szeb_07_00']; 

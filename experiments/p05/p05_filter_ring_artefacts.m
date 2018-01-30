@@ -5,7 +5,7 @@ function [proj, h] = p05_filter_ring_artefacts( ring_filter, proj, angles, verbo
 %
 % [proj, h] = p05_filter_ring_artefacts( ring_filter, proj, angles, verbose, visual_output)
 
-PrintVerbose( verbose, '\nFilter ring artifacts using %s. ', ring_filter.method)
+PrintVerbose( verbose, '\nFilter ring artifacts using %s: ', ring_filter.method)
 t = toc;
 imsc1 = @(im) imsc( flipud( im' ) );
 % sort angles for displaying and non-contiguous acquisition
@@ -29,7 +29,7 @@ switch lower( ring_filter.method )
             proj(:,nn,:) = sino;
         end
         sino_filt = squeeze( proj(:,sino_slice,sorted_angle_index) )';
-        PrintVerbose( verbose, ' Time elapsed: %.1f s (%.2f min)', toc-t, (toc-t)/60)
+        PrintVerbose( verbose, ' done in %.1f s (%.2f min)', toc-t, (toc-t)/60)
         
         if visual_output
             h = figure('Name', 'Sinogram and ring filter');
@@ -82,6 +82,7 @@ switch lower( ring_filter.method )
         
         PrintVerbose( verbose, ' Time elapsed: %.1f s (%.2f min)', toc-t, (toc-t)/60)
         PrintVerbose( verbose, '\n ring filter mask min/max: %f, %f', min( mask(:) ), max( mask(:) ) )
+        %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         if visual_output
             h = figure('Name', 'Sinogram and ring filter');
             

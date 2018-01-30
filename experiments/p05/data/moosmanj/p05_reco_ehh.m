@@ -78,12 +78,9 @@ write_to_scratch = 1;
 %interactive_determination_of_rot_axis = 0;
 ADD
 
-
 parfolder = 'noButterworth';
 butterworth_filter = 0;
 ADD('r')
-
-
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
