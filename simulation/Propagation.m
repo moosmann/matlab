@@ -1,8 +1,7 @@
 function [intensity,intensity_padded,fprop,fu,xi,eta] = ...
     Propagation(phase_object,EnergyDistancePixelsize,padding,MethodOrPadValue,PrintDomains) 
-
 % Compute intensity pattern at distance z in Fresnel theory for
-% monochromatic incident plane wave of given energy and assumming given pixelsize.
+% monochromatic incident plane wave of given energy and pixelsize.
 %
 % [intensity,intensity_padded,fprop,fu,xi,eta] = 
 % Propagation(phase_object,EnergyDistancePixelsize,padding,MethodOrPadValue,PrintDomains); 
@@ -10,17 +9,17 @@ function [intensity,intensity_padded,fprop,fu,xi,eta] = ...
 if nargin<2
     EnergyDistancePixelsize(1)=25; % in keV
     EnergyDistancePixelsize(2)=1; % in m
-    EnergyDistancePixelsize(3)= 0.36e-6;
-end; % in m
+    EnergyDistancePixelsize(3)= 0.36e-6; % in m
+end 
 if nargin<3
     padding = 1;
-end;
+end
 if nargin<4
     MethodOrPadValue = 'symmetric';
-end;
+end
 if nargin<5
     PrintDomains = 1;
-end;
+end
 
 % Parameters.
 energy      = EnergyDistancePixelsize(1); % in keV
@@ -47,12 +46,12 @@ xcut  = 1+(padx-dimx)/2:(padx+dimx)/2;
 ycut  = 1+(pady-dimy)/2:(pady+dimy)/2;
 intensity     = intensity_padded(xcut,ycut);
 % Print parameters and domains.
-if PrintDomains,
+if PrintDomains
     fprintf(1,'distance=%gm, lambda=%gm, pixelsize=%g, resolution=[%u,%u], lambda*distance/pixelsize^2=%g\n', ...
         distance,lambda,pixelsize,dimx,dimy,lambda*distance/pixelsize^2);
     domain(intensity,1,'intensity');
     %domain(phase_object,'exact phase');
     %domain(phase_object/2/phi,'phase/2pi');
-end;
+end
 
 

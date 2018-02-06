@@ -15,13 +15,13 @@ function [int, intPadded] = Propagation2(PhaseShift,Absorption,EnergyDistancePix
 %% Defaults %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 if nargin < 3
     EnergyDistancePixelsize = [20 0.945 .75e-6];% [keV m m]
-end;
+end
 if nargin < 4
     Padding = '';'symmetric';
-end;
+end
 if nargin < 5
     printInfo = 0;
-end;
+end
 %% MAIN %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Parameters
 precision = class(PhaseShift);
@@ -68,7 +68,7 @@ if Padding
 end
 
 % Print info
-if printInfo,
+if printInfo
     fprintf(' \n FRESNEL PROPAGATION: \n')
     fprintf(' E = %g keV, z = %g m, dx = %g micron, size = %u x %u, 2*pi*lambda*z/dx^2 = %g\n', ...
         Energy,Distance,Pixelsize,dimx,dimy,ArgPrefac);
@@ -81,4 +81,4 @@ if printInfo,
     end
     domain(int,1,'Intensity')
     fprintf(' \n')
-end;
+end
