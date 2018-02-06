@@ -115,7 +115,8 @@ sinArg = ArgPrefac*(sinArg.^2 + sinxiquad.^2);
 %% Filter 
 switch lower(method)
     case 'tie'
-        fourier_filter = 1/2./(sinArg + 10^-regularization_parameter);
+        %fourier_filter = 1/2./(sinArg + 10^-regularization_parameter);        
+        fourier_filter = 1/2*sign(sinArg)./(abs(sinArg)+10^-regularization_parameter);                
         string_appendix = sprintf('tie_regPar%3.2f',regularization_parameter);
     case 'ctf'
         sinxiquad   = sin(sinArg);
@@ -146,7 +147,7 @@ switch lower(method)
 end
 
 % Restore zero frequency component
-fourier_filter(1) = 1/2*10^regularization_parameter;
+%fourier_filter(1) = 1/2*10^regularization_parameter;
 
 % Replace dots by p
 string_appendix = regexprep(string_appendix,'\.','p');
