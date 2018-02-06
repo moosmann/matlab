@@ -1,17 +1,17 @@
-function mat = normat(mat, MinMax)
-% Normalize matrix "mat" to the dynamic range between MinMax(1) and
-% MinMax(2), else between [0,1].
+function array = normat( array, min_max)
+% Normalize matrix "array" to the dynamic range between min_max(1) and
+% min_max(2), else between [0,1].
 %
 % Writtten by Julian Moosmann, last version: 2014-06-25
 
 %% Define range
 if nargin == 2
-    minVal = MinMax(1);
-    maxVal = MinMax(2);
+    min_val = min_max(1);
+    max_val = min_max(2);
 else
-    minVal = min(mat(:));
-    maxVal = max(mat(:));
+    min_val = min(array(:));
+    max_val = max(array(:));
 end
 
 %% Normalize
-mat = (mat - minVal)/(maxVal - minVal);
+array = ( array - min_val )/ ( max_val - min_val );

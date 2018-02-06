@@ -1,4 +1,4 @@
-function lambda = E_to_lambda(keV)
+function lambda = E_to_lambda(eV)
 % Convert energy in keV to wavelength in metre. The wavelength λ, in pm, can 
 %be derived from the tabulated energy E, in keV, by the relationship λ = 1239.81/E.
 
@@ -7,4 +7,4 @@ function lambda = E_to_lambda(keV)
 % q      = 1.60217733e-16;
 % lambda = h*c./(keV*q);
 
-lambda =  1.23984122e-09/keV;
+lambda =  1.23984122e-09/(eV * 1e-3);

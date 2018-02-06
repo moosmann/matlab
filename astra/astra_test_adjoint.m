@@ -4,8 +4,8 @@ function astra_test_adjoint()
 %% Paramters %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % volume sizes
-vol_shape_2d = [100, 100];
-vol_shape_3d = [100, 100, 100];
+vol_shape_2d = [101, 202];
+vol_shape_3d = [103, 109, 111];
 
 % distances for fanflat and cone
 source_origin = 300;
@@ -13,8 +13,8 @@ origin_detector = 100;
 
 % parameters for 2D and 3D
 det_col_count = 100; % for 3D use square detector
-num_angles = 1;
-det_width = 2 ;% for 3D use quadratic detector
+num_angles = 77;
+det_width = 2e-6 ;% for 3D use quadratic detector
 angles = linspace2(0, 3*pi, num_angles); % excludes upper limit
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
