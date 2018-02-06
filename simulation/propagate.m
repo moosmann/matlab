@@ -1,4 +1,4 @@
-function [int] = propagate(phase_shift, absorption, EnergyDistancePixelsize, padding, padding_method, verbose)
+function [int] = propagate(phase_shift, absorption, EnergyDistancePixelsize, padding, padding_method, filt, verbose)
 % Intensity according Fresnel propagation for a monochromatic plane wave of
 % energy 'EnergyDistancePixelsize'(1), a sample to detector distance
 % 'EnergyDistancePixelsize'(2), and detector pixelsize of
@@ -36,6 +36,9 @@ if nargin < 5
     padding_method = 'symmetric';
 end
 if nargin < 6
+    filt = 1;
+end
+if nargin < 7
     verbose = 0;
 end
 
@@ -63,7 +66,7 @@ y = FrequencyVector( im_shape_pad(2), precision, normalize);
 [xi, eta] = meshgrid( y, x);
 
 % Fresnel propagation
-int = abs( ifft2( exp( - 1i* frequ_prefactor * ( xi.^2 + eta.^2) / 2 ) .* fft2( exp( - absorption + 1i*phase_shift ) ) ) ).^2;
+int = abs( ifft2( filt .* exp( - 1i* frequ_prefactor * ( xi.^2 + eta.^2) / 2 ) .* fft2( exp( - absorption + 1i*phase_shift ) ) ) ).^2;
 
 % Crop to orginial size
 int = int(1:im_shape(1),1:im_shape(2));

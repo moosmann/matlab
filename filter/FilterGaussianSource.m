@@ -24,7 +24,7 @@ if nargin < 5
     pixelsize = 1e-6; % m
 end
 if nargin < 6
-    precision = 'single';
+    precision = 'double';
 end
 
 %% Main %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -54,7 +54,4 @@ y = 1 / 2 / pixelsize *  FrequencyVector(shape_or_image(1), precision, 1);
 [xx, yy] = meshgrid( x, y);
 
 % Fourier space filter (prefactor cancels because of normalization)
-filt =  exp(  - 2 * (pi*blur_sigma_v*xx).^2 - 2 * (pi*blur_sigma_h*yy).^2 );
-
-
-
+filt =  exp( - 2 * pi^2 *  dist_source_sample / dist_sample_detector *( (blur_sigma_v*xx).^2 + (blur_sigma_h*yy).^2 ) );
