@@ -12,17 +12,26 @@ beta_H20_30keV = 1.06431745E-10;
 
 %% Source size
 % PETRA III
-p3_s_h = 140e-6; % m
-p3_s_v = 6e-6; % m
+p3_sigma_h = 140e-6; % m
+p3_sigma_v = 6e-6; % m
 % PETRA IV
-p4_s_h = 6e-6; % m
-p4_s_v = p4_s_h; %m
+p4_sigma_h = 6e-6; % m
+p4_sigma_v = p4_sigma_h; %m
+% ESRF
+esrf_sigma_h = 59e-6; % m. 51 FWHM: 90 micron
+esrf_sigma_v = 8.3e-6; %m. 8.6 FWHM: 20 micron
 
 %% emittance
-p3_emitt_h__pm_rad = 1200; % pm * rad
-p3_emitt_v__pm_rad = 10; % pm * rad
-p4_emitt_h__pm_rad = 10; % pm * rad
-p4_emitt_v__pm_rad = 10; % pm * rad
+p3_emitt_h = 1200e-12; % m * rad
+p3_emitt_v = 10e-12; % m * rad
+p4_emitt_h = 10e-12; % m * rad
+p4_emitt_v = 10e-12; % m * rad
+
+%% divergence
+p3_div_h = p3_emitt_h / p3_sigma_h;
+p3_div_v = p3_emitt_v / p3_sigma_v;
+p4_div_h = p4_emitt_h / p4_sigma_h;
+p4_div_v = p4_emitt_v / p4_sigma_v;
 
 %% relative coherence
 p3_coh_rel = 0.01; % per cent
@@ -45,14 +54,14 @@ c = speedOfLight; %m/s
 
 %% Distances
 % distance source sample
-R = 100 ;% m
-p05_dist_source_dcm = 50.9;
-p05_dist_source_sample = 82.7;
-p05_dist_dcm_sample = p05_dist_source_sample - p05_dist_source_dcm;
+p05_dist_source_dcm = 50.9; % m
+p05_dist_source_sample = 82.7; % m
+p05_dist_dcm_sample = p05_dist_source_sample - p05_dist_source_dcm; % m
+id19_dist_source_sample = 145; % m
 
 % longitudinal coherence lenght in vacuum v = c/n with n = 1
 coh_l = speedOfLight * 2 * pi / dw; % m
-coh_t_induced_by_coh_l = sqrt( 2 * R * coh_l ); % m
+coh_t_induced_by_coh_l = sqrt( 2 * p05_dist_source_sample * coh_l ); % m
 
 coh.long__micron = coh_l * 1e6;
 coh.transByLong__micron = coh_t_induced_by_coh_l * 1e6;
@@ -71,19 +80,22 @@ out.df__Hz = df;
 %% Simulation
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-N = 200;
+N = 500;
+num_angles = round( 1.6 * N );
 sf = 1;
-pixelsize = 1.5e-6;
-dist_sample_detector = 0.2;
+pixelsize = 1.4e-6;
+dist_sample_detector = 0.5;
 voxelsize = sf * pixelsize;
 M = ceil( sqrt(2) * sf * N ) + 1;
-gauss_noise_mean = 0.02;
-par_coh_filt = 0;
-% Image blurring by Gaussian source: VCZ in the far for an extended
-% quasimonochromatic, incoherent source with Gaussian profile assuming weak
-% phase variations and small absolute absorption
-source_size_h_v = [p3_s_h, p3_s_v];
-dist_source_sample = p05_dist_source_sample;
+gauss_noise_mean = 0.05;
+delta_phase = 0.1;
+coherence = 'p4';'esrf';'full';'p3';
+
+phase_method = 'tie';
+reg_par = 7;
+bin_filt = 0.1;
+cutoff_frequ = 2*pi;
+phase_padding = 1;
 
 vs = N / 2 * voxelsize;
 min_x = - vs;
@@ -93,7 +105,7 @@ max_y = vs;
 min_z = - vs;
 max_z = vs;
 %num_angles = round( 2 * pi /2 * N);
-num_angles = 2 * N;
+
 angle_range = pi;
 angles = angle_range * (0:num_angles - 1) / num_angles;
 det_spacing_x = pixelsize;
@@ -104,10 +116,9 @@ det_col_count = M;
 % Create phantom
 phan = phantom3d( 'Modified Shepp-Logan' , N);
 phan = FilterBlur( phan, 0, 1);
-%phan = delta_H20_30keV * (1 + 0.1 * phan);
-phan = delta_H20_30keV * phan;
-phan = 0.25 * phan;
-%phan = SubtractMean( phan );
+%phan = delta_H20_30keV * phan;
+%phan = 0.25 * phan;
+phan = delta_phase * phan / k0 / pixelsize / 0.25 / N;
 
 % Forward projection
 fprintf( '\nForward projection' );
@@ -127,26 +138,34 @@ sino_prop = zeros( size( sino ), 'like', sino );
 gauss_noise_var = (gauss_noise_mean / (4 * sqrt( 2 * log(2) ) ) )^2;
 add_noise = @(im) im + imnoise( zeros(size( im )), 'gaussian', gauss_noise_mean, gauss_noise_var);
 fshape = (1 + prop_padding) * [M M];
-[filt, blur_sigma, blur_cutoff_frequ] = FilterGaussianSource(fshape, source_size_h_v, dist_source_sample, dist_sample_detector, pixelsize);
-if par_coh_filt(1)
-    prop_filt = filt;
-else
-    prop_filt = 1;
+% Gaussian source convolution (blurring): VCZ in the far for an extended
+% quasimonochromatic, incoherent source with Gaussian profile assuming weak
+% phase variations and small absolute absorption
+switch coherence
+    case 'full'
+        filt = 1;
+    case 'p3'
+        source_sigma_h_v = [p3_sigma_h, p3_sigma_v];
+        dist_source_sample = p05_dist_source_sample;
+    case 'p4'
+        source_sigma_h_v = [p4_sigma_h, p4_sigma_v];
+        dist_source_sample = p05_dist_source_sample;
+    case 'esrf'
+        source_sigma_h_v = [esrf_sigma_h, esrf_sigma_v];
+        dist_source_sample = id19_dist_source_sample;
+end
+if ~strcmp( coherence, 'full' )
+    filt = FilterGaussianSource(fshape, sigma_to_FWHM( source_sigma_h_v ), dist_source_sample, dist_sample_detector, pixelsize);
 end
 parfor nn = 1:size( sino, 2 )
     im = squeeze( sino(:,nn,:) );
-    int = propagate( -im, 0*im, edp, prop_padding, prop_method, prop_filt, 0);
+    int = propagate( -im, 0*im, edp, prop_padding, prop_method, filt, 0);
     % Noise
     int = add_noise( int );
     sino_prop(:,nn,:) = int;
 end
 
 % Phase retrieval
-phase_method = 'tie';
-reg_par = 7;
-bin_filt = 0.1;
-cutoff_frequ = 1*pi;
-phase_padding = 1;
 sino_retr = zeros( size( sino_prop ), 'like', sino_prop );
 im_shape = [ size( sino_prop, 1 ), size( sino_prop, 1 )];
 [phase_filter, pha_appendix] = PhaseFilter( phase_method, (1 + phase_padding) * im_shape, edp, reg_par, bin_filt, cutoff_frequ, 'double');
@@ -156,6 +175,9 @@ parfor nn = 1:size( sino, 2 )
     sino_retr(:,nn,:) = pha(1:im_shape(1), 1:im_shape(2));
 end
 %sino_retr = sino_retr + 0.5 / 10^-reg_par;
+
+% Remove negative values
+%sino_retr( sino_retr < 0 ) = 0;
 
 % Ram-Lak Filter
 fprintf( '\nFilter sino' );
@@ -182,9 +204,9 @@ reco = 1 / k0 * (angles(end) - angles(1)) / 2 / num_angles / pixelsize / voxelsi
 % Error
 diff_reco_phan = abs( reco - phan ) / (max(phan(:)) - min(phan(:)));
 
-coh.blur_sigma = blur_sigma;
-coh.blur_cutoff_frequ__1_m = blur_cutoff_frequ;
-coh.blur_cutoff_frequ_relativ = blur_cutoff_frequ * 2 * pixelsize;
+%coh.blur_sigma = blur_sigma;
+%coh.blur_cutoff_frequ__1_m = blur_cutoff_frequ;
+%coh.blur_cutoff_frequ_relativ = blur_cutoff_frequ * 2 * pixelsize;
 
 sim.N = N;
 sim.M = M;
@@ -247,10 +269,10 @@ title( sprintf( '[sino prop](:,1,:)' ) )
 
 set( figure(nn),  'Name',  'FT of propagated projections' );
 im = squeeze(sino_prop(:,1,:));
-im = log( 1 + abs( fftshift( fft2( im ) ) ) );
+im = log( 1 + abs( fftshift( fft2( SubtractMean( im ) ) ) ) );
 imsc( im );
 axis tight equal; colorbar; nn = nn + 1;
-title( sprintf( '[sino prop](:,1,:)' ) )
+title( sprintf( 'FT[sino prop](:,1,:)' ) )
 
 
 set( figure(nn),  'Name',  'retrieved phase maps' );

@@ -146,9 +146,6 @@ switch lower(method)
         string_appendix = sprintf('qp2_regPar%3.2f_binFilt%3.3f',regularization_parameter,binary_filter_threshold);
 end
 
-% Restore zero frequency component
-%fourier_filter(1) = 1/2*10^regularization_parameter;
-
 % Replace dots by p
 string_appendix = regexprep(string_appendix,'\.','p');
 
