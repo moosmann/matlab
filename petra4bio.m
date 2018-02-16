@@ -1,9 +1,10 @@
 %clear all
+warning( 'off', 'MATLAB:imagesci:rtifc:missingPhotometricTag');
 
 % emittance = eps_i = RMS-width of source * divergence eps_i = sigma_i *
 % sigma_theta_i, RMS(f(x)) = sqrt( int_x1_x2 f(x)^2 dx )
 
-% Brillicance = (spectral photon flux at 0.1% bandwidth at E) / (4 pi *
+% Brilliance = (spectral photon flux at 0.1% bandwidth at E) / (4 pi *
 % eps_x * epx_y) = [ photons / s / rad^2 / m^2 / 0.1% bandwidth]
 
 % Refractive index
@@ -12,7 +13,7 @@ beta_H20_30keV = 1.06431745E-10;
 
 %% Source size
 % PETRA III
-p3_sigma_h = 140e-6; % m
+p3_sigma_h = 38e-6; % m
 p3_sigma_v = 6e-6; % m
 % PETRA IV
 p4_sigma_h = 6e-6; % m
@@ -51,6 +52,7 @@ dw = dE / reducedPlanckConstant;
 f = E / PlanckConstant;
 df = dE / PlanckConstant;
 c = speedOfLight; %m/s
+k0 = 2 * pi / lambda;
 
 %% Distances
 % distance source sample
@@ -80,16 +82,16 @@ out.df__Hz = df;
 %% Simulation
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-N = 500;
-num_angles = round( 1.6 * N );
+N = 1024; 
+num_angles = round( 1.6 * N ); 
 sf = 1;
-pixelsize = 1.4e-6;
-dist_sample_detector = 0.5;
+pixelsize = 1e-6; 
+dist_sample_detector = 0.5; 
 voxelsize = sf * pixelsize;
 M = ceil( sqrt(2) * sf * N ) + 1;
-gauss_noise_mean = 0.05;
-delta_phase = 0.1;
-coherence = 'p4';'esrf';'full';'p3';
+delta_phase = 0.5; 
+gauss_noise_mean = 0.04; 
+coherence = 'p4';'p3';'esrf';'full';
 
 phase_method = 'tie';
 reg_par = 7;
@@ -122,7 +124,6 @@ phan = delta_phase * phan / k0 / pixelsize / 0.25 / N;
 
 % Forward projection
 fprintf( '\nForward projection' );
-k0 = 2 * pi / lambda;
 vol_geom = astra_create_vol_geom( N, N, N, min_x, max_x, min_y, max_y, min_z, max_z );
 proj_geom = astra_create_proj_geom('parallel3d', det_spacing_x, det_spacing_y, det_row_count, det_col_count, angles);
 [sino_id, sino] = astra_create_sino3d_cuda( phan, proj_geom, vol_geom);
@@ -133,7 +134,7 @@ fprintf( '\nForward propagation ' );
 edp = [E, dist_sample_detector, pixelsize];
 prop_padding = 1;
 prop_method = 'symmetric';
-sino_prop = zeros( size( sino ), 'like', sino );
+int = zeros( size( sino ), 'like', sino );
 % FWHM = 2 * sqrt( 2 * log(2) ) * std, choose var that FWHM is mean / 2
 gauss_noise_var = (gauss_noise_mean / (4 * sqrt( 2 * log(2) ) ) )^2;
 add_noise = @(im) im + imnoise( zeros(size( im )), 'gaussian', gauss_noise_mean, gauss_noise_var);
@@ -159,28 +160,32 @@ if ~strcmp( coherence, 'full' )
 end
 parfor nn = 1:size( sino, 2 )
     im = squeeze( sino(:,nn,:) );
-    int = propagate( -im, 0*im, edp, prop_padding, prop_method, filt, 0);
-    % Noise
-    int = add_noise( int );
-    sino_prop(:,nn,:) = int;
+    im = propagate( -im, 0*im, edp, prop_padding, prop_method, filt, 0);    
+    int(:,nn,:) = im;
+end
+
+% Noise
+fprintf( '\nNoise' );
+
+int_noise = zeros( size( int ), 'like', int );
+parfor nn = 1:size( int, 2 )
+    im = squeeze( int(:,nn,:) );    
+    int_noise(:,nn,:) = add_noise( im );
 end
 
 % Phase retrieval
-sino_retr = zeros( size( sino_prop ), 'like', sino_prop );
-im_shape = [ size( sino_prop, 1 ), size( sino_prop, 1 )];
+fprintf( '\nPhase retrieval' );
+sino_retr = zeros( size( int_noise ), 'like', int_noise );
+im_shape = [ size( int_noise, 1 ), size( int_noise, 1 )];
 [phase_filter, pha_appendix] = PhaseFilter( phase_method, (1 + phase_padding) * im_shape, edp, reg_par, bin_filt, cutoff_frequ, 'double');
 parfor nn = 1:size( sino, 2 )
-    im = padarray( squeeze( sino_prop(:,nn,:) ), phase_padding * im_shape, 'symmetric', 'post' );
+    im = padarray( squeeze( int_noise(:,nn,:) ), phase_padding * im_shape, 'symmetric', 'post' );
     pha = -real( ifft2( phase_filter .* fft2( im ) ) );
     sino_retr(:,nn,:) = pha(1:im_shape(1), 1:im_shape(2));
 end
-%sino_retr = sino_retr + 0.5 / 10^-reg_par;
-
-% Remove negative values
-%sino_retr( sino_retr < 0 ) = 0;
 
 % Ram-Lak Filter
-fprintf( '\nFilter sino' );
+fprintf( '\nFBP filter sino' );
 fbp_filter_type = 'Ram-Lak';
 fbp_filter_padding = 1;
 fbp_filter_padding_method = 'symmetric';
@@ -202,8 +207,7 @@ fprintf( '\nBack-projection' );
 reco = 1 / k0 * (angles(end) - angles(1)) / 2 / num_angles / pixelsize / voxelsize^3 * reco;
 
 % Error
-diff_reco_phan = abs( reco - phan ) / (max(phan(:)) - min(phan(:)));
-
+diff_reco_phan = abs( reco - phan );
 %coh.blur_sigma = blur_sigma;
 %coh.blur_cutoff_frequ__1_m = blur_cutoff_frequ;
 %coh.blur_cutoff_frequ_relativ = blur_cutoff_frequ * 2 * pixelsize;
@@ -213,6 +217,48 @@ sim.M = M;
 sim.num_angles = num_angles;
 sim.angle_first_last = [angles(1), angles(end)];
 
+par.N = N;
+par.num_angles = num_angles;
+par.delta_phase = delta_phase;
+par.gauss_noise_mean = 0.02;
+par.dist_sample_detector = dist_sample_detector;
+par.pixelsize = pixelsize;
+par.coherence = coherence;
+par.phase_method = phase_method;
+
+%% In vivo data %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+dpath = '/asap3/petra3/gpfs/p05/2016/data/11001994/raw/szeb_74_00/';
+d = imread([dpath 'dark_0000.tif']);
+f = imread([dpath 'ref_0000.tif']);
+p =imread([dpath 'proj_0000.tif']);
+roi1 = round(size(d),1)/4:3*round(size(d),1)/4;
+roi2 = round(size(d),2)/4:3*round(size(d),2)/4;
+thresh = [0.05 0.02];
+d = Binning( FilterPixel( d(roi1,roi2), thresh ) ) ;
+p = Binning( FilterPixel( p(roi1,roi2), thresh ) ) ;
+p = p -d;
+f = Binning( FilterPixel( f(roi1,roi2), thresh ) ) ;
+f = f-d;
+int1 = p ./ f;
+dm = mean2( d );
+ds = std2( d );
+pm = mean2( p );
+ps = std2( p );
+fm = mean2( f );
+fs = std2( f );
+intm = mean2( int1 );
+%ishow(d),ishow(f),ishow(p),ishow(ii)
+
+% Assume Poisson noise then mean(I) = var(I), but unknown conversion factor
+% conversion factor given by mean(I) / var(I)
+cnt_conv_fac = fm / fs^2;
+cnt = fm * cnt_conv_fac;
+% signal ( mean(I) = lambda ) to noise ( std(I)=sqrt(lambda) )
+noise = sqrt( cnt );
+noise_rel = noise / cnt;
+
 %% Print %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -221,74 +267,122 @@ disp( out )
 disp( coh )
 disp( sim )
 
+disp( par )
+
 % Ranges
-domain( filt(:), 1, 'Fourier space blurring filter' );
+domain( filt(:), 0, 'Fourier space blurring filter' );
 
-domain( sino_prop(:), 1, 'intensities / propagated projections' )
-domain( sino_pha_ret_fbpfilt(:), 1, 'Ram-Lak filtered retrieved phase maps' )
+domain( int(:), 0, 'intensities without noise' )
+domain( int_noise(:), 0, 'intensities with noise' )
+domain( sino_pha_ret_fbpfilt(:), 0, 'Ram-Lak filtered retrieved phase maps' )
 
-domain( sino(:), 1,      'projection: phase maps' )
-domain( sino_retr(:), 1, 'retrieved phase maps' )
+domain( sino(:), 0,      'projection: phase maps' )
+domain( sino_retr(:), 0, 'retrieved phase maps' )
 
-domain( diff_reco_phan(:), 1, 'diff: |reco - phan|' )
-domain( phan(:), 1,           'Shepp-Logan phantom' )
-domain( reco(:), 1,           'reconstruction     ' )
+domain( diff_reco_phan(:)/max(phan(:)), 0, 'diff: |reco - phan|/max(phan)' )
+domain( phan(:), 0,           'Shepp-Logan phantom' )
+domain( reco(:), 0,           'reconstruction     ' )
 
 aclear;
 
 %% Show %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+parpath = sprintf('/asap3/petra3/gpfs/common/p05/jm/petra4bio/N%04u_sigHor%u/', N, p3_sigma_h*1e6 );
+outpath = sprintf('%s%s/', parpath, coherence );
+CheckAndMakePath( outpath );
+save_png_par = @(im, name) imwrite( uint8(2^8*rescale(im)), [parpath name '.png'] );
+save_png = @(im, name) imwrite( uint8(2^8*rescale(im)), [outpath name '.png'] );
+
 nn = 1;
 
-set( figure(nn),  'Name',  'Fourier space blurring filter' );
-imsc( fftshift(filt));
-axis tight equal; colorbar; nn = nn + 1;
-
+% Phantom
 set( figure(nn),  'Name',  'phantom: Shepp-Logan' );
 sli = round( size( phan, 3) / 2 );
-rphan = [ min(phan(:)) max(phan(:))];
-imsc( phan(:,:,sli),  rphan);
+im = phan(:,:,sli);
+imsc( im );
 axis tight equal; colorbar; nn = nn + 1;
 title( sprintf( 'phan(:,:,%u)', sli ) )
+name = sprintf( 'phantom_z%u', sli);
+save_png( im, name)
+% Tomo
+set( figure(nn),  'Name',  'reconstruction' );
+sli = round( size( reco, 3) / 2 );
+im = squeeze( reco(:,:,sli) );
+imsc( im );
+axis tight equal; colorbar; nn = nn + 1;
+title( sprintf( 'reco(:,:,%u)', sli ) )
+name = sprintf( 'reco_tomo_z%u', 1);
+save_png( im, name)
 
+% simulated phase map
 set( figure(nn),  'Name',  'projection: phase map' );
-imsc( squeeze(sino(:,1,:)), [0 max( sino(:))]);
+im = squeeze(sino(:,1,:));
+dyn_range = [0 max( sino(:))];
+imsc( im, dyn_range);
 axis tight equal; colorbar; nn = nn + 1;
 title( sprintf( 'sino(:,1,:)' ) )
-
-set( figure(nn),  'Name',  'projection: sino' );
-sli = round( size( sino, 3) / 2 );
-imsc( squeeze(sino(:,:,sli)), [0 max( sino(:))]);
+name = sprintf( 'phase_map_n%u', 1);
+save_png( im, name)
+% retrieved phase map
+set( figure(nn),  'Name',  'retrieved phase maps' );
+im = squeeze(sino_retr(:,1,:)) ;
+imsc( im );
 axis tight equal; colorbar; nn = nn + 1;
-title( sprintf( 'sino(:,:,%u)', sli ) )
+title( sprintf( '[sino retr](:,1,:)' ) )
+name = sprintf( 'phase_map_retrieved_n%u', 1);
+save_png( im, name)
 
-set( figure(nn),  'Name',  'propagated projections: intensities' );
-imsc( squeeze(sino_prop(:,1,:)) );
+% intensity w/o noise
+set( figure(nn),  'Name',  'intensity w/o noise' );
+im = squeeze(int(:,1,:));
+imsc( im );
 axis tight equal; colorbar; nn = nn + 1;
-title( sprintf( '[sino prop](:,1,:)' ) )
+title( sprintf( '[int](:,1,:)' ) )
+name = sprintf( 'int_wo_noise_n%u', 1);
+save_png( im, name)
 
+% intensity with noise
+set( figure(nn),  'Name',  'intensity with noise' );
+im = squeeze(int_noise(:,1,:));
+imsc( im );
+axis tight equal; colorbar; nn = nn + 1;
+title( sprintf( '[int noise prop](:,1,:)' ) )
+name = sprintf( 'int_n%u', 1);
+save_png( im, name)
+
+% FT intensity
 set( figure(nn),  'Name',  'FT of propagated projections' );
-im = squeeze(sino_prop(:,1,:));
+im = squeeze(int_noise(:,1,:));
 im = log( 1 + abs( fftshift( fft2( SubtractMean( im ) ) ) ) );
 imsc( im );
 axis tight equal; colorbar; nn = nn + 1;
-title( sprintf( 'FT[sino prop](:,1,:)' ) )
+title( sprintf( 'FT[int noise](:,1,:)' ) )
+name = sprintf( 'FT_propagated_projection_n%u', 1);
+save_png( im, name)
 
-
-set( figure(nn),  'Name',  'retrieved phase maps' );
-imsc( squeeze(sino_retr(:,1,:)) );
-axis tight equal; colorbar; nn = nn + 1;
-title( sprintf( '[sino retr](:,1,:)' ) )
-
-set( figure(nn),  'Name',  'reconstruction' );
-sli = round( size( reco, 3) / 2 );
-imsc( squeeze(reco(:,:,sli)), rphan );
-%imsc( squeeze(reco(:,:,sli)) );
-axis tight equal; colorbar; nn = nn + 1;
-title( sprintf( 'reco(:,:,%u)', sli ) )
+% Filter
+if ~strcmp( coherence, 'full' )
+    set( figure(nn),  'Name',  'Fourier space blurring filter' );
+    im = fftshift( Binning( filt ) / 4 );
+    imsc( im );
+    save_png( im, 'filter_partial_coherence');
+    axis tight equal; colorbar; nn = nn + 1;
+end
 
 set( figure(nn),  'Name',  'reconstruction: difference maps |reco - phan|' );
 sli = round( size( reco, 3) / 2 );
-imsc( squeeze(diff_reco_phan(:,:,sli)));
+im = squeeze(diff_reco_phan(:,:,sli)) ./ max2( phan(:,:,sli) );
+imsc( im );
 axis tight equal; colorbar; nn = nn + 1;
-title( sprintf( '1 / max(phan(:)) * |reco - phan|(:,:,%u)', sli ) )
+title( sprintf( '1 / max(phan(:,:,%u)) * |reco - phan|(:,:,%u)', sli, sli ) )
+name = sprintf( 'abs_tomo-phan_z%u_%2.0f%%ofMaxPhan', 1, 100*max( im(:)));
+save_png( im, name)
+
+% Sinograms
+% % simulated phase sinogram
+% set( figure(nn),  'Name',  'projection: sino' );
+% sli = round( size( sino, 3) / 2 );
+% imsc( squeeze(sino(:,:,sli)), [0 max( sino(:))]);
+% axis tight equal; colorbar; nn = nn + 1;
+% title( sprintf( 'sino(:,:,%u)', sli ) )

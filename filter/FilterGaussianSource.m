@@ -21,7 +21,7 @@ if nargin < 1
 end
 if nargin < 2
     % [vert, hor]
-    source_sigma_h_v = [6 140] * 1e-6; 
+    source_sigma_h_v = [6 37] * 1e-6; 
 end
 if nargin < 3
     dist_source_sample = 82.7; % m
@@ -50,14 +50,13 @@ source_sigma_v = source_sigma_h_v(2);
 
 % 1D grid
 % Check factor 1/2
-x = 1 / 2 / pixelsize * FrequencyVector(shape_or_image(2), precision, 1);
-y = 1 / 2 / pixelsize *  FrequencyVector(shape_or_image(1), precision, 1);
+x = 2 / 1 / pixelsize * FrequencyVector(shape_or_image(2), precision, 1);
+y = 2 / 1 / pixelsize *  FrequencyVector(shape_or_image(1), precision, 1);
 
 % 2D grid
 [xx, yy] = meshgrid( x, y);
 
 % Fourier space filter
-%filt = exp( - ( pi^2 * dist_sample_detector ) / ( 4 * log(2) * dist_source_sample) * ( (source_sigma_h * xx).^2 + (source_sigma_v * yy).^2 ) );
 filt = exp( - 2 * ( pi * dist_sample_detector  / dist_source_sample )^2 * ( (source_sigma_h * xx).^2 + (source_sigma_v * yy).^2 ) );
 
 % %% Blurring
