@@ -26,7 +26,7 @@ close all hidden % close all open windows
 
 %% PARAMETERS / SETTINGS %%
 scan_path = ...
-    '/asap3/petra3/gpfs/p05/2017/data/11003288/processed/syn134_28R_PEEK_8w';
+    '/asap3/petra3/gpfs/p05/2017/data/11003288/raw/syn134_28R_PEEK_8w';
 '/asap3/petra3/gpfs/p05/2017/data/11002839/raw/ehh_2017_013_f';
 '/asap3/petra3/gpfs/p05/2017/commissioning/c20171218_000_synchro/raw/syn175_cor_Mg5Gd428s_Mg10Gd408s_Mg5Gd8p_30';
 '/asap3/petra3/gpfs/p05/2017/commissioning/c20171218_000_synchro/raw/syn174_cor_Mg5Gd416s_Mg10Gd410s_Mg5Gd7p_30';
