@@ -780,7 +780,7 @@ elseif ~read_flatcor
     prnt( ' done in %.1f s (%.2f min)', toc - t, ( toc - t ) / 60 )
     PrintVerbose( verbose && num_empty,'\n discarded empty projections : %u', num_empty )
      if sum( num_zeros )
-        prnt( '\n zeros found in flat fields :' )
+        prnt( '\n zeros found in projections :' )
         prnt( ' %u', num_zeros )
     end
     prnt( '\n hot- / dark-pixel filter threshold : %f, %f', HotThresh, DarkThresh )
