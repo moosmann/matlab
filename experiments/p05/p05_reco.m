@@ -26,29 +26,14 @@ close all hidden % close all open windows
 
 %% PARAMETERS / SETTINGS %%
 scan_path = ...
-    '/asap3/petra3/gpfs/p05/2017/data/11003288/raw/syn134_28R_PEEK_8w';
-'/asap3/petra3/gpfs/p05/2017/data/11002839/raw/ehh_2017_013_f';
-'/asap3/petra3/gpfs/p05/2017/commissioning/c20171218_000_synchro/raw/syn175_cor_Mg5Gd428s_Mg10Gd408s_Mg5Gd8p_30';
-'/asap3/petra3/gpfs/p05/2017/commissioning/c20171218_000_synchro/raw/syn174_cor_Mg5Gd416s_Mg10Gd410s_Mg5Gd7p_30';
-'/asap3/petra3/gpfs/p05/2017/commissioning/c20171218_000_synchro/raw/syn173_cor_Mg5Gd413s_Mg10Gd409s_Mg5Gd3p_30';
-'/asap3/petra3/gpfs/p05/2017/commissioning/c20171218_000_synchro/raw/syn171_cor_Mg5Gd430s_Mg10Gd413s_pmg9p_30';    
-'/asap3/petra3/gpfs/p05/2017/commissioning/c20171218_000_synchro/raw/syn170_cor_Mg5Gd414s_Mg10Gd405s_pmg2p_30';
-'/asap3/petra3/gpfs/p05/2017/commissioning/c20171218_000_synchro/raw/syn168_cor_Mg5Gd410s_Mg10Gd401s_pmg1p_30';
-'/asap3/petra3/gpfs/p05/2017/data/11003527/raw/szeb_86'; % 2 x stitching
-'/asap3/petra3/gpfs/p05/2017/data/11003288/raw/syn151_58L_Mg_12_000';
-'/asap3/petra3/gpfs/p05/2017/data/11003288/raw/syn156_berit'; % 2 x stitching
-'/asap3/petra3/gpfs/p05/2017/data/11003527/raw/szeb_78';
-'/asap3/petra3/gpfs/p05/2017/data/11003288/raw/syn166_104R_Mg10Gd_4w_001';
-'/asap3/petra3/gpfs/p05/2017/commissioning/c20171115_000_kit_test/raw/fast_test17';
-'/asap3/petra3/gpfs/p05/2017/data/11003773/raw/syn132_cor_mg5gd434s_mg10gd408s_12';
-'/asap3/petra3/gpfs/p05/2017/data/11003288/raw/syn165_58L_Mg10Gd_12w_000'; %reconstruction is crap
-'/asap3/petra3/gpfs/p05/2017/data/11003288/raw/syn166_104R_Mg10Gd_4w_000'; %reconstruction is crap
+    '/asap3/petra3/gpfs/p05/2018/commissioning/c20180326_000_restart/raw/hzg_001_c';
+    '/asap3/petra3/gpfs/p05/2018/commissioning/c20180326_000_restart/raw/hzg_006_a';
 read_flatcor = 0; % read flatfield-corrected images from disc, skips preprocessing
 read_flatcor_path = ''; % subfolder of 'flat_corrected' containing projections
 % PREPROCESSING %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-raw_roi = []; % [y0 y1] vertical roi.  skips first raw_roi(1)-1 lines, reads until raw_roi(2). Not working for *.raw data where images are flipped.
+raw_roi = [];%[401 -400]; % [y0 y1] vertical roi.  skips first raw_roi(1)-1 lines, reads until raw_roi(2). When 2nd index is negative it is read from the end. Not working for *.raw data where images are flipped.
 raw_bin = 2; % projection binning factor: 1, 2, or 4
-bin_before_filtering = 1; % Binning before pixel filtering is applied, much faster but less effective filtering
+bin_before_filtering = 0; % Binning before pixel filtering is applied, much faster but less effective filtering
 excentric_rot_axis = 0; % off-centered rotation axis increasing FOV. -1: left, 0: centeerd, 1: right. influences rot_corr_area1
 crop_at_rot_axis = 0; % for recos of scans with excentric rotation axis but WITHOUT projection stitching
 stitch_projections = 0; % for 2 pi scans: stitch projection at rotation axis position. Recommended with phase retrieval to reduce artefacts. Standard absorption contrast data should work well without stitching. Subpixel stitching not supported (non-integer rotation axis position is rounded, less/no binning before reconstruction can be used to improve precision).
@@ -83,14 +68,14 @@ decimal_round_precision = 2; % precision when rounding pixel shifts
 ring_filter.apply = 0; % ring artifact filter (only for scans without wiggle di wiggle)
 ring_filter.apply_before_stitching = 0; % ! Consider when phase retrieval is applied !
 ring_filter.method = 'wavelet-fft';'jm';
-ring_filter.waveletfft.dec_levels = 2:6; % decomposition levels for 'wavelet-fft'
+ring_filter.waveletfft.dec_levels = 2:5; % decomposition levels for 'wavelet-fft'
 ring_filter.waveletfft.wname = 'db25';'db30'; % wavelet type for 'wavelet-fft'
 ring_filter.waveletfft.sigma = 2.4; %  suppression factor for 'wavelet-fft'
-ring_filter.jm.median_width = 11; % [3 11 21 31 39];
+ring_filter.jm.median_width = 11; % multiple widths are applied consecutively, eg [3 11 21 31 39];
 % PHASE RETRIEVAL %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 phase_retrieval.apply = 0; % See 'PhaseFilter' for detailed description of parameters !
 phase_retrieval.apply_before = 0; % before stitching, interactive mode, etc. For phase-contrast data with an excentric rotation axis phase retrieval should be done afterwards. To find the rotataion axis position use this option in a first run, and then turn it of afterwards.
-phase_bin = 1; % Binning factor after phase retrieval, but before tomographic reconstruction
+phase_retrieval.post_binning_factor = 1; % Binning factor after phase retrieval, but before tomographic reconstruction
 phase_retrieval.method = 'tie';'qpcut';  'tie'; %'qp' 'ctf' 'tie' 'qp2' 'qpcut'
 phase_retrieval.reg_par = 2.5; % regularization parameter. larger values tend to blurrier images. smaller values tend to original data.
 phase_retrieval.bin_filt = 0.15; % threshold for quasiparticle retrieval 'qp', 'qp2'
@@ -102,7 +87,7 @@ vol_shape = [];%[1.2 1.2 1]; % shape (voxels) of reconstruction volume. in absol
 vol_size = [];%[-1.2 1.2 -1.2 1.2 -1 1]; % 6-component vector [xmin xmax ymin ymax zmin zmax]. if empty, volume is centerd within vol_shape. unit voxel size is assumed. if smaller than 10 values are interpreted as relative size w.r.t. the detector size. Take care bout minus signs!
 rot_angle_full = []; % in radians: empty ([]), full angle of rotation, or array of angles. if empty full rotation angles is determined automatically to pi or 2 pi
 rot_angle_offset = pi; % global rotation of reconstructed volume
-rot_axis_offset = [];2341 / raw_bin; % if empty use automatic computation
+rot_axis_offset = []; % if empty use automatic computation
 rot_axis_pos = []; % if empty use automatic computation. either offset or pos has to be empty. can't use both
 rot_corr_area1 = []; % ROI to correlate projections at angles 0 & pi. Use [0.75 1] or so for scans with an excentric rotation axis
 rot_corr_area2 = []; % ROI to correlate projections at angles 0 & pi
@@ -114,13 +99,13 @@ fbp_filter_padding = 1; % symmetric padding for consistent boundary conditions, 
 fbp_filter_padding_method = 'symmetric';
 butterworth_filter = 0; % use butterworth filter in addition to FBP filter
 butterworth_order = 1;
-butterworth_cutoff_frequ = 0.8;
+butterworth_cutoff_frequ = 0.99;
 astra_pixel_size = 1; % size of a detector pixel: if different from one 'vol_size' needs to be ajusted
 take_neg_log = []; % take negative logarithm. if empty, use 1 for attenuation contrast, 0 for phase contrast
 % OUTPUT %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 out_path = '';% absolute path were output data will be stored. !!overwrites the write.to_scratch flag. if empty uses the beamtime directory and either 'processed' or 'scratch_cc'
 write.to_scratch = 1; % write to 'scratch_cc' instead of 'processed'
-write.flatcor = 0; % save preprocessed flat corrected projections
+write.flatcor = 1; % save preprocessed flat corrected projections
 write.phase_map = 0; % save phase maps (if phase retrieval is not 0)
 write.sino = 0; % save sinograms (after preprocessing & before FBP filtering and phase retrieval)
 write.phase_sino = 0; % save sinograms of phase maps
@@ -128,7 +113,7 @@ write.reco = 1; % save reconstructed slices (if do_tomo=1)
 write.float = 1; % single precision (32-bit float) tiff
 write.uint16 = 0;
 write.uint8 = 0;
-reco_bin = 2; % binning factor of reconstructed volume if binned volumes are saved
+write.post_reconstruction_binning_factor = 2; % binning factor of reconstructed volume if binned volumes are saved
 write.float_binned = 0; % binned single precision (32-bit float) tiff
 write.uint16_binned = 0;
 write.uint8_binned = 0;
@@ -159,8 +144,8 @@ poolsize = 0.60; % number of workers used in a local parallel pool. if 0: use cu
 link_data = 1; % ASTRA data objects become references to Matlab arrays. Reduces memory issues.
 gpu_index = []; % GPU Device index to use, Matlab notation: index starts from 1. default: [], uses all
 automatic_mode = 0; % Find rotation axis position automatically. NOT IMPLEMENTED!
-automatic_mode_coarse = 'entropy'; %
-automatic_mode_fine = 'iso-grad';
+automatic_mode_coarse = 'entropy'; % NOT IMPLEMENTED!
+automatic_mode_fine = 'iso-grad'; % NOT IMPLEMENTED!
 
 %% END OF PARAMETERS / SETTINGS %%
 
@@ -179,6 +164,8 @@ end
 
 %% Main %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 tic
+phase_bin = phase_retrieval.post_binning_factor; % alias for readablity
+reco_bin = write.post_reconstruction_binning_factor; % alias for readablity
 imsc1 = @(im) imsc( flipud( im' ) );
 prnt = @(varargin) PrintVerbose( verbose, varargin{:});
 prnt( 'Start reconstruction of ')
@@ -321,9 +308,15 @@ end
 if numel( ref_range ) == 1
     ref_range = 1:ref_range:num_ref_found;
 end
+% position of running index
+if strcmpi( ref_names{1}(end-6:end-4), 'ref' )
+    ref_str_pos = 0;
+elseif strcmpi( ref_names{1}(end-11:end-9), 'ref' )
+    ref_str_pos = 1;
+end
 num_ref_used = numel( ref_range );
 ref_names_mat = NameCellToMat( ref_names(ref_range) );
-ref_nums = CellString2Vec( ref_names(ref_range) );
+ref_nums = CellString2Vec( ref_names(ref_range) , ref_str_pos);
 prnt( '\n number of refs found : %g', num_ref_found)
 prnt( '\n number of refs used : %g', num_ref_used)
 prnt( '\n reference range used : %g:%g:%g%', ref_range(1), ref_range(2) - ref_range(1), ref_range(end))
@@ -336,7 +329,7 @@ end
 if isempty( dark_names )
     dark_names =  FilenameCell( [scan_path, '*dar*.raw'] );
 end
-dark_nums = CellString2Vec( dark_names );
+dark_nums = CellString2Vec( dark_names, ref_str_pos );
 num_dark = numel(dark_names);
 prnt( '\n number of darks found : %g', num_dark)
 
@@ -348,13 +341,13 @@ if numel( proj_range ) == 1
     proj_range = 1:proj_range:num_proj_found;
 end
 num_proj_used = numel( proj_range );
-proj_nums = CellString2Vec( proj_names(proj_range) );
+proj_nums = CellString2Vec( proj_names(proj_range), ref_str_pos);
 prnt( '\n number of projections found : %g', num_proj_found)
 prnt( '\n number of projections used : %g', num_proj_used)
 prnt( '\n projection range used : first:stride:last =  %g:%g:%g', proj_range(1), proj_range(2) - proj_range(1), proj_range(end))
 
 %% Log file %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-h5log = sprintf('%s%s_nexus.h5',scan_path,scan_name);
+h5log = sprintf('%s%s_nexus.h5', scan_path, scan_name);
 raw_im_shape_uncropped = [];
 dtype = '';
 tif_info = [];
@@ -381,6 +374,9 @@ if ~exist( h5log, 'file')
     if ~raw_data
         [im_raw, tif_info] = read_image( filename );
         raw_im_shape_uncropped = size( im_raw );
+        if ~isempty( raw_roi ) && raw_roi(2) < 1
+            raw_roi(2) = raw_im_shape_uncropped(2) + raw_roi(2);
+        end
         im_roi = read_image( filename, '', raw_roi, tif_info );
         raw_im_shape = size( im_roi );
     else
@@ -393,16 +389,16 @@ if ~exist( h5log, 'file')
                 dtype = 'uint16';
         end
         raw_im_shape = raw_im_shape_uncropped;
+        if ~isempty( raw_roi ) && raw_roi(2) < 1
+            raw_roi(2) = raw_im_shape_uncropped(2) + raw_roi(2);
+        end
         im_raw = read_raw( filename, raw_im_shape, dtype );
-        %% TODO: FIX
-        %ring_current_normalization = 0;
-        %rot_angle_full = pi; % FIX
     end
-else     
+else
     
     %% HDF5 log
     h5i = h5info( h5log );
-    % engery, exposure time, image shape
+    % energy, exposure time, image shape
     switch lower( cam )
         %% CHECK h5 entry of camera1 / camera2 !!!!!!!!!!!!!!!!!!!!!!!!
         case 'ehd'
@@ -413,10 +409,15 @@ else
         case 'kit'
             energy = double(h5read( h5log, '/entry/hardware/camera2/calibration/energy') );
             exp_time = double(h5read( h5log, '/entry/hardware/camera2/calibration/exptime') );
-    end    
+            raw_im_shape_uncropped = [5120 3840];
+            dtype = 'uint16';
+    end
+    if ~isempty( raw_roi ) && raw_roi(2) < 1
+        raw_roi(2) = raw_im_shape_uncropped(2) + raw_roi(2);
+    end
     % images
-    stimg_name.value = h5read( h5log, '/entry/scan/data/image_file/value');    
-    stimg_name.time = h5read( h5log,'/entry/scan/data/image_file/time');    
+    stimg_name.value = h5read( h5log, '/entry/scan/data/image_file/value');
+    stimg_name.time = h5read( h5log,'/entry/scan/data/image_file/time');
     stimg_key.value = h5read( h5log,'/entry/scan/data/image_key/value');
     stimg_key.time = double( h5read( h5log,'/entry/scan/data/image_key/time') );
     % PETRA ring current
@@ -437,26 +438,35 @@ else
     Xq = double( stimg_name.time );
     stimg_name.current = (interp1( X, V, Xq, 'next', 100) + interp1( X, V, Xq + exp_time, 'previous', 100) ) / 2;
     cur_ref_val = stimg_name.current( stimg_key.value == 1 );
-    cur_ref_name = stimg_name.value( stimg_key.value == 1 );
+    cur_ref_name = stimg_name.value( stimg_key.value == 1 );    
     for nn = numel( cur_ref_name ):-1:1
         cur.ref(nn).val = cur_ref_val(nn);
         cur.ref(nn).name = cur_ref_name{nn};
-        cur.ref(nn).ind = str2double(cur.ref(nn).name(end-7:end-4));
+        switch ref_str_pos
+            case 0
+                cur.ref(nn).ind = str2double(cur.ref(nn).name(end-12:end-8));
+            case 1
+                cur.ref(nn).ind = str2double(cur.ref(nn).name(end-7:end-4));
+        end
     end
     cur_proj_val = stimg_name.current( stimg_key.value == 0);
     cur_proj_name = stimg_name.value( stimg_key.value == 0);
     for nn = numel( cur_proj_name ):-1:1
         cur.proj(nn).val = cur_proj_val(nn);
         cur.proj(nn).name = cur_proj_name{nn};
-        cur.proj(nn).ind = str2double(cur.proj(nn).name(end-7:end-4));
+        switch ref_str_pos
+            case 0                
+                cur.proj(nn).ind = str2double(cur.proj(nn).name(end-12:end-8));
+            case 1
+                cur.proj(nn).ind = str2double(cur.proj(nn).name(end-7:end-4));
+        end
     end
     
     %% Image shape    
     filename = sprintf('%s%s', scan_path, ref_names{1});    
     im_raw = read_image( filename, '', [], tif_info, raw_im_shape_uncropped, dtype );
     im_roi = read_image( filename, '', raw_roi, tif_info, raw_im_shape_uncropped, dtype );
-    raw_im_shape = size( im_roi );    
-    ring_filter.apply = 0; % % not needed for sample wiggling mode
+    raw_im_shape = size( im_roi );        
     rot_angle_full = pi; % FIX
 end
 raw_im_shape_binned = floor( raw_im_shape / raw_bin );
@@ -521,7 +531,7 @@ elseif ~read_flatcor
     t = toc;
     prnt( '\nProcessing dark fields.')
     darks = zeros( [raw_im_shape_binned, num_dark], 'single');
-    prnt( ' allocated memory: %.2f MiB,', Bytes( darks, 2 ) )
+    prnt( ' Allocated memory: %.2f MiB,', Bytes( darks, 2 ) )
     parfor nn = 1:num_dark
         filename = sprintf('%s%s', scan_path, dark_names{nn});
         im = single( read_image( filename, '', raw_roi, tif_info, raw_im_shape_uncropped, dtype) );
@@ -565,11 +575,11 @@ elseif ~read_flatcor
     
     %% Flat field
     t = toc;
-    prnt( '\nProcessing flat fields:')
+    prnt( '\nProcessing flat fields.')
     % Preallocation
     flat = zeros( [raw_im_shape_binned, num_ref_used], 'single');
     num_zeros = zeros( 1, num_ref_used );
-    prnt( ' allocated memory: %.2f GiB,', Bytes( flat, 3 ) )
+    prnt( ' Allocated memory: %.2f GiB,', Bytes( flat, 3 ) )
     % Parallel loop
     refs_to_use = zeros( 1, size( flat,3), 'logical');
     parfor nn = 1:num_ref_used
@@ -598,11 +608,17 @@ elseif ~read_flatcor
     if ring_current_normalization(1)
         switch lower( cam )
             case 'kit'
-                ref_check = ref_range - 1;
+                switch raw_data
+                    case 1
+                        ref_ind_from_filenames = ref_nums;
+                    case 0
+                        ref_ind_from_filenames = ref_range - 1;
+                end
             case 'ehd'
-                ref_check = ref_nums;
+                ref_ind_from_filenames = ref_nums;
         end
-        if isequal( ref_check, [cur.ref(ref_range).ind])
+        ref_ind_from_log = [cur.ref(ref_range).ind];
+        if isequal( ref_ind_from_filenames, ref_ind_from_log )
             ref_rc = [cur.ref(ref_range).val];
             ref_rcm = mean( ref_rc(:) );
             scale_factor = 100 ./ shiftdim( ref_rc(refs_to_use), -1 );
@@ -617,7 +633,7 @@ elseif ~read_flatcor
                 drawnow
             end
         else
-            fprintf('\n WARNING: flat fields not normalized by ring current. Names read from dir() and log-file are inconsistent.\n')
+            fprintf('\n WARNING: flat fields not normalized by ring current. Names read from directory and log-file are inconsistent.\n')
         end
     end
     
@@ -662,10 +678,10 @@ elseif ~read_flatcor
     
     %% Projections
     t = toc;
-    prnt( '\nRead and filter projections: ')
+    prnt( '\nProcessing projections. ')
     % Preallocation
     proj = zeros( raw_im_shape_binned(1), raw_im_shape_binned(2), num_proj_used, 'single');
-    prnt( ' allocated memory: %.2f GiB,', Bytes( proj, 3 ) )
+    prnt( ' Allocated memory: %.2f GiB,', Bytes( proj, 3 ) )
     img_names_mat = NameCellToMat( proj_names(proj_range) );
     
     % Display first raw image
@@ -735,11 +751,12 @@ elseif ~read_flatcor
         switch lower( cam )
             case 'kit'
                 %proj_ind = proj_nums + 1;
-                proj_check = proj_range - 1;
+                proj_ind_from_filenames = proj_range - 1;
             case 'ehd'
-                proj_check = proj_nums;
+                proj_ind_from_filenames = proj_nums;
         end
-        if isequal( proj_check, [cur.proj(proj_range).ind] )
+        proj_ind_from_log = [cur.proj(proj_range).ind];
+        if isequal( proj_ind_from_filenames,  proj_ind_from_log )
             proj_rc = [cur.proj(proj_range).val];
             proj_rcm = mean( proj_rc(:) );
             scale_factor = 100 ./ shiftdim( proj_rc(projs_to_use), -1 );
@@ -759,7 +776,7 @@ elseif ~read_flatcor
                 drawnow
             end
         else
-            fprintf('\n WARNING: projections not normalized by ring current. Names read from dir() and log-file are inconsistent.\n')
+            fprintf('\n WARNING: projections not normalized by ring current. Names read from directory and log-file are inconsistent.\n')
         end
     end
     

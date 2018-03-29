@@ -10,8 +10,6 @@ function [par, cur, cam] = p05_log( file )
 
 %% Default arguments %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 if nargin < 1
-    %file = '/asap3/petra3/gpfs/p05/2015/data/11001102/raw/hzg_wzb_mgag_14/hzg_wzb_mgag_14scan.log';
-    %file = '/asap3/petra3/gpfs/p05/2016/data/11001978/raw/mah_28_15R_top/mah_28_15R_topscan.log';
     file = '/asap3/petra3/gpfs/p05/2016/data/11001994/raw/szeb_74_13/scan.log';
 end
 
@@ -25,6 +23,9 @@ end
 if length( name ) > 4
     cam = 'EHD';
     [par, cur] = EHD_log( file );
+    if isfield( par, 'ccd_xsize') && isequal( par.ccd_xsize, 5120 )
+        cam = 'KIT';
+    end
 else
     cam = 'KIT';
     [par, cur] = KIT_log( file );
@@ -173,9 +174,9 @@ while 1
     end
 end
 
-%% Possible parameter to read out
+%% Possible parameters to read
 
-% p info
+% setup info
 par.Energy = '%f';
 par.undulator_gap = '%f';
 par.undulator_harmonic = '%u';

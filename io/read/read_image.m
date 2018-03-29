@@ -27,8 +27,10 @@ if nargin < 6
     dtype = '';
 end
 
+%% TODO: KIT camera format is HARDCODED
 %% TODO: roi support for edf and tiff files
 %% TODO: check flip/rotation/transponation for raw data
+%% TODO: make dimensions consistent
 
 %% Main %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -73,6 +75,9 @@ switch lower( filetype )
         %% rot90 for FLI but not for KIT
         if shape(1) > shape(2)
             im = flipud( read_raw( filename, shape, dtype, roi ) );
+            
+            %% probably breaks for earlier scans with KIT camera saving raw format, March 2018
+            %im = ( read_raw( filename, shape, dtype, roi ) );            
         else            
             %% roi for raw is horizontal roi not verticall!                        
             if isempty( roi )
