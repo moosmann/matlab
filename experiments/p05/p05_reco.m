@@ -26,6 +26,8 @@ close all hidden % close all open windows
 
 %% PARAMETERS / SETTINGS %%
 scan_path = ...
+    '/asap3/petra3/gpfs/p05/2018/data/11004488/raw/zfmk_02_a';
+'/asap3/petra3/gpfs/p05/2018/data/11004326/raw/nova_168_a';
     '/asap3/petra3/gpfs/p05/2018/commissioning/c20180326_000_restart/raw/hzg_001_c';
     '/asap3/petra3/gpfs/p05/2018/commissioning/c20180326_000_restart/raw/hzg_006_a';
 read_flatcor = 0; % read flatfield-corrected images from disc, skips preprocessing
@@ -48,7 +50,7 @@ sample_detector_distance = []; % in m. if empty: read from log file
 eff_pixel_size = []; % in m. if empty: read from log file. effective pixel size =  detector pixel size / magnification
 dark_FiltPixThresh = [0.01 0.005]; % Dark fields: threshold parameter for hot/dark pixel filter, for details see 'FilterPixel'
 ref_FiltPixThresh = [0.01 0.005]; % Flat fields: threshold parameter for hot/dark pixel filter, for details see 'FilterPixel'
-proj_FiltPixThresh = [0.01 0.005]; % Raw projection: threshold parameter for hot/dark pixel filter, for details see 'FilterPixel'
+proj_FiltPixThresh = [0.01 0.005]; % Raw projection: threshold parameter for hot/dark pixel filter, for details see 'FilterPixe
 correlation_method = 'entropy';'ssim-ml';'diff';'shift';'ssim';'std';'cov';'corr';'cross-entropy12';'cross-entropy21';'cross-entropyx';'none';
 % 'ssim-ml' : Matlab's structural similarity index (SSIM), includes Gaussian smoothing
 % 'ssim' : own implementation of SSIM, smoothing not yet implemented
@@ -65,7 +67,8 @@ ring_current_normalization = 1; % normalize flat fields and projections by ring 
 flat_corr_area1 = [1 floor(100/raw_bin)];%[0.98 1];% correlation area: index vector or relative/absolute position of [first pix, last pix]
 flat_corr_area2 = [0.2 0.8]; % correlation area: index vector or relative/absolute position of [first pix, last pix]
 decimal_round_precision = 2; % precision when rounding pixel shifts
-ring_filter.apply = 0; % ring artifact filter (only for scans without wiggle di wiggle)
+strong_abs_thresh = 0.5; % flat-corrected values below threshold are set to one
+ring_filter.apply = 0; % ring artifact filter (use only for scans without lateral sample movement)
 ring_filter.apply_before_stitching = 0; % ! Consider when phase retrieval is applied !
 ring_filter.method = 'wavelet-fft';'jm';
 ring_filter.waveletfft.dec_levels = 2:5; % decomposition levels for 'wavelet-fft'
@@ -83,8 +86,8 @@ phase_retrieval.cutoff_frequ = 1 * pi; % in radian. frequency cutoff in Fourier 
 phase_retrieval.padding = 1; % padding of intensities before phase retrieval, 0: no padding
 % TOMOGRAPHY %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 do_tomo = 1; % run tomographic reconstruction
-vol_shape = [];%[1.2 1.2 1]; % shape (voxels) of reconstruction volume. in absolute number of voxels or in relative number w.r.t. the default volume which is given by the detector width and height
-vol_size = [];%[-1.2 1.2 -1.2 1.2 -1 1]; % 6-component vector [xmin xmax ymin ymax zmin zmax]. if empty, volume is centerd within vol_shape. unit voxel size is assumed. if smaller than 10 values are interpreted as relative size w.r.t. the detector size. Take care bout minus signs!
+vol_shape = [];%[1.5 1.5 1]; % shape (voxels) of reconstruction volume. in absolute number of voxels or in relative number w.r.t. the default volume which is given by the detector width and height
+vol_size = [];%[-1.5 1.5 -1.5 1.5 -1 1]; % 6-component vector [xmin xmax ymin ymax zmin zmax]. if empty, volume is centerd within vol_shape. unit voxel size is assumed. if smaller than 10 values are interpreted as relative size w.r.t. the detector size. Take care bout minus signs!
 rot_angle_full = []; % in radians: empty ([]), full angle of rotation, or array of angles. if empty full rotation angles is determined automatically to pi or 2 pi
 rot_angle_offset = pi; % global rotation of reconstructed volume
 rot_axis_offset = []; % if empty use automatic computation
@@ -99,13 +102,13 @@ fbp_filter_padding = 1; % symmetric padding for consistent boundary conditions, 
 fbp_filter_padding_method = 'symmetric';
 butterworth_filter = 0; % use butterworth filter in addition to FBP filter
 butterworth_order = 1;
-butterworth_cutoff_frequ = 0.99;
+butterworth_cutoff_frequ = 0.9;
 astra_pixel_size = 1; % size of a detector pixel: if different from one 'vol_size' needs to be ajusted
 take_neg_log = []; % take negative logarithm. if empty, use 1 for attenuation contrast, 0 for phase contrast
 % OUTPUT %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 out_path = '';% absolute path were output data will be stored. !!overwrites the write.to_scratch flag. if empty uses the beamtime directory and either 'processed' or 'scratch_cc'
 write.to_scratch = 1; % write to 'scratch_cc' instead of 'processed'
-write.flatcor = 1; % save preprocessed flat corrected projections
+write.flatcor = 0; % save preprocessed flat corrected projections
 write.phase_map = 0; % save phase maps (if phase retrieval is not 0)
 write.sino = 0; % save sinograms (after preprocessing & before FBP filtering and phase retrieval)
 write.phase_sino = 0; % save sinograms of phase maps
@@ -152,6 +155,7 @@ automatic_mode_fine = 'iso-grad'; % NOT IMPLEMENTED!
 %% External call: parameters set by 'p05_reco_loop' %%%%%%%%%%%%%%%%%%%%%%%
 if exist( 'external_parameter' ,'var')
     visual_output = 0;
+    dbstop if error
     interactive_determination_of_rot_axis = 0;
     fn = fieldnames( external_parameter );
     for nn = 1:numel( fn )
@@ -272,8 +276,6 @@ end
 proj_names = FilenameCell( [scan_path, '*.img'] );
 raw_data = 0;
 if isempty( proj_names )
-    %proj_names =  FilenameCell( [scan_path, 'proj_*.tif'] );
-    %% Check for false true
     proj_names =  FilenameCell( [scan_path, '*proj*.tif'] );
     raw_data = 0;
 end
@@ -347,12 +349,13 @@ prnt( '\n number of projections used : %g', num_proj_used)
 prnt( '\n projection range used : first:stride:last =  %g:%g:%g', proj_range(1), proj_range(2) - proj_range(1), proj_range(end))
 
 %% Log file %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% new hdf5 log from statussever
 h5log = sprintf('%s%s_nexus.h5', scan_path, scan_name);
 raw_im_shape_uncropped = [];
 dtype = '';
 tif_info = [];
 offset_shift = 0;
-%% P05 log-file
+% old scan-log, still needed
 str = dir( sprintf( '%s*scan.log', scan_path) );
 filename = sprintf( '%s/%s', str.folder, str.name);
 [par, cur, cam] = p05_log( filename );
@@ -369,7 +372,7 @@ if isempty( sample_detector_distance )
     sample_detector_distance = par.sample_detector_distance;
 end
 if ~exist( h5log, 'file')
-    %% Image shape and ROI
+    % Image shape and ROI
     filename = sprintf('%s%s', scan_path, ref_names{1});
     if ~raw_data
         [im_raw, tif_info] = read_image( filename );
@@ -394,9 +397,8 @@ if ~exist( h5log, 'file')
         end
         im_raw = read_raw( filename, raw_im_shape, dtype );
     end
-else
-    
-    %% HDF5 log
+else    
+    % HDF5 log
     h5i = h5info( h5log );
     % energy, exposure time, image shape
     switch lower( cam )
@@ -432,6 +434,7 @@ else
     % wiggle di wiggle
     offset_shift = s_stage_x.value( ~boolean( stimg_key.value(par.n_dark+1:end) ) ) * 1e-3 / eff_pixel_size_binned;
     offset_shift = offset_shift(proj_range);
+    offset_shift = offset_shift - mean( offset_shift );
     % ring current
     X = double( petra.time );    
     V = double( petra.current );
@@ -462,7 +465,7 @@ else
         end
     end
     
-    %% Image shape    
+    % Image shape    
     filename = sprintf('%s%s', scan_path, ref_names{1});    
     im_raw = read_image( filename, '', [], tif_info, raw_im_shape_uncropped, dtype );
     im_roi = read_image( filename, '', raw_roi, tif_info, raw_im_shape_uncropped, dtype );
@@ -488,8 +491,7 @@ PrintVerbose( verbose && (poolsize > 1), '\nParpool opened on %s using %u worker
 PrintVerbose( verbose && (poolsize > 1), ' Time elapsed: %.1f s (%.2f min)', toc - t, ( toc - t ) / 60 );
 cdscandir = cd( scan_path );
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%% Read flat corrected projection
+%% Read flat corrected projection %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 if read_flatcor(1)
     t = toc;
     if isempty( read_flatcor_path )
@@ -525,8 +527,8 @@ if read_flatcor(1)
     end
     prnt( ' Time elapsed: %.1f s (%.2f min)', toc - t, ( toc - t ) / 60 )
     
-    %% Read raw data %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-elseif ~read_flatcor
+%% Read raw data %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+elseif ~read_flatcor    
     %% Dark field
     t = toc;
     prnt( '\nProcessing dark fields.')
@@ -801,12 +803,28 @@ elseif ~read_flatcor
         prnt( ' %u', num_zeros )
     end
     prnt( '\n hot- / dark-pixel filter threshold : %f, %f', HotThresh, DarkThresh )
-    prnt( '\n min/max of all raws after filtering and binning:  %6g %6g', raw_min, raw_max);
-    prnt( '\n min/max of all raws after dark-field correction and ring current normalization:  %6g %6g', raw_min2, raw_max2);   
+    prnt( '\n global min/max of raws after filtering and binning:  %6g %6g', raw_min, raw_max);
+    prnt( '\n global min/max of raws after dark-field correction and ring current normalization:  %6g %6g', raw_min2, raw_max2);   
     
     %% Flat field correction %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     %% STOP HERE FOR FLATFIELD CORRELATION MAPPING
     [proj, corr, proj_roi, flat_roi] = proj_flat_correlation( proj, flat, correlation_method, flat_corr_area1, flat_corr_area2, raw_im_shape_binned, corr_shift_max_pixelshift, corr_num_flats, decimal_round_precision, flatcor_path, verbose, visual_output);
+    proj_min0 = min( proj(:) );
+    proj_max0 = min( proj(:) );
+    prnt( '\n global min/max after flat-field corrected:  %6g %6g', proj_min0, proj_max0);   
+
+    % Filter strong absorption    
+    if strong_abs_thresh < 1
+        t = toc;
+        prnt( '\n set flat-corrected values below %f to one, ', strong_abs_thresh)
+        parfor nn = 1:size( proj, 3 )
+            im = proj(:,:,nn);
+            m = im < strong_abs_thresh;
+            im(m) = 1;
+            proj(:,:,nn) = im;
+        end
+            prnt( ' done in %.1f s (%.2f min)', toc - t, ( toc - t ) / 60 )
+    end
     
     prnt( '\n sinogram size = [%g, %g, %g]', size( proj ) )
     if visual_output(1)
@@ -1053,7 +1071,6 @@ if do_tomo(1)
             keyboard
             offset = input( '\n\nENTER RANGE OF ROTATION AXIS OFFSETS\n (if empty use default range, if scalar skips interactive mode): ');
         end
-        
         if isscalar( offset )
             fprintf( ' old rotation axis offset : %.2f', rot_axis_offset)
             rot_axis_offset = offset;
@@ -1685,10 +1702,10 @@ if ring_filter.apply
     fprintf(fid, 'ring_filter.method : %s\n', ring_filter.method);
     fprintf(fid, 'ring_filter.apply_before_stitching : %u\n', ring_filter.apply_before_stitching);
     switch lower( ring_filter.method )
-        case 'waveletfft'
-            ring_filter.waveletfft.dec_levels = 2:6; % decomposition levels for 'wavelet-fft'
-            ring_filter.waveletfft.wname = 'db30';'db25'; % wavelet type for 'wavelet-fft'
-            ring_filter.waveletfft.sigma = 2.4; %  suppression factor for 'wavelet-fft'
+        case 'wavelet-fft'
+            fprintf(fid, 'ring_filter.waveletfft.wname : %s\n', ring_filter.waveletfft.wname );
+            fprintf(fid, 'ring_filter.waveletfft.dec_levels : [%s]\n', sprintf( ' %u', ring_filter.waveletfft.dec_levels) );
+            fprintf(fid, 'ring_filter.waveletfft.sigma : %f\n', ring_filter.waveletfft.sigma );
         case 'jm'
             fprintf(fid, 'ring_filter.jm.median_width : %s\n', sprintf( '%u ', ring_filter.jm.median_width) );
     end
@@ -1705,7 +1722,7 @@ fprintf(fid, 'astra_pixel_size : %f\n', astra_pixel_size);
 fprintf(fid, 'take_negative_logarithm : %u\n', take_neg_log);
 fprintf(fid, 'gpu_name : %s\n', gpu.Name);
 if exist( 'vol_min', 'var')
-    fprintf(fid, 'volume_min-max : %g %g\n', vol_min, vol_max);
+    fprintf(fid, '[volume_min volume_max] : [%g %g]\n', vol_min, vol_max);
 end
 fprintf(fid, 'write.float : %u\n', write.float);
 fprintf(fid, 'write.float_binned : %u\n', write.float_binned);
