@@ -61,7 +61,7 @@ end
 % version of 'p05_reco' if not set in the section below.
 
 % PREPROCESSING %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-raw_roi = []; % [y0 y1] vertical roi.  skips first raw_roi(1)-1 lines, reads until raw_roi(2). Not working for *.raw data where images are flipped.
+raw_roi = []; %#ok<*NASGU> % [y0 y1] vertical roi.  skips first raw_roi(1)-1 lines, reads until raw_roi(2). Not working for *.raw data where images are flipped.
 raw_bin = 2; % projection binning factor: 1, 2, or 4
 bin_before_filtering = 0; % Binning before pixel filtering is applied, much faster but less effective filtering
 excentric_rot_axis = 0; % off-centered rotation axis increasing FOV. -1: left, 0: centeerd, 1: right. influences rot_corr_area1
@@ -98,19 +98,19 @@ decimal_round_precision = 2; % precision when rounding pixel shifts
 ring_filter.apply = 0; % ring artifact filter (only for scans without wiggle di wiggle)
 ring_filter.apply_before_stitching = 0; % ! Consider when phase retrieval is applied !
 ring_filter.method = 'wavelet-fft';'jm';
-ring_filter.waveletfft.dec_levels = 2:6; % decomposition levels for 'wavelet-fft'
+ring_filter.waveletfft.dec_levels = 3:5; % decomposition levels for 'wavelet-fft'
 ring_filter.waveletfft.wname = 'db25';'db30'; % wavelet type for 'wavelet-fft'
 ring_filter.waveletfft.sigma = 2.4; %  suppression factor for 'wavelet-fft'
 ring_filter.jm.median_width = 11; % [3 11 21 31 39];
 % PHASE RETRIEVAL %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 phase_retrieval.apply = 0; % See 'PhaseFilter' for detailed description of parameters !
 phase_retrieval.apply_before = 0; % before stitching, interactive mode, etc. For phase-contrast data with an excentric rotation axis phase retrieval should be done afterwards. To find the rotataion axis position use this option in a first run, and then turn it of afterwards.
-phase_bin = 1; % Binning factor after phase retrieval, but before tomographic reconstruction
+phase_retrieval.post_binning_factor = 1; % Binning factor after phase retrieval, but before tomographic reconstruction
 phase_retrieval.method = 'tie';'qpcut';  'tie'; %'qp' 'ctf' 'tie' 'qp2' 'qpcut'
 phase_retrieval.reg_par = 2.5; % regularization parameter. larger values tend to blurrier images. smaller values tend to original data.
 phase_retrieval.bin_filt = 0.15; % threshold for quasiparticle retrieval 'qp', 'qp2'
 phase_retrieval.cutoff_frequ = 1 * pi; % in radian. frequency cutoff in Fourier space for 'qpcut' phase retrieval
-phase_retrieval.padding = 1; % padding of intensities before phase retrieval, 0: no padding
+phase_retrieval.padding = 1; %#ok<*STRNU> % padding of intensities before phase retrieval, 0: no padding
 % TOMOGRAPHY %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 do_tomo = 1; % run tomographic reconstruction
 vol_shape = [];%[1.2 1.2 1]; % shape (voxels) of reconstruction volume. in absolute number of voxels or in relative number w.r.t. the default volume which is given by the detector width and height
@@ -143,7 +143,7 @@ write.reco = 1; % save reconstructed slices (if do_tomo=1)
 write.float = 1; % single precision (32-bit float) tiff
 write.uint16 = 0;
 write.uint8 = 0;
-reco_bin = 2; % binning factor of reconstructed volume if binned volumes are saved
+write.post_reconstruction_binning_factor = 2; % binning factor of reconstructed volume if binned volumes are saved
 write.float_binned = 0; % binned single precision (32-bit float) tiff
 write.uint16_binned = 0;
 write.uint8_binned = 0;
@@ -292,47 +292,53 @@ scan_path = [raw_path 'syn60_cor']; raw_bin = 2; rot_axis_offset = -1.5; ADD
 scan_path = [raw_path 'syn61_cor']; raw_bin = 2; rot_axis_offset = -1.5; ADD
 
 % KIT camera
+raw_bin = 3; 
 bin_before_filtering = 1;
+ring_filter.apply = 1;
+ring_filter.method = 'wavelet-fft';'jm';
+ring_filter.waveletfft.dec_levels = 1:4; 
+ring_filter.waveletfft.wname =  'db20';'db25';'db30';
+ring_filter.waveletfft.sigma = 2.4;
 SET_DEFAULT;
 
 % Explant, KIT
-scan_path = [raw_path 'syn64_91R_Mg5Gd_4w']; raw_bin = 3; rot_axis_offset = 1.75; ADD
+scan_path = [raw_path 'syn64_91R_Mg5Gd_4w']; rot_axis_offset = 1.75; ADD
 
-scan_path = [raw_path 'syn65_94R_Mg5Gd_8w'];raw_bin = 3; rot_axis_offset = 1.75; ADD
+scan_path = [raw_path 'syn65_94R_Mg5Gd_8w']; rot_axis_offset = 1.75; ADD
 
-scan_path = [raw_path 'syn66_cor_Punkt2']; raw_bin = 3; rot_axis_offset = 1.75; ADD
+scan_path = [raw_path 'syn66_cor_Punkt2']; rot_axis_offset = 1.75; ADD
 
-scan_path = [raw_path 'syn67_cor_Punkt1_previous_is_Punkt2']; raw_bin = 3; rot_axis_offset = 2.0; ADD
+scan_path = [raw_path 'syn67_cor_Punkt1_previous_is_Punkt2']; rot_axis_offset = 2.0; ADD
 
-scan_path = [raw_path 'syn68_cor_Punkt3']; raw_bin = 3; rot_axis_offset = 1.83; ADD
+scan_path = [raw_path 'syn68_cor_Punkt3']; rot_axis_offset = 1.83; ADD
 
-scan_path = [raw_path 'syn69_cor_P1_I']; raw_bin = 3; rot_axis_offset = 1.83;  ADD
+scan_path = [raw_path 'syn69_cor_P1_I'];rot_axis_offset = 1.83;  ADD
 
-scan_path = [raw_path 'syn70_cor_P1_2']; raw_bin = 3; rot_axis_offset = 1.83;  ADD
+scan_path = [raw_path 'syn70_cor_P1_2']; rot_axis_offset = 1.83;  ADD
 
-scan_path = [raw_path 'syn71_cor_P1_3']; raw_bin = 3; rot_axis_offset = 2.0; ADD
+scan_path = [raw_path 'syn71_cor_P1_3']; rot_axis_offset = 2.0; ADD
 
-scan_path = [raw_path 'syn72_cor_P1_4']; raw_bin = 3; rot_axis_offset = 1.83; ADD
+scan_path = [raw_path 'syn72_cor_P1_4']; rot_axis_offset = 1.83; ADD
 
 scan_path = [raw_path 'syn73_cor_P1_5']; rot_axis_offset = 1.83; ADD
 
-scan_path = [raw_path 'syn74_cor_P1_6']; ADD
+scan_path = [raw_path 'syn74_cor_P1_6']; rot_axis_offset = 1.5; ADD
 
-scan_path = [raw_path 'syn75_cor_P1_7']; ADD
+scan_path = [raw_path 'syn75_cor_P1_7']; rot_axis_offset = 1.5; ADD
 
-scan_path = [raw_path 'syn76_cor_P2_1']; ADD
+scan_path = [raw_path 'syn76_cor_P2_1']; rot_axis_offset = 1.8; ADD
 
-scan_path = [raw_path 'syn77_cor_P2_2']; ADD
+scan_path = [raw_path 'syn77_cor_P2_2']; rot_axis_offset = 0.8; ADD
 
-scan_path = [raw_path 'syn78_cor_P2_3']; ADD
+scan_path = [raw_path 'syn78_cor_P2_3']; raw_roi = [51 -50]; rot_axis_offset = 1.5; ADD
 
-scan_path = [raw_path 'syn79_cor_P2_4']; ADD
+scan_path = [raw_path 'syn79_cor_P2_4']; raw_roi = []; rot_axis_offset = 1.5 ; ADD
 
-scan_path = [raw_path 'syn80_cor_P2_5']; ADD
+scan_path = [raw_path 'syn80_cor_P2_5']; rot_axis_offset = 1.5 ; ADD
 
-scan_path = [raw_path 'syn81_cor_P2_6']; ADD
+scan_path = [raw_path 'syn81_cor_P2_6']; rot_axis_offset = 1.8 ; ADD
 
-scan_path = [raw_path 'syn82_cor_P2_7']; ADD
+scan_path = [raw_path 'syn82_cor_P2_7']; rot_axis_offset = 1.5 ; ADD
 
 scan_path = [raw_path 'syn83_cor_P3_1']; ADD
 
