@@ -1,4 +1,4 @@
-function stack = Readstack(InputPath,StepSize_or_VecOfImagesToRead,FilenamePattern)
+function stack = Readstack(InputPath,StepSize_or_VecOfImagesToRead,FilenamePattern, raw_im_shape)
 % Read images (default: tif) into 3D stack.
 %
 % Written by Julian Moosmann, first version: 2010. long ago, last version:
@@ -13,6 +13,9 @@ if nargin < 2
 end
 if nargin < 3
     FilenamePattern = '*.tif*';
+end
+if nargin < 4
+    raw_im_shape = 'kit';
 end
 
 %% MAIN %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -42,6 +45,16 @@ switch lower(FilenamePattern(end-2:end))
     case {'img', 'dar', 'ref', 'sli', 'sln'}
         for nn = NumFilesToRead:-1:1
             stack(:,:,nn) = read_dat_jm(sprintf('%s%s',InputPath,files{filesToRead(nn)}))';
+        end
+    case 'raw'
+        if strcmpi( raw_im_shape, 'kit' )
+            raw_im_shape = [5120 3840];
+        elseif strcmpi( raw_im_shape, 'ehd' )
+            raw_im_shape = [3056 3056];
+        end
+        for nn = NumFilesToRead:-1:1
+            filename = sprintf('%s%s',InputPath,files{filesToRead(nn)})';
+            stack(:,:,nn) = read_raw( filename(1:end-4), raw_im_shape, 'uint16' );
         end
     otherwise        
         for nn = NumFilesToRead:-1:1
