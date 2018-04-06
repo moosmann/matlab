@@ -26,14 +26,11 @@ close all hidden % close all open windows
 
 %% PARAMETERS / SETTINGS %%
 scan_path = ...
-    '/asap3/petra3/gpfs/p05/2018/data/11004488/raw/zfmk_02_a';
-'/asap3/petra3/gpfs/p05/2018/data/11004326/raw/nova_168_a';
-    '/asap3/petra3/gpfs/p05/2018/commissioning/c20180326_000_restart/raw/hzg_001_c';
-    '/asap3/petra3/gpfs/p05/2018/commissioning/c20180326_000_restart/raw/hzg_006_a';
+    '/asap3/petra3/gpfs/p05/2018/data/11004488/raw/zfmk_06_a';
 read_flatcor = 0; % read flatfield-corrected images from disc, skips preprocessing
 read_flatcor_path = ''; % subfolder of 'flat_corrected' containing projections
 % PREPROCESSING %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-raw_roi = [];%[401 -400]; % [y0 y1] vertical roi.  skips first raw_roi(1)-1 lines, reads until raw_roi(2). When 2nd index is negative it is read from the end. Not working for *.raw data where images are flipped.
+raw_roi = [401 -500];%[401 -400]; % [y0 y1] vertical roi.  skips first raw_roi(1)-1 lines, reads until raw_roi(2). When 2nd index is negative it is read from the end. Not working for *.raw data where images are flipped.
 raw_bin = 2; % projection binning factor: 1, 2, or 4
 bin_before_filtering = 0; % Binning before pixel filtering is applied, much faster but less effective filtering
 excentric_rot_axis = 0; % off-centered rotation axis increasing FOV. -1: left, 0: centeerd, 1: right. influences rot_corr_area1
@@ -51,7 +48,7 @@ eff_pixel_size = []; % in m. if empty: read from log file. effective pixel size 
 dark_FiltPixThresh = [0.01 0.005]; % Dark fields: threshold parameter for hot/dark pixel filter, for details see 'FilterPixel'
 ref_FiltPixThresh = [0.01 0.005]; % Flat fields: threshold parameter for hot/dark pixel filter, for details see 'FilterPixel'
 proj_FiltPixThresh = [0.01 0.005]; % Raw projection: threshold parameter for hot/dark pixel filter, for details see 'FilterPixe
-correlation_method = 'entropy';'ssim-ml';'diff';'shift';'ssim';'std';'cov';'corr';'cross-entropy12';'cross-entropy21';'cross-entropyx';'none';
+correlation_method = 'ssim-ml';'none';'entropy';'diff';'shift';'ssim';'std';'cov';'corr';'cross-entropy12';'cross-entropy21';'cross-entropyx';'none';
 % 'ssim-ml' : Matlab's structural similarity index (SSIM), includes Gaussian smoothing
 % 'ssim' : own implementation of SSIM, smoothing not yet implemented
 % 'entropy' : entropy measure of proj over flat
@@ -67,7 +64,7 @@ ring_current_normalization = 1; % normalize flat fields and projections by ring 
 flat_corr_area1 = [1 floor(100/raw_bin)];%[0.98 1];% correlation area: index vector or relative/absolute position of [first pix, last pix]
 flat_corr_area2 = [0.2 0.8]; % correlation area: index vector or relative/absolute position of [first pix, last pix]
 decimal_round_precision = 2; % precision when rounding pixel shifts
-strong_abs_thresh = 0.5; % flat-corrected values below threshold are set to one
+strong_abs_thresh = 1; % flat-corrected values below threshold are set to one, 1: does nothing
 ring_filter.apply = 0; % ring artifact filter (use only for scans without lateral sample movement)
 ring_filter.apply_before_stitching = 0; % ! Consider when phase retrieval is applied !
 ring_filter.method = 'wavelet-fft';'jm';
@@ -76,11 +73,11 @@ ring_filter.waveletfft.wname = 'db25';'db30'; % wavelet type for 'wavelet-fft'
 ring_filter.waveletfft.sigma = 2.4; %  suppression factor for 'wavelet-fft'
 ring_filter.jm.median_width = 11; % multiple widths are applied consecutively, eg [3 11 21 31 39];
 % PHASE RETRIEVAL %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-phase_retrieval.apply = 0; % See 'PhaseFilter' for detailed description of parameters !
+phase_retrieval.apply = 1; % See 'PhaseFilter' for detailed description of parameters !
 phase_retrieval.apply_before = 0; % before stitching, interactive mode, etc. For phase-contrast data with an excentric rotation axis phase retrieval should be done afterwards. To find the rotataion axis position use this option in a first run, and then turn it of afterwards.
 phase_retrieval.post_binning_factor = 1; % Binning factor after phase retrieval, but before tomographic reconstruction
 phase_retrieval.method = 'tie';'qpcut';  'tie'; %'qp' 'ctf' 'tie' 'qp2' 'qpcut'
-phase_retrieval.reg_par = 2.5; % regularization parameter. larger values tend to blurrier images. smaller values tend to original data.
+phase_retrieval.reg_par = 1.5; % regularization parameter. larger values tend to blurrier images. smaller values tend to original data.
 phase_retrieval.bin_filt = 0.15; % threshold for quasiparticle retrieval 'qp', 'qp2'
 phase_retrieval.cutoff_frequ = 1 * pi; % in radian. frequency cutoff in Fourier space for 'qpcut' phase retrieval
 phase_retrieval.padding = 1; % padding of intensities before phase retrieval, 0: no padding
@@ -90,12 +87,12 @@ vol_shape = [];%[1.5 1.5 1]; % shape (voxels) of reconstruction volume. in absol
 vol_size = [];%[-1.5 1.5 -1.5 1.5 -1 1]; % 6-component vector [xmin xmax ymin ymax zmin zmax]. if empty, volume is centerd within vol_shape. unit voxel size is assumed. if smaller than 10 values are interpreted as relative size w.r.t. the detector size. Take care bout minus signs!
 rot_angle_full = []; % in radians: empty ([]), full angle of rotation, or array of angles. if empty full rotation angles is determined automatically to pi or 2 pi
 rot_angle_offset = pi; % global rotation of reconstructed volume
-rot_axis_offset = []; % if empty use automatic computation
+rot_axis_offset = 2.75; %[]; % if empty use automatic computation
 rot_axis_pos = []; % if empty use automatic computation. either offset or pos has to be empty. can't use both
 rot_corr_area1 = []; % ROI to correlate projections at angles 0 & pi. Use [0.75 1] or so for scans with an excentric rotation axis
 rot_corr_area2 = []; % ROI to correlate projections at angles 0 & pi
 rot_corr_gradient = 0; % use gradient of intensity maps if signal variations are too weak to correlate projections
-rot_axis_tilt = 0; % in rad. camera tilt w.r.t rotation axis. if empty calculate from registration of projections at 0 and pi
+rot_axis_tilt = -0.0025; % in rad. camera tilt w.r.t rotation axis. if empty calculate from registration of projections at 0 and pi
 fbp_filter_type = 'Ram-Lak';'linear'; % see iradonDesignFilter for more options. Ram-Lak according to Kak/Slaney
 fpb_filter_freq_cutoff = 1; % Cut-off frequency in Fourier space of the above FBP filter
 fbp_filter_padding = 1; % symmetric padding for consistent boundary conditions, 0: no padding
@@ -136,8 +133,8 @@ subfolder_reco = ''; % subfolder in 'reco'
 % INTERACTION %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 verbose = 1; % print information to standard output
 visual_output = 1; % show images and plots during reconstruction
-interactive_determination_of_rot_axis = 1; % reconstruct slices with different rotation axis offsets
-interactive_determination_of_rot_axis_tilt = 0; % reconstruct slices with different offset AND tilts of the rotation axis
+interactive_determination_of_rot_axis = 0; % reconstruct slices with different rotation axis offsets
+interactive_determination_of_rot_axis_tilt = 1; % reconstruct slices with different offset AND tilts of the rotation axis
 lamino = 0; % find laminography tilt instead camera rotation
 fixed_tilt = 0; % fixed other tilt
 slice_number = 0.5; % slice number, default: 0.5. if in [0,1): relative, if in (1, N]: absolute
@@ -568,10 +565,10 @@ elseif ~read_flatcor
         h1 = figure('Name', 'data and flat-and-dark-field correction');
         subplot(2,3,1)
         imsc1( dark );        
-        xticks([]);yticks([])
         title(sprintf('median dark field'))
         colorbar
         axis equal tight
+        xticks('auto'),yticks('auto')        
         drawnow
     end
     
@@ -671,7 +668,6 @@ elseif ~read_flatcor
         end
         subplot(2,3,2)
         imsc1( flat(:,:,1) )        
-        xticks([]);yticks([])
         title(sprintf('flat field #1'))
         colorbar
         axis equal tight
@@ -697,7 +693,6 @@ elseif ~read_flatcor
         raw1 = Binning( FilterPixel( read_image( filename, '', raw_roi, tif_info, raw_im_shape_uncropped, dtype ), proj_FiltPixThresh), raw_bin) / raw_bin^2;
         subplot(2,3,3)
         imsc1( raw1 )        
-        xticks([]);yticks([])
         title(sprintf('raw proj #1'))
         colorbar
         axis equal tight
@@ -1055,21 +1050,22 @@ if do_tomo(1)
         fprintf( '\n current rotation axis offset / position : %.2f, %.2f', rot_axis_offset, rot_axis_pos)
         fprintf( '\n calcul. rotation axis offset / position : %.2f, %.2f', rot_axis_offset_calc, rot_axis_pos_calc)
         fprintf( '\n default offset range : current ROT_AXIS_OFFSET + (-4:0.5:4)')
-        offset = input( '\n\nENTER RANGE OF ROTATION AXIS OFFSETS\n (if empty use default range, if scalar skips interactive mode): ');
-        if isempty( offset )
-            % default range is centered at the given or calculated offset
-            offset = rot_axis_offset + (-4:0.5:4);
-        end
-        if strcmp( offset(1), 's' )
+        offset = input( '\n\nENTER RANGE OF ROTATION AXIS OFFSETS\n (if empty use default range, if scalar skips interactive mode): ');        
+        if ~isempty( offset ) && strcmp( offset(1), 's' )
             slice = input( sprintf( '\n\nENTER ABSOLUTE [1,%u] OR RELATIVE [0,1] SLICE NUMBER : ', raw_im_shape_binned2) );            
             if slice <= 1 && slice >= 0
                 slice = round((raw_im_shape_binned2 - 1) * slice + 1 );
             end
+            fprintf( ' \n new slice : %u', slice );
             offset = input( '\n\nENTER RANGE OF ROTATION AXIS OFFSETS\n (if empty use default range, if scalar skips interactive mode): ');
         end
-        if strcmp( offset(1), 'd')
+        if ~isempty( offset ) && strcmp( offset(1), 'd')
             keyboard
             offset = input( '\n\nENTER RANGE OF ROTATION AXIS OFFSETS\n (if empty use default range, if scalar skips interactive mode): ');
+        end
+        if isempty( offset )
+            % default range is centered at the given or calculated offset
+            offset = rot_axis_offset + (-4:0.5:4);
         end
         if isscalar( offset )
             fprintf( ' old rotation axis offset : %.2f', rot_axis_offset)
@@ -1092,6 +1088,7 @@ if do_tomo(1)
             % Print image number, rotation axis values, and different metrics
             fprintf( '\n\nOFFSET:' )
             fprintf( '\n current rotation axis offset/position : %.2f, %.2f\n', rot_axis_offset, rot_axis_pos)
+            fprintf( '\n current slice : %u', slice )
             fprintf( '%11s', 'image no.', 'offset', metrics_offset.name)
             for nn = 1:numel(offset)
                 if offset(nn) == rot_axis_offset
@@ -1126,21 +1123,21 @@ if do_tomo(1)
             
             % Input
             offset = input( '\n\nENTER ROTATION AXIS OFFSET OR A RANGE OF OFFSETS\n (if empty use current offset, ''s'' to change slice number, ''d'' for debug mode): ');
-            if isempty( offset )
-                offset = rot_axis_offset;
-            end
-            if strcmp( offset(1), 's' )
+            if ~isempty( offset ) && strcmp( offset(1), 's' )
                 slice = input( sprintf( '\n\nENTER ABSOLUTE [1,%u] OR RELATIVE [0,1] SLICE NUMBER : ', raw_im_shape_binned2) );
                 if slice <= 1 && slice >= 0
                     slice = round((raw_im_shape_binned2 - 1) * slice + 1 );
                 end
+                fprintf( ' \n new slice : %u', slice );
                 offset = input( '\n\nENTER RANGE OF ROTATION AXIS OFFSETS\n (if empty use default range, if scalar skips interactive mode): ');
             end
-            if strcmp( offset(1), 'd')
+            if ~isempty( offset ) && strcmp( offset(1), 'd')
                 keyboard
                 offset = input( '\n\nENTER RANGE OF ROTATION AXIS OFFSETS\n (if empty use default range, if scalar skips interactive mode): ');
-            end            
-            
+            end
+            if isempty( offset )
+                offset = rot_axis_offset + (-4:0.5:4);
+            end
             if isscalar( offset )
                 fprintf( ' old rotation axis offset : %.2f', rot_axis_offset)
                 rot_axis_offset = offset;
@@ -1153,27 +1150,26 @@ if do_tomo(1)
                     fprintf( '\n calcul. rotation axis tilt : %g rad = %g deg', rot_axis_tilt_calc, rot_axis_tilt_calc * 180 / pi)
                     fprintf( '\n default tilt range is : current ROT_AXIS_TILT + (-0.005:0.001:0.005)')
                     tilt = input( '\n\nENTER TILT OF ROTATION AXIS OR RANGE OF TILTS\n (if empty use default, ''s'' to change slice number, ''d'' for debug mode):');
-                    if isempty( tilt )
-                        % default range is centered at the given or calculated tilt
-                        tilt = rot_axis_tilt + (-0.005:0.001:0.005);
-                    end
                     % option to change which slice to reconstruct
-                    if strcmp( tilt(1), 's' )                                                
+                    if ~isempty( tilt ) && strcmp( tilt(1), 's' )                                                
                         slice = input( sprintf( '\n\nENTER ABSOLUTE [1,%u] OR RELATIVE [0,1] SLICE NUMBER : ', raw_im_shape_binned2) );
                         if slice <= 1 && slice >= 0
                             slice = round((raw_im_shape_binned2 - 1) * slice + 1 );
                         end
                         tilt = input( '\n\nENTER TILT OF ROTATION AXIS OR RANGE OF TILTS\n (if empty use default):');
                     end
-                    if strcmp( tilt(1), 'd')
+                    if ~isempty( tilt ) && strcmp( tilt(1), 'd')
                         keyboard;
                         tilt = input( '\n\nENTER TILT OF ROTATION AXIS OR RANGE OF TILTS\n (if empty use default):');
                     end
+                    if isempty( tilt )
+                        tilt = rot_axis_tilt + (-0.005:0.001:0.005);
+                    end                    
                     
                     while ~isscalar( tilt )
                         
                         % Reco
-                        [vol, metrics_tilt] = find_rot_axis_tilt( proj, angles, slice, offset, tilt, itake_neg_log, inumber_of_stds, ivol_shape, ivol_size, lamino, fixed_tilt, gpu_index, offset_shift);
+                        [vol, metrics_tilt] = find_rot_axis_tilt( proj, angles, slice, rot_axis_offset, tilt, itake_neg_log, inumber_of_stds, ivol_shape, ivol_size, lamino, fixed_tilt, gpu_index, offset_shift);
                         
                         % Metric minima
                         [~, min_pos] = min(cell2mat({metrics_tilt(:).val}));
