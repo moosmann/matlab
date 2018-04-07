@@ -42,7 +42,7 @@ stitch_method = 'sine'; 'step';'linear'; %  ! CHECK correlation area !
 % 'step' : no interpolation, use step function
 % 'linear' : linear interpolation of overlap region
 % 'sine' : sinusoidal interpolation of overlap region
-proj_range = []; % range of projections to be used (from all found, if empty or 1: all, if scalar: stride, if range: start:incr:end
+proj_range = 1:600; %1:1199; % range of projections to be used (from all found, if empty or 1: all, if scalar: stride, if range: start:incr:end
 ref_range = 10; % range of flat fields to be used (from all found), if empty or 1: all. if scalar: stride, if range: start:incr:end
 energy = []; % in eV! if empty: read from log file
 sample_detector_distance = []; % in m. if empty: read from log file
@@ -127,7 +127,7 @@ compression_parameter = [0.20 0.15]; % compression-method specific parameter
 % 'threshold' : [LOW HIGH] = compression_parameter, eg. [-0.01 1]
 % 'std' : NUM = compression_parameter, mean +/- NUM*std, dynamic range is rescaled to within -/+ NUM standard deviations around the mean value
 % 'histo' : [LOW HIGH] = compression_parameter (100*LOW)% and (100*HIGH)% of the original histogram, e.g. [0.02 0.02]
-parfolder = '';% parent folder for 'reco', 'sino', 'phase', and 'flat_corrected'
+parfolder = 'proj_1st_half';% parent folder for 'reco', 'sino', 'phase', and 'flat_corrected'
 subfolder_flatcor = ''; % subfolder in 'flat_corrected'
 subfolder_phase_map = ''; % subfolder in 'phase_map'
 subfolder_sino = ''; % subfolder in 'sino'
@@ -432,8 +432,8 @@ else
     s_stage_x.value = h5read( h5log, '/entry/scan/data/s_stage_x/value');
     % wiggle di wiggle
     offset_shift = s_stage_x.value( ~boolean( stimg_key.value(par.n_dark+1:end) ) ) * 1e-3 / eff_pixel_size_binned;
-    offset_shift = offset_shift(proj_range);
     offset_shift = offset_shift - mean( offset_shift );
+    offset_shift = offset_shift(proj_range);
     % ring current
     X = double( petra.time );    
     V = double( petra.current );
@@ -738,7 +738,7 @@ elseif ~read_flatcor
     
     % Delete empty projections
     proj(:,:,~projs_to_use) = [];
-    offset_shift(~projs_to_use) = [];
+    offset_shift(~projs_to_use) = [];    
     
     raw_min = min( proj(:) );
     raw_max = max( proj(:) );    
@@ -749,9 +749,9 @@ elseif ~read_flatcor
     % Ring current normalization
     if ring_current_normalization(1)
         switch lower( cam )
-            case 'kit'
-                %proj_ind = proj_nums + 1;
-                proj_ind_from_filenames = proj_range - 1;
+            case 'kit'                
+                %proj_ind_from_filenames = proj_range - 1;
+                proj_ind_from_filenames = proj_nums;
             case 'ehd'
                 proj_ind_from_filenames = proj_nums;
         end
