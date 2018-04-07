@@ -26,6 +26,7 @@ close all hidden % close all open windows
 
 %% PARAMETERS / SETTINGS %%
 scan_path = ...|
+    '/asap3/petra3/gpfs/p05/2018/data/11004679/raw/lyr_1_3_10__m6_360_06';
     '/asap3/petra3/gpfs/p05/2018/data/11004679/raw/lyr_1_3_10__m6_fly_360_01';
     '/asap3/petra3/gpfs/p05/2018/data/11004488/raw/zfmk_07_a';
 read_flatcor = 0; % read flatfield-corrected images from disc, skips preprocessing
@@ -41,7 +42,7 @@ stitch_method = 'sine'; 'step';'linear'; %  ! CHECK correlation area !
 % 'step' : no interpolation, use step function
 % 'linear' : linear interpolation of overlap region
 % 'sine' : sinusoidal interpolation of overlap region
-proj_range = 2; % range of projections to be used (from all found, if empty or 1: all, if scalar: stride, if range: start:incr:end
+proj_range = []; % range of projections to be used (from all found, if empty or 1: all, if scalar: stride, if range: start:incr:end
 ref_range = 10; % range of flat fields to be used (from all found), if empty or 1: all. if scalar: stride, if range: start:incr:end
 energy = []; % in eV! if empty: read from log file
 sample_detector_distance = []; % in m. if empty: read from log file
@@ -84,7 +85,7 @@ phase_retrieval.cutoff_frequ = 1 * pi; % in radian. frequency cutoff in Fourier 
 phase_retrieval.padding = 1; % padding of intensities before phase retrieval, 0: no padding
 % TOMOGRAPHY %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 do_tomo = 1; % run tomographic reconstruction
-vol_shape = [2 2 1]; % shape (voxels) of reconstruction volume. in absolute number of voxels or in relative number w.r.t. the default volume which is given by the detector width and height
+vol_shape = [1.5 1.5 0.5]; % shape (voxels) of reconstruction volume. in absolute number of voxels or in relative number w.r.t. the default volume which is given by the detector width and height
 vol_size = [-1.5 1.5 -1.5 1.5 -0.5 0.5]; % 6-component vector [xmin xmax ymin ymax zmin zmax]. if empty, volume is centerd within vol_shape. unit voxel size is assumed. if smaller than 10 values are interpreted as relative size w.r.t. the detector size. Take care bout minus signs!
 rot_angle_full = []; % in radians: empty ([]), full angle of rotation, or array of angles. if empty full rotation angles is determined automatically to pi or 2 pi
 rot_angle_offset = pi; % global rotation of reconstructed volume
@@ -737,6 +738,7 @@ elseif ~read_flatcor
     
     % Delete empty projections
     proj(:,:,~projs_to_use) = [];
+    offset_shift(~projs_to_use) = [];
     
     raw_min = min( proj(:) );
     raw_max = max( proj(:) );    
