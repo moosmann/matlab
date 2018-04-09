@@ -25,7 +25,8 @@ close all hidden % close all open windows
 %dbstop if error
 
 %% PARAMETERS / SETTINGS %%
-scan_path = ...|
+scan_path = ...
+    '/asap3/petra3/gpfs/p05/2017/data/11003440/raw/syn33_80R_Mg10Gd_8w';
     '/asap3/petra3/gpfs/p05/2018/data/11004679/raw/P05_04_LYR_1_3_10_m6_step00';
 read_flatcor = 0; % read flatfield-corrected images from disc, skips preprocessing
 read_flatcor_path = ''; % subfolder of 'flat_corrected' containing projections
@@ -313,6 +314,8 @@ if strcmpi( ref_names{1}(end-6:end-4), 'ref' )
     ref_str_pos = 0;
 elseif strcmpi( ref_names{1}(end-11:end-9), 'ref' )
     ref_str_pos = 1;
+else
+    ref_str_pos = -1;
 end
 num_ref_used = numel( ref_range );
 ref_names_mat = NameCellToMat( ref_names(ref_range) );
