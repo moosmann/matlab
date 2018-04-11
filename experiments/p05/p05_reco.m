@@ -15,8 +15,15 @@
 %
 % For additional information see 'p05_reco_NOTES'.
 %
+%% Please cite following article when it comes to publication:
+% Moosmann, J.; Ershov, A.; Weinhardt, V.; Baumbach, T.; Prasad, M. S.;
+% LaBonne, C.; Xiao, X.; Kashef, J. & Hofmann, R. Time-lapse X-ray
+% phase-contrast microtomography for in vivo imaging and analysis of
+% morphogenesis Nat. Protocols, , 2014, 9, 294-304
+%% Also cite the ASTRA Toolbox, see http://www.astra-toolbox.com/
+%
 % Written by Julian Moosmann. First version: 2016-09-28. Last modifcation:
-% 2018-11-01
+% 2018-04-11
 
 if ~exist( 'external_parameter' ,'var')
     clearvars
