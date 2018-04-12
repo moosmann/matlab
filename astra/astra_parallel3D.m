@@ -1,4 +1,4 @@
-function vol = astra_parallel3D(sino, angles, rotation_axis_offset, vol_shape, vol_size, pixel_size, link_data, tilt, gpu_index, tilt_lamino)
+function vol = astra_parallel3D(tomo, sino)
 % Parallel backprojection of 2D or 3D sinograms using ASTRA's
 % parallel 3D geometry with vector notation. 
 %
@@ -39,35 +39,20 @@ function vol = astra_parallel3D(sino, angles, rotation_axis_offset, vol_shape, v
 %% TODO: check normalization factor pi / (2 * # angles)
 
 %% Default arguments %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-if nargin < 2
-    angles = pi;
-end
-if nargin < 3
-    rotation_axis_offset = 0;
-end
-if nargin < 4
-    vol_shape = [size( sino, 1), size( sino, 1), size(sino, 3) ];
-end
-if nargin < 5
-    vol_size = [];
-end
-if nargin < 6
-    pixel_size = [1, 1];
-end
-if nargin < 7
-    link_data = 0;
-end
-if nargin < 8
-    tilt = 0;
-end
-if nargin < 9
-    gpu_index = [];
-end
-if nargin < 10
-    tilt_lamino = 0;
-end
-
-
+angles = assign_from_struct( tomo, 'angles', pi );
+rotation_axis_offset = assign_from_struct( tomo, 'rotation_axis_offset', 0);
+vol_shape = assign_from_struct( tomo, 'vol_shape', [size( sino, 1), size( sino, 1), size(sino, 3) ] );
+vol_size = assign_from_struct( tomo, 'vol_size', [] );
+pixel_size = assign_from_struct( tomo, 'astra_pixel_size', [1 1] );
+tilt = assign_from_struct( tomo, 'tilt_camera', 0 );
+tilt_lamino = assign_from_struct( tomo, 'tilt_lamino', 0 );
+link_data = assign_from_struct( tomo, 'astra_link_data', 0 );
+gpu_index = assign_from_struct( tomo, 'astra_gpu_index', [] );
+algorithm = assign_from_struct( tomo, 'algorithm', 'fbp' );
+iterations = assign_from_struct( tomo, 'iterations', 100);
+MinConstraint = assign_from_struct( tomo.sirt, 'MinConstraint', [] );
+MaxConstraint = assign_from_struct( tomo.sirt, 'MaxConstraint', [] );
+ 
 %% Main %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 angles = double( angles );
@@ -172,7 +157,16 @@ else
 end
 
 %% ASTRA config struct
-cfg = astra_struct('BP3D_CUDA');
+switch lower( algorithm )
+    case 'fbp'
+        cfg = astra_struct('BP3D_CUDA');
+    case 'sirt'
+        cfg = astra_struct('SIRT3D_CUDA');
+%        cfg.option.MinConstraint = MinConstraint;
+ %       cfg.option.MaxConstraint = MaxConstraint;
+    case 'cgls'
+        cfg = astra_struct('CGLS3D_CUDA');        
+end
 cfg.ProjectionDataId = sino_id;
 cfg.ReconstructionDataId = vol_id;
 
@@ -180,7 +174,11 @@ cfg.ReconstructionDataId = vol_id;
 bp_id = astra_mex_algorithm('create', cfg);
 
 %% Backprojection: iterate algorithm 
-astra_mex_algorithm('iterate', bp_id, 1);
+if strcmpi( algorithm, 'fbp' )
+    astra_mex_algorithm('iterate', bp_id, 1);
+else
+    astra_mex_algorithm('iterate', bp_id, iterations);
+end
 astra_mex_algorithm('delete', bp_id);
 astra_mex_data3d('delete', sino_id)
 

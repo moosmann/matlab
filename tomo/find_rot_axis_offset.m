@@ -1,80 +1,57 @@
-function [vol, m] = find_rot_axis_offset(proj, angles, slice, offsets, tilt, take_neg_log, number_of_stds, vol_shape, vol_size, lamino, fixed_tilt, gpu_index, offset_shift)
-% Reconstruct slices from sinogram for a range of rotation axis positoin
+function [vol, reco_metric] = find_rot_axis_offset( par, proj)
+% Reconstruct slices from sinogram for a range of rotation axis position
 % offsets.
 %
 % RETURN
 % vol : 3D array. stack of slices with different rotation axis position
 % offsets
-% m : struct containing different metrics: mean of all values,
+% reco_metric : struct containing different metrics: mean of all values,
 % mean of all absolute values, mean non-negative values, mean of isotropic
 % modulus of gradient, mean of Laplacian, entropy
 % 
-% Written by Julian Moosmann. Last modification: 2017-04-05
+% Written by Julian Moosmann. Last modification: 2018-04-11
 %
-% [vol, m] = find_rot_axis_offset(proj, angles, slice, offsets, tilt, take_neg_log, number_of_stds, vol_shape)
+% [vol, reco_metric] = find_rot_axis_offset( par, proj );
 
 %% Default arguments %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-if nargin < 3
-    slice = [];
-end
-if nargin < 4
-    offsets = -10:10;
-end
-if nargin < 5
-    tilt = 0; 
-end
-if nargin < 6
-   take_neg_log = 1;
-end
-if nargin < 7
-    number_of_stds = 4;
-end
-if nargin < 8
-    vol_shape = [];
-end
-if nargin < 9
-    vol_size = [];
-end
-if nargin < 10
-    lamino = 0;
-end
-if nargin < 11
-    fixed_tilt = 0;
-end
-if nargin < 12
-    gpu_index = [];
-end
-if nargin < 13
-    offset_shift = 0;
-end
+slice = assign_from_struct( par, 'slice', [] );
+vol_shape = assign_from_struct( par, 'vol_shape', [] );
+vol_size = assign_from_struct( par, 'vol_size', [] );
+offset = double( assign_from_struct( par, 'offset', -10:10 ));
+offset_shift = assign_from_struct( par, 'offset_shift', 0 );
+tilt = assign_from_struct( par, 'tilt', 0 );
+lamino = assign_from_struct( par, 'lamino', 0 );
+fixed_tilt = assign_from_struct( par, 'fixed_tilt', 0 );
+take_neg_log = assign_from_struct( par, 'take_neg_log', 1 );
+number_of_stds = assign_from_struct( par, 'number_of_stds', 4 );
+
 mask_rad = 0.95;
 mask_val = 0;
 butterworth_filtering = 0;
-astra_pixel_size = 1;
-link_data = 1;
 filter_histo_roi = 0.25;
 
 %% Main %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-angles = double( angles );
-offsets = double( offsets );
 [num_pix, num_row, ~] = size( proj );
 if isempty( vol_shape )
     vol_shape = [num_pix, num_pix, 1];
 else
     vol_shape(3) = 1;
 end
+par.vol_shape = vol_shape;
 if isempty( vol_size )
     vol_size = [-num_pix/2 num_pix/2 -num_pix/2 num_pix/2 -0.5 0.5];
 else
     vol_size(5) = -0.5;
     vol_size(6) = 0.5;
 end
+par.vol_size = vol_size;
 if isempty( slice )
     slice = round( num_row / 2 );
 end
+par.slice = slice;
 
 % Calculate required slab
-rot_axis_pos = offsets + vol_shape(1) / 2;
+rot_axis_pos = offset + vol_shape(1) / 2;
 l = max( max( rot_axis_pos) , max( abs( vol_shape(1) - rot_axis_pos ) ) );
 dz = ceil( sin( abs( tilt ) ) * l ); % maximum distance between sino plane and reco plane
 if slice - dz < 0 || slice + dz > num_row
@@ -85,72 +62,78 @@ end
 y_range = slice + (-dz:dz);
 sino = proj(:, y_range, :);
 
-% Ramp filter
-filt = iradonDesignFilter('Ram-Lak', 2 * num_pix, 0.9);
-
-% Butterworth filter
-if butterworth_filtering(1)
-    [b, a] = butter(1, 0.5);
-    bw = freqz(b, a, numel(filt) );
-    filt = filt .* bw;
+if strcmpi( par.algorithm, 'fbp' )
+    % Ramp filter
+    filt = iradonDesignFilter('Ram-Lak', 2 * num_pix, 0.9);
+    
+    % Butterworth filter
+    if butterworth_filtering(1)
+        [b, a] = butter(1, 0.5);
+        bw = freqz(b, a, numel(filt) );
+        filt = filt .* bw;
+    end
+    
+    % Apply filters
+    sino = padarray( NegLog(sino, take_neg_log), [num_pix 0 0 ], 'symmetric', 'post');
+    sino = real( ifft( bsxfun(@times, fft( sino, [], 1), filt), [], 1, 'symmetric') );
+    sino = sino(1:num_pix,:,:);
 end
 
-% Apply filters
-sino = padarray( NegLog(sino, take_neg_log), [num_pix 0 0 ], 'symmetric', 'post');
-sino = real( ifft( bsxfun(@times, fft( sino, [], 1), filt), [], 1, 'symmetric') );
-sino = sino(1:num_pix,:,:);
-
 % Metrics
-m(1).name = 'mean';
-m(2).name = 'abs';
-m(3).name = 'neg';
-m(4).name = 'iso-grad';
-m(5).name = 'laplacian';
-m(6).name = 'entropy';
-m(7).name = 'entropy-ML';
+reco_metric(1).name = 'mean';
+reco_metric(2).name = 'abs';
+reco_metric(3).name = 'neg';
+reco_metric(4).name = 'iso-grad';
+reco_metric(5).name = 'laplacian';
+reco_metric(6).name = 'entropy';
+reco_metric(7).name = 'entropy-ML';
 
 % Preallocation
-vol = zeros(vol_shape(1), vol_shape(2), numel(offsets));
-for nn = 1:numel(m)
-    m(nn).val = zeros( numel(offsets), 1);
+vol = zeros(vol_shape(1), vol_shape(2), numel(offset));
+for nn = 1:numel(reco_metric)
+    reco_metric(nn).val = zeros( numel(offset), 1);
+end
+
+if ~lamino
+    par.tilt_camera = tilt;
+    par.tilt_lamino = fixed_tilt;
+else
+    par.tilt_camera = fixed_tilt;
+    par.tilt_lamino = tilt;
 end
 
 % Backprojection
-for nn = 1:numel( offsets )
-    offset = offsets(nn) + offset_shift + eps;
+for nn = 1:numel( offset )
+    par.rotation_axis_offset = offset(nn) + offset_shift + eps;
     
     %% Reco
-    if ~lamino
-        im = astra_parallel3D( permute( sino, [1 3 2]), angles, offset, vol_shape, vol_size, astra_pixel_size, link_data, tilt, gpu_index, fixed_tilt);
-    else
-        im = astra_parallel3D( permute( sino, [1 3 2]), angles, offset, vol_shape, vol_size, astra_pixel_size, link_data, fixed_tilt, gpu_index, tilt);
-    end
-
-    vol(:,:,nn) = FilterHisto(im, number_of_stds, filter_histo_roi);    
+    im = astra_parallel3D( par, permute( sino, [1 3 2]) );
+    vol(:,:,nn) = FilterHisto(im, number_of_stds, filter_histo_roi);
+    
     %% Metrics    
     im = double( MaskingDisc( im, mask_rad, mask_val) ) * 2^16;
     % mean    
-    m(1).val(nn) = mean2( im );
+    reco_metric(1).val(nn) = mean2( im );
     % mean abs
-    m(2).val(nn) = mean2( abs( im ) );
+    reco_metric(2).val(nn) = mean2( abs( im ) );
     % mean negativity
-    m(3).val(nn) = - mean( im( im <= 0 ) );
+    reco_metric(3).val(nn) = - mean( im( im <= 0 ) );
     % isotropic gradient
     [g1, g2] = gradient(im);
-    m(4).val(nn) = mean2( sqrt( g1.^2 + g2.^2 ) );
+    reco_metric(4).val(nn) = mean2( sqrt( g1.^2 + g2.^2 ) );
     % laplacian
-    m(5).val(nn) = mean2( abs( del2( im ) ) );
+    reco_metric(5).val(nn) = mean2( abs( del2( im ) ) );
     % entropy
     p = histcounts( im(:) );
     p = p(p>0);
     p = p / sum( p );
-    m(6).val(nn) = -sum( p .* log2( p ) );
+    reco_metric(6).val(nn) = -sum( p .* log2( p ) );
     % entropy built-in
-    m(7).val(nn) = -entropy( im );
+    reco_metric(7).val(nn) = -entropy( im );
 
 end
 
 % Normalize for ease of plotting and comparison
-for nn = 1:numel(m)
-    m(nn).val = normat( m(nn).val );
+for nn = 1:numel(reco_metric)
+    reco_metric(nn).val = normat( reco_metric(nn).val );
 end

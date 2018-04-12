@@ -33,13 +33,15 @@ close all hidden % close all open windows
 
 %% PARAMETERS / SETTINGS %%
 scan_path = ...
+    '/asap3/petra3/gpfs/p05/2018/data/11004326/raw/nova_166_a';
+    '/asap3/petra3/gpfs/p05/2017/data/11003288/raw/syn165_58L_Mg10Gd_12w_001';
     '/asap3/petra3/gpfs/p05/2017/data/11003440/raw/syn33_80R_Mg10Gd_8w';
     '/asap3/petra3/gpfs/p05/2018/data/11004679/raw/P05_04_LYR_1_3_10_m6_step00';
 read_flatcor = 0; % read flatfield-corrected images from disc, skips preprocessing
 read_flatcor_path = ''; % subfolder of 'flat_corrected' containing projections
 % PREPROCESSING %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-raw_roi = [101 -100];%[401 -400]; % [y0 y1] vertical roi.  skips first raw_roi(1)-1 lines, reads until raw_roi(2). When 2nd index is negative it is read from the end. Not working for *.raw data where images are flipped.
-raw_bin = 2; % projection binning factor: 1, 2, or 4
+raw_roi = [1881 -1600];%[401 -400]; % [y0 y1] vertical roi.  skips first raw_roi(1)-1 lines, reads until raw_roi(2). When 2nd index is negative it is read from the end. Not working for *.raw data where images are flipped.
+raw_bin = 4; % projection binning factor: 1, 2, or 4
 bin_before_filtering = 1; % Binning is applied before pixel filtering, much faster but less effective filtering
 excentric_rot_axis = 0; % off-centered rotation axis increasing FOV. -1: left, 0: centeerd, 1: right. influences rot_corr_area1
 crop_at_rot_axis = 0; % for recos of scans with excentric rotation axis but WITHOUT projection stitching
@@ -48,15 +50,15 @@ stitch_method = 'sine'; 'step';'linear'; %  ! CHECK correlation area !
 % 'step' : no interpolation, use step function
 % 'linear' : linear interpolation of overlap region
 % 'sine' : sinusoidal interpolation of overlap region
-proj_range = []; % range of projections to be used (from all found, if empty or 1: all, if scalar: stride, if range: start:incr:end
-ref_range = 1; % range of flat fields to be used (from all found), if empty or 1: all. if scalar: stride, if range: start:incr:end
+proj_range = 1; % range of projections to be used (from all found, if empty or 1: all, if scalar: stride, if range: start:incr:end
+ref_range = 12; % range of flat fields to be used (from all found), if empty or 1: all. if scalar: stride, if range: start:incr:end
 energy = []; % in eV! if empty: read from log file
 sample_detector_distance = []; % in m. if empty: read from log file
 eff_pixel_size = []; % in m. if empty: read from log file. effective pixel size =  detector pixel size / magnification
 dark_FiltPixThresh = [0.01 0.005]; % Dark fields: threshold parameter for hot/dark pixel filter, for details see 'FilterPixel'
 ref_FiltPixThresh = [0.01 0.005]; % Flat fields: threshold parameter for hot/dark pixel filter, for details see 'FilterPixel'
 proj_FiltPixThresh = [0.01 0.005]; % Raw projection: threshold parameter for hot/dark pixel filter, for details see 'FilterPixe
-correlation_method = 'ssim-ml';'none';'entropy';'diff';'shift';'ssim';'std';'cov';'corr';'cross-entropy12';'cross-entropy21';'cross-entropyx';'none';
+correlation_method = 'ssim-ml'; 'none'; 'entropy';'diff';'shift';'ssim';'std';'cov';'corr';'cross-entropy12';'cross-entropy21';'cross-entropyx';'none';
 % 'ssim-ml' : Matlab's structural similarity index (SSIM), includes Gaussian smoothing
 % 'ssim' : own implementation of SSIM, smoothing not yet implemented
 % 'entropy' : entropy measure of proj over flat
@@ -91,8 +93,8 @@ phase_retrieval.cutoff_frequ = 1 * pi; % in radian. frequency cutoff in Fourier 
 phase_retrieval.padding = 1; % padding of intensities before phase retrieval, 0: no padding
 % TOMOGRAPHY %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 do_tomo = 1; % run tomographic reconstruction
-vol_shape = []; %[2 2 0.5] for excentric rot axis pos; % shape (voxels) of reconstruction volume. in absolute number of voxels or in relative number w.r.t. the default volume which is given by the detector width and height
-vol_size = []; % [-1 1 -1 1 -0.5 0.5] for excentric rot axis pos; 6-component vector [xmin xmax ymin ymax zmin zmax]. if empty, volume is centerd within vol_shape. unit voxel size is assumed. if smaller than 10 values are interpreted as relative size w.r.t. the detector size. Take care bout minus signs!
+tomo.vol_shape = []; %[2 2 0.5] for excentric rot axis pos; % shape (voxels) of reconstruction volume. in absolute number of voxels or in relative number w.r.t. the default volume which is given by the detector width and height
+tomo.vol_size = []; % [-1 1 -1 1 -0.5 0.5] for excentric rot axis pos; 6-component vector [xmin xmax ymin ymax zmin zmax]. if empty, volume is centerd within tomo.vol_shape. unit voxel size is assumed. if smaller than 10 values are interpreted as relative size w.r.t. the detector size. Take care bout minus signs!
 rot_angle_full = []; % in radians: empty ([]), full angle of rotation, or array of angles. if empty full rotation angles is determined automatically to pi or 2 pi
 rot_angle_offset = pi; % global rotation of reconstructed volume
 rot_axis_offset = 0; []; % if empty use automatic computation
@@ -108,8 +110,12 @@ fbp_filter_padding_method = 'symmetric';
 butterworth_filter = 0; % use butterworth filter in addition to FBP filter
 butterworth_order = 1;
 butterworth_cutoff_frequ = 0.9;
-astra_pixel_size = 1; % detector pixel size for reconstruction: if different from one 'vol_size' must to be ajusted, too!
+tomo.astra_pixel_size = 1; % detector pixel size for reconstruction: if different from one 'tomo.vol_size' must to be ajusted, too!
 take_neg_log = []; % take negative logarithm. if empty, use 1 for attenuation contrast, 0 for phase contrast
+tomo.algorithm = 'sirt'; %'cgls'; %'fbp';
+tomo.iterations = 100; % for 'sirt' or 'cgls'.
+tomo.sirt.MinConstraint = []; % If specified, all values below MinConstraint will be set to MinConstraint. This can be used to enforce non-negative reconstructions, for example.
+tomo.sirt.MaxConstraint = []; %f specified, all values above MaxConstraint will be set to MaxConstraint.
 % OUTPUT %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 out_path = '';% absolute path were output data will be stored. !!overwrites the write.to_scratch flag. if empty uses the beamtime directory and either 'processed' or 'scratch_cc'
 write.to_scratch = 1; % write to 'scratch_cc' instead of 'processed'
@@ -125,7 +131,7 @@ write.post_reconstruction_binning_factor = 2; % IF BINNED VOLUMES ARE SAVED: bin
 write.float_binned = 0; % binned single precision (32-bit float) tiff
 write.uint16_binned = 0;
 write.uint8_binned = 0;
-parfolder = '';% parent folder for 'reco', 'sino', 'phase', and 'flat_corrected'
+parfolder = 'sirt';% parent folder for 'reco', 'sino', 'phase', and 'flat_corrected'
 subfolder_flatcor = ''; % subfolder in 'flat_corrected'
 subfolder_phase_map = ''; % subfolder in 'phase_map'
 subfolder_sino = ''; % subfolder in 'sino'
@@ -141,8 +147,8 @@ slice_number = 0.5; % slice number, default: 0.5. if in [0,1): relative, if in (
 % HARDWARE / SOFTWARE %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 use_cluster = 0; % if available: on MAXWELL nodes disp/nova/wga/wgs cluster computation can be used. Recommended only for large data sets since parpool creation and data transfer implies a lot of overhead.
 poolsize = 0.60; % number of workers used in a local parallel pool. if 0: use current config. if >= 1: absolute number. if 0 < poolsize < 1: relative amount of all cores to be used. if SLURM scheduling is available, a default number of workers is used.
-link_data = 1; % ASTRA data objects become references to Matlab arrays. Reduces memory issues.
-gpu_index = []; % GPU Device index to use, Matlab notation: index starts from 1. default: [], uses all
+tomo.astra_link_data = 1; % ASTRA data objects become references to Matlab arrays. Reduces memory issues.
+tomo.astra_gpu_index = []; % GPU Device index to use, Matlab notation: index starts from 1. default: [], uses all
 % EXPERIMENTAL OR NOT YET IMPLEMENTED %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 write.uint8_segmented = 0; % experimental: threshold segmentation for histograms with 2 distinct peaks: __/\_/\__
 compression_method = 'histo';'full'; 'std'; 'threshold'; % method to compression dynamic range into [0, 1]
@@ -268,10 +274,10 @@ end
 prnt( '\n hostname : %s', getenv( 'HOSTNAME' ) );
 [mem_free, mem_avail, mem_total] = free_memory;
 prnt( '\n system memory: free, available, total : %.3g GiB, %.3g GiB, %.3g GiB', mem_free/1024^3, mem_avail/1024^3, mem_total/1024^3)
-if isempty( gpu_index )
-    gpu_index = 1:gpuDeviceCount;
+if isempty( tomo.astra_gpu_index )
+    tomo.astra_gpu_index = 1:gpuDeviceCount;
 end
-for nn = gpu_index
+for nn = tomo.astra_gpu_index
     gpu = parallel.gpu.GPUDevice.getDevice( nn );
     prnt( '\n gpu %u memory : available, total, percent = %.3g GiB, %.3g GiB, %.2f%%', nn, gpu.AvailableMemory/1024^3, gpu.TotalMemory/1024^3, 100*gpu.AvailableMemory/gpu.TotalMemory)
 end
@@ -1088,10 +1094,24 @@ if do_tomo(1)
         % Loop over offsets
         while ~isscalar( offset )
             
-            [ivol_shape, ivol_size] = volshape_volsize( proj, vol_shape, vol_size, median(offset), verbose);
+            [ivol_shape, ivol_size] = volshape_volsize( proj, tomo.vol_shape, tomo.vol_size, median(offset), verbose);
             
             % Reco
-            [vol, metrics_offset] = find_rot_axis_offset(proj, angles, slice, offset, rot_axis_tilt, itake_neg_log, inumber_of_stds, ivol_shape, ivol_size, lamino, fixed_tilt, gpu_index, offset_shift);
+            %% Clean up
+            frao = tomo;
+            frao.angles = angles;
+            frao.slice = slice;
+            frao.offset = offset;
+            frao.rot_axis_tilt = rot_axis_tilt;
+            frao.itake_neg_log = itake_neg_log;
+            frao.inumber_of_stds = inumber_of_stds;
+            frao.ivol_shape = ivol_shape;
+            frao.ivol_size = ivol_size;
+            frao.lamino = lamino;
+            frao.fixed_tilt = fixed_tilt;
+            frao.astra_gpu_index = tomo.astra_gpu_index;
+            frao.offset_shift = offset_shift;
+            [vol, metrics_offset] = find_rot_axis_offset( frao, proj );
             
             % Metric minima
             [~, min_pos] = min(cell2mat({metrics_offset(:).val}));
@@ -1181,7 +1201,7 @@ if do_tomo(1)
                     while ~isscalar( tilt )
                         
                         % Reco
-                        [vol, metrics_tilt] = find_rot_axis_tilt( proj, angles, slice, rot_axis_offset, tilt, itake_neg_log, inumber_of_stds, ivol_shape, ivol_size, lamino, fixed_tilt, gpu_index, offset_shift);
+                        [vol, metrics_tilt] = find_rot_axis_tilt( proj, angles, slice, rot_axis_offset, tilt, itake_neg_log, inumber_of_stds, ivol_shape, ivol_size, lamino, fixed_tilt, tomo.astra_gpu_index, offset_shift);
                         
                         % Metric minima
                         [~, min_pos] = min(cell2mat({metrics_tilt(:).val}));
@@ -1288,7 +1308,7 @@ if do_tomo(1)
     prnt( '\n rotation axis offset: %.2f', rot_axis_offset );
     prnt( '\n rotation axis position: %.2f', rot_axis_pos );
     prnt( '\n rotation axis tilt: %g rad (%g deg)', rot_axis_tilt, rot_axis_tilt * 180 / pi)
-    [vol_shape, vol_size] = volshape_volsize( proj, vol_shape, vol_size, rot_axis_offset, verbose);
+    [tomo.vol_shape, tomo.vol_size] = volshape_volsize( proj, tomo.vol_shape, tomo.vol_size, rot_axis_offset, verbose);
     
     if interactive_determination_of_rot_axis_tilt(1) && visual_output(1)
         h4 = figure('Name','Projections at 0 and pi cropped symmetrically to rotation center');
@@ -1404,8 +1424,8 @@ if crop_at_rot_axis(1)
             %% CHECK
             proj( 1:floor(rot_axis_pos)-1, :, :) = [];
     end
-    if isempty( vol_shape )
-        vol_shape = [raw_im_shape_binned1, raw_im_shape_binned1, raw_im_shape_binned2];
+    if isempty( tomo.vol_shape )
+        tomo.vol_shape = [raw_im_shape_binned1, raw_im_shape_binned1, raw_im_shape_binned2];
     end
 end
 
@@ -1456,7 +1476,7 @@ if phase_retrieval.apply && ( phase_bin(1) > 1)
     clear proj_bin;
     rot_axis_pos = rot_axis_pos / phase_bin;
     rot_axis_offset = rot_axis_offset / phase_bin;
-    [vol_shape, vol_size] = volshape_volsize( proj, [], [], 0);
+    [tomo.vol_shape, tomo.vol_size] = volshape_volsize( proj, [], [], 0);
     prnt( ' done in %g s (%.2f min)', toc - t, (toc - t) / 60)
 end
 
@@ -1464,11 +1484,11 @@ end
 if do_tomo(1)
     prnt( '\nTomographic reconstruction:')
     
-    vol = zeros( vol_shape, 'single' );
+    vol = zeros( tomo.vol_shape, 'single' );
 
-    prnt( '\n volume shape: [%g, %g, %g]', vol_shape )
+    prnt( '\n volume shape: [%g, %g, %g]', tomo.vol_shape )
     prnt( '\n volume memory allocated: %.2f GiB', Bytes( vol, 3 ) )
-    %prod( vol_shape ) * 4 / 1024^3 ;
+    %prod( tomo.vol_shape ) * 4 / 1024^3 ;
     
     if stitch_projections(1)
         rot_axis_offset_reco = 0;
@@ -1490,23 +1510,26 @@ if do_tomo(1)
     end
     
     % Filter sinogram
-    prnt( '\n Filter sino:' )
-    t2 = toc;
-    filt = iradonDesignFilter(fbp_filter_type, (1 + fbp_filter_padding) * size( proj, 1), fpb_filter_freq_cutoff);
-    if butterworth_filter(1)
-        [b, a] = butter(butterworth_order, butterworth_cutoff_frequ);
-        bw = freqz(b, a, numel(filt) );
-        filt = filt .* bw;
-    end    
-    proj_shape1 = size( proj, 1);
-    parfor nn =  1:size( proj, 2)
-        im = proj(:,nn,:);
-        im = padarray( NegLog(im, take_neg_log), fbp_filter_padding * [proj_shape1 0 0], fbp_filter_padding_method, 'post' );
-        im = real( ifft( bsxfun(@times, fft( im, [], 1), filt), [], 1, 'symmetric') );
-        proj(:,nn,:) = im(1:proj_shape1,:,:);
+    if strcmpi( tomo.algorithm, 'fbp' )
+        %% Provide butterworth filtering also for iterative reconstruction
+        prnt( '\n Filter sino:' )
+        t2 = toc;
+        filt = iradonDesignFilter(fbp_filter_type, (1 + fbp_filter_padding) * size( proj, 1), fpb_filter_freq_cutoff);
+        if butterworth_filter(1)
+            [b, a] = butter(butterworth_order, butterworth_cutoff_frequ);
+            bw = freqz(b, a, numel(filt) );
+            filt = filt .* bw;
+        end
+        proj_shape1 = size( proj, 1);
+        parfor nn =  1:size( proj, 2)
+            im = proj(:,nn,:);
+            im = padarray( NegLog(im, take_neg_log), fbp_filter_padding * [proj_shape1 0 0], fbp_filter_padding_method, 'post' );
+            im = real( ifft( bsxfun(@times, fft( im, [], 1), filt), [], 1, 'symmetric') );
+            proj(:,nn,:) = im(1:proj_shape1,:,:);
+        end
+        pause(0.01)
+        prnt( ' done in %.2f min.', (toc - t2) / 60)
     end
-    pause(0.01)
-    prnt( ' done in %.2f min.', (toc - t2) / 60)
     
     if crop_at_rot_axis(1)
         % half weight pixel at rot axis pos as it is used twice
@@ -1521,7 +1544,13 @@ if do_tomo(1)
     % Backprojection
     prnt( '\n Backproject:')
     t2 = toc;
-    vol = astra_parallel3D( permute(proj, [1 3 2]), rot_angle_offset + angles_reco, rot_axis_offset_reco + offset_shift, vol_shape, vol_size, astra_pixel_size, link_data, ~lamino*rot_axis_tilt, gpu_index, lamino*rot_axis_tilt);
+    %vol = astra_parallel3D( permute(proj, [1 3 2]), rot_angle_offset + angles_reco, rot_axis_offset_reco + offset_shift, tomo.vol_shape, tomo.vol_size, tomo.astra_pixel_size, tomo.astra_link_data, ~lamino*rot_axis_tilt, tomo.astra_gpu_index, lamino*rot_axis_tilt);
+    %% Move parameters to appropiate position or replace globally
+    tomo.tilt_camera = ~lamino * rot_axis_tilt;
+    tomo.tilt_lamino = lamino * rot_axis_tilt;
+    tomo.angles = rot_angle_offset + angles_reco;
+    tomo.rotation_axis_offset = rot_axis_offset_reco + offset_shift;
+    vol = astra_parallel3D( tomo, permute(proj, [1 3 2]) );
     pause(0.01)
     prnt( ' done in %.2f min.', (toc - t2) / 60)
     
@@ -1684,8 +1713,8 @@ if phase_retrieval.apply
     fprintf(fid, 'phase_bin : %u\n', phase_bin);    
 end
 % Volume
-fprintf(fid, 'volume_shape : %u %u %u\n', vol_shape(1), vol_shape(2), vol_shape(3));
-fprintf(fid, 'volume_size : %f %f %f %f %f %f\n', vol_size(1), vol_size(2), vol_size(3), vol_size(4), vol_size(5), vol_size(6));
+fprintf(fid, 'volume_shape : %u %u %u\n', tomo.vol_shape(1), tomo.vol_shape(2), tomo.vol_shape(3));
+fprintf(fid, 'volume_size : %f %f %f %f %f %f\n', tomo.vol_size(1), tomo.vol_size(2), tomo.vol_size(3), tomo.vol_size(4), tomo.vol_size(5), tomo.vol_size(6));
 % Rotation
 fprintf(fid, 'excentric_rot_axis : %i\n', excentric_rot_axis);
 fprintf(fid, 'crop_at_rot_axis : %u\n', crop_at_rot_axis);
@@ -1726,7 +1755,7 @@ fprintf(fid, 'fbp_filter_padding_method : %s\n', fbp_filter_padding_method);
 fprintf(fid, 'butterworth_filter : %u\n', butterworth_filter);
 fprintf(fid, 'butterworth_order : %u\n', butterworth_order);
 fprintf(fid, 'butterworth_cutoff_frequency : %f\n', butterworth_cutoff_frequ);
-fprintf(fid, 'astra_pixel_size : %f\n', astra_pixel_size);
+fprintf(fid, 'tomo.astra_pixel_size : %f\n', tomo.astra_pixel_size);
 fprintf(fid, 'take_negative_logarithm : %u\n', take_neg_log);
 fprintf(fid, 'gpu_name : %s\n', gpu.Name);
 if exist( 'vol_min', 'var')
