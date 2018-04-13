@@ -51,7 +51,7 @@ energy    = EnergyDistancePixelsize(1);
 dist_sample_detector  = EnergyDistancePixelsize(2);
 pixelsize = EnergyDistancePixelsize(3);
 lambda    = E_to_lambda( energy );
-frequ_prefactor = 2 * pi * lambda * dist_sample_detector / pixelsize^2;
+frequ_prefactor = 2 * pi * lambda * dist_sample_detector / pixelsize^2;% 1/(Fresnel number) with pixelsize being the characteristic size
 num_zero_crossings = frequ_prefactor / pi / 4;
 im_shape = size( phase_shift );
 

@@ -34,15 +34,16 @@ close all hidden % close all open windows
 %% PARAMETERS / SETTINGS %%
 scan_path = ...
     '/asap3/petra3/gpfs/p05/2018/data/11004326/raw/nova_166_a';
+    '/asap3/petra3/gpfs/p05/2017/data/11003440/raw/syn83_cor_P3_1';
     '/asap3/petra3/gpfs/p05/2017/data/11003288/raw/syn165_58L_Mg10Gd_12w_001';
     '/asap3/petra3/gpfs/p05/2017/data/11003440/raw/syn33_80R_Mg10Gd_8w';
     '/asap3/petra3/gpfs/p05/2018/data/11004679/raw/P05_04_LYR_1_3_10_m6_step00';
 read_flatcor = 0; % read flatfield-corrected images from disc, skips preprocessing
 read_flatcor_path = ''; % subfolder of 'flat_corrected' containing projections
 % PREPROCESSING %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-raw_roi = [1881 -1600];%[401 -400]; % [y0 y1] vertical roi.  skips first raw_roi(1)-1 lines, reads until raw_roi(2). When 2nd index is negative it is read from the end. Not working for *.raw data where images are flipped.
+raw_roi = [501 -500];%[401 -400]; % [y0 y1] vertical roi.  skips first raw_roi(1)-1 lines, reads until raw_roi(2). When 2nd index is negative it is read from the end. Not working for *.raw data where images are flipped.
 raw_bin = 4; % projection binning factor: 1, 2, or 4
-bin_before_filtering = 1; % Binning is applied before pixel filtering, much faster but less effective filtering
+bin_before_filtering = 0; % Binning is applied before pixel filtering, much faster but less effective filtering
 excentric_rot_axis = 0; % off-centered rotation axis increasing FOV. -1: left, 0: centeerd, 1: right. influences rot_corr_area1
 crop_at_rot_axis = 0; % for recos of scans with excentric rotation axis but WITHOUT projection stitching
 stitch_projections = 0; % for 2 pi scans: stitch projection at rotation axis position. Recommended with phase retrieval to reduce artefacts. Standard absorption contrast data should work well without stitching. Subpixel stitching not supported (non-integer rotation axis position is rounded, less/no binning before reconstruction can be used to improve precision).
@@ -51,14 +52,14 @@ stitch_method = 'sine'; 'step';'linear'; %  ! CHECK correlation area !
 % 'linear' : linear interpolation of overlap region
 % 'sine' : sinusoidal interpolation of overlap region
 proj_range = 1; % range of projections to be used (from all found, if empty or 1: all, if scalar: stride, if range: start:incr:end
-ref_range = 12; % range of flat fields to be used (from all found), if empty or 1: all. if scalar: stride, if range: start:incr:end
+ref_range = 1; % range of flat fields to be used (from all found), if empty or 1: all. if scalar: stride, if range: start:incr:end
 energy = []; % in eV! if empty: read from log file
 sample_detector_distance = []; % in m. if empty: read from log file
 eff_pixel_size = []; % in m. if empty: read from log file. effective pixel size =  detector pixel size / magnification
 dark_FiltPixThresh = [0.01 0.005]; % Dark fields: threshold parameter for hot/dark pixel filter, for details see 'FilterPixel'
 ref_FiltPixThresh = [0.01 0.005]; % Flat fields: threshold parameter for hot/dark pixel filter, for details see 'FilterPixel'
 proj_FiltPixThresh = [0.01 0.005]; % Raw projection: threshold parameter for hot/dark pixel filter, for details see 'FilterPixe
-correlation_method = 'ssim-ml'; 'none'; 'entropy';'diff';'shift';'ssim';'std';'cov';'corr';'cross-entropy12';'cross-entropy21';'cross-entropyx';'none';
+correlation_method = 'entropy';'ssim-ml'; 'none'; 'diff';'shift';'ssim';'std';'cov';'corr';'cross-entropy12';'cross-entropy21';'cross-entropyx';'none';
 % 'ssim-ml' : Matlab's structural similarity index (SSIM), includes Gaussian smoothing
 % 'ssim' : own implementation of SSIM, smoothing not yet implemented
 % 'entropy' : entropy measure of proj over flat
@@ -75,9 +76,9 @@ flat_corr_area1 = [1 floor(100/raw_bin)];%[0.98 1];% correlation area: index vec
 flat_corr_area2 = [0.2 0.8]; % correlation area: index vector or relative/absolute position of [first pix, last pix]
 decimal_round_precision = 2; % precision when rounding pixel shifts
 strong_abs_thresh = 1; % if 1: does nothing, if < 1: flat-corrected values below threshold are set to one
-ring_filter.apply = 0; % ring artifact filter (use only for scans without lateral sample movement)
+ring_filter.apply = 1; % ring artifact filter (use only for scans without lateral sample movement)
 ring_filter.apply_before_stitching = 0; % ! Consider when phase retrieval is applied !
-ring_filter.method = 'wavelet-fft';'jm'; 
+ring_filter.method = 'jm'; 'wavelet-fft';
 ring_filter.waveletfft.dec_levels = 2:5; % decomposition levels for 'wavelet-fft'
 ring_filter.waveletfft.wname = 'db25';'db30'; % wavelet type for 'wavelet-fft'
 ring_filter.waveletfft.sigma = 2.4; %  suppression factor for 'wavelet-fft'
@@ -93,11 +94,11 @@ phase_retrieval.cutoff_frequ = 1 * pi; % in radian. frequency cutoff in Fourier 
 phase_retrieval.padding = 1; % padding of intensities before phase retrieval, 0: no padding
 % TOMOGRAPHY %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 do_tomo = 1; % run tomographic reconstruction
-tomo.vol_shape = []; %[2 2 0.5] for excentric rot axis pos; % shape (voxels) of reconstruction volume. in absolute number of voxels or in relative number w.r.t. the default volume which is given by the detector width and height
-tomo.vol_size = []; % [-1 1 -1 1 -0.5 0.5] for excentric rot axis pos; 6-component vector [xmin xmax ymin ymax zmin zmax]. if empty, volume is centerd within tomo.vol_shape. unit voxel size is assumed. if smaller than 10 values are interpreted as relative size w.r.t. the detector size. Take care bout minus signs!
+tomo.vol_shape = [0.6 0.6 1]; %[2 2 0.5] for excentric rot axis pos; % shape (voxels) of reconstruction volume. in absolute number of voxels or in relative number w.r.t. the default volume which is given by the detector width and height
+tomo.vol_size = [-0.3 0.3 -0.3 0.3 -0.5 0.5]; % [-1 1 -1 1 -0.5 0.5] for excentric rot axis pos; 6-component vector [xmin xmax ymin ymax zmin zmax]. if empty, volume is centerd within tomo.vol_shape. unit voxel size is assumed. if smaller than 10 values are interpreted as relative size w.r.t. the detector size. Take care bout minus signs!
 rot_angle_full = []; % in radians: empty ([]), full angle of rotation, or array of angles. if empty full rotation angles is determined automatically to pi or 2 pi
 rot_angle_offset = pi; % global rotation of reconstructed volume
-rot_axis_offset = 0; []; % if empty use automatic computation
+rot_axis_offset = 1.25;% if empty use automatic computation
 rot_axis_pos = []; % if empty use automatic computation. EITHER OFFSET OR POSITION MUST BE EMPTY. YOU MUST NOT USE BOTH!
 rot_corr_area1 = []; % ROI to correlate projections at angles 0 & pi. Use [0.75 1] or so for scans with an excentric rotation axis
 rot_corr_area2 = []; % ROI to correlate projections at angles 0 & pi
@@ -112,7 +113,7 @@ butterworth_order = 1;
 butterworth_cutoff_frequ = 0.9;
 tomo.astra_pixel_size = 1; % detector pixel size for reconstruction: if different from one 'tomo.vol_size' must to be ajusted, too!
 take_neg_log = []; % take negative logarithm. if empty, use 1 for attenuation contrast, 0 for phase contrast
-tomo.algorithm = 'sirt'; %'cgls'; %'fbp';
+tomo.algorithm = 'sirt'; 'cgls';'fbp';
 tomo.iterations = 100; % for 'sirt' or 'cgls'.
 tomo.sirt.MinConstraint = []; % If specified, all values below MinConstraint will be set to MinConstraint. This can be used to enforce non-negative reconstructions, for example.
 tomo.sirt.MaxConstraint = []; %f specified, all values above MaxConstraint will be set to MaxConstraint.
@@ -139,7 +140,7 @@ subfolder_reco = ''; % subfolder in 'reco'
 % INTERACTION %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 verbose = 1; % print information to standard output
 visual_output = 1; % show images and plots during reconstruction
-interactive_determination_of_rot_axis = 1; % reconstruct slices with different rotation axis offsets
+interactive_determination_of_rot_axis = 0; % reconstruct slices with different rotation axis offsets
 interactive_determination_of_rot_axis_tilt = 0; % reconstruct slices with different offset AND tilts of the rotation axis
 lamino = 0; % find laminography tilt instead camera rotation
 fixed_tilt = 0; % fixed other tilt
@@ -753,7 +754,9 @@ elseif ~read_flatcor
     
     % Delete empty projections
     proj(:,:,~projs_to_use) = [];
-    offset_shift(~projs_to_use) = [];    
+    if offset_shift ~= 0
+        offset_shift(~projs_to_use) = [];
+    end
     
     raw_min = min( proj(:) );
     raw_max = max( proj(:) );    
