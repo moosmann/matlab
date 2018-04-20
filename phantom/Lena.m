@@ -8,7 +8,7 @@ if nargin < 1
 end
 if nargin < 2
     blurring=[16 16 16];
-end;
+end
 if nargin < 3
     EnergyDistancePixelsize = [20 .7 1.1e-6];
 end
@@ -17,7 +17,7 @@ if nargin < 4
 end
 if nargin < 5
     filestring='/home/jmoosmann/data/test_pattern/lena/lena.tif';
-end;
+end
 
 %% Read lena test pattern to create a phase map.
 phase = zeros(1024);
@@ -28,7 +28,7 @@ if blurring(1) > 0
     hsizey = blurring(2);
     sigma  = blurring(3);
     phase  = imfilter(phase,fspecial('gaussian',[hsizex hsizey],sigma));
-end;
+end
 phase = MaxPhaseShift*normat(phase);
 %% Propagate the image.
 int = Propagation(phase,EnergyDistancePixelsize,2,'symmetric',0);

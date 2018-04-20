@@ -1,15 +1,15 @@
-function [int] = propagate(phase_shift, absorption, EnergyDistancePixelsize, padding, padding_method, filt, verbose)
+function [int] = propagate(phase_shift, attenuation, EnergyDistancePixelsize, padding, padding_method, filt, verbose)
 % Intensity according Fresnel propagation for a monochromatic plane wave of
 % energy 'EnergyDistancePixelsize'(1), a sample to detector distance
 % 'EnergyDistancePixelsize'(2), and detector pixelsize of
 % 'EnergyDistancePixelsize'(3) using the 2D maps 'phase_shift'
-% and 'absorption' as input. Here 'absorption' is two times the linear
+% and 'attenuation' as input. Here 'attenuation' is two times the linear
 % attenuation, such that the input wave I(z=0) at zero distance is given by
-% I(z=0) = exp( i*'phase_shift' - 'absorption' ).
+% I(z=0) = exp( i*'phase_shift' - 'attenuation' ).
 %
 % ARGUMENTS
 % phase_shift : real 2D-array. object induced phase variations/shift
-% absorption : real 2D-array. object induced absorption: log(I(x,y,z=0))
+% attenuation : real 2D-array. object induced attenuation: log(I(x,y,z=0))
 % EnergyDistancePixelsize : 3-component vector. [energy in ev,
 %   sample-detector-distance in m, effective pixelsize in m]
 % padding : scalar, default:0. padding factor. if 0 then no padding.
@@ -17,14 +17,14 @@ function [int] = propagate(phase_shift, absorption, EnergyDistancePixelsize, pad
 % verbose : boolean, default:0. print information
 %
 % Written by Julian Moosmann, 2018-02-05. Modified: 2018-02-06
-% [int] = propagate(phase_shift, absorption, EnergyDistancePixelsize, padding, padding_method, verbose)
+% [int] = propagate(phase_shift, attenuation, EnergyDistancePixelsize, padding, padding_method, verbose)
 
 %% Defaults %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 if nargin < 1
     phase_shift = 0.1 * phantom( 'Modified Shepp-Logan', 512 );
 end
 if nargin < 2
-    absorption = zeros( size( phase_shift ), 'like', phase_shift );
+    attenuation = zeros( size( phase_shift ), 'like', phase_shift );
 end
 if nargin < 3
     EnergyDistancePixelsize = [30e3 1 1e-6];% [eV m m]
@@ -57,7 +57,7 @@ im_shape = size( phase_shift );
 
 % Padding
 phase_shift = padarray( phase_shift, padding * im_shape, padding_method, 'post' );
-absorption = padarray( absorption, padding * im_shape, padding_method, 'post' );
+attenuation = padarray( attenuation, padding * im_shape, padding_method, 'post' );
 im_shape_pad = size( phase_shift );
 
 % Fourier cooridnates
@@ -66,7 +66,7 @@ y = FrequencyVector( im_shape_pad(2), precision, normalize);
 [xi, eta] = meshgrid( y, x);
 
 % Fresnel propagation
-int = abs( ifft2( filt .* exp( - 1i* frequ_prefactor * ( xi.^2 + eta.^2) / 2 ) .* fft2( exp( - absorption + 1i*phase_shift ) ) ) ).^2;
+int = abs( ifft2( filt .* exp( - 1i* frequ_prefactor * ( xi.^2 + eta.^2) / 2 ) .* fft2( exp( - attenuation + 1i*phase_shift ) ) ) ).^2;
 
 % Crop to orginial size
 int = int(1:im_shape(1),1:im_shape(2));
@@ -87,7 +87,7 @@ if verbose
 
     fprintf( '\n' );    
     domain( phase_shift, 1, 'phase shift')
-    domain( absorption, 1, 'absorption')
+    domain( attenuation, 1, 'attenuation')
     domain( int, 1, 'Intensity')
     fprintf(' \n')
 end
