@@ -19,7 +19,7 @@
 % Moosmann, J.; Ershov, A.; Weinhardt, V.; Baumbach, T.; Prasad, M. S.;
 % LaBonne, C.; Xiao, X.; Kashef, J. & Hofmann, R. Time-lapse X-ray
 % phase-contrast microtomography for in vivo imaging and analysis of
-% morphogenesis Nat. Protocols, , 2014, 9, 294-304
+% morphogenesis Nat. Protocols 9, 294-304 (2014)
 %% Also cite the ASTRA Toolbox, see http://www.astra-toolbox.com/
 %
 % Written by Julian Moosmann. First version: 2016-09-28. Last modifcation:
@@ -33,12 +33,13 @@ close all hidden % close all open windows
 
 %% PARAMETERS / SETTINGS %%
 scan_path = ...
+    '/asap3/petra3/gpfs/p05/2018/data/11004450/raw/hnee09_kie_sh_ts_008';
+    '/asap3/petra3/gpfs/p05/2018/commissioning/c20180420_000_kitfli/raw/hzg01_wz_kit_5x';
     '/asap3/petra3/gpfs/p05/2017/data/11003440/raw/syn33_80R_Mg10Gd_8w';
-    '/asap3/petra3/gpfs/p05/2018/data/11004679/raw/P05_04_LYR_1_3_10_m6_step00';
 read_flatcor = 0; % read flatfield-corrected images from disc, skips preprocessing
 read_flatcor_path = ''; % subfolder of 'flat_corrected' containing projections
 % PREPROCESSING %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-raw_roi = [101 -100];%[401 -400]; % [y0 y1] vertical roi.  skips first raw_roi(1)-1 lines, reads until raw_roi(2). When 2nd index is negative it is read from the end. Not working for *.raw data where images are flipped.
+raw_roi = [201 -200];%[401 -400]; % [y0 y1] vertical roi.  skips first raw_roi(1)-1 lines, reads until raw_roi(2). When 2nd index is negative it is read from the end. Not working for *.raw data where images are flipped.
 raw_bin = 2; % projection binning factor: 1, 2, or 4
 bin_before_filtering = 1; % Binning is applied before pixel filtering, much faster but less effective filtering
 excentric_rot_axis = 0; % off-centered rotation axis increasing FOV. -1: left, 0: centeerd, 1: right. influences rot_corr_area1
@@ -69,7 +70,7 @@ correlation_method = 'ssim-ml';'none';'entropy';'diff';'shift';'ssim';'std';'cov
 corr_shift_max_pixelshift = 0.25; % maximum pixelshift allowed for 'shift'-correlation method: if 0 use the best match (i.e. the one with the least shift), if > 0 uses all flats with shifts smaller than corr_shift_max_pixelshift
 corr_num_flats = 3; % number of flat fields used for average/median of flats. for 'shift'-correlation its the maximum number
 ring_current_normalization = 1; % normalize flat fields and projections by ring current
-flat_corr_area1 = [1 floor(100/raw_bin)];%[0.98 1];% correlation area: index vector or relative/absolute position of [first pix, last pix]
+flat_corr_area1 = [0.98 1];%[0.98 1];% correlation area: index vector or relative/absolute position of [first pix, last pix]
 flat_corr_area2 = [0.2 0.8]; % correlation area: index vector or relative/absolute position of [first pix, last pix]
 decimal_round_precision = 2; % precision when rounding pixel shifts
 strong_abs_thresh = 1; % if 1: does nothing, if < 1: flat-corrected values below threshold are set to one
@@ -81,8 +82,8 @@ ring_filter.waveletfft.wname = 'db25';'db30'; % wavelet type for 'wavelet-fft'
 ring_filter.waveletfft.sigma = 2.4; %  suppression factor for 'wavelet-fft'
 ring_filter.jm.median_width = 11; % multiple widths are applied consecutively, eg [3 11 21 31 39];
 % PHASE RETRIEVAL %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-phase_retrieval.apply = 0; % See 'PhaseFilter' for detailed description of parameters !
-phase_retrieval.apply_before = 0; % before stitching, interactive mode, etc. For phase-contrast data with an excentric rotation axis phase retrieval should be done afterwards. To find the rotataion axis position use this option in a first run, and then turn it of afterwards.
+phase_retrieval.apply = 1; % See 'PhaseFilter' for detailed description of parameters !
+phase_retrieval.apply_before = 1; % before stitching, interactive mode, etc. For phase-contrast data with an excentric rotation axis phase retrieval should be done afterwards. To find the rotataion axis position use this option in a first run, and then turn it of afterwards.
 phase_retrieval.post_binning_factor = 1; % Binning factor after phase retrieval, but before tomographic reconstruction
 phase_retrieval.method = 'tie';'qpcut';  'tie'; %'qp' 'ctf' 'tie' 'qp2' 'qpcut'
 phase_retrieval.reg_par = 1.5; % regularization parameter. larger values tend to blurrier images. smaller values tend to original data.
@@ -91,17 +92,17 @@ phase_retrieval.cutoff_frequ = 1 * pi; % in radian. frequency cutoff in Fourier 
 phase_retrieval.padding = 1; % padding of intensities before phase retrieval, 0: no padding
 % TOMOGRAPHY %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 do_tomo = 1; % run tomographic reconstruction
-vol_shape = []; %[2 2 0.5] for excentric rot axis pos; % shape (voxels) of reconstruction volume. in absolute number of voxels or in relative number w.r.t. the default volume which is given by the detector width and height
-vol_size = []; % [-1 1 -1 1 -0.5 0.5] for excentric rot axis pos; 6-component vector [xmin xmax ymin ymax zmin zmax]. if empty, volume is centerd within vol_shape. unit voxel size is assumed. if smaller than 10 values are interpreted as relative size w.r.t. the detector size. Take care bout minus signs!
+vol_size = [-0.6 0.6 -0.6 0.6 -0.5 0.5];% for excentric rot axis pos; 6-component vector [xmin xmax ymin ymax zmin zmax]. if empty, volume is centerd within vol_shape. unit voxel size is assumed. if smaller than 10 values are interpreted as relative size w.r.t. the detector size. Take care bout minus signs!
+vol_shape = [];%[1.2 1.2 1];% for excentric rot axis pos; % shape (voxels) of reconstruction volume. in absolute number of voxels or in relative number w.r.t. the default volume which is given by the detector width and height
 rot_angle_full = []; % in radians: empty ([]), full angle of rotation, or array of angles. if empty full rotation angles is determined automatically to pi or 2 pi
 rot_angle_offset = pi; % global rotation of reconstructed volume
-rot_axis_offset = 0; []; % if empty use automatic computation
+rot_axis_offset = -782.75; % if empty automatic computation is used (not very reliable)
 rot_axis_pos = []; % if empty use automatic computation. EITHER OFFSET OR POSITION MUST BE EMPTY. YOU MUST NOT USE BOTH!
 rot_corr_area1 = []; % ROI to correlate projections at angles 0 & pi. Use [0.75 1] or so for scans with an excentric rotation axis
 rot_corr_area2 = []; % ROI to correlate projections at angles 0 & pi
 rot_corr_gradient = 0; % use gradient of intensity maps if signal variations are too weak to correlate projections
 rot_axis_tilt = 0; % in rad. camera tilt w.r.t rotation axis. if empty calculate from registration of projections at 0 and pi
-fbp_filter_type = 'Ram-Lak';'linear'; % see iradonDesignFilter for more options. Ram-Lak according to Kak/Slaney
+fbp_filter_type = 'linear';'Ram-Lak'; % see iradonDesignFilter for more options. Ram-Lak according to Kak/Slaney
 fpb_filter_freq_cutoff = 1; % Cut-off frequency in Fourier space of the above FBP filter
 fbp_filter_padding = 1; % symmetric padding for consistent boundary conditions, 0: no padding
 fbp_filter_padding_method = 'symmetric';
@@ -112,8 +113,8 @@ astra_pixel_size = 1; % detector pixel size for reconstruction: if different fro
 take_neg_log = []; % take negative logarithm. if empty, use 1 for attenuation contrast, 0 for phase contrast
 % OUTPUT %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 out_path = '';% absolute path were output data will be stored. !!overwrites the write.to_scratch flag. if empty uses the beamtime directory and either 'processed' or 'scratch_cc'
-write.to_scratch = 1; % write to 'scratch_cc' instead of 'processed'
-write.flatcor = 0; % save preprocessed flat corrected projections
+write.to_scratch = 0; % write to 'scratch_cc' instead of 'processed'
+write.flatcor = 1; % save preprocessed flat corrected projections
 write.phase_map = 0; % save phase maps (if phase retrieval is not 0)
 write.sino = 0; % save sinograms (after preprocessing & before FBP filtering and phase retrieval)
 write.phase_sino = 0; % save sinograms of phase maps
@@ -122,7 +123,7 @@ write.float = 1; % single precision (32-bit float) tiff
 write.uint16 = 0;
 write.uint8 = 0;
 write.post_reconstruction_binning_factor = 2; % IF BINNED VOLUMES ARE SAVED: binning factor of reconstructed volume
-write.float_binned = 0; % binned single precision (32-bit float) tiff
+write.float_binned = 1; % binned single precision (32-bit float) tiff
 write.uint16_binned = 0;
 write.uint8_binned = 0;
 parfolder = '';% parent folder for 'reco', 'sino', 'phase', and 'flat_corrected'
@@ -133,7 +134,7 @@ subfolder_reco = ''; % subfolder in 'reco'
 % INTERACTION %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 verbose = 1; % print information to standard output
 visual_output = 1; % show images and plots during reconstruction
-interactive_determination_of_rot_axis = 1; % reconstruct slices with different rotation axis offsets
+interactive_determination_of_rot_axis = 0; % reconstruct slices with different rotation axis offsets
 interactive_determination_of_rot_axis_tilt = 0; % reconstruct slices with different offset AND tilts of the rotation axis
 lamino = 0; % find laminography tilt instead camera rotation
 fixed_tilt = 0; % fixed other tilt
@@ -143,7 +144,7 @@ use_cluster = 0; % if available: on MAXWELL nodes disp/nova/wga/wgs cluster comp
 poolsize = 0.60; % number of workers used in a local parallel pool. if 0: use current config. if >= 1: absolute number. if 0 < poolsize < 1: relative amount of all cores to be used. if SLURM scheduling is available, a default number of workers is used.
 link_data = 1; % ASTRA data objects become references to Matlab arrays. Reduces memory issues.
 gpu_index = []; % GPU Device index to use, Matlab notation: index starts from 1. default: [], uses all
-% EXPERIMENTAL OR NOT YET IMPLEMENTED %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% EXPERIMENTAL / NOT YET IMPLEMENTED %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 write.uint8_segmented = 0; % experimental: threshold segmentation for histograms with 2 distinct peaks: __/\_/\__
 compression_method = 'histo';'full'; 'std'; 'threshold'; % method to compression dynamic range into [0, 1]
 compression_parameter = [0.20 0.15]; % compression-method specific parameter
@@ -174,6 +175,9 @@ end
 
 %% Main %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 tic
+if ~isempty( vol_size ) && isempty( vol_shape )
+    vol_shape = vol_size(2:2:end) - vol_size(1:2:end);
+end
 phase_bin = phase_retrieval.post_binning_factor; % alias for readablity
 reco_bin = write.post_reconstruction_binning_factor; % alias for readablity
 imsc1 = @(im) imsc( flipud( im' ) );
@@ -286,6 +290,10 @@ if isempty( proj_names )
     raw_data = 0;
 end
 if isempty( proj_names )
+    proj_names =  FilenameCell( [scan_path, '*img*.tif'] );
+    raw_data = 0;
+end
+if isempty( proj_names )
     proj_names =  FilenameCell( [scan_path, '*img*.raw'] );
     raw_data = 1;
 end
@@ -298,7 +306,7 @@ num_proj_found = numel(proj_names);
 % Ref file names
 ref_names = FilenameCell( [scan_path, '*.ref'] );
 if isempty( ref_names )
-    ref_names = FilenameCell( [scan_path, 'ref_*.tif'] );
+    ref_names = FilenameCell( [scan_path, '*ref*.tif'] );
 end
 if isempty( ref_names )
     ref_names =  FilenameCell( [scan_path, '*flat*.tif'] );
@@ -334,7 +342,7 @@ prnt( '\n reference range used : %g:%g:%g%', ref_range(1), ref_range(2) - ref_ra
 % Dark file names
 dark_names = FilenameCell( [scan_path, '*.dar'] );
 if isempty( dark_names )
-    dark_names = FilenameCell( [scan_path, 'dark_*.tif'] );
+    dark_names = FilenameCell( [scan_path, '*dar*.tif'] );
 end
 if isempty( dark_names )
     dark_names =  FilenameCell( [scan_path, '*dar*.raw'] );
@@ -426,7 +434,7 @@ else
         raw_roi(2) = raw_im_shape_uncropped(2) + raw_roi(2);
     end
     % images
-    stimg_name.value = h5read( h5log, '/entry/scan/data/image_file/value');
+    stimg_name.value = unique( h5read( h5log, '/entry/scan/data/image_file/value') );
     stimg_name.time = h5read( h5log,'/entry/scan/data/image_file/time');
     stimg_key.value = h5read( h5log,'/entry/scan/data/image_key/value');
     stimg_key.time = double( h5read( h5log,'/entry/scan/data/image_key/time') );
@@ -664,7 +672,7 @@ elseif ~read_flatcor
     nn = sum( ~refs_to_use(:) );
     num_ref_used = num_ref_used - nn;
     prnt( ' done in %.1f s', toc-t)
-    PrintVerbose( verbose && nn,'\n discarded empty refs : %u', nn )
+    PrintVerbose( verbose && nn,'\n discarded empty refs : %u, %.2f%%', nn, 100*nn/num_ref_found )
     if sum( num_zeros )
         prnt( '\n zeros found in flat fields :' )
         prnt( ' %u', num_zeros )
@@ -737,7 +745,7 @@ elseif ~read_flatcor
         else
             im = Binning( FilterPixel( read_image( filename, '', raw_roi, tif_info, raw_im_shape_uncropped, dtype ), [HotThresh, DarkThresh]), raw_bin) / raw_bin^2;
         end        
-        % Check for zeros and reject images which is all zero
+        % Check for zeros and reject images which are all zero
         num_zeros(nn) =  sum( sum( im < 1 ) );
         projs_to_use(nn) = ~boolean( num_zeros(nn)  );
         if projs_to_use(nn)
@@ -804,7 +812,7 @@ elseif ~read_flatcor
     num_empty = sum( ~projs_to_use(:) );
     num_proj_used = num_proj_used - num_empty;
     prnt( ' done in %.1f s (%.2f min)', toc - t, ( toc - t ) / 60 )
-    PrintVerbose( verbose && num_empty,'\n discarded empty projections : %u', num_empty )
+    PrintVerbose( verbose && num_empty,'\n discarded empty projections : %u, %.2f%%', num_empty, 100*num_empty/size(proj,3) )
      if sum( num_zeros )
         prnt( '\n zeros found in projections :' )
         prnt( ' %u', num_zeros )
@@ -820,7 +828,7 @@ elseif ~read_flatcor
     proj_max0 = max( proj(:) );
     prnt( '\n global min/max after flat-field corrected:  %6g %6g', proj_min0, proj_max0);   
 
-    % Filter strong absorption    
+    % Experimental: Filter strong absorption
     if strong_abs_thresh < 1
         t = toc;
         prnt( '\n set flat-corrected values below %f to one, ', strong_abs_thresh)
