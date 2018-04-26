@@ -373,7 +373,7 @@ prnt( '\n projection range used : first:stride:last =  %g:%g:%g', proj_range(1),
 %% Log file %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % new hdf5 log from statussever
 h5log = sprintf('%s%s_nexus.h5', scan_path, scan_name);
-raw_im_shape_uncropped = [];
+im_shape_raw = [];
 dtype = '';
 tif_info = [];
 offset_shift = 0;
@@ -398,17 +398,17 @@ if ~exist( h5log, 'file')
     filename = sprintf('%s%s', scan_path, ref_names{1});
     if ~raw_data
         [im_raw, tif_info] = read_image( filename );
-        raw_im_shape_uncropped = size( im_raw );        
+        im_shape_raw = size( im_raw );        
     else
         switch lower( cam )
             case 'ehd'
-                raw_im_shape_uncropped = [3056 3056];
+                im_shape_raw = [3056 3056];
                 dtype = 'uint16';
             case 'kit'
-                raw_im_shape_uncropped = [5120 3840];
+                im_shape_raw = [5120 3840];
                 dtype = 'uint16';
         end
-        im_raw = read_raw( filename, raw_im_shape_uncropped, dtype );
+        im_raw = read_raw( filename, im_shape_raw, dtype );
     end        
 else
     % HDF5 log
@@ -419,17 +419,17 @@ else
         case 'ehd'
             energy = double(h5read( h5log, '/entry/hardware/camera1/calibration/energy') );
             exp_time = double(h5read( h5log, '/entry/hardware/camera1/calibration/exptime') );
-            raw_im_shape_uncropped = [3056 3056];
+            im_shape_raw = [3056 3056];
             dtype = 'uint16';
         case 'kit'
             energy = double(h5read( h5log, '/entry/hardware/camera2/calibration/energy') );
             exp_time = double(h5read( h5log, '/entry/hardware/camera2/calibration/exptime') );
-            raw_im_shape_uncropped = [5120 3840];
+            im_shape_raw = [5120 3840];
             dtype = 'uint16';
     end
     % Image shape
     filename = sprintf('%s%s', scan_path, ref_names{1});
-    [im_raw, tif_info] = read_image( filename, '', [], tif_info, raw_im_shape_uncropped, dtype );    
+    [im_raw, tif_info] = read_image( filename, '', [], tif_info, im_shape_raw, dtype );    
     % images
     stimg_name.value = unique( h5read( h5log, '/entry/scan/data/image_file/value') );
     stimg_name.time = h5read( h5log,'/entry/scan/data/image_file/time');
@@ -480,7 +480,7 @@ else
     rot_angle_full = pi; % FIX
 end
 if ~isempty( raw_roi ) && ~isscalar( raw_roi ) && raw_roi(2) < 1
-    raw_roi(2) = raw_im_shape_uncropped(2) + raw_roi(2);
+    raw_roi(2) = im_shape_raw(2) + raw_roi(2);
 elseif (isscalar(raw_roi) && raw_roi < 1)
     % Make roi_fac dependent on dark field
     if raw_roi < -1
@@ -492,23 +492,23 @@ elseif (isscalar(raw_roi) && raw_roi < 1)
     mm = 1;
     while sum( sum( im_raw < 1 ) ) > 0
         filename = sprintf('%s%s', scan_path, ref_names{mm});
-        im_raw = read_image( filename, '', [], tif_info, raw_im_shape_uncropped, dtype );    
+        im_raw = read_image( filename, '', [], tif_info, im_shape_raw, dtype );    
         mm = mm + 1;
     end
     % Read last non-zero flat
     mm = num_ref_found;
     filename = sprintf('%s%s', scan_path, ref_names{mm});
-    im_raw2 = read_image( filename, '', [], tif_info, raw_im_shape_uncropped, dtype );
+    im_raw2 = read_image( filename, '', [], tif_info, im_shape_raw, dtype );
     while sum( sum( im_raw2 < 1 ) ) > 0
         filename = sprintf('%s%s', scan_path, ref_names{mm});
-        im_raw2 = read_image( filename, '', [], tif_info, raw_im_shape_uncropped, dtype );
+        im_raw2 = read_image( filename, '', [], tif_info, im_shape_raw, dtype );
         mm = mm - 1;
     end
     % Compute crop position
     mm = median( (FilterPixel( im_raw, [0.1 0.1]) + FilterPixel( im_raw2, [0.1 0.1]) ) / 2, 1);
     roi_thresh = roi_fac * min(mm);
     [~,p] = min(abs(mm - roi_thresh));
-    if p < raw_im_shape_uncropped(1)/2
+    if p < im_shape_raw(1)/2
         pl = p;
         [~,pr] = min(abs(mm(p+10:end) - roi_thresh));
     else
@@ -538,16 +538,16 @@ elseif (isscalar(raw_roi) && raw_roi < 1)
     end
 end
 %im_roi = read_image( filename, '', raw_roi, tif_info );
-im_roi = read_image( filename, '', raw_roi, tif_info, raw_im_shape_uncropped, dtype );
-raw_im_shape_binned = floor( size( im_roi) / raw_bin );
-raw_im_shape_binned1 = raw_im_shape_binned(1);
-raw_im_shape_binned2 = raw_im_shape_binned(2);
+im_roi = read_image( filename, '', raw_roi, tif_info, im_shape_raw, dtype );
+im_shape_binned = floor( size( im_roi) / raw_bin );
+im_shape_binned1 = im_shape_binned(1);
+im_shape_binned2 = im_shape_binned(2);
 prnt( '\n energy : %.1f keV', energy / 1e3 )
 prnt( '\n distance sample dector : %.1f mm', sample_detector_distance * 1000 )
 prnt( '\n effective pixel size unbinned : %.2f micron',  eff_pixel_size * 1e6)
-prnt( '\n raw image shape : %g  %g', raw_im_shape_uncropped)
+prnt( '\n raw image shape : %g  %g', im_shape_raw)
 prnt( '\n raw image shape roi : %g  %g', size( im_roi ) )
-prnt( '\n raw image shape binned : %g  %g', raw_im_shape_binned)
+prnt( '\n raw image shape roi binned : %g  %g', im_shape_binned)
 prnt( '\n raw binning factor : %u', raw_bin)
 prnt( '\n raw bining before pixel filtering : %u', bin_before_filtering)
 
@@ -583,7 +583,7 @@ if read_flatcor(1)
     end
     
     % Preallocation
-    proj = zeros( raw_im_shape_binned(1), raw_im_shape_binned(2), num_proj_read, 'single');
+    proj = zeros( im_shape_binned(1), im_shape_binned(2), num_proj_read, 'single');
     prnt( ' Allocated bytes: %.2f GiB.', Bytes( proj, 3 ) )
     proj_names_mat = NameCellToMat( proj_names );
     
@@ -599,11 +599,11 @@ elseif ~read_flatcor
     %% Dark field
     t = toc;
     prnt( '\nProcessing dark fields.')
-    darks = zeros( [raw_im_shape_binned, num_dark], 'single');
+    darks = zeros( [im_shape_binned, num_dark], 'single');
     prnt( ' Allocated memory: %.2f MiB,', Bytes( darks, 2 ) )
     parfor nn = 1:num_dark
         filename = sprintf('%s%s', scan_path, dark_names{nn});
-        im = single( read_image( filename, '', raw_roi, tif_info, raw_im_shape_uncropped, dtype) );
+        im = single( read_image( filename, '', raw_roi, tif_info, im_shape_raw, dtype) );
         % Remove large outliers. Assume Poisson distribtion at large lambda
         % is approximately a Gaussian distribution and set all value above
         % mean + 4 * std (99.994 of values lie within 4 std). Due to
@@ -646,7 +646,7 @@ elseif ~read_flatcor
     t = toc;
     prnt( '\nProcessing flat fields.')
     % Preallocation
-    flat = zeros( [raw_im_shape_binned, num_ref_used], 'single');
+    flat = zeros( [im_shape_binned, num_ref_used], 'single');
     num_zeros = zeros( 1, num_ref_used );
     prnt( ' Allocated memory: %.2f GiB,', Bytes( flat, 3 ) )
     % Parallel loop
@@ -654,9 +654,9 @@ elseif ~read_flatcor
     parfor nn = 1:num_ref_used
         filename = sprintf('%s%s', scan_path, ref_names_mat(nn,:));
         if bin_before_filtering
-            flat(:, :, nn) = FilterPixel( Binning( single( read_image( filename, '', raw_roi, tif_info, raw_im_shape_uncropped, dtype ) ), raw_bin) / raw_bin^2, ref_FiltPixThresh);
+            flat(:, :, nn) = FilterPixel( Binning( single( read_image( filename, '', raw_roi, tif_info, im_shape_raw, dtype ) ), raw_bin) / raw_bin^2, ref_FiltPixThresh);
         else
-            flat(:, :, nn) = Binning( FilterPixel( read_image( filename, '', raw_roi, tif_info, raw_im_shape_uncropped, dtype ), ref_FiltPixThresh), raw_bin) / raw_bin^2;
+            flat(:, :, nn) = Binning( FilterPixel( read_image( filename, '', raw_roi, tif_info, im_shape_raw, dtype ), ref_FiltPixThresh), raw_bin) / raw_bin^2;
         end        
         % Check for zeros
         num_zeros(nn) =  sum( sum( flat(:,:,nn) < 1 ) );
@@ -738,7 +738,7 @@ elseif ~read_flatcor
     t = toc;
     prnt( '\nProcessing projections. ')
     % Preallocation
-    proj = zeros( raw_im_shape_binned(1), raw_im_shape_binned(2), num_proj_used, 'single');
+    proj = zeros( im_shape_binned(1), im_shape_binned(2), num_proj_used, 'single');
     prnt( ' Allocated memory: %.2f GiB,', Bytes( proj, 3 ) )
     img_names_mat = NameCellToMat( proj_names(proj_range) );
     
@@ -750,7 +750,7 @@ elseif ~read_flatcor
             h1 = figure('Name', 'data and flat-and-dark-field correction');
         end
         filename = sprintf('%s%s', scan_path, img_names_mat(1, :));
-        raw1 = Binning( FilterPixel( read_image( filename, '', raw_roi, tif_info, raw_im_shape_uncropped, dtype ), proj_FiltPixThresh), raw_bin) / raw_bin^2;
+        raw1 = Binning( FilterPixel( read_image( filename, '', raw_roi, tif_info, im_shape_raw, dtype ), proj_FiltPixThresh), raw_bin) / raw_bin^2;
         subplot(2,3,3)
         imsc1( raw1 )        
         title(sprintf('raw proj #1'))
@@ -763,11 +763,11 @@ elseif ~read_flatcor
     % of 1st, middle, and last projection to speed up processing
     if proj_FiltPixThresh(1) < 1 || proj_FiltPixThresh(2) < 0.5        
         filename = sprintf('%s%s', scan_path, img_names_mat(num_proj_used, :));
-        [~, ht(3), dt(3)] = FilterPixel( read_image( filename, '', raw_roi, tif_info, raw_im_shape_uncropped, dtype ), proj_FiltPixThresh);        
+        [~, ht(3), dt(3)] = FilterPixel( read_image( filename, '', raw_roi, tif_info, im_shape_raw, dtype ), proj_FiltPixThresh);        
         filename = sprintf('%s%s', scan_path, img_names_mat(1, :));
-        [~, ht(2), dt(2)] = FilterPixel( read_image( filename, '', raw_roi, tif_info, raw_im_shape_uncropped, dtype ), proj_FiltPixThresh);        
+        [~, ht(2), dt(2)] = FilterPixel( read_image( filename, '', raw_roi, tif_info, im_shape_raw, dtype ), proj_FiltPixThresh);        
         filename = sprintf('%s%s', scan_path, img_names_mat(round(num_proj_used/2), :));
-        [~, ht(1), dt(1)] = FilterPixel( read_image( filename, '', raw_roi, tif_info, raw_im_shape_uncropped, dtype ), proj_FiltPixThresh);        
+        [~, ht(1), dt(1)] = FilterPixel( read_image( filename, '', raw_roi, tif_info, im_shape_raw, dtype ), proj_FiltPixThresh);        
         HotThresh = median( ht );
         DarkThresh = median( dt );
     else
@@ -782,9 +782,9 @@ elseif ~read_flatcor
         % Read and filter raw projection
         filename = sprintf('%s%s', scan_path, img_names_mat(nn,:));
         if bin_before_filtering
-            im = FilterPixel( Binning( single( read_image( filename, '', raw_roi, tif_info, raw_im_shape_uncropped, dtype ) ), raw_bin) / raw_bin^2, [HotThresh, DarkThresh]);
+            im = FilterPixel( Binning( single( read_image( filename, '', raw_roi, tif_info, im_shape_raw, dtype ) ), raw_bin) / raw_bin^2, [HotThresh, DarkThresh]);
         else
-            im = Binning( FilterPixel( read_image( filename, '', raw_roi, tif_info, raw_im_shape_uncropped, dtype ), [HotThresh, DarkThresh]), raw_bin) / raw_bin^2;
+            im = Binning( FilterPixel( read_image( filename, '', raw_roi, tif_info, im_shape_raw, dtype ), [HotThresh, DarkThresh]), raw_bin) / raw_bin^2;
         end        
         % Check for zeros and reject images which are all zero
         num_zeros(nn) =  sum( sum( im < 1 ) );
@@ -863,7 +863,7 @@ elseif ~read_flatcor
     
     %% Flat field correction %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     %% STOP HERE FOR FLATFIELD CORRELATION MAPPING
-    [proj, corr, proj_roi, flat_roi] = proj_flat_correlation( proj, flat, correlation_method, flat_corr_area1, flat_corr_area2, raw_im_shape_binned, corr_shift_max_pixelshift, corr_num_flats, decimal_round_precision, flatcor_path, verbose, visual_output);
+    [proj, corr, proj_roi, flat_roi] = proj_flat_correlation( proj, flat, correlation_method, flat_corr_area1, flat_corr_area2, im_shape_binned, corr_shift_max_pixelshift, corr_num_flats, decimal_round_precision, flatcor_path, verbose, visual_output);
     proj_min0 = min( proj(:) );
     proj_max0 = max( proj(:) );
     prnt( '\n global min/max after flat-field corrected:  %6g %6g', proj_min0, proj_max0);   
@@ -988,8 +988,8 @@ if do_tomo(1)
     if isempty( rot_corr_area2 )
         rot_corr_area2 = [0.1 0.9];
     end
-    rot_corr_area1 = IndexParameterToRange( rot_corr_area1, raw_im_shape_binned1 );
-    rot_corr_area2 = IndexParameterToRange( rot_corr_area2, raw_im_shape_binned2 );
+    rot_corr_area1 = IndexParameterToRange( rot_corr_area1, im_shape_binned1 );
+    rot_corr_area2 = IndexParameterToRange( rot_corr_area2, im_shape_binned2 );
     
     % Full rotation angle
     if isempty( rot_angle_full )
@@ -1036,24 +1036,24 @@ if do_tomo(1)
     % Correlation
     out = ImageCorrelation( im1, im2, 0, 0, 0);
     % relative shift
-    rot_corr_shift_x = round( out.shift1, decimal_round_precision) + rot_corr_area1(1) + (rot_corr_area1(end) - raw_im_shape_binned1) - 1;
-    rot_corr_shift_y = round( out.shift2, decimal_round_precision) + rot_corr_area2(1) + (rot_corr_area1(end) - raw_im_shape_binned1) - 1;
+    rot_corr_shift_x = round( out.shift1, decimal_round_precision) + rot_corr_area1(1) + (rot_corr_area1(end) - im_shape_binned1) - 1;
+    rot_corr_shift_y = round( out.shift2, decimal_round_precision) + rot_corr_area2(1) + (rot_corr_area1(end) - im_shape_binned1) - 1;
     prnt( '\n relative shift: %g, %g', rot_corr_shift_x, rot_corr_shift_y)
     rot_axis_offset_calc = rot_corr_shift_x / 2;
     if numel( offset_shift ) > 1
         rot_axis_offset_calc = offset_shift(ind1) - offset_shift(ind2);
     end
-    rot_axis_pos_calc = raw_im_shape_binned1 / 2 + rot_axis_offset_calc;
+    rot_axis_pos_calc = im_shape_binned1 / 2 + rot_axis_offset_calc;
     prnt( '\n calculated rotation axis offset: %.2f', rot_axis_offset_calc)
     % use calculated offset if both offset and position are empty
     if isempty( rot_axis_offset ) && isempty( rot_axis_pos )
         rot_axis_offset = rot_axis_offset_calc;
     end
     if isempty( rot_axis_pos )
-        rot_axis_pos = raw_im_shape_binned1 / 2 + rot_axis_offset;
+        rot_axis_pos = im_shape_binned1 / 2 + rot_axis_offset;
     end
     if isempty( rot_axis_offset )
-        rot_axis_offset = rot_axis_pos - raw_im_shape_binned1 / 2;
+        rot_axis_offset = rot_axis_pos - im_shape_binned1 / 2;
     end
     
     % Tilt of rotation axis
@@ -1081,7 +1081,7 @@ if do_tomo(1)
     % AUTOMATIC MODE %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     if automatic_mode(1) % NOT IMPLEMENTED YET
         pts = 10;
-        im_center = raw_im_shape_binned1 / 2;
+        im_center = im_shape_binned1 / 2;
         offset_stride = floor( im_center / pts );
         offset = -im_center:offset_stride:im_center;        
     end
@@ -1091,8 +1091,8 @@ if do_tomo(1)
     if interactive_determination_of_rot_axis(1)
         tint = toc;
         fprintf( '\n\nENTER INTERACTIVE MODE' )
-        fprintf( '\n number of pixels: %u', raw_im_shape_binned1)
-        fprintf( '\n image center: %.1f', raw_im_shape_binned1 / 2)
+        fprintf( '\n number of pixels: %u', im_shape_binned1)
+        fprintf( '\n image center: %.1f', im_shape_binned1 / 2)
         
         if phase_retrieval.apply && phase_retrieval.apply_before
             itake_neg_log = 0;
@@ -1103,7 +1103,7 @@ if do_tomo(1)
         if slice_number > 1
             slice = slice_number;
         elseif slice_number <= 1 && slice_number >= 0
-            slice = round((raw_im_shape_binned2 - 1) * slice_number + 1 );
+            slice = round((im_shape_binned2 - 1) * slice_number + 1 );
         end
         fprintf( '\n slice : %u', slice)        
         fprintf( '\n\nOFFSET:' )
@@ -1112,9 +1112,9 @@ if do_tomo(1)
         fprintf( '\n default offset range : current ROT_AXIS_OFFSET + (-4:0.5:4)')
         offset = input( '\n\nENTER RANGE OF ROTATION AXIS OFFSETS\n (if empty use default range, if scalar skips interactive mode): ');        
         if ~isempty( offset ) && strcmp( offset(1), 's' )
-            slice = input( sprintf( '\n\nENTER ABSOLUTE [1,%u] OR RELATIVE [0,1] SLICE NUMBER : ', raw_im_shape_binned2) );            
+            slice = input( sprintf( '\n\nENTER ABSOLUTE [1,%u] OR RELATIVE [0,1] SLICE NUMBER : ', im_shape_binned2) );            
             if slice <= 1 && slice >= 0
-                slice = round((raw_im_shape_binned2 - 1) * slice + 1 );
+                slice = round((im_shape_binned2 - 1) * slice + 1 );
             end
             fprintf( ' \n new slice : %u', slice );
             offset = input( '\n\nENTER RANGE OF ROTATION AXIS OFFSETS\n (if empty use default range, if scalar skips interactive mode): ');
@@ -1184,9 +1184,9 @@ if do_tomo(1)
             % Input
             offset = input( '\n\nENTER ROTATION AXIS OFFSET OR A RANGE OF OFFSETS\n (if empty use current offset, ''s'' to change slice number, ''d'' for debug mode): ');
             if ~isempty( offset ) && strcmp( offset(1), 's' )
-                slice = input( sprintf( '\n\nENTER ABSOLUTE [1,%u] OR RELATIVE [0,1] SLICE NUMBER : ', raw_im_shape_binned2) );
+                slice = input( sprintf( '\n\nENTER ABSOLUTE [1,%u] OR RELATIVE [0,1] SLICE NUMBER : ', im_shape_binned2) );
                 if slice <= 1 && slice >= 0
-                    slice = round((raw_im_shape_binned2 - 1) * slice + 1 );
+                    slice = round((im_shape_binned2 - 1) * slice + 1 );
                 end
                 fprintf( ' \n new slice : %u', slice );
                 offset = input( '\n\nENTER RANGE OF ROTATION AXIS OFFSETS\n (if empty use default range, if scalar skips interactive mode): ');
@@ -1212,9 +1212,9 @@ if do_tomo(1)
                     tilt = input( '\n\nENTER TILT OF ROTATION AXIS OR RANGE OF TILTS\n (if empty use default, ''s'' to change slice number, ''d'' for debug mode):');
                     % option to change which slice to reconstruct
                     if ~isempty( tilt ) && strcmp( tilt(1), 's' )                                                
-                        slice = input( sprintf( '\n\nENTER ABSOLUTE [1,%u] OR RELATIVE [0,1] SLICE NUMBER : ', raw_im_shape_binned2) );
+                        slice = input( sprintf( '\n\nENTER ABSOLUTE [1,%u] OR RELATIVE [0,1] SLICE NUMBER : ', im_shape_binned2) );
                         if slice <= 1 && slice >= 0
-                            slice = round((raw_im_shape_binned2 - 1) * slice + 1 );
+                            slice = round((im_shape_binned2 - 1) * slice + 1 );
                         end
                         tilt = input( '\n\nENTER TILT OF ROTATION AXIS OR RANGE OF TILTS\n (if empty use default):');
                     end
@@ -1276,7 +1276,7 @@ if do_tomo(1)
                         if isscalar( tilt )
                             rot_axis_tilt = tilt;
                             
-                            rot_axis_pos = raw_im_shape_binned1 / 2 + rot_axis_offset;
+                            rot_axis_pos = im_shape_binned1 / 2 + rot_axis_offset;
                             
                             % Compare projection at 0 pi and projection at 1 pi corrected for rotation axis tilt
                             im1c = RotAxisSymmetricCropping( proj(:,rot_corr_area2,ind1), rot_axis_pos, 1);
@@ -1328,7 +1328,7 @@ if do_tomo(1)
             end
         end
         
-        rot_axis_pos = raw_im_shape_binned1 / 2 + rot_axis_offset;
+        rot_axis_pos = im_shape_binned1 / 2 + rot_axis_offset;
         fprintf( '\nEND OF INTERACTIVE MODE' )
         
         tint = toc - tint;
@@ -1396,20 +1396,20 @@ if stitch_projections(1)
     xr = 1:xl(end)-1;
     im_shape_sti1 = numel( xl ) + numel( xr );
     % Preallocation
-    proj_sti = zeros( im_shape_sti1 , raw_im_shape_binned2, num_proj_sti, 'single');
+    proj_sti = zeros( im_shape_sti1 , im_shape_binned2, num_proj_sti, 'single');
     for nn = 1:num_proj_sti
         nn2 = mod(num_proj_sti + nn - 1, num_proj) + 1;
-        im = zeros( im_shape_sti1, raw_im_shape_binned2);
+        im = zeros( im_shape_sti1, im_shape_binned2);
         switch lower( stitch_method )
             case 'step'
                 im = cat(1, proj(xl,:,nn), flipud( proj(xr,:,nn2) ) );
             case {'linear', 'sine'}
                 % overlap region
-                overlap = round(2 * rot_axis_pos) - raw_im_shape_binned1 : raw_im_shape_binned1;
+                overlap = round(2 * rot_axis_pos) - im_shape_binned1 : im_shape_binned1;
                 % overlap ramp
                 x = (0:1/(numel(overlap)-1):1);
                 % 1D weight
-                w = ones(raw_im_shape_binned1, 1);
+                w = ones(im_shape_binned1, 1);
                 switch lower( stitch_method )
                     case 'linear'
                         w(overlap) = 1 - x;
@@ -1420,8 +1420,8 @@ if stitch_projections(1)
                 iml = bsxfun(@times, proj(:,:,nn), w);
                 imr = flipud( bsxfun(@times, proj(:,:,nn2), w ) );
                 % stitched projection
-                im(1:raw_im_shape_binned1,:) = iml;
-                im(end - raw_im_shape_binned1 + 1:end,:) = im(end - raw_im_shape_binned1 + 1:end,:) + imr;
+                im(1:im_shape_binned1,:) = iml;
+                im(end - im_shape_binned1 + 1:end,:) = im(end - im_shape_binned1 + 1:end,:) + imr;
         end
         proj_sti(:,:,nn) = im;
     end
@@ -1453,7 +1453,7 @@ if crop_at_rot_axis(1)
             proj( 1:floor(rot_axis_pos)-1, :, :) = [];
     end
     if isempty( vol_shape )
-        vol_shape = [raw_im_shape_binned1, raw_im_shape_binned1, raw_im_shape_binned2];
+        vol_shape = [im_shape_binned1, im_shape_binned1, im_shape_binned2];
     end
 end
 
@@ -1463,7 +1463,7 @@ if write.sino
     prnt( '\nSave sinogram:')
     CheckAndMakePath(sino_path)
     % Save slices
-    parfor nn = 1:raw_im_shape_binned2
+    parfor nn = 1:im_shape_binned2
         filename = sprintf( '%ssino_%06u.tif', sino_path, nn);
         write32bitTIFfromSingle( filename, squeeze( proj( :, nn, :) )' )
     end
@@ -1484,7 +1484,7 @@ if phase_retrieval.apply && write.phase_sino
     prnt( '\nSave phase map sinogram:')
     CheckAndMakePath(sino_phase_path)
     % Save slices
-    parfor nn = 1:raw_im_shape_binned2
+    parfor nn = 1:im_shape_binned2
         filename = sprintf( '%ssino_%06u.tif', sino_phase_path, nn);
         write32bitTIFfromSingle( filename, squeeze( proj( :, nn, :) )' )
     end
@@ -1697,10 +1697,10 @@ fprintf(fid, 'ref_range : %u:%u:%u\n', ref_range(1), ref_range(2) - ref_range(1)
 fprintf(fid, 'num_proj_found : %u\n', num_proj_found);
 fprintf(fid, 'num_proj_used : %u\n', num_proj_used);
 fprintf(fid, 'proj_range : %u:%u:%u\n', proj_range(1), proj_range(2) - proj_range(1), proj_range(end) );
-fprintf(fid, 'raw_im_shape_uncropped : %u %u\n', raw_im_shape_uncropped);
+fprintf(fid, 'im_shape_raw : %u %u\n', im_shape_raw);
 fprintf(fid, 'raw_roi : %u %u\n', raw_roi);
-fprintf(fid, 'raw_image_shape_roi : %u %u\n', size( im_roi ));
-fprintf(fid, 'raw_image_shape_roi_binned : %u %u\n', raw_im_shape_binned);
+fprintf(fid, 'image_shape_roi : %u %u\n', size( im_roi ));
+fprintf(fid, 'image_shape_roi_binned : %u %u\n', im_shape_binned);
 fprintf(fid, 'raw_binning_factor : %u\n', raw_bin);
 fprintf(fid, 'bin_before_filtering : %u\n', bin_before_filtering);
 fprintf(fid, 'effective_pixel_size : %g micron\n', eff_pixel_size * 1e6);
@@ -1748,7 +1748,7 @@ fprintf(fid, 'rotation_axis_position_calculated : %f\n', rot_axis_pos_calc);
 fprintf(fid, 'rotation_axis_position : %f\n', rot_axis_pos);
 fprintf(fid, 'rotation_axis_tilt_calculated : %f\n', rot_axis_tilt_calc);
 fprintf(fid, 'rotation_axis_tilt : %f\n', rot_axis_tilt);
-fprintf(fid, 'raw_image_binned_center : %f\n', raw_im_shape_binned1 / 2);
+fprintf(fid, 'raw_image_binned_center : %f\n', im_shape_binned1 / 2);
 fprintf(fid, 'rotation_correlation_area_1 : %u:%u:%u\n', rot_corr_area1(1), rot_corr_area1(2) - rot_corr_area1(1), rot_corr_area1(end));
 fprintf(fid, 'rotation_correlation_area_2 : %u:%u:%u\n', rot_corr_area2(1), rot_corr_area2(2) - rot_corr_area2(1), rot_corr_area2(end));
 fprintf(fid, 'interactive_determination_of_rot_axis : %u\n', interactive_determination_of_rot_axis);
