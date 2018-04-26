@@ -17,7 +17,12 @@ format = cc{1}(end-2:end);
 %% KIT camera: tiff
 if strcmp( format, 'tif' )
     for nn = numel( cc ):-1:1
-        vec(nn) = str2double( cc{nn}(end-7:end-4) );
+         switch ref_str_pos
+            case 0
+                vec(nn) = str2double( cc{nn}(end-12:end-8) );                
+            case 1
+                vec(nn) = str2double( cc{nn}(end-7:end-4) );                
+        end  
     end
     
     %% KIT camera: raw

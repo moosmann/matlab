@@ -33,15 +33,19 @@ close all hidden % close all open windows
 
 %% PARAMETERS / SETTINGS %%
 scan_path = ...
+    '/asap3/petra3/gpfs/p05/2018/commissioning/c20180417_000_camcomp/raw/syn_70l_mg5gd_fli_5x_2';
+    '/asap3/petra3/gpfs/p05/2018/data/11004450/raw/hnee22_pappel_oppositeWood_000';
+    '/asap3/petra3/gpfs/p05/2018/data/11004450/raw/hnee18_pappel_tensionWood_000';
+    '/asap3/petra3/gpfs/p05/2018/data/11004450/raw/hnee14_kie_fh_ts_0p5N';
     '/asap3/petra3/gpfs/p05/2018/data/11004450/raw/hnee09_kie_sh_ts_008';
     '/asap3/petra3/gpfs/p05/2018/commissioning/c20180420_000_kitfli/raw/hzg01_wz_kit_5x';
     '/asap3/petra3/gpfs/p05/2017/data/11003440/raw/syn33_80R_Mg10Gd_8w';
 read_flatcor = 0; % read flatfield-corrected images from disc, skips preprocessing
 read_flatcor_path = ''; % subfolder of 'flat_corrected' containing projections
 % PREPROCESSING %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-raw_roi = [201 -200];%[401 -400]; % [y0 y1] vertical roi.  skips first raw_roi(1)-1 lines, reads until raw_roi(2). When 2nd index is negative it is read from the end. Not working for *.raw data where images are flipped.
+raw_roi = -1;%[401 -400]; % [y0 y1] vertical roi.  skips first raw_roi(1)-1 lines, reads until raw_roi(2). When 2nd index is negative it is read from the end. Not working for *.raw data where images are flipped.
 raw_bin = 2; % projection binning factor: 1, 2, or 4
-bin_before_filtering = 1; % Binning is applied before pixel filtering, much faster but less effective filtering
+bin_before_filtering = 0; % Binning is applied before pixel filtering, much faster but less effective filtering
 excentric_rot_axis = 0; % off-centered rotation axis increasing FOV. -1: left, 0: centeerd, 1: right. influences rot_corr_area1
 crop_at_rot_axis = 0; % for recos of scans with excentric rotation axis but WITHOUT projection stitching
 stitch_projections = 0; % for 2 pi scans: stitch projection at rotation axis position. Recommended with phase retrieval to reduce artefacts. Standard absorption contrast data should work well without stitching. Subpixel stitching not supported (non-integer rotation axis position is rounded, less/no binning before reconstruction can be used to improve precision).
@@ -49,7 +53,7 @@ stitch_method = 'sine'; 'step';'linear'; %  ! CHECK correlation area !
 % 'step' : no interpolation, use step function
 % 'linear' : linear interpolation of overlap region
 % 'sine' : sinusoidal interpolation of overlap region
-proj_range = []; % range of projections to be used (from all found, if empty or 1: all, if scalar: stride, if range: start:incr:end
+proj_range = 1; % range of projections to be used (from all found, if empty or 1: all, if scalar: stride, if range: start:incr:end
 ref_range = 1; % range of flat fields to be used (from all found), if empty or 1: all. if scalar: stride, if range: start:incr:end
 energy = []; % in eV! if empty: read from log file
 sample_detector_distance = []; % in m. if empty: read from log file
@@ -82,27 +86,27 @@ ring_filter.waveletfft.wname = 'db25';'db30'; % wavelet type for 'wavelet-fft'
 ring_filter.waveletfft.sigma = 2.4; %  suppression factor for 'wavelet-fft'
 ring_filter.jm.median_width = 11; % multiple widths are applied consecutively, eg [3 11 21 31 39];
 % PHASE RETRIEVAL %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-phase_retrieval.apply = 1; % See 'PhaseFilter' for detailed description of parameters !
-phase_retrieval.apply_before = 1; % before stitching, interactive mode, etc. For phase-contrast data with an excentric rotation axis phase retrieval should be done afterwards. To find the rotataion axis position use this option in a first run, and then turn it of afterwards.
+phase_retrieval.apply = 0; % See 'PhaseFilter' for detailed description of parameters !
+phase_retrieval.apply_before = 0; % before stitching, interactive mode, etc. For phase-contrast data with an excentric rotation axis phase retrieval should be done afterwards. To find the rotataion axis position use this option in a first run, and then turn it of afterwards.
 phase_retrieval.post_binning_factor = 1; % Binning factor after phase retrieval, but before tomographic reconstruction
-phase_retrieval.method = 'tie';'qpcut';  'tie'; %'qp' 'ctf' 'tie' 'qp2' 'qpcut'
+phase_retrieval.method = 'tie';'qpcut'; %'qp' 'ctf' 'tie' 'qp2' 'qpcut'
 phase_retrieval.reg_par = 1.5; % regularization parameter. larger values tend to blurrier images. smaller values tend to original data.
 phase_retrieval.bin_filt = 0.15; % threshold for quasiparticle retrieval 'qp', 'qp2'
-phase_retrieval.cutoff_frequ = 1 * pi; % in radian. frequency cutoff in Fourier space for 'qpcut' phase retrieval
+phase_retrieval.cutoff_frequ = 2 * pi; % in radian. frequency cutoff in Fourier space for 'qpcut' phase retrieval
 phase_retrieval.padding = 1; % padding of intensities before phase retrieval, 0: no padding
 % TOMOGRAPHY %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 do_tomo = 1; % run tomographic reconstruction
-vol_size = [-0.6 0.6 -0.6 0.6 -0.5 0.5];% for excentric rot axis pos; 6-component vector [xmin xmax ymin ymax zmin zmax]. if empty, volume is centerd within vol_shape. unit voxel size is assumed. if smaller than 10 values are interpreted as relative size w.r.t. the detector size. Take care bout minus signs!
+vol_size = [];%[-0.6 0.6 -0.6 0.6 -0.5 0.5];% for excentric rot axis pos; 6-component vector [xmin xmax ymin ymax zmin zmax]. if empty, volume is centerd within vol_shape. unit voxel size is assumed. if smaller than 10 values are interpreted as relative size w.r.t. the detector size. Take care bout minus signs!
 vol_shape = [];%[1.2 1.2 1];% for excentric rot axis pos; % shape (voxels) of reconstruction volume. in absolute number of voxels or in relative number w.r.t. the default volume which is given by the detector width and height
 rot_angle_full = []; % in radians: empty ([]), full angle of rotation, or array of angles. if empty full rotation angles is determined automatically to pi or 2 pi
-rot_angle_offset = pi; % global rotation of reconstructed volume
-rot_axis_offset = -782.75; % if empty automatic computation is used (not very reliable)
+rot_angle_offset = 1*pi; % global rotation of reconstructed volume
+rot_axis_offset = 0;0.25; % if empty automatic computation is used (not very reliable)
 rot_axis_pos = []; % if empty use automatic computation. EITHER OFFSET OR POSITION MUST BE EMPTY. YOU MUST NOT USE BOTH!
 rot_corr_area1 = []; % ROI to correlate projections at angles 0 & pi. Use [0.75 1] or so for scans with an excentric rotation axis
 rot_corr_area2 = []; % ROI to correlate projections at angles 0 & pi
 rot_corr_gradient = 0; % use gradient of intensity maps if signal variations are too weak to correlate projections
-rot_axis_tilt = 0; % in rad. camera tilt w.r.t rotation axis. if empty calculate from registration of projections at 0 and pi
-fbp_filter_type = 'linear';'Ram-Lak'; % see iradonDesignFilter for more options. Ram-Lak according to Kak/Slaney
+rot_axis_tilt = -0.0035; % in rad. camera tilt w.r.t rotation axis. if empty calculate from registration of projections at 0 and pi
+fbp_filter_type = 'Ram-Lak';'linear'; % see iradonDesignFilter for more options. Ram-Lak according to Kak/Slaney
 fpb_filter_freq_cutoff = 1; % Cut-off frequency in Fourier space of the above FBP filter
 fbp_filter_padding = 1; % symmetric padding for consistent boundary conditions, 0: no padding
 fbp_filter_padding_method = 'symmetric';
@@ -112,7 +116,7 @@ butterworth_cutoff_frequ = 0.9;
 astra_pixel_size = 1; % detector pixel size for reconstruction: if different from one 'vol_size' must to be ajusted, too!
 take_neg_log = []; % take negative logarithm. if empty, use 1 for attenuation contrast, 0 for phase contrast
 % OUTPUT %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-out_path = '';% absolute path were output data will be stored. !!overwrites the write.to_scratch flag. if empty uses the beamtime directory and either 'processed' or 'scratch_cc'
+out_path = '/gpfs/petra3/scratch/moosmanj';% absolute path were output data will be stored. !!overwrites the write.to_scratch flag. if empty uses the beamtime directory and either 'processed' or 'scratch_cc'
 write.to_scratch = 0; % write to 'scratch_cc' instead of 'processed'
 write.flatcor = 1; % save preprocessed flat corrected projections
 write.phase_map = 0; % save phase maps (if phase retrieval is not 0)
@@ -134,8 +138,8 @@ subfolder_reco = ''; % subfolder in 'reco'
 % INTERACTION %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 verbose = 1; % print information to standard output
 visual_output = 1; % show images and plots during reconstruction
-interactive_determination_of_rot_axis = 0; % reconstruct slices with different rotation axis offsets
-interactive_determination_of_rot_axis_tilt = 0; % reconstruct slices with different offset AND tilts of the rotation axis
+interactive_determination_of_rot_axis = 1; % reconstruct slices with dif+ferent rotation axis offsets
+interactive_determination_of_rot_axis_tilt = 1; % reconstruct slices with different offset AND tilts of the rotation axis
 lamino = 0; % find laminography tilt instead camera rotation
 fixed_tilt = 0; % fixed other tilt
 slice_number = 0.5; % slice number, default: 0.5. if in [0,1): relative, if in (1, N]: absolute
@@ -158,6 +162,8 @@ automatic_mode_coarse = 'entropy'; % NOT IMPLEMENTED!
 automatic_mode_fine = 'iso-grad'; % NOT IMPLEMENTED!
 
 %% END OF PARAMETERS / SETTINGS %%
+
+stop_after_data_reading(1) = 0; % before flat field correlation
 
 %% External call: parameters set by 'p05_reco_loop' %%%%%%%%%%%%%%%%%%%%%%%
 if exist( 'external_parameter' ,'var')
@@ -392,12 +398,7 @@ if ~exist( h5log, 'file')
     filename = sprintf('%s%s', scan_path, ref_names{1});
     if ~raw_data
         [im_raw, tif_info] = read_image( filename );
-        raw_im_shape_uncropped = size( im_raw );
-        if ~isempty( raw_roi ) && raw_roi(2) < 1
-            raw_roi(2) = raw_im_shape_uncropped(2) + raw_roi(2);
-        end
-        im_roi = read_image( filename, '', raw_roi, tif_info );
-        raw_im_shape = size( im_roi );
+        raw_im_shape_uncropped = size( im_raw );        
     else
         switch lower( cam )
             case 'ehd'
@@ -407,13 +408,9 @@ if ~exist( h5log, 'file')
                 raw_im_shape_uncropped = [5120 3840];
                 dtype = 'uint16';
         end
-        raw_im_shape = raw_im_shape_uncropped;
-        if ~isempty( raw_roi ) && raw_roi(2) < 1
-            raw_roi(2) = raw_im_shape_uncropped(2) + raw_roi(2);
-        end
-        im_raw = read_raw( filename, raw_im_shape, dtype );
-    end
-else    
+        im_raw = read_raw( filename, raw_im_shape_uncropped, dtype );
+    end        
+else
     % HDF5 log
     h5i = h5info( h5log );
     % energy, exposure time, image shape
@@ -430,9 +427,9 @@ else
             raw_im_shape_uncropped = [5120 3840];
             dtype = 'uint16';
     end
-    if ~isempty( raw_roi ) && raw_roi(2) < 1
-        raw_roi(2) = raw_im_shape_uncropped(2) + raw_roi(2);
-    end
+    % Image shape
+    filename = sprintf('%s%s', scan_path, ref_names{1});
+    [im_raw, tif_info] = read_image( filename, '', [], tif_info, raw_im_shape_uncropped, dtype );    
     % images
     stimg_name.value = unique( h5read( h5log, '/entry/scan/data/image_file/value') );
     stimg_name.time = h5read( h5log,'/entry/scan/data/image_file/time');
@@ -479,23 +476,77 @@ else
             case 1
                 cur.proj(nn).ind = str2double(cur.proj(nn).name(end-7:end-4));
         end
-    end
-    
-    % Image shape    
-    filename = sprintf('%s%s', scan_path, ref_names{1});    
-    im_raw = read_image( filename, '', [], tif_info, raw_im_shape_uncropped, dtype );
-    im_roi = read_image( filename, '', raw_roi, tif_info, raw_im_shape_uncropped, dtype );
-    raw_im_shape = size( im_roi );        
+    end           
     rot_angle_full = pi; % FIX
 end
-raw_im_shape_binned = floor( raw_im_shape / raw_bin );
+if ~isempty( raw_roi ) && ~isscalar( raw_roi ) && raw_roi(2) < 1
+    raw_roi(2) = raw_im_shape_uncropped(2) + raw_roi(2);
+elseif (isscalar(raw_roi) && raw_roi < 1)
+    % Make roi_fac dependent on dark field
+    if raw_roi < -1
+        roi_fac = abs( raw_roi );
+    else
+        roi_fac = 2;
+    end
+    % Read first non-zero flat
+    mm = 1;
+    while sum( sum( im_raw < 1 ) ) > 0
+        filename = sprintf('%s%s', scan_path, ref_names{mm});
+        im_raw = read_image( filename, '', [], tif_info, raw_im_shape_uncropped, dtype );    
+        mm = mm + 1;
+    end
+    % Read last non-zero flat
+    mm = num_ref_found;
+    filename = sprintf('%s%s', scan_path, ref_names{mm});
+    im_raw2 = read_image( filename, '', [], tif_info, raw_im_shape_uncropped, dtype );
+    while sum( sum( im_raw2 < 1 ) ) > 0
+        filename = sprintf('%s%s', scan_path, ref_names{mm});
+        im_raw2 = read_image( filename, '', [], tif_info, raw_im_shape_uncropped, dtype );
+        mm = mm - 1;
+    end
+    % Compute crop position
+    mm = median( (FilterPixel( im_raw, [0.1 0.1]) + FilterPixel( im_raw2, [0.1 0.1]) ) / 2, 1);
+    roi_thresh = roi_fac * min(mm);
+    [~,p] = min(abs(mm - roi_thresh));
+    if p < raw_im_shape_uncropped(1)/2
+        pl = p;
+        [~,pr] = min(abs(mm(p+10:end) - roi_thresh));
+    else
+        pr = p;
+        [~,pl] = min(abs(mm(1:p-10) - roi_thresh));
+    end
+    raw_roi = [pl pr];
+    if visual_output(1)
+        figure('Name', 'ROI: raw and cropped image');
+        
+        subplot(1,2,1)
+        im = (single(im_raw) + single(im_raw2) ) / 2;
+        im(:,[pl-20:pl, pr:pr+20] ) = max( im(:) );        
+        imsc1( im );
+        title(sprintf('raw flat field: first + last'))
+        colorbar
+        axis equal tight
+        xticks('auto'),yticks('auto')
+        
+        subplot(1,2,2)
+        plot( [mm'  roi_thresh*(ones(numel(mm),1))])
+        camroll(-90)        
+        title(sprintf('horizontal projection and cut level'))
+        axis tight
+        
+        drawnow
+    end
+end
+%im_roi = read_image( filename, '', raw_roi, tif_info );
+im_roi = read_image( filename, '', raw_roi, tif_info, raw_im_shape_uncropped, dtype );
+raw_im_shape_binned = floor( size( im_roi) / raw_bin );
 raw_im_shape_binned1 = raw_im_shape_binned(1);
 raw_im_shape_binned2 = raw_im_shape_binned(2);
 prnt( '\n energy : %.1f keV', energy / 1e3 )
 prnt( '\n distance sample dector : %.1f mm', sample_detector_distance * 1000 )
 prnt( '\n effective pixel size unbinned : %.2f micron',  eff_pixel_size * 1e6)
 prnt( '\n raw image shape : %g  %g', raw_im_shape_uncropped)
-prnt( '\n raw image shape roi : %g  %g', raw_im_shape)
+prnt( '\n raw image shape roi : %g  %g', size( im_roi ) )
 prnt( '\n raw image shape binned : %g  %g', raw_im_shape_binned)
 prnt( '\n raw binning factor : %u', raw_bin)
 prnt( '\n raw bining before pixel filtering : %u', bin_before_filtering)
@@ -623,18 +674,8 @@ elseif ~read_flatcor
     flat = bsxfun( @minus, flat, dark );
     
     % Ring current normalization
-    if ring_current_normalization(1)
-        switch lower( cam )
-            case 'kit'
-                switch raw_data
-                    case 1
-                        ref_ind_from_filenames = ref_nums;
-                    case 0
-                        ref_ind_from_filenames = ref_range - 1;
-                end
-            case 'ehd'
-                ref_ind_from_filenames = ref_nums;
-        end
+    if ring_current_normalization(1)                                            
+        ref_ind_from_filenames = ref_nums;
         ref_ind_from_log = [cur.ref(ref_range).ind];
         if isequal( ref_ind_from_filenames, ref_ind_from_log )
             ref_rc = [cur.ref(ref_range).val];
@@ -765,13 +806,7 @@ elseif ~read_flatcor
     
     % Ring current normalization
     if ring_current_normalization(1)
-        switch lower( cam )
-            case 'kit'                
-                %proj_ind_from_filenames = proj_range - 1;
-                proj_ind_from_filenames = proj_nums;
-            case 'ehd'
-                proj_ind_from_filenames = proj_nums;
-        end
+        proj_ind_from_filenames = proj_nums;
         proj_ind_from_log = [cur.proj(proj_range).ind];
         if isequal( proj_ind_from_filenames,  proj_ind_from_log )
             proj_rc = [cur.proj(proj_range).val];
@@ -818,8 +853,13 @@ elseif ~read_flatcor
         prnt( ' %u', num_zeros )
     end
     prnt( '\n hot- / dark-pixel filter threshold : %f, %f', HotThresh, DarkThresh )
-    prnt( '\n global min/max of raws after filtering and binning:  %6g %6g', raw_min, raw_max);
-    prnt( '\n global min/max of raws after dark-field correction and ring current normalization:  %6g %6g', raw_min2, raw_max2);   
+    prnt( '\n global min/max of raws after filtering and binning:  %6g %6g', raw_min, raw_max)
+    prnt( '\n global min/max of raws after dark-field correction and ring current normalization:  %6g %6g', raw_min2, raw_max2)
+    
+    if stop_after_data_reading
+        fprintf( '\n' )
+        keyboard;
+    end
     
     %% Flat field correction %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     %% STOP HERE FOR FLATFIELD CORRELATION MAPPING
@@ -1659,8 +1699,8 @@ fprintf(fid, 'num_proj_used : %u\n', num_proj_used);
 fprintf(fid, 'proj_range : %u:%u:%u\n', proj_range(1), proj_range(2) - proj_range(1), proj_range(end) );
 fprintf(fid, 'raw_im_shape_uncropped : %u %u\n', raw_im_shape_uncropped);
 fprintf(fid, 'raw_roi : %u %u\n', raw_roi);
-fprintf(fid, 'raw_image_shape : %u %u\n', raw_im_shape);
-fprintf(fid, 'raw_image_shape_binned : %u %u\n', raw_im_shape_binned);
+fprintf(fid, 'raw_image_shape_roi : %u %u\n', size( im_roi ));
+fprintf(fid, 'raw_image_shape_roi_binned : %u %u\n', raw_im_shape_binned);
 fprintf(fid, 'raw_binning_factor : %u\n', raw_bin);
 fprintf(fid, 'bin_before_filtering : %u\n', bin_before_filtering);
 fprintf(fid, 'effective_pixel_size : %g micron\n', eff_pixel_size * 1e6);
