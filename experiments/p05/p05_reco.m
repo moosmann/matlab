@@ -15,15 +15,14 @@
 %
 % For additional information see 'p05_reco_NOTES'.
 %
-%% Please cite following article when it comes to publication:
-% Moosmann, J.; Ershov, A.; Weinhardt, V.; Baumbach, T.; Prasad, M. S.;
-% LaBonne, C.; Xiao, X.; Kashef, J. & Hofmann, R. Time-lapse X-ray
-% phase-contrast microtomography for in vivo imaging and analysis of
-% morphogenesis Nat. Protocols 9, 294-304 (2014)
-%% Also cite the ASTRA Toolbox, see http://www.astra-toolbox.com/
+%% Please cite following article for publications:
+% Moosmann, J. et al. Time-lapse X-ray phase-contrast microtomography for
+% in vivo imaging and analysis of morphogenesis Nat. Protocols 9, 294-304
+% (2014)
+% Also cite the ASTRA Toolbox, see http://www.astra-toolbox.com/
 %
 % Written by Julian Moosmann. First version: 2016-09-28. Last modifcation:
-% 2018-04-11
+% 2018-04-26
 
 if ~exist( 'external_parameter' ,'var')
     clearvars
@@ -33,7 +32,12 @@ close all hidden % close all open windows
 
 %% PARAMETERS / SETTINGS %%
 scan_path = ...
-    '/asap3/petra3/gpfs/p05/2018/commissioning/c20180417_000_camcomp/raw/syn_70l_mg5gd_fli_5x_2';
+    '/asap3/petra3/gpfs/p05/2018/data/11004263/raw/syn008_93R_Mg5Gd_8w_a';
+    '/asap3/petra3/gpfs/p05/2018/data/11004263/raw/syn004_96R_Mg5Gd_8w_a';
+    '/asap3/petra3/gpfs/p05/2018/data/11004263/raw/syn003_70L_Mg5Gd_12w_test_fli';
+    
+    '/asap3/petra3/gpfs/p05/2018/data/11004263/raw/syn001_70L_Mg5Gd_12w_test_fli'; 
+        '/asap3/petra3/gpfs/p05/2018/commissioning/c20180417_000_camcomp/raw/syn_70l_mg5gd_fli_5x_2';
     '/asap3/petra3/gpfs/p05/2018/data/11004450/raw/hnee22_pappel_oppositeWood_000';
     '/asap3/petra3/gpfs/p05/2018/data/11004450/raw/hnee18_pappel_tensionWood_000';
     '/asap3/petra3/gpfs/p05/2018/data/11004450/raw/hnee14_kie_fh_ts_0p5N';
@@ -43,7 +47,7 @@ scan_path = ...
 read_flatcor = 0; % read flatfield-corrected images from disc, skips preprocessing
 read_flatcor_path = ''; % subfolder of 'flat_corrected' containing projections
 % PREPROCESSING %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-raw_roi = -1;%[401 -400]; % [y0 y1] vertical roi.  skips first raw_roi(1)-1 lines, reads until raw_roi(2). When 2nd index is negative it is read from the end. Not working for *.raw data where images are flipped.
+raw_roi = -1; % if []: no ROI; if [y0 y1]: vertical ROI, skips first raw_roi(1)-1 lines, reads until raw_roi(2). When raw_roi(2) < 0 reads until end - |raw_roi(2)|; if negative scalar: selects ROI automatically.Not working for *.raw data where images are flipped.
 raw_bin = 2; % projection binning factor: 1, 2, or 4
 bin_before_filtering = 0; % Binning is applied before pixel filtering, much faster but less effective filtering
 excentric_rot_axis = 0; % off-centered rotation axis increasing FOV. -1: left, 0: centeerd, 1: right. influences rot_corr_area1
@@ -61,7 +65,7 @@ eff_pixel_size = []; % in m. if empty: read from log file. effective pixel size 
 dark_FiltPixThresh = [0.01 0.005]; % Dark fields: threshold parameter for hot/dark pixel filter, for details see 'FilterPixel'
 ref_FiltPixThresh = [0.01 0.005]; % Flat fields: threshold parameter for hot/dark pixel filter, for details see 'FilterPixel'
 proj_FiltPixThresh = [0.01 0.005]; % Raw projection: threshold parameter for hot/dark pixel filter, for details see 'FilterPixe
-correlation_method = 'ssim-ml';'none';'entropy';'diff';'shift';'ssim';'std';'cov';'corr';'cross-entropy12';'cross-entropy21';'cross-entropyx';'none';
+correlation_method = 'none';'ssim-ml';'entropy';'diff';'shift';'ssim';'std';'cov';'corr';'cross-entropy12';'cross-entropy21';'cross-entropyx';'none';
 % 'ssim-ml' : Matlab's structural similarity index (SSIM), includes Gaussian smoothing
 % 'ssim' : own implementation of SSIM, smoothing not yet implemented
 % 'entropy' : entropy measure of proj over flat
@@ -100,12 +104,12 @@ vol_size = [];%[-0.6 0.6 -0.6 0.6 -0.5 0.5];% for excentric rot axis pos; 6-comp
 vol_shape = [];%[1.2 1.2 1];% for excentric rot axis pos; % shape (voxels) of reconstruction volume. in absolute number of voxels or in relative number w.r.t. the default volume which is given by the detector width and height
 rot_angle_full = []; % in radians: empty ([]), full angle of rotation, or array of angles. if empty full rotation angles is determined automatically to pi or 2 pi
 rot_angle_offset = 1*pi; % global rotation of reconstructed volume
-rot_axis_offset = 0;0.25; % if empty automatic computation is used (not very reliable)
+rot_axis_offset = 0; % if empty automatic computation is used (not very reliable)
 rot_axis_pos = []; % if empty use automatic computation. EITHER OFFSET OR POSITION MUST BE EMPTY. YOU MUST NOT USE BOTH!
 rot_corr_area1 = []; % ROI to correlate projections at angles 0 & pi. Use [0.75 1] or so for scans with an excentric rotation axis
 rot_corr_area2 = []; % ROI to correlate projections at angles 0 & pi
 rot_corr_gradient = 0; % use gradient of intensity maps if signal variations are too weak to correlate projections
-rot_axis_tilt = -0.0035; % in rad. camera tilt w.r.t rotation axis. if empty calculate from registration of projections at 0 and pi
+rot_axis_tilt = 0; % in rad. camera tilt w.r.t rotation axis. if empty calculate from registration of projections at 0 and pi
 fbp_filter_type = 'Ram-Lak';'linear'; % see iradonDesignFilter for more options. Ram-Lak according to Kak/Slaney
 fpb_filter_freq_cutoff = 1; % Cut-off frequency in Fourier space of the above FBP filter
 fbp_filter_padding = 1; % symmetric padding for consistent boundary conditions, 0: no padding
@@ -186,7 +190,8 @@ if ~isempty( vol_size ) && isempty( vol_shape )
 end
 phase_bin = phase_retrieval.post_binning_factor; % alias for readablity
 reco_bin = write.post_reconstruction_binning_factor; % alias for readablity
-imsc1 = @(im) imsc( flipud( im' ) );
+%imsc1 = @(im) imsc( flipud( im' ) );
+imsc1 = @(im) imsc( rot90( im ) );
 prnt = @(varargin) PrintVerbose( verbose, varargin{:});
 prnt( 'Start reconstruction of ')
 warning( 'off', 'MATLAB:imagesci:rtifc:missingPhotometricTag');
@@ -490,30 +495,32 @@ elseif (isscalar(raw_roi) && raw_roi < 1)
     end
     % Read first non-zero flat
     mm = 1;
-    while sum( sum( im_raw < 1 ) ) > 0
+    while mean2( im_raw ) == 0
+        mm = mm + 1;
         filename = sprintf('%s%s', scan_path, ref_names{mm});
         im_raw = read_image( filename, '', [], tif_info, im_shape_raw, dtype );    
-        mm = mm + 1;
     end
     % Read last non-zero flat
     mm = num_ref_found;
     filename = sprintf('%s%s', scan_path, ref_names{mm});
     im_raw2 = read_image( filename, '', [], tif_info, im_shape_raw, dtype );
-    while sum( sum( im_raw2 < 1 ) ) > 0
+    while mean2( im_raw2 ) == 0
+        mm = mm - 1;
         filename = sprintf('%s%s', scan_path, ref_names{mm});
         im_raw2 = read_image( filename, '', [], tif_info, im_shape_raw, dtype );
-        mm = mm - 1;
     end
     % Compute crop position
     mm = median( (FilterPixel( im_raw, [0.1 0.1]) + FilterPixel( im_raw2, [0.1 0.1]) ) / 2, 1);
     roi_thresh = roi_fac * min(mm);
     [~,p] = min(abs(mm - roi_thresh));
+    %% IMPROVE STABILITY
     if p < im_shape_raw(1)/2
         pl = p;
         [~,pr] = min(abs(mm(p+10:end) - roi_thresh));
+        pr = pr + p;
     else
         pr = p;
-        [~,pl] = min(abs(mm(1:p-10) - roi_thresh));
+        [~,pl] = min(abs(mm(1:p-10) - roi_thresh));        
     end
     raw_roi = [pl pr];
     if visual_output(1)
@@ -521,7 +528,9 @@ elseif (isscalar(raw_roi) && raw_roi < 1)
         
         subplot(1,2,1)
         im = (single(im_raw) + single(im_raw2) ) / 2;
-        im(:,[pl-20:pl, pr:pr+20] ) = max( im(:) );        
+        pll = max( 1, pl - 20 );
+        prr = min( im_shape_raw(2), pr + 20);
+        im(:,[pll:pl, pr:prr] ) = max( im(:) );        
         imsc1( im );
         title(sprintf('raw flat field: first + last'))
         colorbar
@@ -529,7 +538,7 @@ elseif (isscalar(raw_roi) && raw_roi < 1)
         xticks('auto'),yticks('auto')
         
         subplot(1,2,2)
-        plot( [mm'  roi_thresh*(ones(numel(mm),1))])
+        plot( [mm(end:-1:1)'  roi_thresh*(ones(numel(mm),1))])
         camroll(-90)        
         title(sprintf('horizontal projection and cut level'))
         axis tight
@@ -660,6 +669,7 @@ elseif ~read_flatcor
         end        
         % Check for zeros
         num_zeros(nn) =  sum( sum( flat(:,:,nn) < 1 ) );
+        % Discard if any pixel is zero. Or should all pixels be zeros?
         refs_to_use(nn) = ~boolean( num_zeros(nn)  );        
     end
     
