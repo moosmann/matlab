@@ -60,7 +60,7 @@ ref_FiltPixThresh = [0.01 0.005]; % Flat fields: threshold parameter for hot/dar
 proj_FiltPixThresh = [0.01 0.005]; % Raw projection: threshold parameter for hot/dark pixel filter, for details see 'FilterPixe
 correlation_method = 'none';'ssim-ml';'entropy';'diff';'shift';'ssim';'std';'cov';'corr';'cross-entropy12';'cross-entropy21';'cross-entropyx';'none';
 % 'ssim-ml' : Matlab's structural similarity index (SSIM), includes Gaussian smoothing
-% 'ssim' : own implementation of SSIM, smoothing not yet implemented
+% 'ssim' : own implementation of SSIM, smoothing not yet implemented, usually worse than 'ssim-ml'
 % 'entropy' : entropy measure of proj over flat
 % 'cov' : cross covariance
 % 'corr' : cross correlation = normalized cross covariance
@@ -92,7 +92,7 @@ phase_retrieval.bin_filt = 0.15; % threshold for quasiparticle retrieval 'qp', '
 phase_retrieval.cutoff_frequ = 2 * pi; % in radian. frequency cutoff in Fourier space for 'qpcut' phase retrieval
 phase_retrieval.padding = 1; % padding of intensities before phase retrieval, 0: no padding
 % TOMOGRAPHY %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-do_tomo = 1; % run tomographic reconstruction
+tomo.run = 1; % run tomographic reconstruction
 vol_size = [];%[-0.6 0.6 -0.6 0.6 -0.5 0.5];% for excentric rot axis pos; 6-component vector [xmin xmax ymin ymax zmin zmax]. if empty, volume is centerd within vol_shape. unit voxel size is assumed. if smaller than 10 values are interpreted as relative size w.r.t. the detector size. Take care bout minus signs!
 vol_shape = [];%[1.2 1.2 1];% for excentric rot axis pos; % shape (voxels) of reconstruction volume. in absolute number of voxels or in relative number w.r.t. the default volume which is given by the detector width and height
 rot_angle_full = []; % in radians: empty ([]), full angle of rotation, or array of angles. if empty full rotation angles is determined automatically to pi or 2 pi
@@ -113,25 +113,33 @@ butterworth_cutoff_frequ = 0.9;
 astra_pixel_size = 1; % detector pixel size for reconstruction: if different from one 'vol_size' must to be ajusted, too!
 take_neg_log = []; % take negative logarithm. if empty, use 1 for attenuation contrast, 0 for phase contrast
 % OUTPUT %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-out_path = '';'/gpfs/petra3/scratch/moosmanj';% absolute path were output data will be stored. !!overwrites the write.to_scratch flag. if empty uses the beamtime directory and either 'processed' or 'scratch_cc'
-write.to_scratch = 0; % write to 'scratch_cc' instead of 'processed'
+write.path = '';'/gpfs/petra3/scratch/moosmanj';% absolute path were output data will be stored. !!overwrites the write.to_scratch flag. if empty uses the beamtime directory and either 'processed' or 'scratch_cc'
+write.to_scratch = 1; % write to 'scratch_cc' instead of 'processed'
+write.parfolder = '';% parent folder to 'reco', 'sino', 'phase', and 'flat_corrected'
+write.subfolder.flatcor = ''; % subfolder in 'flat_corrected'
+write.subfolder.phase_map = ''; % subfolder in 'phase_map'
+write.subfolder.sino = ''; % subfolder in 'sino'
+write.subfolder.reco = ''; % subfolder in 'reco'
 write.flatcor = 0; % save preprocessed flat corrected projections
 write.phase_map = 0; % save phase maps (if phase retrieval is not 0)
 write.sino = 0; % save sinograms (after preprocessing & before FBP filtering and phase retrieval)
 write.phase_sino = 0; % save sinograms of phase maps
-write.reco = 1; % save reconstructed slices (if do_tomo=1)
+write.reco = 1; % save reconstructed slices (if tomo.run=1)
 write.float = 1; % single precision (32-bit float) tiff
-write.uint16 = 0;
-write.uint8 = 0;
-write.post_reconstruction_binning_factor = 2; % IF BINNED VOLUMES ARE SAVED: binning factor of reconstructed volume
-write.float_binned = 1; % binned single precision (32-bit float) tiff
-write.uint16_binned = 0;
-write.uint8_binned = 0;
-parfolder = '';% parent folder for 'reco', 'sino', 'phase', and 'flat_corrected'
-subfolder_flatcor = ''; % subfolder in 'flat_corrected'
-subfolder_phase_map = ''; % subfolder in 'phase_map'
-subfolder_sino = ''; % subfolder in 'sino'
-subfolder_reco = ''; % subfolder in 'reco'
+write.uint16 = 0; % additionally save 16bit unsigned integer tiff using 'write.compression.method'
+write.uint8 = 0; % additionally save binned 8bit unsigned integer tiff using 'write.compression.method'
+% Optionally save binned reconstructions
+write.float_binned = 1; % additionally save binned single precision (32-bit float) tiff
+write.uint16_binned = 0; % additionally save binned 16bit unsigned integer tiff using 'write.compression.method'
+write.uint8_binned = 0; % additionally save binned 8bit unsigned integer tiff using 'wwrite.compression.method'
+write.reco_binning_factor = 2; % IF BINNED VOLUMES ARE SAVED: binning factor of reconstructed volume
+write.compression.method = 'histo';'full'; 'std'; 'threshold'; % method to compression dynamic range into [0, 1]
+write.compression.parameter = [0.20 0.15]; % compression-method specific parameter
+% dynamic range is compressed s.t. new dynamic range assumes
+% 'full' : full dynamic range is used
+% 'threshold' : [LOW HIGH] = write.compression.parameter, eg. [-0.01 1]
+% 'std' : NUM = write.compression.parameter, mean +/- NUM*std, dynamic range is rescaled to within -/+ NUM standard deviations around the mean value
+% 'histo' : [LOW HIGH] = write.compression.parameter (100*LOW)% and (100*HIGH)% of the original histogram, e.g. [0.02 0.02]
 % INTERACTION %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 verbose = 1; % print information to standard output
 visual_output = 1; % show images and plots during reconstruction
@@ -147,13 +155,6 @@ link_data = 1; % ASTRA data objects become references to Matlab arrays. Reduces 
 gpu_index = []; % GPU Device index to use, Matlab notation: index starts from 1. default: [], uses all
 % EXPERIMENTAL / NOT YET IMPLEMENTED %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 write.uint8_segmented = 0; % experimental: threshold segmentation for histograms with 2 distinct peaks: __/\_/\__
-compression_method = 'histo';'full'; 'std'; 'threshold'; % method to compression dynamic range into [0, 1]
-compression_parameter = [0.20 0.15]; % compression-method specific parameter
-% dynamic range is compressed s.t. new dynamic range assumes
-% 'full' : full dynamic range is used
-% 'threshold' : [LOW HIGH] = compression_parameter, eg. [-0.01 1]
-% 'std' : NUM = compression_parameter, mean +/- NUM*std, dynamic range is rescaled to within -/+ NUM standard deviations around the mean value
-% 'histo' : [LOW HIGH] = compression_parameter (100*LOW)% and (100*HIGH)% of the original histogram, e.g. [0.02 0.02]
 automatic_mode = 0; % Find rotation axis position automatically. NOT IMPLEMENTED!
 automatic_mode_coarse = 'entropy'; % NOT IMPLEMENTED!
 automatic_mode_fine = 'iso-grad'; % NOT IMPLEMENTED!
@@ -182,7 +183,7 @@ if ~isempty( vol_size ) && isempty( vol_shape )
     vol_shape = vol_size(2:2:end) - vol_size(1:2:end);
 end
 phase_bin = phase_retrieval.post_binning_factor; % alias for readablity
-reco_bin = write.post_reconstruction_binning_factor; % alias for readablity
+reco_bin = write.reco_binning_factor; % alias for readablity
 %imsc1 = @(im) imsc( flipud( im' ) );
 imsc1 = @(im) imsc( rot90( im ) );
 prnt = @(varargin) PrintVerbose( verbose, varargin{:});
@@ -229,47 +230,47 @@ out_folder = 'processed';
 if write.to_scratch
     out_folder = 'scratch_cc';
 end
-if isempty( out_path )
-    out_path = [beamtime_path, filesep, out_folder, filesep, scan_name];
+if isempty( write.path )
+    write.path = [beamtime_path, filesep, out_folder, filesep, scan_name];
 else
-    out_path = [out_path, filesep, scan_name];
+    write.path = [write.path, filesep, scan_name];
 end
-if ~isempty(parfolder)
-    out_path = [out_path, filesep, parfolder];
+if ~isempty(write.parfolder)
+    write.path = [write.path, filesep, write.parfolder];
 end
 
 % Path to flat-field corrected projections
-if isempty( subfolder_flatcor )
-    flatcor_path = [out_path, filesep, 'flat_corrected', filesep];
+if isempty( write.subfolder.flatcor )
+    flatcor_path = [write.path, filesep, 'flat_corrected', filesep];
 else
-    flatcor_path = [out_path, filesep, 'flat_corrected', filesep, subfolder_flatcor, filesep];
+    flatcor_path = [write.path, filesep, 'flat_corrected', filesep, write.subfolder.flatcor, filesep];
 end
 PrintVerbose(verbose & write.flatcor, '\n flatcor_path: %s', flatcor_path)
 
 % Path to retreived phase maps
-if isempty( subfolder_phase_map )
-    phase_map_path = [out_path, filesep, 'phase_map', filesep];
+if isempty( write.subfolder.phase_map )
+    phase_map_path = [write.path, filesep, 'phase_map', filesep];
 else
-    phase_map_path = [out_path, filesep, 'phase_map', filesep, subfolder_phase_map, filesep];
+    phase_map_path = [write.path, filesep, 'phase_map', filesep, write.subfolder.phase_map, filesep];
 end
 PrintVerbose(verbose & write.phase_map, '\n phase_map_path: %s', phase_map_path)
 
 % Sinogram path
-if isempty( subfolder_sino )
-    sino_path = [out_path, filesep, 'sino', filesep];
-    sino_phase_path = [out_path, filesep, 'sino_phase', filesep];
+if isempty( write.subfolder.sino )
+    sino_path = [write.path, filesep, 'sino', filesep];
+    sino_phase_path = [write.path, filesep, 'sino_phase', filesep];
 else
-    sino_path = [out_path, filesep, 'sino', filesep, subfolder_sino, filesep];
-    sino_phase_path = [out_path, filesep, 'sino_phase', filesep, subfolder_sino, filesep];
+    sino_path = [write.path, filesep, 'sino', filesep, write.subfolder.sino, filesep];
+    sino_phase_path = [write.path, filesep, 'sino_phase', filesep, write.subfolder.sino, filesep];
 end
 PrintVerbose(verbose & write.sino, '\n sino_path: %s', sino_path)
 PrintVerbose(verbose & write.phase_sino, '\n sino_phase_path: %s', sino_phase_path)
 
 % Reco path
-if isempty( subfolder_reco )
-    reco_path = [out_path, filesep, 'reco', filesep];
+if isempty( write.subfolder.reco )
+    reco_path = [write.path, filesep, 'reco', filesep];
 else
-    reco_path = [out_path, filesep, 'reco', filesep, subfolder_reco, filesep];
+    reco_path = [write.path, filesep, 'reco', filesep, write.subfolder.reco, filesep];
 end
 
 % Memory
@@ -475,7 +476,7 @@ else
                 cur.proj(nn).ind = str2double(cur.proj(nn).name(end-7:end-4));
         end
     end           
-    rot_angle_full = pi; % FIX
+    rot_angle_full = pi; % FIX/CHECK?
 end
 if ~isempty( raw_roi ) && ~isscalar( raw_roi ) && raw_roi(2) < 1
     raw_roi(2) = im_shape_raw(2) + raw_roi(2);
@@ -969,13 +970,13 @@ if phase_retrieval.apply
     end
     if phase_retrieval.apply_before
         edp = [energy, sample_detector_distance, eff_pixel_size_binned];
-        [proj, reco_phase_path] = p05_phase_retrieval( phase_retrieval, edp, proj, out_path, subfolder_reco, write, phase_map_path, verbose, visual_output);
+        [proj, reco_phase_path] = p05_phase_retrieval( phase_retrieval, edp, proj, write.path, write.subfolder.reco, write, phase_map_path, verbose, visual_output);
     end
 end
 
 %% Rotation axis position and tomgraphic reconstruction parameters %%%%%%%%
 tint = 0;
-if do_tomo(1)
+if tomo.run(1)
     t = toc;
     % ROI for correlation of projections at angles 0 & pi
     if isempty( rot_corr_area1 )
@@ -1113,7 +1114,7 @@ if do_tomo(1)
         fprintf( '\n current rotation axis offset / position : %.2f, %.2f', rot_axis_offset, rot_axis_pos)
         fprintf( '\n calcul. rotation axis offset / position : %.2f, %.2f', rot_axis_offset_calc, rot_axis_pos_calc)
         fprintf( '\n default offset range : current ROT_AXIS_OFFSET + (-4:0.5:4)')
-        offset = input( '\n\nENTER RANGE OF ROTATION AXIS OFFSETS\n (if empty use default range, if scalar skips interactive mode): ');        
+        offset = input( '\n\nENTER RANGE OF ROTATION AXIS OFFSETS\n (if empty: use default range, scalar: skip interactive mode, ''s'': change slice, ''d'': debug mode) ');        
         if ~isempty( offset ) && strcmp( offset(1), 's' )
             slice = input( sprintf( '\n\nENTER ABSOLUTE [1,%u] OR RELATIVE [0,1] SLICE NUMBER : ', im_shape_binned2) );            
             if slice <= 1 && slice >= 0
@@ -1478,7 +1479,7 @@ end
 %% Phase retrieval %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 if phase_retrieval.apply && ~phase_retrieval.apply_before
     edp = [energy, sample_detector_distance, eff_pixel_size_binned];    
-    [proj, reco_phase_path] = p05_phase_retrieval( phase_retrieval, edp, proj, out_path, subfolder_reco, write, phase_map_path, verbose, visual_output);
+    [proj, reco_phase_path] = p05_phase_retrieval( phase_retrieval, edp, proj, write.path, write.subfolder.reco, write, phase_map_path, verbose, visual_output);
 end
 
 %% Save sinograms of phase maps
@@ -1512,7 +1513,7 @@ if phase_retrieval.apply && ( phase_bin(1) > 1)
 end
 
 %% Tomographic reco
-if do_tomo(1)
+if tomo.run(1)
     prnt( '\nTomographic reconstruction:')
     
     vol = zeros( vol_shape, 'single' );
@@ -1636,7 +1637,7 @@ if do_tomo(1)
         
         % Compression of dynamic range
         if write.uint8 || write.uint8_binned || write.uint16 || write.uint16_binned
-            [tlow, thigh] = compression( vol, compression_method, compression_parameter );
+            [tlow, thigh] = compression( vol, write.compression.method, write.compression.parameter );
         else
             tlow = 0;
             thigh = 1;
@@ -1681,7 +1682,7 @@ end
 if write.reco
     logfile_path = reco_path;
 else
-    logfile_path = out_path;
+    logfile_path = write.path;
 end
 logfile_name = sprintf( '%sreco.log', logfile_path);
 fid = fopen( logfile_name, 'w');
@@ -1789,7 +1790,7 @@ fprintf(fid, 'write.uint16 : %g\n', write.uint16);
 fprintf(fid, 'write.uint16_binned : %g\n', write.uint16_binned);
 fprintf(fid, 'write.uint8 : %u\n', write.uint8);
 fprintf(fid, 'write.uint8_binned : %u\n', write.uint8_binned);
-fprintf(fid, 'compression_method : %s\n', compression_method);
+fprintf(fid, 'write.compression.method : %s\n', write.compression.method);
 fprintf(fid, 'compression_limits : %f %f\n', tlow, thigh);
 fprintf(fid, 'reco_bin : %u\n', reco_bin);
 fprintf(fid, 'full_reconstruction_time : %.1f s\n', toc);
