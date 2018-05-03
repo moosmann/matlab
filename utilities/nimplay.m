@@ -5,8 +5,9 @@ function nimplay( vol, renorm_slicewise, permute_order, figure_name)
 % parameter.
 % 
 % vol : 3D-array of images
-% renorm_slicewise : scalar, default: 1. Renorm slice thus losing scaling
-%  information reltive to different slices
+% renorm_slicewise : scalar, default: 1. Adjust colorbar slicewise, losing scaling
+%  information relative to other slices. If > 0 and < 1: adjust to
+%  renorm_slicewise * min/max.
 % permute_order : empty or 3D vector. Permute array dimension. If empty do
 %  not permute.
 % figure_name : string (of figure)
@@ -37,7 +38,7 @@ if isinteger( vol )
 end
 
 %% Normalization
-if ~renorm_slicewise
+if renorm_slicewise == 0
     armin = min( vol(:) );
     armax = max( vol(:) );
 else
@@ -45,8 +46,8 @@ else
     % an array corresponding the input array to subtract the values from the
     % input arrray.
     [d1, d2, ~] = size(vol);
-    armin = repmat(min(min(vol)),[d1,d2,1]);
-    armax = repmat(max(max(vol)),[d1,d2,1]);
+    armin = renorm_slicewise * repmat(min(min(vol)),[d1,d2,1]);
+    armax = renorm_slicewise * repmat(max(max(vol)),[d1,d2,1]);
 end
 
 %% Renormalize: subtract minimum, then divide by maximum-minimum.

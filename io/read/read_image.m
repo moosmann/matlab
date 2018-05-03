@@ -10,7 +10,7 @@ function [im, tif_info] = read_image(filename, filetype, roi, tif_info, shape, d
 %
 % im = read_image(filename, filetype)
 
-%% Default arguments 
+%% Default arguments
 if nargin < 2
     filetype = '';
 end
@@ -44,50 +44,104 @@ end
 switch lower( filetype )
     case 'edf'
         im = pmedfread( filename );
-    case 'tif_ml'
-        warning( 'off', 'MATLAB:imagesci:rtifc:missingPhotometricTag');
-        switch numel( roi )
-            case 0
-                im = rot90( imread( filename, 'tif' ), 1);
-            case 2
-                y0 = max( (3840-roi(2)+1), 1 );
-                y1 = min( (3840-roi(1)+1), 3840);
-                im = ( rot90( imread( filename, 'tif', 'PixelRegion', {[y0 y1], [1 5120]}), 1) );
-            case 4
-                y0 = max( (3840-roi(2)+1), 1 );
-                y1 = min( (3840-roi(1)+1), 3840);
-                x0 = max( (5120-roi(4)+1), 1);
-                x1 = min( (5120-roi(1)+1), 5120);
-                im = (rot90( imread( filename, 'tif', 'PixelRegion', {[y0 y1], [x0 x1]} ), 1) );
-        end
+        %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     case 'tif'
+        warning( 'off', 'MATLAB:imagesci:rtifc:missingPhotometricTag');
+        if isempty( tif_info)
+            tif_info = imfinfo( filename );
+        end
+        
+        
+        switch tif_info.Orientation
+            %% FLI
+            case 1
+                switch numel( roi )
+                    case 0
+                        %im = rot90( imread( filename, 'tif' ), 1);
+                        im = rot90( imread( filename, 'tif' ), 2);
+                    case 2
+                        y0 = max( (tif_info.Height-roi(2)+1), 1 );
+                        y1 = min( (tif_info.Height-roi(1)+1), tif_info.Height);
+                        %im = ( rot90( imread( filename, 'tif', 'PixelRegion', {[y0 y1], [1 tif_info.Width]}), 1) );
+                        im = ( rot90( imread( filename, 'tif', 'PixelRegion', {[1 tif_info.Width], [y0 y1]}), 2) );
+                    case 4
+                        y0 = max( (3840-roi(2)+1), 1 );
+                        y1 = min( (3840-roi(1)+1), 3840);
+                        x0 = max( (5120-roi(4)+1), 1);
+                        x1 = min( (5120-roi(1)+1), 5120);
+                        %im = (rot90( imread( filename, 'tif', 'PixelRegion', {[y0 y1], [x0 x1]} ), 1) );
+                        im = (rot90( imread( filename, 'tif', 'PixelRegion', {[x0 x1], [y0 y1]} ), 2) );
+                end
+                
+            case 3
+                %% KIT
+                switch numel( roi )
+                    case 0
+                        im = flipud( read_tif(filename, tif_info) );
+                    case 2
+                        
+                        im = flipud( read_tif(filename, tif_info, [(tif_info.Height-roi(2)+1) (tif_info.Height-roi(1)+1)] ) );
+                        
+                    case 4
+                        y0 = max( (3840-roi(2)+1), 1 );
+                        y1 = min( (3840-roi(1)+1), 3840);
+                        x0 = max( (5120-roi(4)+1), 1);
+                        x1 = min( (5120-roi(1)+1), 5120);
+                        %im = (rot90( imread( filename, 'tif', 'PixelRegion', {[y0 y1], [x0 x1]} ), 1) );
+                        im = (rot90( imread( filename, 'tif', 'PixelRegion', {[x0 x1], [y0 y1]} ), 2) );
+                end
+                
+                
+                
+        end
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    case 'tif_before20180428'
+        if isempty( tif_info)
+            tif_info = imfinfo( filename );
+        end
         switch numel( roi )
             case 0
-                im = flipud( read_tif(filename, tif_info) );
+                switch tif_info.Orientation                    
+                    case 1
+                        % 2018-04-28, FLI writes tif without orientation
+                        % flag which defaults to 1
+                        im = rot90( fliplr(read_tif(filename, tif_info) ), -1);
+                    case 3
+                        %im = flipud( read_tif(filename, tif_info) );
+                        im = flipud( read_tif(filename, tif_info) );
+                end
             case 2
-                im = flipud( read_tif(filename, tif_info, [(3840-roi(2)+1) (3840-roi(1)+1)] ) );
+                switch tif_info.Orientation
+                    case 1
+                        % 2018-04-28, FLI writes tif without orientation
+                        % flag
+                        %im = read_tif(filename, tif_info, [(tif_info.Height-roi(2)+1) (tif_info.Height-roi(1)+1)] )';
+                        im = rot90(fliplr( read_tif(filename, tif_info, [(tif_info.Height-roi(2)+1) (tif_info.Height-roi(1)+1)]  ) ) ,-1);
+                    case 3
+                        im = flipud( read_tif(filename, tif_info, [(tif_info.Height-roi(2)+1) (tif_info.Height-roi(1)+1)] ) );
+                end
             otherwise
                 error( 'Only vertical ROI supported for fast tif reading.' )
         end
-    case {'img', 'dar', 'ref'}        
-            im = read_dat_jm( filename, roi );
+    case {'img', 'dar', 'ref'}
+        im = read_dat_jm( filename, roi );
     case 'raw'
         %% rot90 for FLI but not for KIT
         if shape(1) > shape(2)
             im = flipud( read_raw( filename, shape, dtype, roi ) );
             
             %% probably breaks for earlier scans with KIT camera saving raw format, March 2018
-            %im = ( read_raw( filename, shape, dtype, roi ) );            
-        else            
-            %% roi for raw is horizontal roi not verticall!                        
+            %im = ( read_raw( filename, shape, dtype, roi ) );
+        else
+            %% roi for raw is horizontal roi not verticall!
             if isempty( roi )
                 im = flipud(rot90(read_raw( filename, shape, dtype, [] ), -1));
             else
                 im = read_raw( filename, shape, dtype, [] );
                 im = im(roi(1):roi(2),:);
-                im = flipud(rot90(im, -1));                
+                im = flipud(rot90(im, -1));
             end
-        end        
+        end
     otherwise
         im = imread( filename, filetype )';
 end

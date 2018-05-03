@@ -1,4 +1,4 @@
-function vec = CellString2Vec( cc, ref_str_pos )
+function vec = CellString2Vec( cc, imtype_str_flag )
 % Convert cell of string which contain numeric expressions into an array of
 % the corresponding numeric values (double)
 %
@@ -17,13 +17,18 @@ format = cc{1}(end-2:end);
 %% KIT camera: tiff
 if strcmp( format, 'tif' )
     for nn = numel( cc ):-1:1
-        vec(nn) = str2double( cc{nn}(end-7:end-4) );
+         switch imtype_str_flag
+            case 0
+                vec(nn) = str2double( cc{nn}(end-12:end-8) );                
+            case 1
+                vec(nn) = str2double( cc{nn}(end-7:end-4) );                
+        end  
     end
     
     %% KIT camera: raw
 elseif strcmp( format, 'raw' )
     for nn = numel( cc ):-1:1
-        switch ref_str_pos
+        switch imtype_str_flag
             case 0
                 vec(nn) = str2double( cc{nn}(end-12:end-8) );                
             case 1
