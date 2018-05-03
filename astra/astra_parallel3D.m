@@ -40,7 +40,7 @@ function vol = astra_parallel3D(tomo, sino)
 
 %% Default arguments %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 angles = assign_from_struct( tomo, 'angles', pi );
-rotation_axis_offset = assign_from_struct( tomo, 'rotation_axis_offset', 0);
+rotation_axis_offset = assign_from_struct( tomo.rot_axis, 'offset', 0);
 vol_shape = assign_from_struct( tomo, 'vol_shape', [size( sino, 1), size( sino, 1), size(sino, 3) ] );
 vol_size = assign_from_struct( tomo, 'vol_size', [] );
 pixel_size = assign_from_struct( tomo, 'astra_pixel_size', [1 1] );

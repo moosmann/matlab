@@ -24,13 +24,14 @@ lamino = assign_from_struct( par, 'lamino', 0 );
 fixed_tilt = assign_from_struct( par, 'fixed_tilt', 0 );
 take_neg_log = assign_from_struct( par, 'take_neg_log', 1 );
 number_of_stds = assign_from_struct( par, 'number_of_stds', 4 );
+butterworth_filtering = assign_from_struct( par.butterworth_filter, 'apply', 0 );
 
 mask_rad = 0.95;
 mask_val = 0;
-butterworth_filtering = 0;
 filter_histo_roi = 0.25;
 
 %% Main %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 [num_pix, num_row, ~] = size( proj );
 if isempty( vol_shape )
     vol_shape = [num_pix, num_pix, 1];
@@ -67,7 +68,7 @@ if strcmpi( par.algorithm, 'fbp' )
     filt = iradonDesignFilter('Ram-Lak', 2 * num_pix, 0.9);
     
     % Butterworth filter
-    if butterworth_filtering(1)
+    if butterworth_filtering
         [b, a] = butter(1, 0.5);
         bw = freqz(b, a, numel(filt) );
         filt = filt .* bw;
@@ -104,7 +105,7 @@ end
 
 % Backprojection
 for nn = 1:numel( offset )
-    par.rotation_axis_offset = offset(nn) + offset_shift + eps;
+    par.rot_axis.offset = offset(nn) + offset_shift + eps;
     
     %% Reco
     im = astra_parallel3D( par, permute( sino, [1 3 2]) );

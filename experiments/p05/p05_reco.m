@@ -45,7 +45,7 @@ energy = []; % in eV! if empty: read from log file
 sample_detector_distance = []; % in m. if empty: read from log file
 eff_pixel_size = []; % in m. if empty: read from log file. effective pixel size =  detector pixel size / magnification
 % PREPROCESSING %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-raw_roi = -2;[]; % if []: use full image; if [y0 y1]: vertical ROI, skips first raw_roi(1)-1 lines, reads until raw_roi(2). When raw_roi(2) < 0 reads until end - |raw_roi(2)|; if negative scalar: auto roi, selects ROI automatically.Not working for *.raw data where images are flipped.
+raw_roi = -4;[]; % if []: use full image; if [y0 y1]: vertical ROI, skips first raw_roi(1)-1 lines, reads until raw_roi(2). When raw_roi(2) < 0 reads until end - |raw_roi(2)|; if negative scalar: auto roi, selects ROI automatically.Not working for *.raw data where images are flipped.
 raw_bin = 6; % projection binning factor: 1, 2, or 4
 bin_before_filtering = 1; % Apply binning before filtering pixesl, much faster but less effective filtering
 excentric_rot_axis = 0; % off-centered rotation axis increasing FOV. -1: left, 0: centeerd, 1: right. influences tomo.rot_axis.corr_area1
@@ -55,8 +55,8 @@ stitch_method = 'sine'; 'step';'linear'; %  ! CHECK correlation area !
 % 'step' : no interpolation, use step function
 % 'linear' : linear interpolation of overlap region
 % 'sine' : sinusoidal interpolation of overlap region
-proj_range = 3; % range of projections to be used (from all found, if empty or 1: all, if scalar: stride, if range: start:incr:end
-ref_range = 1; % range of flat fields to be used (from all found), if empty or 1: all. if scalar: stride, if range: start:incr:end
+proj_range = 4; % range of projections to be used (from all found, if empty or 1: all, if scalar: stride, if range: start:incr:end
+ref_range = 20; % range of flat fields to be used (from all found), if empty or 1: all. if scalar: stride, if range: start:incr:end
 dark_FiltPixThresh = [0.01 0.005]; % Dark fields: threshold parameter for hot/dark pixel filter, for details see 'FilterPixel'
 ref_FiltPixThresh = [0.01 0.005]; % Flat fields: threshold parameter for hot/dark pixel filter, for details see 'FilterPixel'
 proj_FiltPixThresh = [0.01 0.005]; % Raw projection: threshold parameter for hot/dark pixel filter, for details see 'FilterPixe
@@ -101,10 +101,10 @@ tomo.rot_angle.full_range = []; % in radians: empty ([]), full angle of rotation
 tomo.rot_angle.offset = pi; % global rotation of reconstructed volume
 tomo.rot_axis.offset = [];% if empty use automatic computation
 tomo.rot_axis.position = []; % if empty use automatic computation. EITHER OFFSET OR POSITION MUST BE EMPTY. YOU MUST NOT USE BOTH!
+tomo.rot_axis.tilt = 0; % in rad. camera tilt w.r.t rotation axis. if empty calculate from registration of projections at 0 and pi
 tomo.rot_axis.corr_area1 = []; % ROI to correlate projections at angles 0 & pi. Use [0.75 1] or so for scans with an excentric rotation axis
 tomo.rot_axis.corr_area2 = []; % ROI to correlate projections at angles 0 & pi
 tomo.rot_axis.corr_gradient = 0; % use gradient of intensity maps if signal variations are too weak to correlate projections
-tomo.rot_axis.tilt = 0; % in rad. camera tilt w.r.t rotation axis. if empty calculate from registration of projections at 0 and pi
 tomo.fbp_filter.type = 'Ram-Lak';'linear'; % see iradonDesignFilter for more options. Ram-Lak according to Kak/Slaney
 tomo.fbp_filter.freq_cutoff = 1; % Cut-off frequency in Fourier space of the above FBP filter
 tomo.fbp_filter.padding = 1; % symmetric padding for consistent boundary conditions, 0: no padding
@@ -150,7 +150,7 @@ write.compression.parameter = [0.20 0.15]; % compression-method specific paramet
 verbose = 1; % print information to standard output
 visual_output = 1; % show images and plots during reconstruction
 interactive_determination_of_rot_axis = 1; % reconstruct slices with dif+ferent rotation axis offsets
-interactive_determination_of_rot_axis_tilt = 0; % reconstruct slices with different offset AND tilts of the rotation axis
+interactive_determination_of_rot_axis_tilt = 1; % reconstruct slices with different offset AND tilts of the rotation axis
 lamino = 0; % find laminography tilt instead camera rotation
 fixed_tilt = 0; % fixed other tilt
 slice_number = 0.5; % slice number, default: 0.5. if in [0,1): relative, if in (1, N]: absolute
@@ -161,9 +161,6 @@ tomo.astra_link_data = 1; % ASTRA data objects become references to Matlab array
 tomo.astra_gpu_index = []; % GPU Device index to use, Matlab notation: index starts from 1. default: [], uses all
 % EXPERIMENTAL OR NOT YET IMPLEMENTED %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 write.uint8_segmented = 0; % experimental: threshold segmentation for histograms with 2 distinct peaks: __/\_/\__
-automatic_mode = 0; % Find rotation axis position automatically. NOT IMPLEMENTED!
-automatic_mode_coarse = 'entropy'; % NOT IMPLEMENTED!
-automatic_mode_fine = 'iso-grad'; % NOT IMPLEMENTED!
 
 %% END OF PARAMETERS / SETTINGS %%
 
@@ -543,7 +540,7 @@ elseif (isscalar(raw_roi) && raw_roi < 1)
         title(sprintf('horizontal projection and cut level'))
         axis tight
         ax = gca;
-        %ax.YAxisLocation = 'right';
+        ax.YAxisLocation = 'right';
         ax.XDir = 'reverse';
         ax.YDir = 'normal';
         text(raw_roi(1), 2 * roi_thresh,sprintf('raw roi(2):%u', raw_roi(1)))
@@ -1096,12 +1093,15 @@ if tomo.run(1)
     %% Determine rotation axis position %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     
     % AUTOMATIC MODE %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    if automatic_mode(1) % NOT IMPLEMENTED YET
-        pts = 10;
-        im_center = im_shape_binned1 / 2;
-        offset_stride = floor( im_center / pts );
-        offset = -im_center:offset_stride:im_center;        
-    end
+%     automatic_mode = 0; % Find rotation axis position automatically. NOT IMPLEMENTED!
+%     automatic_mode_coarse = 'entropy'; % NOT IMPLEMENTED!
+%     automatic_mode_fine = 'iso-grad'; % NOT IMPLEMENTED!
+%     if automatic_mode(1) % NOT IMPLEMENTED YET
+%         pts = 10;
+%         im_center = im_shape_binned1 / 2;
+%         offset_stride = floor( im_center / pts );
+%         offset = -im_center:offset_stride:im_center;        
+%     end
     
     % INTERACTIVE MODE %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     tint = 0;
@@ -1127,7 +1127,7 @@ if tomo.run(1)
         fprintf( '\n current rotation axis offset / position : %.2f, %.2f', tomo.rot_axis.offset, tomo.rot_axis.position)
         fprintf( '\n calcul. rotation axis offset / position : %.2f, %.2f', rot_axis_offset_calc, rot_axis_pos_calc)
         fprintf( '\n default offset range : current ROT_AXIS_OFFSET + (-4:0.5:4)')
-        offset = input( '\n\nENTER RANGE OF ROTATION AXIS OFFSETS\n (if empty: use default range, scalar: skip interactive mode, ''s'': change slice, ''d'': debug mode) ');        
+        offset = input( '\n\nENTER RANGE OF ROTATION AXIS OFFSETS\n (if empty: use default range, scalar: skip interactive mode, ''s'': change slice, ''d'': debug mode): ');        
         if ~isempty( offset ) && strcmp( offset(1), 's' )
             slice = input( sprintf( '\n\nENTER ABSOLUTE [1,%u] OR RELATIVE [0,1] SLICE NUMBER : ', im_shape_binned2) );            
             if slice <= 1 && slice >= 0
@@ -1157,20 +1157,20 @@ if tomo.run(1)
             
             % Reco
             %% Clean up
-            frao = tomo;
-            frao.angles = angles;
-            frao.slice = slice;
-            frao.offset = offset;
-            frao.rot_axis_tilt = tomo.rot_axis.tilt;
-            frao.itake_neg_log = itake_neg_log;
-            frao.inumber_of_stds = inumber_of_stds;
-            frao.ivol_shape = ivol_shape;
-            frao.ivol_size = ivol_size;
-            frao.lamino = lamino;
-            frao.fixed_tilt = fixed_tilt;
-            frao.astra_gpu_index = tomo.astra_gpu_index;
-            frao.offset_shift = offset_shift;
-            [vol, metrics_offset] = find_rot_axis_offset( frao, proj );
+            fra = tomo;
+            fra.angles = angles;
+            fra.slice = slice;
+            fra.offset = offset;
+            fra.tilt = tomo.rot_axis.tilt;
+            fra.itake_neg_log = itake_neg_log;
+            fra.inumber_of_stds = inumber_of_stds;
+            fra.ivol_shape = ivol_shape;
+            fra.ivol_size = ivol_size;
+            fra.lamino = lamino;
+            fra.fixed_tilt = fixed_tilt;
+            fra.astra_gpu_index = tomo.astra_gpu_index;
+            fra.offset_shift = offset_shift;
+            [vol, metrics_offset] = find_rot_axis_offset( fra, proj );
             
             % Metric minima
             [~, min_pos] = min(cell2mat({metrics_offset(:).val}));
@@ -1240,7 +1240,7 @@ if tomo.run(1)
                     fprintf( '\n current rotation axis tilt : %g rad = %g deg', tomo.rot_axis.tilt, tomo.rot_axis.tilt * 180 / pi)
                     fprintf( '\n calcul. rotation axis tilt : %g rad = %g deg', rot_axis_tilt_calc, rot_axis_tilt_calc * 180 / pi)
                     fprintf( '\n default tilt range is : current ROT_AXIS_TILT + (-0.005:0.001:0.005)')
-                    tilt = input( '\n\nENTER TILT OF ROTATION AXIS OR RANGE OF TILTS\n (if empty use default, ''s'' to change slice number, ''d'' for debug mode):');
+                    tilt = input( '\n\nENTER TILT OF ROTATION AXIS OR RANGE OF TILTS\n (if empty: use default, ''s'': change slice, ''d'': debug mode):');
                     % option to change which slice to reconstruct
                     if ~isempty( tilt ) && strcmp( tilt(1), 's' )                                                
                         slice = input( sprintf( '\n\nENTER ABSOLUTE [1,%u] OR RELATIVE [0,1] SLICE NUMBER : ', im_shape_binned2) );
@@ -1255,12 +1255,24 @@ if tomo.run(1)
                     end
                     if isempty( tilt )
                         tilt = tomo.rot_axis.tilt + (-0.005:0.001:0.005);
-                    end                    
+                    end
                     
                     while ~isscalar( tilt )
                         
-                        % Reco
-                        [vol, metrics_tilt] = find_rot_axis_tilt( proj, angles, slice, tomo.rot_axis.offset, tilt, itake_neg_log, inumber_of_stds, ivol_shape, ivol_size, lamino, fixed_tilt, tomo.astra_gpu_index, offset_shift);
+                        % Reco                        
+                        fra.angles = angles;
+                        fra.slice = slice;
+                        fra.offset = offset;
+                        fra.tilt = tilt;
+                        fra.itake_neg_log = itake_neg_log;
+                        fra.inumber_of_stds = inumber_of_stds;
+                        fra.ivol_shape = ivol_shape;
+                        fra.ivol_size = ivol_size;
+                        fra.lamino = lamino;
+                        fra.fixed_tilt = fixed_tilt;
+                        fra.astra_gpu_index = tomo.astra_gpu_index;
+                        fra.offset_shift = offset_shift;
+                        [vol, metrics_tilt] = find_rot_axis_tilt( fra, proj);
                         
                         % Metric minima
                         [~, min_pos] = min(cell2mat({metrics_tilt(:).val}));
@@ -1609,7 +1621,7 @@ if tomo.run(1)
     tomo.tilt_camera = ~lamino * tomo.rot_axis.tilt;
     tomo.tilt_lamino = lamino * tomo.rot_axis.tilt;
     tomo.angles = tomo.rot_angle.offset + angles_reco;
-    tomo.rotation_axis_offset = rot_axis_offset_reco + offset_shift;
+    tomo.rot_axis.offset = rot_axis_offset_reco + offset_shift;
     vol = astra_parallel3D( tomo, permute(proj, [1 3 2]) );
     pause(0.01)
     prnt( ' done in %.2f min.', (toc - t2) / 60)

@@ -50,8 +50,6 @@ switch lower( filetype )
         if isempty( tif_info)
             tif_info = imfinfo( filename );
         end
-        
-        
         switch tif_info.Orientation
             %% FLI
             case 1
@@ -64,35 +62,30 @@ switch lower( filetype )
                         y1 = min( (tif_info.Height-roi(1)+1), tif_info.Height);
                         %im = ( rot90( imread( filename, 'tif', 'PixelRegion', {[y0 y1], [1 tif_info.Width]}), 1) );
                         im = ( rot90( imread( filename, 'tif', 'PixelRegion', {[1 tif_info.Width], [y0 y1]}), 2) );
-                    case 4
-                        y0 = max( (3840-roi(2)+1), 1 );
-                        y1 = min( (3840-roi(1)+1), 3840);
-                        x0 = max( (5120-roi(4)+1), 1);
-                        x1 = min( (5120-roi(1)+1), 5120);
-                        %im = (rot90( imread( filename, 'tif', 'PixelRegion', {[y0 y1], [x0 x1]} ), 1) );
-                        im = (rot90( imread( filename, 'tif', 'PixelRegion', {[x0 x1], [y0 y1]} ), 2) );
+%                     case 4
+%                         y0 = max( (3840-roi(2)+1), 1 );
+%                         y1 = min( (3840-roi(1)+1), 3840);
+%                         x0 = max( (5120-roi(4)+1), 1);
+%                         x1 = min( (5120-roi(1)+1), 5120);
+%                         %im = (rot90( imread( filename, 'tif', 'PixelRegion', {[y0 y1], [x0 x1]} ), 1) );
+%                         im = (rot90( imread( filename, 'tif', 'PixelRegion', {[x0 x1], [y0 y1]} ), 2) );
                 end
-                
             case 3
                 %% KIT
                 switch numel( roi )
                     case 0
                         im = flipud( read_tif(filename, tif_info) );
-                    case 2
-                        
-                        im = flipud( read_tif(filename, tif_info, [(tif_info.Height-roi(2)+1) (tif_info.Height-roi(1)+1)] ) );
-                        
-                    case 4
-                        y0 = max( (3840-roi(2)+1), 1 );
-                        y1 = min( (3840-roi(1)+1), 3840);
-                        x0 = max( (5120-roi(4)+1), 1);
-                        x1 = min( (5120-roi(1)+1), 5120);
-                        %im = (rot90( imread( filename, 'tif', 'PixelRegion', {[y0 y1], [x0 x1]} ), 1) );
-                        im = (rot90( imread( filename, 'tif', 'PixelRegion', {[x0 x1], [y0 y1]} ), 2) );
+                    case 2                        
+                        %im = flipud( read_tif(filename, tif_info, [(tif_info.Height-roi(2)+1) (tif_info.Height-roi(1)+1)] ) );
+                        im = flipud( read_tif(filename, tif_info, roi ) );
+%                     case 4
+%                         y0 = max( (3840-roi(2)+1), 1 );
+%                         y1 = min( (3840-roi(1)+1), 3840);
+%                         x0 = max( (5120-roi(4)+1), 1);
+%                         x1 = min( (5120-roi(1)+1), 5120);
+%                         %im = (rot90( imread( filename, 'tif', 'PixelRegion', {[y0 y1], [x0 x1]} ), 1) );
+%                         im = (rot90( imread( filename, 'tif', 'PixelRegion', {[x0 x1], [y0 y1]} ), 2) );
                 end
-                
-                
-                
         end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     case 'tif_before20180428'
