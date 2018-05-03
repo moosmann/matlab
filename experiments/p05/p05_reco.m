@@ -32,24 +32,17 @@ close all hidden % close all open windows
 
 %% PARAMETERS / SETTINGS %%
 scan_path = ...
-    '/asap3/petra3/gpfs/p05/2018/data/11004263/raw/syn008_93R_Mg5Gd_8w_a';
-    '/asap3/petra3/gpfs/p05/2018/data/11004263/raw/syn004_96R_Mg5Gd_8w_a';
-    '/asap3/petra3/gpfs/p05/2018/data/11004263/raw/syn003_70L_Mg5Gd_12w_test_fli';
-    
-    '/asap3/petra3/gpfs/p05/2018/data/11004263/raw/syn001_70L_Mg5Gd_12w_test_fli'; 
-        '/asap3/petra3/gpfs/p05/2018/commissioning/c20180417_000_camcomp/raw/syn_70l_mg5gd_fli_5x_2';
-    '/asap3/petra3/gpfs/p05/2018/data/11004450/raw/hnee22_pappel_oppositeWood_000';
-    '/asap3/petra3/gpfs/p05/2018/data/11004450/raw/hnee18_pappel_tensionWood_000';
-    '/asap3/petra3/gpfs/p05/2018/data/11004450/raw/hnee14_kie_fh_ts_0p5N';
-    '/asap3/petra3/gpfs/p05/2018/data/11004450/raw/hnee09_kie_sh_ts_008';
-    '/asap3/petra3/gpfs/p05/2018/commissioning/c20180420_000_kitfli/raw/hzg01_wz_kit_5x';
-    '/asap3/petra3/gpfs/p05/2017/data/11003440/raw/syn33_80R_Mg10Gd_8w';
+    '/asap3/petra3/gpfs/p05/2017/data/11003488/raw/cnk_26/';
+    '/asap3/petra3/gpfs/p05/2018/data/11004263/raw/syn032_72L_Mg5Gd_12w_kit';
+    '/asap3/petra3/gpfs/p05/2018/data/11004263/raw/syn031_72L_Mg5Gd_12w_kit_noshake_reallyNoShake';
+    '/asap3/petra3/gpfs/p05/2018/data/11004263/raw/syn030_72L_Mg5Gd_12w_kit_noshake';
+    '/asap3/petra3/gpfs/p05/2018/data/11004263/raw/syn015_97L_Mg5Gd_4w_a';
 read_flatcor = 0; % read flatfield-corrected images from disc, skips preprocessing
 read_flatcor_path = ''; % subfolder of 'flat_corrected' containing projections
 % PREPROCESSING %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-raw_roi = -1; % if []: no ROI; if [y0 y1]: vertical ROI, skips first raw_roi(1)-1 lines, reads until raw_roi(2). When raw_roi(2) < 0 reads until end - |raw_roi(2)|; if negative scalar: selects ROI automatically.Not working for *.raw data where images are flipped.
-raw_bin = 2; % projection binning factor: 1, 2, or 4
-bin_before_filtering = 0; % Binning is applied before pixel filtering, much faster but less effective filtering
+raw_roi = []; % if []: no ROI; if [y0 y1]: vertical ROI, skips first raw_roi(1)-1 lines, reads until raw_roi(2). When raw_roi(2) < 0 reads until end - |raw_roi(2)|; if negative scalar: selects ROI automatically.Not working for *.raw data where images are flipped.
+raw_bin = 3; % projection binning factor: 1, 2, or 4
+bin_before_filtering = 1; % Binning is applied before pixel filtering, much faster but less effective filtering
 excentric_rot_axis = 0; % off-centered rotation axis increasing FOV. -1: left, 0: centeerd, 1: right. influences rot_corr_area1
 crop_at_rot_axis = 0; % for recos of scans with excentric rotation axis but WITHOUT projection stitching
 stitch_projections = 0; % for 2 pi scans: stitch projection at rotation axis position. Recommended with phase retrieval to reduce artefacts. Standard absorption contrast data should work well without stitching. Subpixel stitching not supported (non-integer rotation axis position is rounded, less/no binning before reconstruction can be used to improve precision).
@@ -58,7 +51,7 @@ stitch_method = 'sine'; 'step';'linear'; %  ! CHECK correlation area !
 % 'linear' : linear interpolation of overlap region
 % 'sine' : sinusoidal interpolation of overlap region
 proj_range = 1; % range of projections to be used (from all found, if empty or 1: all, if scalar: stride, if range: start:incr:end
-ref_range = 1; % range of flat fields to be used (from all found), if empty or 1: all. if scalar: stride, if range: start:incr:end
+ref_range = 10; % range of flat fields to be used (from all found), if empty or 1: all. if scalar: stride, if range: start:incr:end
 energy = []; % in eV! if empty: read from log file
 sample_detector_distance = []; % in m. if empty: read from log file
 eff_pixel_size = []; % in m. if empty: read from log file. effective pixel size =  detector pixel size / magnification
@@ -76,7 +69,7 @@ correlation_method = 'none';'ssim-ml';'entropy';'diff';'shift';'ssim';'std';'cov
 % 'shift': computes relative shift from peak of cross-correlation map
 % 'none' : no correlation, use median flat
 corr_shift_max_pixelshift = 0.25; % maximum pixelshift allowed for 'shift'-correlation method: if 0 use the best match (i.e. the one with the least shift), if > 0 uses all flats with shifts smaller than corr_shift_max_pixelshift
-corr_num_flats = 3; % number of flat fields used for average/median of flats. for 'shift'-correlation its the maximum number
+corr_num_flats = 1; % number of flat fields used for average/median of flats. for 'shift'-correlation its the maximum number
 ring_current_normalization = 1; % normalize flat fields and projections by ring current
 flat_corr_area1 = [0.98 1];%[0.98 1];% correlation area: index vector or relative/absolute position of [first pix, last pix]
 flat_corr_area2 = [0.2 0.8]; % correlation area: index vector or relative/absolute position of [first pix, last pix]
@@ -120,9 +113,9 @@ butterworth_cutoff_frequ = 0.9;
 astra_pixel_size = 1; % detector pixel size for reconstruction: if different from one 'vol_size' must to be ajusted, too!
 take_neg_log = []; % take negative logarithm. if empty, use 1 for attenuation contrast, 0 for phase contrast
 % OUTPUT %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-out_path = '/gpfs/petra3/scratch/moosmanj';% absolute path were output data will be stored. !!overwrites the write.to_scratch flag. if empty uses the beamtime directory and either 'processed' or 'scratch_cc'
+out_path = '';'/gpfs/petra3/scratch/moosmanj';% absolute path were output data will be stored. !!overwrites the write.to_scratch flag. if empty uses the beamtime directory and either 'processed' or 'scratch_cc'
 write.to_scratch = 0; % write to 'scratch_cc' instead of 'processed'
-write.flatcor = 1; % save preprocessed flat corrected projections
+write.flatcor = 0; % save preprocessed flat corrected projections
 write.phase_map = 0; % save phase maps (if phase retrieval is not 0)
 write.sino = 0; % save sinograms (after preprocessing & before FBP filtering and phase retrieval)
 write.phase_sino = 0; % save sinograms of phase maps
@@ -143,7 +136,7 @@ subfolder_reco = ''; % subfolder in 'reco'
 verbose = 1; % print information to standard output
 visual_output = 1; % show images and plots during reconstruction
 interactive_determination_of_rot_axis = 1; % reconstruct slices with dif+ferent rotation axis offsets
-interactive_determination_of_rot_axis_tilt = 1; % reconstruct slices with different offset AND tilts of the rotation axis
+interactive_determination_of_rot_axis_tilt = 0; % reconstruct slices with different offset AND tilts of the rotation axis
 lamino = 0; % find laminography tilt instead camera rotation
 fixed_tilt = 0; % fixed other tilt
 slice_number = 0.5; % slice number, default: 0.5. if in [0,1): relative, if in (1, N]: absolute
@@ -337,15 +330,15 @@ if numel( ref_range ) == 1
 end
 % position of running index
 if strcmpi( ref_names{1}(end-6:end-4), 'ref' )
-    ref_str_pos = 0;
+    imtype_str_flag = 0;
 elseif strcmpi( ref_names{1}(end-11:end-9), 'ref' )
-    ref_str_pos = 1;
+    imtype_str_flag = 1;
 else
-    ref_str_pos = -1;
+    imtype_str_flag = -1;
 end
 num_ref_used = numel( ref_range );
 ref_names_mat = NameCellToMat( ref_names(ref_range) );
-ref_nums = CellString2Vec( ref_names(ref_range) , ref_str_pos);
+ref_nums = CellString2Vec( ref_names(ref_range) , imtype_str_flag);
 prnt( '\n number of refs found : %g', num_ref_found)
 prnt( '\n number of refs used : %g', num_ref_used)
 prnt( '\n reference range used : %g:%g:%g%', ref_range(1), ref_range(2) - ref_range(1), ref_range(end))
@@ -358,7 +351,7 @@ end
 if isempty( dark_names )
     dark_names =  FilenameCell( [scan_path, '*dar*.raw'] );
 end
-dark_nums = CellString2Vec( dark_names, ref_str_pos );
+dark_nums = CellString2Vec( dark_names, imtype_str_flag );
 num_dark = numel(dark_names);
 prnt( '\n number of darks found : %g', num_dark)
 
@@ -370,7 +363,7 @@ if numel( proj_range ) == 1
     proj_range = 1:proj_range:num_proj_found;
 end
 num_proj_used = numel( proj_range );
-proj_nums = CellString2Vec( proj_names(proj_range), ref_str_pos);
+proj_nums = CellString2Vec( proj_names(proj_range), imtype_str_flag);
 prnt( '\n number of projections found : %g', num_proj_found)
 prnt( '\n number of projections used : %g', num_proj_used)
 prnt( '\n projection range used : first:stride:last =  %g:%g:%g', proj_range(1), proj_range(2) - proj_range(1), proj_range(end))
@@ -463,7 +456,7 @@ else
     for nn = numel( cur_ref_name ):-1:1
         cur.ref(nn).val = cur_ref_val(nn);
         cur.ref(nn).name = cur_ref_name{nn};
-        switch ref_str_pos
+        switch imtype_str_flag
             case 0
                 cur.ref(nn).ind = str2double(cur.ref(nn).name(end-12:end-8));
             case 1
@@ -475,7 +468,7 @@ else
     for nn = numel( cur_proj_name ):-1:1
         cur.proj(nn).val = cur_proj_val(nn);
         cur.proj(nn).name = cur_proj_name{nn};
-        switch ref_str_pos
+        switch imtype_str_flag
             case 0                
                 cur.proj(nn).ind = str2double(cur.proj(nn).name(end-12:end-8));
             case 1
@@ -524,7 +517,7 @@ elseif (isscalar(raw_roi) && raw_roi < 1)
     end
     raw_roi = [pl pr];
     if visual_output(1)
-        figure('Name', 'ROI: raw and cropped image');
+        figure('Name', 'Auto ROI: raw image and cropping region');
         
         subplot(1,2,1)
         im = (single(im_raw) + single(im_raw2) ) / 2;
