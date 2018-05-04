@@ -32,7 +32,8 @@ close all hidden % close all open windows
 
 %% PARAMETERS / SETTINGS %%
 % SCAN %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-scan_path = ...    
+scan_path = ...
+    '/asap3/petra3/gpfs/p05/2018/data/11004202/raw/mg3nd1zn_rt_fly_01';
     '/asap3/petra3/gpfs/p05/2018/data/11004263/raw/syn032_72L_Mg5Gd_12w_kit';
     '/asap3/petra3/gpfs/p05/2018/data/11004263/raw/syn031_72L_Mg5Gd_12w_kit_noshake_reallyNoShake';
     '/asap3/petra3/gpfs/p05/2018/data/11004263/raw/syn030_72L_Mg5Gd_12w_kit_noshake';
@@ -45,9 +46,9 @@ energy = []; % in eV! if empty: read from log file
 sample_detector_distance = []; % in m. if empty: read from log file
 eff_pixel_size = []; % in m. if empty: read from log file. effective pixel size =  detector pixel size / magnification
 % PREPROCESSING %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-raw_roi = -4;[]; % if []: use full image; if [y0 y1]: vertical ROI, skips first raw_roi(1)-1 lines, reads until raw_roi(2). When raw_roi(2) < 0 reads until end - |raw_roi(2)|; if negative scalar: auto roi, selects ROI automatically.Not working for *.raw data where images are flipped.
-raw_bin = 6; % projection binning factor: 1, 2, or 4
-bin_before_filtering = 1; % Apply binning before filtering pixesl, much faster but less effective filtering
+raw_roi = []; % if []: use full image; if [y0 y1]: vertical ROI, skips first raw_roi(1)-1 lines, reads until raw_roi(2). When raw_roi(2) < 0 reads until end - |raw_roi(2)|; if negative scalar: auto roi, selects ROI automatically.Not working for *.raw data where images are flipped.
+raw_bin = 2; % projection binning factor: 1, 2, or 4
+bin_before_filtering(1) = 1; % Apply binning before filtering pixesl, much faster but less effective filtering
 excentric_rot_axis = 0; % off-centered rotation axis increasing FOV. -1: left, 0: centeerd, 1: right. influences tomo.rot_axis.corr_area1
 crop_at_rot_axis = 0; % for recos of scans with excentric rotation axis but WITHOUT projection stitching
 stitch_projections = 0; % for 2 pi scans: stitch projection at rotation axis position. Recommended with phase retrieval to reduce artefacts. Standard absorption contrast data should work well without stitching. Subpixel stitching not supported (non-integer rotation axis position is rounded, less/no binning before reconstruction can be used to improve precision).
@@ -57,10 +58,11 @@ stitch_method = 'sine'; 'step';'linear'; %  ! CHECK correlation area !
 % 'sine' : sinusoidal interpolation of overlap region
 proj_range = 4; % range of projections to be used (from all found, if empty or 1: all, if scalar: stride, if range: start:incr:end
 ref_range = 20; % range of flat fields to be used (from all found), if empty or 1: all. if scalar: stride, if range: start:incr:end
-dark_FiltPixThresh = [0.01 0.005]; % Dark fields: threshold parameter for hot/dark pixel filter, for details see 'FilterPixel'
-ref_FiltPixThresh = [0.01 0.005]; % Flat fields: threshold parameter for hot/dark pixel filter, for details see 'FilterPixel'
-proj_FiltPixThresh = [0.01 0.005]; % Raw projection: threshold parameter for hot/dark pixel filter, for details see 'FilterPixe
-correlation_method = 'none';'ssim-ml';'entropy';'diff';'shift';'ssim';'std';'cov';'corr';'cross-entropy12';'cross-entropy21';'cross-entropyx';
+pixel_filter_threshold_dark = [0.01 0.005]; % Dark fields: threshold parameter for hot/dark pixel filter, for details see 'FilterPixel'
+pixel_filter_threshold_flat = [0.01 0.005]; % Flat fields: threshold parameter for hot/dark pixel filter, for details see 'FilterPixel'
+pixel_filter_threshold_proj = [0.01 0.005]; % Raw projection: threshold parameter for hot/dark pixel filter, for details see 'FilterPixe
+ring_current_normalization = 1; % normalize flat fields and projections by ring current
+image_correlation.method = 'none';'ssim-ml';'entropy';'diff';'shift';'ssim';'std';'cov';'corr';'cross-entropy12';'cross-entropy21';'cross-entropyx';
 % 'ssim-ml' : Matlab's structural similarity index (SSIM), includes Gaussian smoothing
 % 'ssim' : own implementation of SSIM, smoothing not yet implemented, usually worse than 'ssim-ml'
 % 'entropy' : entropy measure of proj over flat
@@ -70,11 +72,10 @@ correlation_method = 'none';'ssim-ml';'entropy';'diff';'shift';'ssim';'std';'cov
 % 'diff': difference of proj and flat
 % 'shift': computes relative shift from peak of cross-correlation map
 % 'none' : no correlation, use median flat
-corr_shift_max_pixelshift = 0.25; % maximum pixelshift allowed for 'shift'-correlation method: if 0 use the best match (i.e. the one with the least shift), if > 0 uses all flats with shifts smaller than corr_shift_max_pixelshift
-corr_num_flats = 1; % number of flat fields used for average/median of flats. for 'shift'-correlation its the maximum number
-ring_current_normalization = 1; % normalize flat fields and projections by ring current
-flat_corr_area1 = [0.98 1];%[0.98 1];% correlation area: index vector or relative/absolute position of [first pix, last pix]
-flat_corr_area2 = [0.2 0.8]; % correlation area: index vector or relative/absolute position of [first pix, last pix]
+image_correlation.num_flats = 1; % number of flat fields used for average/median of flats. for 'shift'-correlation its the maximum number
+image_correlation.area_width = [0.98 1];%[0.98 1];% correlation area: index vector or relative/absolute position of [first pix, last pix]
+image_correlation.area_height = [0.2 0.8]; % correlation area: index vector or relative/absolute position of [first pix, last pix]
+image_correlation.shift.max_pixelshift = 0.25; % maximum pixelshift allowed for 'shift'-correlation method: if 0 use the best match (i.e. the one with the least shift), if > 0 uses all flats with shifts smaller than image_correlation.shift.max_pixelshift
 decimal_round_precision = 2; % precision when rounding pixel shifts
 strong_abs_thresh = 1; % if 1: does nothing, if < 1: flat-corrected values below threshold are set to one
 ring_filter.apply = 1; % ring artifact filter (use only for scans without lateral sample movement)
@@ -149,11 +150,11 @@ write.compression.parameter = [0.20 0.15]; % compression-method specific paramet
 % INTERACTION %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 verbose = 1; % print information to standard output
 visual_output = 1; % show images and plots during reconstruction
-interactive_determination_of_rot_axis = 1; % reconstruct slices with dif+ferent rotation axis offsets
-interactive_determination_of_rot_axis_tilt = 1; % reconstruct slices with different offset AND tilts of the rotation axis
-lamino = 0; % find laminography tilt instead camera rotation
-fixed_tilt = 0; % fixed other tilt
-slice_number = 0.5; % slice number, default: 0.5. if in [0,1): relative, if in (1, N]: absolute
+interactive_mode.rot_axis_pos = 1; % reconstruct slices with dif+ferent rotation axis offsets
+interactive_mode.rot_axis_tilt = 1; % reconstruct slices with different offset AND tilts of the rotation axis
+interactive_mode.lamino = 0; % find laminography tilt instead camera rotation
+interactive_mode.fixed_other_tilt = 0; % fixed other tilt
+interactive_mode.slice_number = 0.5; % slice number, default: 0.5. if in [0,1): relative, if in (1, N]: absolute
 % HARDWARE / SOFTWARE %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 use_cluster = 0; % if available: on MAXWELL nodes disp/nova/wga/wgs cluster computation can be used. Recommended only for large data sets since parpool creation and data transfer implies a lot of overhead.
 poolsize = 0.60; % number of workers used in a local parallel pool. if 0: use current config. if >= 1: absolute number. if 0 < poolsize < 1: relative amount of all cores to be used. if SLURM scheduling is available, a default number of workers is used.
@@ -170,7 +171,7 @@ stop_after_data_reading(1) = 0; % before flat field correlation
 if exist( 'external_parameter' ,'var')
     visual_output = 0;
     dbstop if error
-    interactive_determination_of_rot_axis = 0;
+    interactive_mode.rot_axis_pos = 0;
     fn = fieldnames( external_parameter );
     for nn = 1:numel( fn )
         var_name = fn{nn};
@@ -449,8 +450,8 @@ else
     offset_shift = offset_shift - mean( offset_shift );
     offset_shift = offset_shift(proj_range);
     % ring current
-    X = double( petra.time );    
-    V = double( petra.current );
+    X = double( petra.time(2:end) ); % first value is zero
+    V = double( petra.current(2:end) ); % first value is zero
     Xq = double( stimg_name.time );
     stimg_name.current = (interp1( X, V, Xq, 'next', 100) + interp1( X, V, Xq + exp_time, 'previous', 100) ) / 2;
     cur_ref_val = stimg_name.current( stimg_key.value == 1 );
@@ -481,11 +482,11 @@ else
 end
 if ~isempty( raw_roi ) && ~isscalar( raw_roi ) && raw_roi(2) < 1
     raw_roi(2) = im_shape_raw(2) + raw_roi(2);
-elseif (isscalar(raw_roi) && raw_roi < 1)
+elseif isscalar(raw_roi) && raw_roi(1) < 1
     % Make roi_fac dependent on dark field
-    if raw_roi == -1
+    if raw_roi(1) == -1
         roi_fac = 2;
-    elseif raw_roi < -1        
+    elseif raw_roi(1) < -1        
         roi_fac = abs( raw_roi );
     end
     % Read first non-zero flat
@@ -624,9 +625,9 @@ elseif ~read_flatcor
         im_std = std( im(:) );
         im( im > im_mean + 4*im_std) = im_mean;
         if bin_before_filtering
-            darks(:, :, nn) = FilterPixel( Binning(im, raw_bin) / raw_bin^2, dark_FiltPixThresh );
+            darks(:, :, nn) = FilterPixel( Binning(im, raw_bin) / raw_bin^2, pixel_filter_threshold_dark );
         else
-            darks(:, :, nn) = Binning( FilterPixel( im, dark_FiltPixThresh), raw_bin) / raw_bin^2;
+            darks(:, :, nn) = Binning( FilterPixel( im, pixel_filter_threshold_dark), raw_bin) / raw_bin^2;
         end
     end
     darks_min = min( darks(:) );
@@ -665,9 +666,9 @@ elseif ~read_flatcor
     parfor nn = 1:num_ref_used
         filename = sprintf('%s%s', scan_path, ref_names_mat(nn,:));
         if bin_before_filtering
-            flat(:, :, nn) = FilterPixel( Binning( single( read_image( filename, '', raw_roi, tif_info, im_shape_raw, dtype ) ), raw_bin) / raw_bin^2, ref_FiltPixThresh);
+            flat(:, :, nn) = FilterPixel( Binning( single( read_image( filename, '', raw_roi, tif_info, im_shape_raw, dtype ) ), raw_bin) / raw_bin^2, pixel_filter_threshold_flat);
         else
-            flat(:, :, nn) = Binning( FilterPixel( read_image( filename, '', raw_roi, tif_info, im_shape_raw, dtype ), ref_FiltPixThresh), raw_bin) / raw_bin^2;
+            flat(:, :, nn) = Binning( FilterPixel( read_image( filename, '', raw_roi, tif_info, im_shape_raw, dtype ), pixel_filter_threshold_flat), raw_bin) / raw_bin^2;
         end        
         % Check for zeros
         num_zeros(nn) =  sum( sum( flat(:,:,nn) < 1 ) );
@@ -762,7 +763,7 @@ elseif ~read_flatcor
             h1 = figure('Name', 'data and flat-and-dark-field correction');
         end
         filename = sprintf('%s%s', scan_path, img_names_mat(1, :));
-        raw1 = Binning( FilterPixel( read_image( filename, '', raw_roi, tif_info, im_shape_raw, dtype ), proj_FiltPixThresh), raw_bin) / raw_bin^2;
+        raw1 = Binning( FilterPixel( read_image( filename, '', raw_roi, tif_info, im_shape_raw, dtype ), pixel_filter_threshold_proj), raw_bin) / raw_bin^2;
         subplot(2,3,3)
         imsc1( raw1 )        
         title(sprintf('raw proj #1'))
@@ -773,18 +774,18 @@ elseif ~read_flatcor
     
     % Get absolute filter thresholds from percentage-wise pixel filtering
     % of 1st, middle, and last projection to speed up processing
-    if proj_FiltPixThresh(1) < 1 || proj_FiltPixThresh(2) < 0.5        
+    if pixel_filter_threshold_proj(1) < 1 || pixel_filter_threshold_proj(2) < 0.5        
         filename = sprintf('%s%s', scan_path, img_names_mat(num_proj_used, :));
-        [~, ht(3), dt(3)] = FilterPixel( read_image( filename, '', raw_roi, tif_info, im_shape_raw, dtype ), proj_FiltPixThresh);        
+        [~, ht(3), dt(3)] = FilterPixel( read_image( filename, '', raw_roi, tif_info, im_shape_raw, dtype ), pixel_filter_threshold_proj);        
         filename = sprintf('%s%s', scan_path, img_names_mat(1, :));
-        [~, ht(2), dt(2)] = FilterPixel( read_image( filename, '', raw_roi, tif_info, im_shape_raw, dtype ), proj_FiltPixThresh);        
+        [~, ht(2), dt(2)] = FilterPixel( read_image( filename, '', raw_roi, tif_info, im_shape_raw, dtype ), pixel_filter_threshold_proj);        
         filename = sprintf('%s%s', scan_path, img_names_mat(round(num_proj_used/2), :));
-        [~, ht(1), dt(1)] = FilterPixel( read_image( filename, '', raw_roi, tif_info, im_shape_raw, dtype ), proj_FiltPixThresh);        
+        [~, ht(1), dt(1)] = FilterPixel( read_image( filename, '', raw_roi, tif_info, im_shape_raw, dtype ), pixel_filter_threshold_proj);        
         HotThresh = median( ht );
         DarkThresh = median( dt );
     else
-        HotThresh = proj_FiltPixThresh(1);
-        DarkThresh = proj_FiltPixThresh(2);
+        HotThresh = pixel_filter_threshold_proj(1);
+        DarkThresh = pixel_filter_threshold_proj(2);
     end
     
     % Read raw projections
@@ -877,7 +878,7 @@ elseif ~read_flatcor
     
     %% Flat field correction %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     %% STOP HERE FOR FLATFIELD CORRELATION MAPPING
-    [proj, corr, proj_roi, flat_roi] = proj_flat_correlation( proj, flat, correlation_method, flat_corr_area1, flat_corr_area2, im_shape_binned, corr_shift_max_pixelshift, corr_num_flats, decimal_round_precision, flatcor_path, verbose, visual_output);
+    [proj, corr, proj_roi, flat_roi] = proj_flat_correlation( proj, flat, image_correlation.method, image_correlation.area_width, image_correlation.area_height, im_shape_binned, image_correlation.shift.max_pixelshift, image_correlation.num_flats, decimal_round_precision, flatcor_path, verbose, visual_output);
     proj_min0 = min( proj(:) );
     proj_max0 = max( proj(:) );
     prnt( '\n global min/max after flat-field corrected:  %6g %6g', proj_min0, proj_max0);   
@@ -1071,7 +1072,7 @@ if tomo.run(1)
     end
     
     % Tilt of rotation axis
-    if interactive_determination_of_rot_axis_tilt(1)
+    if interactive_mode.rot_axis_tilt(1)
         im1c = RotAxisSymmetricCropping( proj(:,tomo.rot_axis.corr_area2,ind1), tomo.rot_axis.position, 1);
         im2c = flipud(RotAxisSymmetricCropping( proj(:,tomo.rot_axis.corr_area2,ind2) , tomo.rot_axis.position, 1));
         [optimizer, metric] = imregconfig('monomodal');
@@ -1105,7 +1106,7 @@ if tomo.run(1)
     
     % INTERACTIVE MODE %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     tint = 0;
-    if interactive_determination_of_rot_axis(1)
+    if interactive_mode.rot_axis_pos(1)
         tint = toc;
         fprintf( '\n\nENTER INTERACTIVE MODE' )
         fprintf( '\n number of pixels: %u', im_shape_binned1)
@@ -1117,10 +1118,10 @@ if tomo.run(1)
             itake_neg_log = 1;
         end
         inumber_of_stds = 4;        
-        if slice_number > 1
-            slice = slice_number;
-        elseif slice_number <= 1 && slice_number >= 0
-            slice = round((im_shape_binned2 - 1) * slice_number + 1 );
+        if interactive_mode.slice_number > 1
+            slice = interactive_mode.slice_number;
+        elseif interactive_mode.slice_number <= 1 && interactive_mode.slice_number >= 0
+            slice = round((im_shape_binned2 - 1) * interactive_mode.slice_number + 1 );
         end
         fprintf( '\n slice : %u', slice)        
         fprintf( '\n\nOFFSET:' )
@@ -1166,8 +1167,8 @@ if tomo.run(1)
             fra.inumber_of_stds = inumber_of_stds;
             fra.ivol_shape = ivol_shape;
             fra.ivol_size = ivol_size;
-            fra.lamino = lamino;
-            fra.fixed_tilt = fixed_tilt;
+            fra.lamino = interactive_mode.lamino;
+            fra.fixed_tilt = interactive_mode.fixed_other_tilt;
             fra.astra_gpu_index = tomo.astra_gpu_index;
             fra.offset_shift = offset_shift;
             [vol, metrics_offset] = find_rot_axis_offset( fra, proj );
@@ -1235,7 +1236,7 @@ if tomo.run(1)
                 fprintf( '\n new rotation axis offset : %.2f', tomo.rot_axis.offset)
                 
                 % TILT %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-                if interactive_determination_of_rot_axis_tilt(1)
+                if interactive_mode.rot_axis_tilt(1)
                     fprintf( '\n\nTILT:' )
                     fprintf( '\n current rotation axis tilt : %g rad = %g deg', tomo.rot_axis.tilt, tomo.rot_axis.tilt * 180 / pi)
                     fprintf( '\n calcul. rotation axis tilt : %g rad = %g deg', rot_axis_tilt_calc, rot_axis_tilt_calc * 180 / pi)
@@ -1268,8 +1269,8 @@ if tomo.run(1)
                         fra.inumber_of_stds = inumber_of_stds;
                         fra.ivol_shape = ivol_shape;
                         fra.ivol_size = ivol_size;
-                        fra.lamino = lamino;
-                        fra.fixed_tilt = fixed_tilt;
+                        fra.lamino = interactive_mode.lamino;
+                        fra.fixed_tilt = interactive_mode.fixed_other_tilt;
                         fra.astra_gpu_index = tomo.astra_gpu_index;
                         fra.offset_shift = offset_shift;
                         [vol, metrics_tilt] = find_rot_axis_tilt( fra, proj);
@@ -1381,7 +1382,7 @@ if tomo.run(1)
     prnt( '\n rotation axis tilt: %g rad (%g deg)', tomo.rot_axis.tilt, tomo.rot_axis.tilt * 180 / pi)
     [tomo.vol_shape, tomo.vol_size] = volshape_volsize( proj, tomo.vol_shape, tomo.vol_size, tomo.rot_axis.offset, verbose);
     
-    if interactive_determination_of_rot_axis_tilt(1) && visual_output(1)
+    if interactive_mode.rot_axis_tilt(1) && visual_output(1)
         h4 = figure('Name','Projections at 0 and pi cropped symmetrically to rotation center');
         n = 2;
         m = 2;
@@ -1593,9 +1594,12 @@ if tomo.run(1)
             filt = filt .* bw;
         end
         proj_shape1 = size( proj, 1);
+        take_neg_log = tomo.take_neg_log;
+        padding = tomo.fbp_filter.padding;
+        padding_method = tomo.fbp_filter.padding_method;
         parfor nn =  1:size( proj, 2)
             im = proj(:,nn,:);
-            im = padarray( NegLog(im, tomo.take_neg_log), tomo.fbp_filter.padding * [proj_shape1 0 0], tomo.fbp_filter.padding_method, 'post' );
+            im = padarray( NegLog(im, take_neg_log), padding * [proj_shape1 0 0], padding_method, 'post' );
             im = real( ifft( bsxfun(@times, fft( im, [], 1), filt), [], 1, 'symmetric') );
             proj(:,nn,:) = im(1:proj_shape1,:,:);
         end
@@ -1615,11 +1619,10 @@ if tomo.run(1)
     
     % Backprojection
     prnt( '\n Backproject:')
-    t2 = toc;
-    %vol = astra_parallel3D( permute(proj, [1 3 2]), tomo.rot_angle.offset + angles_reco, rot_axis_offset_reco + offset_shift, tomo.vol_shape, tomo.vol_size, tomo.astra_pixel_size, tomo.astra_link_data, ~lamino*tomo.rot_axis.tilt, tomo.astra_gpu_index, lamino*tomo.rot_axis.tilt);
+    t2 = toc;    
     %% Move parameters to appropiate position or replace globally
-    tomo.tilt_camera = ~lamino * tomo.rot_axis.tilt;
-    tomo.tilt_lamino = lamino * tomo.rot_axis.tilt;
+    tomo.tilt_camera = ~interactive_mode.lamino * tomo.rot_axis.tilt;
+    tomo.tilt_lamino = interactive_mode.lamino * tomo.rot_axis.tilt;
     tomo.angles = tomo.rot_angle.offset + angles_reco;
     tomo.rot_axis.offset = rot_axis_offset_reco + offset_shift;
     vol = astra_parallel3D( tomo, permute(proj, [1 3 2]) );
@@ -1761,10 +1764,10 @@ fprintf(fid, 'effective_pixel_size_binned : %g micron\n', eff_pixel_size_binned 
 fprintf(fid, 'energy : %g eV\n', energy);
 fprintf(fid, 'sample_detector_distance : %f m\n', sample_detector_distance);
 fprintf(fid, 'ring_current_normalization : %u\n', ring_current_normalization);
-fprintf(fid, 'proj_flat_correlation_method : %s\n', correlation_method);
-fprintf(fid, 'proj_flat_correlation_num_flats : %u\n', corr_num_flats);
-fprintf(fid, 'flat_field_correlation_area_1 : %u:%u:%u\n', flat_corr_area1(1), flat_corr_area1(2) - flat_corr_area1(1), flat_corr_area1(end));
-fprintf(fid, 'flat_field_correlation_area_2 : %u:%u:%u\n', flat_corr_area2(1), flat_corr_area2(2) - flat_corr_area2(1), flat_corr_area2(end));
+fprintf(fid, 'image_correlation.method : %s\n', image_correlation.method);
+fprintf(fid, 'proj_flat_correlation_num_flats : %u\n', image_correlation.num_flats);
+fprintf(fid, 'flat_field_correlation_area_1 : %u:%u:%u\n', image_correlation.area_width(1), image_correlation.area_width(2) - image_correlation.area_width(1), image_correlation.area_width(end));
+fprintf(fid, 'flat_field_correlation_area_2 : %u:%u:%u\n', image_correlation.area_height(1), image_correlation.area_height(2) - image_correlation.area_height(1), image_correlation.area_height(end));
 if ~read_flatcor
     fprintf(fid, 'min_max_of_all_darks : %6g %6g\n', darks_min, darks_max);
     fprintf(fid, 'min_max_of_median_dark : %6g %6g\n', dark_med_min, dark_med_max);
@@ -1804,7 +1807,7 @@ fprintf(fid, 'tomo.rot_axis.tilt : %f\n', tomo.rot_axis.tilt);
 fprintf(fid, 'raw_image_binned_center : %f\n', im_shape_binned1 / 2);
 fprintf(fid, 'tomo.rot_axis.corr_area1 : %u:%u:%u\n', tomo.rot_axis.corr_area1(1), tomo.rot_axis.corr_area1(2) - tomo.rot_axis.corr_area1(1), tomo.rot_axis.corr_area1(end));
 fprintf(fid, 'tomo.rot_axis.corr_area2 : %u:%u:%u\n', tomo.rot_axis.corr_area2(1), tomo.rot_axis.corr_area2(2) - tomo.rot_axis.corr_area2(1), tomo.rot_axis.corr_area2(end));
-fprintf(fid, 'interactive_determination_of_rot_axis : %u\n', interactive_determination_of_rot_axis);
+fprintf(fid, 'interactive_mode.rot_axis_pos : %u\n', interactive_mode.rot_axis_pos);
 % Ring filter
 fprintf(fid, 'ring_filter.apply : %u\n', ring_filter.apply);
 if ring_filter.apply
@@ -1850,7 +1853,7 @@ fclose(fid);
 
 prnt( '\n log file : %s', logfile_name)
 prnt( '\n reco_path : \n%s', reco_path)
-PrintVerbose(verbose && interactive_determination_of_rot_axis, '\nTime elapsed in interactive mode: %g s (%.2f min)', tint, tint / 60 );
+PrintVerbose(verbose && interactive_mode.rot_axis_pos, '\nTime elapsed in interactive mode: %g s (%.2f min)', tint, tint / 60 );
 prnt( '\nTime elapsed for computation: %g s (%.2f min)', toc - tint, (toc - tint) / 60 );
 prnt( '\nFINISHED: %s\n\n', scan_name)
 % END %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
