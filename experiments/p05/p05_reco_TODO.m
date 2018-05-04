@@ -1,11 +1,8 @@
 %% TODO list for P05 reconstruction pipeline 'p05_reco'
 
 %% TODO: WHY EPS for rao in astra_parallel3d!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
 %% TODO: save reco loop script under current user directory
-
 % TODO: help on FBP filters
-% TODO: proper impementation of quick fixes for new shift acquistion scheme
 % TODO: update log file paameters
 % TODO: check missing proj mod for stitching etc
 % TODO: visual output for phase retrieval: phase map, fft(int), etc
@@ -13,9 +10,7 @@
 % TODO: choose regulatrization parameter for phase retrieval via interactive mode 
 % TODO: physically consistent attenutation values of reconstructed slice 
 % TODO: check raw roi, transpose, rot90 for KIT and EHD camera
-% TODO: get rid of transpose when reading image files
 % TODO: vertical stitching
-% TODO: volume shape for excentric rot axis
 % TODO: Interactive plot mode for wavelet-fft fing filter
 % TODO: Improve FilterStripesCombinedWaveletFFT
 % TODO: check proj-flat correlation measure for absolute values
@@ -29,8 +24,6 @@
 % TODO: set photometric tag for tif files w/o one, turn on respective warning
 % TODO: GPU phase retrieval: parfor-loop requires memory managment
 % TODO: median filter width of ring filter dependence on binning
-% TODO: check offset: proj correlation for rotation axis determination
-% TODO: check offset: flat/proj correlation 
 % TODO: inverse Gaussian filter for phase retrieval, VZC theorem
 % TODO: flat-flat correlation and averaging before proj-flat correlation
 % TODO: proj-flat correlation: take negative logarithm or not?
