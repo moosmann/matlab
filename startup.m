@@ -49,6 +49,7 @@ close all;
 % CUDA error was: cannot set while device is active in this process.
 %a = gpuArray(1); 
 %clear a;
+% Fix above bug for multi GPU system
 for gpu_device_count = 1:gpuDeviceCount
     gpu = gpuDevice(gpu_device_count);
     a = gpuArray(1);

@@ -15,14 +15,14 @@
 %
 % For additional information see 'p05_reco_NOTES'.
 %
-%% Please cite following article in the case of publication:
+% Please cite following article in the case of publication:
 % Moosmann, J. et al. Time-lapse X-ray phase-contrast microtomography for
 % in vivo imaging and analysis of morphogenesis Nat. Protocols 9, 294-304
 % (2014)
 % Also cite the ASTRA Toolbox, see http://www.astra-toolbox.com/
 %
 % Written by Julian Moosmann. First version: 2016-09-28. Last modifcation:
-% 2018-05-04
+% 2018-05-07
 
 if ~exist( 'external_parameter' ,'var')
     clearvars
@@ -30,9 +30,14 @@ end
 close all hidden % close all open windows
 %dbstop if error
 
-%% PARAMETERS / SETTINGS %%
-% SCAN %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% PARAMETERS / SETTINGS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%% SCAN %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 scan_path = ...
+    '/asap3/petra3/gpfs/p05/2018/data/11004434/raw/szeb_23_stoper_1_a';    
+    '/asap3/petra3/gpfs/p05/2018/data/11004434/raw/szeb_12_salamander_1_a';%off -2.5, tilt 0.0216081
+
     '/asap3/petra3/gpfs/p05/2018/data/11004202/raw/mg3nd1zn_rt_fly_01';
     '/asap3/petra3/gpfs/p05/2018/data/11004263/raw/syn032_72L_Mg5Gd_12w_kit';
     '/asap3/petra3/gpfs/p05/2018/data/11004263/raw/syn031_72L_Mg5Gd_12w_kit_noshake_reallyNoShake';
@@ -45,7 +50,7 @@ read_flatcor_path = ''; % subfolder of 'flat_corrected' containing projections
 energy = []; % in eV! if empty: read from log file
 sample_detector_distance = []; % in m. if empty: read from log file
 eff_pixel_size = []; % in m. if empty: read from log file. effective pixel size =  detector pixel size / magnification
-% PREPROCESSING %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%% PREPROCESSING %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 raw_roi = []; % if []: use full image; if [y0 y1]: vertical ROI, skips first raw_roi(1)-1 lines, reads until raw_roi(2). When raw_roi(2) < 0 reads until end - |raw_roi(2)|; if negative scalar: auto roi, selects ROI automatically.Not working for *.raw data where images are flipped.
 raw_bin = 2; % projection binning factor: integer
 bin_before_filtering(1) = 1; % Apply binning before filtering pixel. less effective, but much faster especially for KIT camera.
@@ -57,12 +62,12 @@ stitch_method = 'sine'; 'step';'linear'; %  ! CHECK correlation area !
 % 'linear' : linear interpolation of overlap region
 % 'sine' : sinusoidal interpolation of overlap region
 proj_range = 1; % range of projections to be used (from all found, if empty or 1: all, if scalar: stride, if range: start:incr:end
-ref_range = 1; % range of flat fields to be used (from all found), if empty or 1: all. if scalar: stride, if range: start:incr:end
+ref_range = 10; % range of flat fields to be used (from all found), if empty or 1: all. if scalar: stride, if range: start:incr:end
 pixel_filter_threshold_dark = [0.01 0.005]; % Dark fields: threshold parameter for hot/dark pixel filter, for details see 'FilterPixel'
 pixel_filter_threshold_flat = [0.01 0.005]; % Flat fields: threshold parameter for hot/dark pixel filter, for details see 'FilterPixel'
 pixel_filter_threshold_proj = [0.01 0.005]; % Raw projection: threshold parameter for hot/dark pixel filter, for details see 'FilterPixe
 ring_current_normalization = 1; % normalize flat fields and projections by ring current
-image_correlation.method = 'none';'ssim-ml';'entropy';'diff';'shift';'ssim';'std';'cov';'corr';'cross-entropy12';'cross-entropy21';'cross-entropyx';
+image_correlation.method = 'ssim-ml';'none';'entropy';'diff';'shift';'ssim';'std';'cov';'corr';'cross-entropy12';'cross-entropy21';'cross-entropyx';
 % Correlation of projections and flat fields important for DCM data. For
 % DMM it does not work well. Available methods:
 % 'ssim-ml' : Matlab's structural similarity index (SSIM), includes Gaussian smoothing
@@ -88,7 +93,7 @@ ring_filter.waveletfft.sigma = 2.4; %  suppression factor for 'wavelet-fft'
 ring_filter.jm.median_width = 11; % multiple widths are applied consecutively, eg [3 11 21 31 39];
 strong_abs_thresh = 1; % Experimental: if 1: does nothing, if < 1: flat-corrected values below threshold are set to one
 decimal_round_precision = 2; % precision when rounding pixel shifts
-% PHASE RETRIEVAL %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%% PHASE RETRIEVAL %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 phase_retrieval.apply = 0; % See 'PhaseFilter' for detailed description of parameters !
 phase_retrieval.apply_before = 0; % before stitching, interactive mode, etc. For phase-contrast data with an excentric rotation axis phase retrieval should be done afterwards. To find the rotataion axis position use this option in a first run, and then turn it of afterwards.
 phase_retrieval.post_binning_factor = 1; % Binning factor after phase retrieval, but before tomographic reconstruction
@@ -97,15 +102,15 @@ phase_retrieval.reg_par = 1.5; % regularization parameter. larger values tend to
 phase_retrieval.bin_filt = 0.15; % threshold for quasiparticle retrieval 'qp', 'qp2'
 phase_retrieval.cutoff_frequ = 2 * pi; % in radian. frequency cutoff in Fourier space for 'qpcut' phase retrieval
 phase_retrieval.padding = 1; % padding of intensities before phase retrieval, 0: no padding
-% TOMOGRAPHY %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%% TOMOGRAPHY %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 tomo.run = 1; % run tomographic reconstruction
 tomo.vol_size = []; % [-1 1 -1 1 -0.5 0.5] for excentric rot axis pos; 6-component vector [xmin xmax ymin ymax zmin zmax]. if empty, volume is centerd within tomo.vol_shape. unit voxel size is assumed. if smaller than 10 values are interpreted as relative size w.r.t. the detector size. Take care bout minus signs!
 tomo.vol_shape = []; %[2 2 0.5] for excentric rot axis pos, inferred from 'vol_size' if empty, shape (voxels) of reconstruction volume. in absolute numbers of voxels or in relative number w.r.t. the default volume which is given by the detector width and height
 tomo.rot_angle.full_range = []; % in radians: empty ([]), full angle of rotation, or array of angles. if empty full rotation angles is determined automatically to pi or 2 pi
 tomo.rot_angle.offset = pi; % global rotation of reconstructed volume
-tomo.rot_axis.offset = [];% if empty use automatic computation
+tomo.rot_axis.offset = -2.5;[];% if empty use automatic computation
 tomo.rot_axis.position = []; % if empty use automatic computation. EITHER OFFSET OR POSITION MUST BE EMPTY. YOU MUST NOT USE BOTH!
-tomo.rot_axis.tilt = 0; % in rad. camera tilt w.r.t rotation axis. if empty calculate from registration of projections at 0 and pi
+tomo.rot_axis.tilt = 0.0216081;0; % in rad. camera tilt w.r.t rotation axis. if empty calculate from registration of projections at 0 and pi
 tomo.rot_axis.corr_area1 = []; % ROI to correlate projections at angles 0 & pi. Use [0.75 1] or so for scans with an excentric rotation axis
 tomo.rot_axis.corr_area2 = []; % ROI to correlate projections at angles 0 & pi
 tomo.rot_axis.corr_gradient = 0; % use gradient of intensity maps if signal variations are too weak to correlate projections
@@ -122,7 +127,7 @@ tomo.algorithm = 'fbp';'sirt'; 'cgls';
 tomo.iterations = 40; % for 'sirt' or 'cgls'.
 tomo.sirt.MinConstraint = []; % If specified, all values below MinConstraint will be set to MinConstraint. This can be used to enforce non-negative reconstructions, for example.
 tomo.sirt.MaxConstraint = []; % If specified, all values above MaxConstraint will be set to MaxConstraint.
-% OUTPUT %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%% OUTPUT %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 write.path = '';'/gpfs/petra3/scratch/moosmanj';% absolute path were output data will be stored. !!overwrites the write.to_scratch flag. if empty uses the beamtime directory and either 'processed' or 'scratch_cc'
 write.to_scratch = 1; % write to 'scratch_cc' instead of 'processed'
 write.parfolder = '';% parent folder to 'reco', 'sino', 'phase', and 'flat_corrected'
@@ -150,27 +155,28 @@ write.compression.parameter = [0.20 0.15]; % compression-method specific paramet
 % 'threshold' : [LOW HIGH] = write.compression.parameter, eg. [-0.01 1]
 % 'std' : NUM = write.compression.parameter, mean +/- NUM*std, dynamic range is rescaled to within -/+ NUM standard deviations around the mean value
 % 'histo' : [LOW HIGH] = write.compression.parameter (100*LOW)% and (100*HIGH)% of the original histogram, e.g. [0.02 0.02]
-% INTERACTION %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%% INTERACTION %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 verbose = 1; % print information to standard output
 visual_output = 1; % show images and plots during reconstruction
 interactive_mode.rot_axis_pos = 1; % reconstruct slices with dif+ferent rotation axis offsets
-interactive_mode.rot_axis_tilt = 0; % reconstruct slices with different offset AND tilts of the rotation axis
+interactive_mode.rot_axis_tilt = 1; % reconstruct slices with different offset AND tilts of the rotation axis
 interactive_mode.lamino = 0; % find laminography tilt instead camera rotation
 interactive_mode.fixed_other_tilt = 0; % fixed other tilt
 interactive_mode.slice_number = 0.5; % default slice number. if in [0,1): relative, if in (1, N]: absolute
-% HARDWARE / SOFTWARE %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%% HARDWARE / SOFTWARE %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 use_cluster = 0; % if available: on MAXWELL nodes disp/nova/wga/wgs cluster computation can be used. Recommended only for large data sets since parpool creation and data transfer implies a lot of overhead.
 poolsize = 0.60; % number of workers used in a local parallel pool. if 0: use current config. if >= 1: absolute number. if 0 < poolsize < 1: relative amount of all cores to be used. if SLURM scheduling is available, a default number of workers is used.
 tomo.astra_link_data = 1; % ASTRA data objects become references to Matlab arrays. Reduces memory issues.
 tomo.astra_gpu_index = []; % GPU Device index to use, Matlab notation: index starts from 1. default: [], uses all
-% EXPERIMENTAL OR NOT YET IMPLEMENTED %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%% EXPERIMENTAL OR NOT YET IMPLEMENTED %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 write.uint8_segmented = 0; % experimental: threshold segmentation for histograms with 2 distinct peaks: __/\_/\__
 
-%% END OF PARAMETERS / SETTINGS %%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%% END OF PARAMETERS / SETTINGS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 stop_after_data_reading(1) = 0; % before flat field correlation
 
-%% External call: parameters set by 'p05_reco_loop' %%%%%%%%%%%%%%%%%%%%%%%
+%%% External call: parameters set by 'p05_reco_loop' %%%%%%%%%%%%%%%%%%%%%%
 if exist( 'external_parameter' ,'var')
     visual_output = 0;
     dbstop if error
@@ -184,7 +190,7 @@ if exist( 'external_parameter' ,'var')
     clear external_parameter;
 end
 
-%% Main %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% Preprocessing up to proj/flat correlation %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 tic
 if ~isempty( tomo.vol_size ) && isempty( vol_shape )
     vol_shape = tomo.vol_size(2:2:end) - tomo.vol_size(1:2:end);
@@ -205,7 +211,7 @@ if abs(excentric_rot_axis)
     end
 end
 
-%% Folders: input
+%%%% Folders: input %%%
 while scan_path(end) == filesep
     scan_path(end) = [];
 end
@@ -230,7 +236,7 @@ fid = fopen( filename , 'w' );
 fprintf( fid, '%s', scan_path );
 fclose( fid );
 
-%% Folders: output
+%%% Folders: output %%%
 out_folder = 'processed';
 if write.to_scratch
     out_folder = 'scratch_cc';
@@ -290,7 +296,7 @@ for nn = tomo.astra_gpu_index
     prnt( '\n gpu %u memory : available, total, percent = %.3g GiB, %.3g GiB, %.2f%%', nn, gpu.AvailableMemory/1024^3, gpu.TotalMemory/1024^3, 100*gpu.AvailableMemory/gpu.TotalMemory)
 end
 
-%% File names
+%%% File names %%%
 
 % Projection file names
 proj_names = FilenameCell( [scan_path, '*.img'] );
@@ -374,7 +380,7 @@ prnt( '\n number of projections found : %g', num_proj_found)
 prnt( '\n number of projections used : %g', num_proj_used)
 prnt( '\n projection range used : first:stride:last =  %g:%g:%g', proj_range(1), proj_range(2) - proj_range(1), proj_range(end))
 
-%% Log file %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%% Read log files %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % new hdf5 log from statussever
 h5log = sprintf('%s%s_nexus.h5', scan_path, scan_name);
 im_shape_raw = [];
@@ -419,7 +425,7 @@ else
     h5i = h5info( h5log );
     % energy, exposure time, image shape
     switch lower( cam )
-        %% CHECK h5 entry of camera1 / camera2 !!!!!!!!!!!!!!!!!!!!!!!!
+        %%% CHECK h5 entry of camera1 / camera2 !!!!!!!!!!!!!!!!!!!!!!!!
         case 'ehd'
             energy = double(h5read( h5log, '/entry/hardware/camera1/calibration/energy') );
             exp_time = double(h5read( h5log, '/entry/hardware/camera1/calibration/exptime') );
@@ -512,7 +518,7 @@ elseif isscalar(raw_roi) && raw_roi(1) < 1
     mm = median( (FilterPixel( im_raw, [0.1 0.1]) + FilterPixel( im_raw2, [0.1 0.1]) ) / 2, 1);    
     roi_thresh = roi_fac * double( min(mm) );
     [~,p] = min(abs(mm - roi_thresh));
-    %% IMPROVE STABILITY
+    %%% IMPROVE STABILITY !!!
     dp = 200;
     if p < im_shape_raw(1)/2
         pl = p;
@@ -547,8 +553,8 @@ elseif isscalar(raw_roi) && raw_roi(1) < 1
         ax.YAxisLocation = 'right';
         ax.XDir = 'reverse';
         ax.YDir = 'normal';
-        text(raw_roi(1), 2 * roi_thresh,sprintf('raw roi(2):%u', raw_roi(1)))
-        text(raw_roi(2), 2 * roi_thresh,sprintf('raw roi(2):%u', raw_roi(2)))
+        text(raw_roi(1), 2 * roi_thresh,sprintf('raw roi(1)=%u', raw_roi(1)))
+        text(raw_roi(2), 2 * roi_thresh,sprintf('raw roi(2)=%u', raw_roi(2)))
         
         drawnow
     end
@@ -566,14 +572,14 @@ prnt( '\n raw image shape roi binned : %g  %g', im_shape_binned)
 prnt( '\n raw binning factor : %u', raw_bin)
 prnt( '\n raw bining before pixel filtering : %u', bin_before_filtering)
 
-%% Start parallel CPU pool
+%%% Start parallel CPU pool %%%
 t = toc;
 [poolobj, poolsize] = OpenParpool(poolsize, use_cluster, [beamtime_path filesep 'scratch_cc']);
 PrintVerbose( verbose && (poolsize > 1), '\nParpool opened on %s using %u workers. ', poolobj.Cluster.Profile, poolobj.Cluster.NumWorkers)
 PrintVerbose( verbose && (poolsize > 1), ' Time elapsed: %.1f s (%.2f min)', toc - t, ( toc - t ) / 60 );
 cdscandir = cd( scan_path );
 
-%% Read flat corrected projection %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%% Read flat corrected projection %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 if read_flatcor(1)
     t = toc;
     if isempty( read_flatcor_path )
@@ -609,9 +615,9 @@ if read_flatcor(1)
     end
     prnt( ' Time elapsed: %.1f s (%.2f min)', toc - t, ( toc - t ) / 60 )
     
-%% Read raw data %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%% Read and preprocess raw data %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 elseif ~read_flatcor    
-    %% Dark field
+    %%% Dark field %%
     t = toc;
     prnt( '\nProcessing dark fields.')
     darks = zeros( [im_shape_binned, num_dark], 'single');
@@ -657,7 +663,7 @@ elseif ~read_flatcor
         drawnow
     end
     
-    %% Flat field
+    %%% Flat field %%%
     t = toc;
     prnt( '\nProcessing flat fields.')
     % Preallocation
@@ -750,7 +756,7 @@ elseif ~read_flatcor
         drawnow
     end
     
-    %% Projections
+    %%% Projections %%%
     t = toc;
     prnt( '\nProcessing projections. ')
     % Preallocation
@@ -879,8 +885,8 @@ elseif ~read_flatcor
         keyboard;
     end
     
-    %% Flat field correction %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    %% STOP HERE FOR FLATFIELD CORRELATION MAPPING
+    %% Projection/flat field correlation and flat field correction %%%%%%%%
+    %%%% STOP HERE FOR FLATFIELD CORRELATION MAPPING %%%%%%%%%%%%%%%%%%%%%%
     [proj, corr, proj_roi, flat_roi] = proj_flat_correlation( proj, flat, image_correlation.method, image_correlation.area_width, image_correlation.area_height, im_shape_binned, image_correlation.shift.max_pixelshift, image_correlation.num_flats, decimal_round_precision, flatcor_path, verbose, visual_output);
     proj_min0 = min( proj(:) );
     proj_max0 = max( proj(:) );
@@ -931,7 +937,7 @@ elseif ~read_flatcor
         drawnow
     end
     
-    %% Angles
+    %%% Angles %%
     if exist('cur', 'var') && isfield(cur, 'proj') && isfield( cur.proj, 'angle')
         % for KIT cam this includes missing angles
         angles = [cur.proj.angle] / 180 * pi;
@@ -988,9 +994,9 @@ if phase_retrieval.apply
     end
 end
 
-%% Rotation axis position and tomgraphic reconstruction parameters %%%%%%%%
+%%% Rotation axis position and tomgraphic reconstruction parameters %%%
 tint = 0;
-if tomo.run(1)
+if tomo.run
     t = toc;
     % ROI for correlation of projections at angles 0 & pi
     if isempty( tomo.rot_axis.corr_area1 )
@@ -1076,27 +1082,26 @@ if tomo.run(1)
     
     % Tilt of rotation axis
     if interactive_mode.rot_axis_tilt(1)
-        im1c = RotAxisSymmetricCropping( proj(:,tomo.rot_axis.corr_area2,ind1), tomo.rot_axis.position, 1);
-        im2c = flipud(RotAxisSymmetricCropping( proj(:,tomo.rot_axis.corr_area2,ind2) , tomo.rot_axis.position, 1));
+        %im1c = RotAxisSymmetricCropping( proj(:,tomo.rot_axis.corr_area2,ind1), tomo.rot_axis.position, 1);
+        %im2c = flipud(RotAxisSymmetricCropping( proj(:,tomo.rot_axis.corr_area2,ind2) , tomo.rot_axis.position, 1));
+        corr_offset = ( offset_shift(ind1) + offset_shift(ind2) ) / 2;
+        im1c = RotAxisSymmetricCropping( proj(:,tomo.rot_axis.corr_area2,ind1), tomo.rot_axis.position + corr_offset, 1);
+        im2c = flipud(RotAxisSymmetricCropping( proj(:,tomo.rot_axis.corr_area2,ind2) , tomo.rot_axis.position + corr_offset, 1));
+        
         [optimizer, metric] = imregconfig('monomodal');
-        tform = imregtform(im2c, im1c, 'rigid', optimizer, metric);
-        rot_axis_tilt_calc = asin( tform.T(1,2) ) / 2;
+        tform_calc = imregtform(im2c, im1c, 'rigid', optimizer, metric);
+        rot_axis_tilt_calc = asin( tform_calc.T(1,2) ) / 2;
         prnt( '\n calculated tilt of rotation axis : %g rad = %g deg', rot_axis_tilt_calc, rot_axis_tilt_calc * 180 / pi)
     else
         rot_axis_tilt_calc = [];
     end
     if isempty( tomo.rot_axis.tilt )
-        if abs( rot_axis_pos_calc ) < 0.01 % 0.573 degree
-            tomo.rot_axis.tilt = rot_axis_tilt_calc;
-            prnt( '\n use calculated tilt of rotation axis')
-        else
-            tomo.rot_axis.tilt = 0;
-        end
+        tomo.rot_axis.tilt = 0;
     end    
         
-    %% Determine rotation axis position %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    %% Interactive mode:rotation axis position / tilt %%%%%%%%%%%%%%%%%%%%%
     
-    % AUTOMATIC MODE %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%    %%% AUTOMATIC MODE %%%
 %     automatic_mode = 0; % Find rotation axis position automatically. NOT IMPLEMENTED!
 %     automatic_mode_coarse = 'entropy'; % NOT IMPLEMENTED!
 %     automatic_mode_fine = 'iso-grad'; % NOT IMPLEMENTED!
@@ -1107,7 +1112,6 @@ if tomo.run(1)
 %         offset = -im_center:offset_stride:im_center;        
 %     end
     
-    % INTERACTIVE MODE %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     tint = 0;
     if interactive_mode.rot_axis_pos(1)
         tint = toc;
@@ -1160,7 +1164,7 @@ if tomo.run(1)
             [ivol_shape, ivol_size] = volshape_volsize( proj, tomo.vol_shape, tomo.vol_size, median(offset), verbose);
             
             % Reco
-            %% Clean up
+            %%% Clean up !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
             fra = tomo;
             fra.angles = angles;
             fra.slice = slice;
@@ -1326,35 +1330,37 @@ if tomo.run(1)
                             tomo.rot_axis.position = im_shape_binned1 / 2 + tomo.rot_axis.offset;
                             
                             % Compare projection at 0 pi and projection at 1 pi corrected for rotation axis tilt
-                            im1c = RotAxisSymmetricCropping( proj(:,tomo.rot_axis.corr_area2,ind1), tomo.rot_axis.position, 1);
-                            im2c = flipud(RotAxisSymmetricCropping( proj(:,tomo.rot_axis.corr_area2,ind2) , tomo.rot_axis.position, 1));
+%                             im1c = RotAxisSymmetricCropping( proj(:,tomo.rot_axis.corr_area2,ind1), tomo.rot_axis.position, 1);
+%                             im2c = flipud(RotAxisSymmetricCropping( proj(:,tomo.rot_axis.corr_area2,ind2) , tomo.rot_axis.position, 1));
+                            corr_offset = ( offset_shift(ind1) + offset_shift(ind2) ) / 2;
+                            im1c = RotAxisSymmetricCropping( proj(:,tomo.rot_axis.corr_area2,ind1), tomo.rot_axis.position + corr_offset, 1);
+                            im2c = flipud(RotAxisSymmetricCropping( proj(:,tomo.rot_axis.corr_area2,ind2) , tomo.rot_axis.position + corr_offset, 1));
                             [optimizer, metric] = imregconfig('monomodal');
-                            tform_calc = imregtform(im2c, im1c, 'rigid', optimizer, metric);
+                            tform_calc = imregtform(im2c, im1c, 'rigid', optimizer, metric);                            
                             rot_axis_tilt_calc = asin( tform_calc.T(1,2) ) / 2;
                             im2c_warped_calc =  imwarp(im2c, tform_calc, 'OutputView', imref2d(size(im1c)));
                             
-                            tform_cur = tform_calc;
-                            %tform_cur.Dimensionality = 2;
-                            tform_cur.T = [cos( 2 * tomo.rot_axis.tilt ) sin( 2 * tomo.rot_axis.tilt ) 0; ...
+                            tform_int = tform_calc;
+                            tform_int.T = [cos( 2 * tomo.rot_axis.tilt ) sin( 2 * tomo.rot_axis.tilt ) 0; ...
                                 -sin( 2 * tomo.rot_axis.tilt ) cos( 2 * tomo.rot_axis.tilt ) 0 ; ...
-                                tform_calc.T(3,1) tform_calc.T(3,2) 1];
-                            %0 0 1];
+                                tform_calc.T(3,1) tform_calc.T(3,2) 1];                            
+                            % Translation: [1 0 0, 0 1 0, t_x t_y 0]
+                            % Scale: [s_x 0 0, 0 s_y 0, 0 0 1]
+                            % Shear: [1 sh_y 0, sh_x 1 0, 0 0 1]
+                            % Rotation: [cos(t) sin(t) 0, -sin(t) cos(t) 0, 0 0 1]
+
+                            im2c_warped_int =  imwarp(im2c, tform_int, 'OutputView', imref2d(size(im1c)));
                             
-                            im2c_warped_cur =  imwarp(im2c, tform_cur, 'OutputView', imref2d(size(im1c)));
+                            xt = ceil( 3 * abs( sin(2*tomo.rot_axis.tilt) ) * max( size(im1c)) ) + 2;
                             
-                            x = ceil( 2 * abs( sin(tomo.rot_axis.tilt) ) * max( size(im1c)) ) + 2;
+                            fprintf( '\n current rotation axis tilt from interactive mode: %g rad (%g deg)', tomo.rot_axis.tilt, tomo.rot_axis.tilt * 180 / pi)
+                            fprintf( '\n calcul. rotation axis tilt from registration    : %g rad (%g deg)', rot_axis_tilt_calc, rot_axis_tilt_calc * 180 / pi)
                             
-                            im2c_warped_cur(im2c_warped_cur == 0) = mean2( im2c );
-                            im2c_warped_calc(im2c_warped_calc == 0) = mean2( im2c );
+                            name = sprintf( 'registered projections at %g and %g degree. rot axis tilt from INTERACTIVE mode: %g, rot axis offset: %g', angles(ind1)/pi*180, angles(ind2)/pi*180, tomo.rot_axis.tilt, tomo.rot_axis.offset);
+                            nimplay( cat(3, im1c(xt:end-xt,xt:end-xt)', im2c_warped_int(xt:end-xt,xt:end-xt)'), 1, 0, name)
                             
-                            fprintf( '\n current rotation axis tilt: %g rad (%g deg)', tomo.rot_axis.tilt, tomo.rot_axis.tilt * 180 / pi)
-                            fprintf( '\n calcul. rotation axis tilt: %g rad (%g deg)', rot_axis_tilt_calc, rot_axis_tilt_calc * 180 / pi)
-                            
-                            name = sprintf( 'projections at 0 and 180 degree. corrected. CURRENT rot axis tilt: %g, rot axis offset: %g', tomo.rot_axis.tilt, tomo.rot_axis.offset);
-                            nimplay( cat(3, im1c(x:end-x,x:end-x)', im2c_warped_cur(x:end-x,x:end-x)'), 1, 0, name)
-                            
-                            name = sprintf( 'projections at 0 and 180 degree. corrected. CALCULATED rot axis tilt: %g, rot axis offset: %g', rot_axis_tilt_calc, tomo.rot_axis.offset);
-                            nimplay( cat(3, im1c(x:end-x,x:end-x)', im2c_warped_calc(x:end-x,x:end-x)'), 1, 0, name)
+                            name = sprintf( 'registered projections at %g and %g degree. corrected. rot axis tilt from REGISTRATION: %g, rot axis offset: %g', angles(ind1)/pi*180, angles(ind2)/pi*180, rot_axis_tilt_calc, tomo.rot_axis.offset);
+                            nimplay( cat(3, im1c(xt:end-xt,xt:end-xt)', im2c_warped_calc(xt:end-xt,xt:end-xt)'), 1, 0, name)
                             
                             tilt = input( '\nENTER ROTATION AXIS TILT\n (if empty use current value): ');
                             if isempty( tilt )
@@ -1401,22 +1407,21 @@ if tomo.run(1)
         axis equal tight
         title(sprintf('proj at pi'))
         colorbar
-        
-        x = ceil(1 + 2 * abs( sin(tomo.rot_axis.tilt) ) * max( size(im1c)) );
-        
+                
+        xt = ceil( 3 * abs( sin(2*tomo.rot_axis.tilt) ) * max( size(im1c)) ) + 2;
         subplot(m, n, 3)
-        imsc1( abs( im1c(x:end-x,x:end-x) - im2c(x:end-x,x:end-x) ) )
+        imsc1( abs( im1c(xt:end-xt,xt:end-xt) - im2c(xt:end-xt,xt:end-xt) ) )
         axis equal tight
         title(sprintf('difference before'))
         colorbar
         
         subplot(m, n, 4)
         
-        %% tform_cal or tform_cur
+        %%% tform_cal or tform_int !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         [optimizer, metric] = imregconfig('monomodal');
         tform_calc = imregtform(im2c, im1c, 'rigid', optimizer, metric);
-        im2c_warped_cur =  imwarp(im2c, tform_calc, 'OutputView',imref2d(size(im1c)));
-        imsc1( abs( im1c(x:end-x,x:end-x) - im2c_warped_cur(x:end-x,x:end-x) ) )
+        im2c_warped_int =  imwarp(im2c, tform_calc, 'OutputView',imref2d(size(im1c)));
+        imsc1( abs( im1c(xt:end-xt,xt:end-xt) - im2c_warped_int(xt:end-xt,xt:end-xt) ) )
         axis equal tight
         title(sprintf('difference corrected'))
         colorbar
@@ -1481,14 +1486,14 @@ if stitch_projections(1)
     prnt( '\n memory allocated : %.2f GiB', Bytes( proj, 3 ) )
 end
 
-%% Ring artifact filter
+%% Ring artifact filter %%
 if ring_filter.apply && ~ring_filter.apply_before_stitching    
     [proj, h] = p05_filter_ring_artefacts( ring_filter, proj, angles, verbose, visual_output);
     proj_min = min( proj(:) );
     proj_max = max( proj(:) );
 end
 
-%% Crop projections at rotation axis position
+%% Crop projections at rotation axis position %%
 if crop_at_rot_axis(1)
     % This is to avoid oversampling for scans with excentric rotation axis
     % and reconstructing WITHOUT stitching
@@ -1496,7 +1501,7 @@ if crop_at_rot_axis(1)
         case 1
             proj( ceil(tomo.rot_axis.position) + 1:end, :, :) = [];
         case -1
-            %% CHECK
+            %%% CHECK !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
             proj( 1:floor(tomo.rot_axis.position)-1, :, :) = [];
     end
     if isempty( vol_shape )
@@ -1504,7 +1509,7 @@ if crop_at_rot_axis(1)
     end
 end
 
-%% Save sinograms
+%% Save sinograms %%
 if write.sino
     t = toc;
     prnt( '\nSave sinogram:')
@@ -1525,7 +1530,7 @@ if phase_retrieval.apply && ~phase_retrieval.apply_before
     [proj, reco_phase_path] = p05_phase_retrieval( phase_retrieval, edp, proj, write.path, write.subfolder.reco, write, phase_map_path, verbose, visual_output);
 end
 
-%% Save sinograms of phase maps
+%%% Save sinograms of phase maps %%%
 if phase_retrieval.apply && write.phase_sino
     t = toc;
     prnt( '\nSave phase map sinogram:')
@@ -1539,7 +1544,7 @@ if phase_retrieval.apply && write.phase_sino
     prnt( ' done in %.1f s (%.2f min)', toc - t, (toc - t) / 60)
 end
 
-%% Post phase retrieval binning
+%%% Post phase retrieval binning %%%
 phase_bin = phase_retrieval.post_binning_factor; % alias for readablity
 if phase_retrieval.apply && ( phase_bin(1) > 1)
     t = toc;
@@ -1556,8 +1561,8 @@ if phase_retrieval.apply && ( phase_bin(1) > 1)
     prnt( ' done in %g s (%.2f min)', toc - t, (toc - t) / 60)
 end
 
-%% Tomographic reco
-if tomo.run(1)
+%% Tomographic reco %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+if tomo.run
     prnt( '\nTomographic reconstruction:')
     
     vol = zeros( tomo.vol_shape, 'single' );
@@ -1587,7 +1592,7 @@ if tomo.run(1)
     
     % Filter sinogram
     if strcmpi( tomo.algorithm, 'fbp' )
-        %% Provide butterworth filtering also for iterative reconstruction
+        %%% Provide butterworth filtering also for iterative reconstruction !!!!
         prnt( '\n Filter sino:' )
         t2 = toc;
         filt = iradonDesignFilter(tomo.fbp_filter.type, (1 + tomo.fbp_filter.padding) * size( proj, 1), tomo.fbp_filter.freq_cutoff);
@@ -1623,7 +1628,7 @@ if tomo.run(1)
     % Backprojection
     prnt( '\n Backproject:')
     t2 = toc;    
-    %% Move parameters to appropiate position or replace globally
+    %%% Move parameters to appropiate position or replace globally !!!!!!!!!!!!!!!!!!
     tomo.tilt_camera = ~interactive_mode.lamino * tomo.rot_axis.tilt;
     tomo.tilt_lamino = interactive_mode.lamino * tomo.rot_axis.tilt;
     tomo.angles = tomo.rot_angle.offset + angles_reco;
@@ -1671,8 +1676,7 @@ if tomo.run(1)
         
         drawnow
     end
-    
-    
+        
     if phase_retrieval.apply
         reco_path = reco_phase_path;
     end
@@ -1733,7 +1737,7 @@ if tomo.run(1)
     prnt( ' done in %.1f s (%.2f min)', toc-t, (toc-t)/60 )
 end
 
-%% Log file
+%% Write reco log file %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 if write.reco
     logfile_path = reco_path;
 else

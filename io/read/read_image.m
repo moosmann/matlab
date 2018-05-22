@@ -32,6 +32,8 @@ end
 %% TODO: check flip/rotation/transponation for raw data
 %% TODO: make dimensions consistent
 
+%% TODO: CHECK CASESS !!!!!!!!!!!!!!!!!!!!!!!1
+
 %% Main %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 if isempty( filetype )
@@ -60,8 +62,8 @@ switch lower( filetype )
                     case 2
                         y0 = max( (tif_info.Height-roi(2)+1), 1 );
                         y1 = min( (tif_info.Height-roi(1)+1), tif_info.Height);
-                        %im = ( rot90( imread( filename, 'tif', 'PixelRegion', {[y0 y1], [1 tif_info.Width]}), 1) );
-                        im = ( rot90( imread( filename, 'tif', 'PixelRegion', {[1 tif_info.Width], [y0 y1]}), 2) );
+                        %im = rot90( imread( filename, 'tif', 'PixelRegion', {[y0 y1], [1 tif_info.Width]}), 1);
+                        im = rot90( imread( filename, 'tif', 'PixelRegion', {[1 tif_info.Width], [y0 y1]}), 2);
 %                     case 4
 %                         y0 = max( (3840-roi(2)+1), 1 );
 %                         y1 = min( (3840-roi(1)+1), 3840);
@@ -69,6 +71,21 @@ switch lower( filetype )
 %                         x1 = min( (5120-roi(1)+1), 5120);
 %                         %im = (rot90( imread( filename, 'tif', 'PixelRegion', {[y0 y1], [x0 x1]} ), 1) );
 %                         im = (rot90( imread( filename, 'tif', 'PixelRegion', {[x0 x1], [y0 y1]} ), 2) );
+                end
+            case 6
+                switch numel( roi )
+                    case 0                        
+                        im = rot90( imread( filename, 'tif' ), 2);
+                    case 2
+                        y0 = max( (tif_info.Height-roi(2)+1), 1 );
+                        y1 = min( (tif_info.Height-roi(1)+1), tif_info.Height);
+                        im = rot90( imread( filename, 'tif', 'PixelRegion', {[1 tif_info.Width], [y0 y1]}), 2);
+                    case 4
+                        x0 = max( (tif_info.Width-roi(4)+1), 1 );
+                        x1 = min( (tif_info.Width-roi(3)+1), tif_info.Width);
+                        y0 = max( (tif_info.Height-roi(2)+1), 1 );
+                        y1 = min( (tif_info.Height-roi(1)+1), tif_info.Height);                        
+                        im = rot90( imread( filename, 'tif', 'PixelRegion', {[x0 x1], [y0 y1]} ), 2);
                 end
             case 3
                 %% KIT

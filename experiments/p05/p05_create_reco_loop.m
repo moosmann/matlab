@@ -109,11 +109,11 @@ writetag = 0;
 while 1
     c = textscan(fidrec,'%s',1, 'Delimiter', {'\n'});
     c = c{1}{1};
-    if strcmp( c, '%% PARAMETERS / SETTINGS %%')
+    if strcmp( c, '%% PARAMETERS / SETTINGS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%')
         writetag = 1;
         continue
     end    
-    if strcmp( c,  '%% END OF PARAMETERS / SETTINGS %%')        
+    if strcmp( c, '%%% END OF PARAMETERS / SETTINGS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%')        
         break        
     end
     if writetag
