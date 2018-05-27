@@ -465,6 +465,14 @@ else
     offset_shift = s_stage_x.value( ~boolean( stimg_key.value(par.n_dark+1:end) ) ) * 1e-3 / eff_pixel_size_binned;
     offset_shift = offset_shift - mean( offset_shift );
     offset_shift = offset_shift(proj_range);
+    if visual_output(1) && numel( offset_shift ) > 2
+        figure('Name', 'Rotation axis offset shift');
+        plot( offset_shift, '.-')
+        title(sprintf('Rotation axis offset shift') )
+        colorbar
+        axis equal tight
+        drawnow
+    end
     % ring current
     X = double( petra.time(2:end) ); % first value is zero
     V = double( petra.current(2:end) ); % first value is zero
