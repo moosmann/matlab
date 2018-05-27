@@ -22,7 +22,7 @@
 % Also cite the ASTRA Toolbox, see http://www.astra-toolbox.com/
 %
 % Written by Julian Moosmann. First version: 2016-09-28. Last modifcation:
-% 2018-05-07
+% 2018-05-26
 
 if ~exist( 'external_parameter' ,'var')
     clearvars
@@ -35,9 +35,16 @@ close all hidden % close all open windows
 
 %%% SCAN %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 scan_path = ...
-    '/asap3/petra3/gpfs/p05/2018/data/11004434/raw/szeb_23_stoper_1_a';    
+    '/asap3/petra3/gpfs/p05/2018/data/11004936/raw/syn007_56R_Mg5Gd_12w_007';
+    '/asap3/petra3/gpfs/p05/2018/data/11004936/raw/syn006_104L_Mg5Gd_4w_load_15N_by_hand';    
+    '/asap3/petra3/gpfs/p05/2018/data/11004936/raw/syn004_99l_Mg5Gd';
+    '/asap3/petra3/gpfs/p05/2018/data/11004936/raw/syn001_99l_Mg5Gd_fly_spiegelneu';
+    '/asap3/petra3/gpfs/p05/2018/data/11004936/raw/test_pattern_02_spiegelneu_ohne_piezo';
+    '/asap3/petra3/gpfs/p05/2018/data/11004936/raw/test_pattern_02_spiegelneu_2';    
+    '/asap3/petra3/gpfs/p05/2018/data/11004936/raw/syn001_99l_Mg5Gd_fly_1';
+    '/asap3/petra3/gpfs/p05/2018/data/11004936/raw/syn001_99l_Mg5Gd_fly';
+    '/asap3/petra3/gpfs/p05/2018/data/11004936/raw/flo_collagen_scaffold_chondrozyten_fly';
     '/asap3/petra3/gpfs/p05/2018/data/11004434/raw/szeb_12_salamander_1_a';%off -2.5, tilt 0.0216081
-
     '/asap3/petra3/gpfs/p05/2018/data/11004202/raw/mg3nd1zn_rt_fly_01';
     '/asap3/petra3/gpfs/p05/2018/data/11004263/raw/syn032_72L_Mg5Gd_12w_kit';
     '/asap3/petra3/gpfs/p05/2018/data/11004263/raw/syn031_72L_Mg5Gd_12w_kit_noshake_reallyNoShake';
@@ -61,8 +68,8 @@ stitch_method = 'sine'; 'step';'linear'; %  ! CHECK correlation area !
 % 'step' : no interpolation, use step function
 % 'linear' : linear interpolation of overlap region
 % 'sine' : sinusoidal interpolation of overlap region
-proj_range = 1; % range of projections to be used (from all found, if empty or 1: all, if scalar: stride, if range: start:incr:end
-ref_range = 10; % range of flat fields to be used (from all found), if empty or 1: all. if scalar: stride, if range: start:incr:end
+proj_range = []; % range of projections to be used (from all found, if empty or 1: all, if scalar: stride, if range: start:incr:end
+ref_range = 1; % range of flat fields to be used (from all found), if empty or 1: all. if scalar: stride, if range: start:incr:end
 pixel_filter_threshold_dark = [0.01 0.005]; % Dark fields: threshold parameter for hot/dark pixel filter, for details see 'FilterPixel'
 pixel_filter_threshold_flat = [0.01 0.005]; % Flat fields: threshold parameter for hot/dark pixel filter, for details see 'FilterPixel'
 pixel_filter_threshold_proj = [0.01 0.005]; % Raw projection: threshold parameter for hot/dark pixel filter, for details see 'FilterPixe
@@ -81,10 +88,10 @@ image_correlation.method = 'ssim-ml';'none';'entropy';'diff';'shift';'ssim';'std
 % 'none' : no correlation, use median flat
 % 'cross-entropy*' : variants of (asymmetric) cross entropy
 image_correlation.num_flats = 1; % number of flat fields used for average/median of flats. for 'shift'-correlation its the maximum number
-image_correlation.area_width = [0.98 1];%[0.98 1];% correlation area: index vector or relative/absolute position of [first pix, last pix]
+image_correlation.area_width = [0 0.02];%[0.98 1];% correlation area: index vector or relative/absolute position of [first pix, last pix]
 image_correlation.area_height = [0.2 0.8]; % correlation area: index vector or relative/absolute position of [first pix, last pix]
 image_correlation.shift.max_pixelshift = 0.25; % maximum pixelshift allowed for 'shift'-correlation method: if 0 use the best match (i.e. the one with the least shift), if > 0 uses all flats with shifts smaller than image_correlation.shift.max_pixelshift
-ring_filter.apply = 1; % ring artifact filter (use only for scans without lateral sample movement)
+ring_filter.apply = 0; % ring artifact filter (use only for scans without lateral sample movement)
 ring_filter.apply_before_stitching = 0; % ! Consider when phase retrieval is applied !
 ring_filter.method = 'jm'; 'wavelet-fft';
 ring_filter.waveletfft.dec_levels = 2:5; % decomposition levels for 'wavelet-fft'
@@ -104,13 +111,13 @@ phase_retrieval.cutoff_frequ = 2 * pi; % in radian. frequency cutoff in Fourier 
 phase_retrieval.padding = 1; % padding of intensities before phase retrieval, 0: no padding
 %%% TOMOGRAPHY %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 tomo.run = 1; % run tomographic reconstruction
-tomo.vol_size = []; % [-1 1 -1 1 -0.5 0.5] for excentric rot axis pos; 6-component vector [xmin xmax ymin ymax zmin zmax]. if empty, volume is centerd within tomo.vol_shape. unit voxel size is assumed. if smaller than 10 values are interpreted as relative size w.r.t. the detector size. Take care bout minus signs!
+tomo.vol_size = [];%[-0.7 0.7 -0.7 0.7 -0.5 0.5];% for excentric rot axis pos; 6-component vector [xmin xmax ymin ymax zmin zmax]. if empty, volume is centerd within tomo.vol_shape. unit voxel size is assumed. if smaller than 10 values are interpreted as relative size w.r.t. the detector size. Take care bout minus signs!
 tomo.vol_shape = []; %[2 2 0.5] for excentric rot axis pos, inferred from 'vol_size' if empty, shape (voxels) of reconstruction volume. in absolute numbers of voxels or in relative number w.r.t. the default volume which is given by the detector width and height
 tomo.rot_angle.full_range = []; % in radians: empty ([]), full angle of rotation, or array of angles. if empty full rotation angles is determined automatically to pi or 2 pi
 tomo.rot_angle.offset = pi; % global rotation of reconstructed volume
-tomo.rot_axis.offset = -2.5;[];% if empty use automatic computation
+tomo.rot_axis.offset = [];%-2.5;[];% if empty use automatic computation
 tomo.rot_axis.position = []; % if empty use automatic computation. EITHER OFFSET OR POSITION MUST BE EMPTY. YOU MUST NOT USE BOTH!
-tomo.rot_axis.tilt = 0.0216081;0; % in rad. camera tilt w.r.t rotation axis. if empty calculate from registration of projections at 0 and pi
+tomo.rot_axis.tilt = 0; % in rad. camera tilt w.r.t rotation axis. if empty calculate from registration of projections at 0 and pi
 tomo.rot_axis.corr_area1 = []; % ROI to correlate projections at angles 0 & pi. Use [0.75 1] or so for scans with an excentric rotation axis
 tomo.rot_axis.corr_area2 = []; % ROI to correlate projections at angles 0 & pi
 tomo.rot_axis.corr_gradient = 0; % use gradient of intensity maps if signal variations are too weak to correlate projections
@@ -159,7 +166,7 @@ write.compression.parameter = [0.20 0.15]; % compression-method specific paramet
 verbose = 1; % print information to standard output
 visual_output = 1; % show images and plots during reconstruction
 interactive_mode.rot_axis_pos = 1; % reconstruct slices with dif+ferent rotation axis offsets
-interactive_mode.rot_axis_tilt = 1; % reconstruct slices with different offset AND tilts of the rotation axis
+interactive_mode.rot_axis_tilt = 0; % reconstruct slices with different offset AND tilts of the rotation axis
 interactive_mode.lamino = 0; % find laminography tilt instead camera rotation
 interactive_mode.fixed_other_tilt = 0; % fixed other tilt
 interactive_mode.slice_number = 0.5; % default slice number. if in [0,1): relative, if in (1, N]: absolute
@@ -171,8 +178,8 @@ tomo.astra_gpu_index = []; % GPU Device index to use, Matlab notation: index sta
 %%% EXPERIMENTAL OR NOT YET IMPLEMENTED %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 write.uint8_segmented = 0; % experimental: threshold segmentation for histograms with 2 distinct peaks: __/\_/\__
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%% END OF PARAMETERS / SETTINGS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 stop_after_data_reading(1) = 0; % before flat field correlation
 
@@ -192,7 +199,7 @@ end
 
 %% Preprocessing up to proj/flat correlation %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 tic
-if ~isempty( tomo.vol_size ) && isempty( vol_shape )
+if ~isempty( tomo.vol_size ) && isempty( tomo.vol_shape )
     vol_shape = tomo.vol_size(2:2:end) - tomo.vol_size(1:2:end);
 end
 %imsc1 = @(im) imsc( flipud( im' ) );
@@ -706,7 +713,7 @@ elseif ~read_flatcor
             flat = bsxfun( @times, flat, scale_factor );
             if visual_output(1)
                 hrc = figure('Name', 'Ring currents');
-                subplot(2,1,1);
+                subplot(1,1,1);
                 plot( ref_rc(:), '.' )
                 axis tight
                 title(sprintf('ring current: flat fields'))
@@ -844,11 +851,17 @@ elseif ~read_flatcor
                 else
                     hrc = figure('Name', 'Ring currents');
                 end
-                subplot(2,1,2);
-                plot( proj_rc(:), '.' )
+%                 subplot(2,1,2);
+%                 plot( proj_rc(:), '.' )
+%                 axis tight
+%                 title(sprintf('ring current: raw projections'))
+%                 legend( sprintf( 'mean: %.2f mA', proj_rcm) )
+%                 drawnow
+                subplot(1,1,1);
+                plot( ref_nums, ref_rc(:), '.',proj_nums, proj_rc(:), '.' )
                 axis tight
-                title(sprintf('ring current: raw projections'))
-                legend( sprintf( 'mean: %.2f mA', proj_rcm) )
+                title(sprintf('ring currents'))
+                legend( sprintf( 'flats, mean: %.2f mA', ref_rcm), sprintf( 'projs, mean: %.2f mA', proj_rcm) )
                 drawnow
             end
         else
