@@ -59,7 +59,7 @@ sample_detector_distance = []; % in m. if empty: read from log file
 eff_pixel_size = []; % in m. if empty: read from log file. effective pixel size =  detector pixel size / magnification
 %%% PREPROCESSING %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 raw_roi = []; % if []: use full image; if [y0 y1]: vertical ROI, skips first raw_roi(1)-1 lines, reads until raw_roi(2). When raw_roi(2) < 0 reads until end - |raw_roi(2)|; if negative scalar: auto roi, selects ROI automatically.Not working for *.raw data where images are flipped.
-raw_bin = 2; % projection binning factor: integer
+raw_bin = 4; % projection binning factor: integer
 bin_before_filtering(1) = 1; % Apply binning before filtering pixel. less effective, but much faster especially for KIT camera.
 excentric_rot_axis = 0; % off-centered rotation axis increasing FOV. -1: left, 0: centeerd, 1: right. influences tomo.rot_axis.corr_area1
 crop_at_rot_axis = 0; % for recos of scans with excentric rotation axis but WITHOUT projection stitching
@@ -200,7 +200,7 @@ end
 %% Preprocessing up to proj/flat correlation %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 tic
 if ~isempty( tomo.vol_size ) && isempty( tomo.vol_shape )
-    vol_shape = tomo.vol_size(2:2:end) - tomo.vol_size(1:2:end);
+    tomo.vol_shape = tomo.vol_size(2:2:end) - tomo.vol_size(1:2:end);
 end
 %imsc1 = @(im) imsc( flipud( im' ) );
 imsc1 = @(im) imsc( rot90( im ) );
@@ -467,8 +467,8 @@ else
     offset_shift = offset_shift(proj_range);
     if visual_output(1) && numel( offset_shift ) > 2
         figure('Name', 'Rotation axis offset shift');
-        plot( offset_shift, '.-')
-        title(sprintf('Rotation axis offset shift') )
+        plot( offset_shift, '.')
+        title(sprintf('Rotation axis offset shift (zero_mean)') )
         colorbar
         axis equal tight
         drawnow
