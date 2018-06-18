@@ -22,7 +22,7 @@
 % Also cite the ASTRA Toolbox, see http://www.astra-toolbox.com/
 %
 % Written by Julian Moosmann. First version: 2016-09-28. Last modifcation:
-% 2018-05-26
+% 2018-06-18
 
 if ~exist( 'external_parameter' ,'var')
     clearvars
@@ -35,21 +35,7 @@ close all hidden % close all open windows
 
 %%% SCAN %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 scan_path = ...
-    '/asap3/petra3/gpfs/p05/2018/data/11004936/raw/syn007_56R_Mg5Gd_12w_007';
-    '/asap3/petra3/gpfs/p05/2018/data/11004936/raw/syn006_104L_Mg5Gd_4w_load_15N_by_hand';    
-    '/asap3/petra3/gpfs/p05/2018/data/11004936/raw/syn004_99l_Mg5Gd';
-    '/asap3/petra3/gpfs/p05/2018/data/11004936/raw/syn001_99l_Mg5Gd_fly_spiegelneu';
-    '/asap3/petra3/gpfs/p05/2018/data/11004936/raw/test_pattern_02_spiegelneu_ohne_piezo';
-    '/asap3/petra3/gpfs/p05/2018/data/11004936/raw/test_pattern_02_spiegelneu_2';    
-    '/asap3/petra3/gpfs/p05/2018/data/11004936/raw/syn001_99l_Mg5Gd_fly_1';
-    '/asap3/petra3/gpfs/p05/2018/data/11004936/raw/syn001_99l_Mg5Gd_fly';
-    '/asap3/petra3/gpfs/p05/2018/data/11004936/raw/flo_collagen_scaffold_chondrozyten_fly';
-    '/asap3/petra3/gpfs/p05/2018/data/11004434/raw/szeb_12_salamander_1_a';%off -2.5, tilt 0.0216081
-    '/asap3/petra3/gpfs/p05/2018/data/11004202/raw/mg3nd1zn_rt_fly_01';
-    '/asap3/petra3/gpfs/p05/2018/data/11004263/raw/syn032_72L_Mg5Gd_12w_kit';
-    '/asap3/petra3/gpfs/p05/2018/data/11004263/raw/syn031_72L_Mg5Gd_12w_kit_noshake_reallyNoShake';
-    '/asap3/petra3/gpfs/p05/2018/data/11004263/raw/syn030_72L_Mg5Gd_12w_kit_noshake';
-    '/asap3/petra3/gpfs/p05/2018/data/11004263/raw/syn015_97L_Mg5Gd_4w_a';
+    '/asap3/petra3/gpfs/p05/2017/data/11004016/raw/syn010_19R_PEEK_4w_000';
     '/asap3/petra3/gpfs/p05/2018/data/11004326/raw/nova_166_a';
     '/asap3/petra3/gpfs/p05/2017/data/11003488/raw/cnk_26/';
 read_flatcor = 0; % read flatfield-corrected images from disc, skips preprocessing
@@ -68,13 +54,13 @@ stitch_method = 'sine'; 'step';'linear'; %  ! CHECK correlation area !
 % 'step' : no interpolation, use step function
 % 'linear' : linear interpolation of overlap region
 % 'sine' : sinusoidal interpolation of overlap region
-proj_range = []; % range of projections to be used (from all found, if empty or 1: all, if scalar: stride, if range: start:incr:end
-ref_range = 1; % range of flat fields to be used (from all found), if empty or 1: all. if scalar: stride, if range: start:incr:end
+proj_range = 2; % range of projections to be used (from all found, if empty or 1: all, if scalar: stride, if range: start:incr:end
+ref_range = 10; % range of flat fields to be used (from all found), if empty or 1: all. if scalar: stride, if range: start:incr:end
 pixel_filter_threshold_dark = [0.01 0.005]; % Dark fields: threshold parameter for hot/dark pixel filter, for details see 'FilterPixel'
 pixel_filter_threshold_flat = [0.01 0.005]; % Flat fields: threshold parameter for hot/dark pixel filter, for details see 'FilterPixel'
 pixel_filter_threshold_proj = [0.01 0.005]; % Raw projection: threshold parameter for hot/dark pixel filter, for details see 'FilterPixe
 ring_current_normalization = 1; % normalize flat fields and projections by ring current
-image_correlation.method = 'ssim-ml';'none';'entropy';'diff';'shift';'ssim';'std';'cov';'corr';'cross-entropy12';'cross-entropy21';'cross-entropyx';
+image_correlation.method = 'none';'ssim-ml';'entropy';'diff';'shift';'ssim';'std';'cov';'corr';'cross-entropy12';'cross-entropy21';'cross-entropyx';
 % Correlation of projections and flat fields important for DCM data. For
 % DMM it does not work well. Available methods:
 % 'ssim-ml' : Matlab's structural similarity index (SSIM), includes Gaussian smoothing
@@ -111,8 +97,8 @@ phase_retrieval.cutoff_frequ = 2 * pi; % in radian. frequency cutoff in Fourier 
 phase_retrieval.padding = 1; % padding of intensities before phase retrieval, 0: no padding
 %%% TOMOGRAPHY %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 tomo.run = 1; % run tomographic reconstruction
-tomo.vol_size = [];%[-0.7 0.7 -0.7 0.7 -0.5 0.5];% for excentric rot axis pos; 6-component vector [xmin xmax ymin ymax zmin zmax]. if empty, volume is centerd within tomo.vol_shape. unit voxel size is assumed. if smaller than 10 values are interpreted as relative size w.r.t. the detector size. Take care bout minus signs!
-tomo.vol_shape = []; %[2 2 0.5] for excentric rot axis pos, inferred from 'vol_size' if empty, shape (voxels) of reconstruction volume. in absolute numbers of voxels or in relative number w.r.t. the default volume which is given by the detector width and height
+tomo.vol_size = [-0.7 0.7 -0.7 0.7 -0.5 0.5];% for excentric rot axis pos; 6-component vector [xmin xmax ymin ymax zmin zmax]. if empty, volume is centerd within tomo.vol_shape. unit voxel size is assumed. if smaller than 10 values are interpreted as relative size w.r.t. the detector size. Take care bout minus signs!
+tomo.vol_shape = [.5 0.5 0.25]; % shape (# voxels) of reconstruction volume. used for excentric rot axis pos. if empty, inferred from 'tomo.vol_size'. in absolute numbers of voxels or in relative number w.r.t. the default volume which is given by the detector width and height.
 tomo.rot_angle.full_range = []; % in radians: empty ([]), full angle of rotation, or array of angles. if empty full rotation angles is determined automatically to pi or 2 pi
 tomo.rot_angle.offset = pi; % global rotation of reconstructed volume
 tomo.rot_axis.offset = [];%-2.5;[];% if empty use automatic computation
@@ -202,7 +188,6 @@ tic
 if ~isempty( tomo.vol_size ) && isempty( tomo.vol_shape )
     tomo.vol_shape = tomo.vol_size(2:2:end) - tomo.vol_size(1:2:end);
 end
-%imsc1 = @(im) imsc( flipud( im' ) );
 imsc1 = @(im) imsc( rot90( im ) );
 prnt = @(varargin) PrintVerbose( verbose, varargin{:});
 prnt( 'Start reconstruction of ')
@@ -468,8 +453,7 @@ else
     if visual_output(1) && numel( offset_shift ) > 2
         figure('Name', 'Rotation axis offset shift');
         plot( offset_shift, '.')
-        title(sprintf('Rotation axis offset shift (zero_mean)') )
-        colorbar
+        title(sprintf('Rotation axis offset shift (zero mean)') )
         axis equal tight
         drawnow
     end
@@ -1191,10 +1175,10 @@ if tomo.run
             fra.slice = slice;
             fra.offset = offset;
             fra.tilt = tomo.rot_axis.tilt;
-            fra.itake_neg_log = itake_neg_log;
+            fra.take_neg_log = itake_neg_log;
             fra.inumber_of_stds = inumber_of_stds;
-            fra.ivol_shape = ivol_shape;
-            fra.ivol_size = ivol_size;
+            fra.vol_shape = ivol_shape;
+            fra.vol_size = ivol_size;
             fra.lamino = interactive_mode.lamino;
             fra.fixed_tilt = interactive_mode.fixed_other_tilt;
             fra.astra_gpu_index = tomo.astra_gpu_index;
@@ -1293,10 +1277,10 @@ if tomo.run
                         fra.slice = slice;
                         fra.offset = offset;
                         fra.tilt = tilt;
-                        fra.itake_neg_log = itake_neg_log;
+                        fra.take_neg_log = itake_neg_log;
                         fra.inumber_of_stds = inumber_of_stds;
-                        fra.ivol_shape = ivol_shape;
-                        fra.ivol_size = ivol_size;
+                        fra.vol_shape = ivol_shape;
+                        fra.vol_size = ivol_size;
                         fra.lamino = interactive_mode.lamino;
                         fra.fixed_tilt = interactive_mode.fixed_other_tilt;
                         fra.astra_gpu_index = tomo.astra_gpu_index;

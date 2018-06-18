@@ -7,6 +7,9 @@ function [vol_shape, vol_size] = volshape_volsize( proj, vol_shape, vol_size, ro
 %   determines the number voxels of the reconstructed volume. 
 % vol_size : empty or 6-element vector of relative of absolute numbers.
 %   determines the extent of the reconstructed volume.
+% rot_axis_offet : offset is taken into account to increase the volume to
+%   be reconstructed, e.g. for scans with excentric rot axis without
+%   stitching.
 % abs_rel_thresh : threshold below which the numbers of vol_shape and
 %   vol_size are interpreted as relative number.
 % verbose : bool, default:0. print shape, size, and required memory
