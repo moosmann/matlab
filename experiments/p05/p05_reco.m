@@ -33,8 +33,12 @@ close all hidden % close all open windows
 %% PARAMETERS / SETTINGS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+fast_reco = 0;
 %%% SCAN %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 scan_path = ...
+    '/asap3/petra3/gpfs/p05/2018/data/11004195/raw/smf_16_be9955_c';
+    '/asap3/petra3/gpfs/p05/2017/data/11004016/raw/syn010_19R_PEEK_4w_3nd_016';
+    '/asap3/petra3/gpfs/p05/2017/data/11004016/processed/syn010_19R_PEEK_4w_end_014';
     '/asap3/petra3/gpfs/p05/2017/data/11004016/raw/syn010_19R_PEEK_4w_000';
     '/asap3/petra3/gpfs/p05/2018/data/11004326/raw/nova_166_a';
     '/asap3/petra3/gpfs/p05/2017/data/11003488/raw/cnk_26/';
@@ -44,9 +48,9 @@ energy = []; % in eV! if empty: read from log file
 sample_detector_distance = []; % in m. if empty: read from log file
 eff_pixel_size = []; % in m. if empty: read from log file. effective pixel size =  detector pixel size / magnification
 %%% PREPROCESSING %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-raw_roi = []; % if []: use full image; if [y0 y1]: vertical ROI, skips first raw_roi(1)-1 lines, reads until raw_roi(2). When raw_roi(2) < 0 reads until end - |raw_roi(2)|; if negative scalar: auto roi, selects ROI automatically.Not working for *.raw data where images are flipped.
-raw_bin = 4; % projection binning factor: integer
-bin_before_filtering(1) = 1; % Apply binning before filtering pixel. less effective, but much faster especially for KIT camera.
+raw_roi = [1200 1500]; % if []: use full image; if [y0 y1]: vertical ROI, skips first raw_roi(1)-1 lines, reads until raw_roi(2). When raw_roi(2) < 0 reads until end - |raw_roi(2)|; if negative scalar: auto roi, selects ROI automatically.Not working for *.raw data where images are flipped.
+raw_bin = 5; % projection binning factor: integer
+bin_before_filtering(1) = 0; % Apply binning before filtering pixel. less effective, but much faster especially for KIT camera.
 excentric_rot_axis = 0; % off-centered rotation axis increasing FOV. -1: left, 0: centeerd, 1: right. influences tomo.rot_axis.corr_area1
 crop_at_rot_axis = 0; % for recos of scans with excentric rotation axis but WITHOUT projection stitching
 stitch_projections = 0; % for 2 pi scans: stitch projection at rotation axis position. Recommended with phase retrieval to reduce artefacts. Standard absorption contrast data should work well without stitching. Subpixel stitching not supported (non-integer rotation axis position is rounded, less/no binning before reconstruction can be used to improve precision).
@@ -54,13 +58,13 @@ stitch_method = 'sine'; 'step';'linear'; %  ! CHECK correlation area !
 % 'step' : no interpolation, use step function
 % 'linear' : linear interpolation of overlap region
 % 'sine' : sinusoidal interpolation of overlap region
-proj_range = 2; % range of projections to be used (from all found, if empty or 1: all, if scalar: stride, if range: start:incr:end
-ref_range = 10; % range of flat fields to be used (from all found), if empty or 1: all. if scalar: stride, if range: start:incr:end
+proj_range = []; % range of projections to be used (from all found, if empty or 1: all, if scalar: stride, if range: start:incr:end
+ref_range = []; % range of flat fields to be used (from all found), if empty or 1: all. if scalar: stride, if range: start:incr:end
 pixel_filter_threshold_dark = [0.01 0.005]; % Dark fields: threshold parameter for hot/dark pixel filter, for details see 'FilterPixel'
 pixel_filter_threshold_flat = [0.01 0.005]; % Flat fields: threshold parameter for hot/dark pixel filter, for details see 'FilterPixel'
 pixel_filter_threshold_proj = [0.01 0.005]; % Raw projection: threshold parameter for hot/dark pixel filter, for details see 'FilterPixe
 ring_current_normalization = 1; % normalize flat fields and projections by ring current
-image_correlation.method = 'none';'ssim-ml';'entropy';'diff';'shift';'ssim';'std';'cov';'corr';'cross-entropy12';'cross-entropy21';'cross-entropyx';
+image_correlation.method = 'ssim-ml';'entropy';'diff';'shift';'ssim';'std';'cov';'corr';'cross-entropy12';'cross-entropy21';'cross-entropyx';
 % Correlation of projections and flat fields important for DCM data. For
 % DMM it does not work well. Available methods:
 % 'ssim-ml' : Matlab's structural similarity index (SSIM), includes Gaussian smoothing
@@ -97,8 +101,8 @@ phase_retrieval.cutoff_frequ = 2 * pi; % in radian. frequency cutoff in Fourier 
 phase_retrieval.padding = 1; % padding of intensities before phase retrieval, 0: no padding
 %%% TOMOGRAPHY %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 tomo.run = 1; % run tomographic reconstruction
-tomo.vol_size = [-0.7 0.7 -0.7 0.7 -0.5 0.5];% for excentric rot axis pos; 6-component vector [xmin xmax ymin ymax zmin zmax]. if empty, volume is centerd within tomo.vol_shape. unit voxel size is assumed. if smaller than 10 values are interpreted as relative size w.r.t. the detector size. Take care bout minus signs!
-tomo.vol_shape = [.5 0.5 0.25]; % shape (# voxels) of reconstruction volume. used for excentric rot axis pos. if empty, inferred from 'tomo.vol_size'. in absolute numbers of voxels or in relative number w.r.t. the default volume which is given by the detector width and height.
+tomo.vol_size = []; %[-0.5 0.5 -0.5 0.5 -0.5 0.5];% for excentric rot axis pos; 6-component vector [xmin xmax ymin ymax zmin zmax]. if empty, volume is centerd within tomo.vol_shape. unit voxel size is assumed. if smaller than 10 values are interpreted as relative size w.r.t. the detector size. Take care bout minus signs!
+tomo.vol_shape = []; %[1 1 1] shape (# voxels) of reconstruction volume. used for excentric rot axis pos. if empty, inferred from 'tomo.vol_size'. in absolute numbers of voxels or in relative number w.r.t. the default volume which is given by the detector width and height.
 tomo.rot_angle.full_range = []; % in radians: empty ([]), full angle of rotation, or array of angles. if empty full rotation angles is determined automatically to pi or 2 pi
 tomo.rot_angle.offset = pi; % global rotation of reconstructed volume
 tomo.rot_axis.offset = [];%-2.5;[];% if empty use automatic computation
@@ -168,6 +172,16 @@ write.uint8_segmented = 0; % experimental: threshold segmentation for histograms
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 stop_after_data_reading(1) = 0; % before flat field correlation
+
+if fast_reco(1)
+    raw_roi = [1000 -1000]; 
+    raw_bin = 4; 
+    bin_before_filtering(1) = 1;
+    proj_range = 2;
+    ref_range = 10;
+    image_correlation.method = 'none';
+    write.to_scratch = 1;
+end
 
 %%% External call: parameters set by 'p05_reco_loop' %%%%%%%%%%%%%%%%%%%%%%
 if exist( 'external_parameter' ,'var')
@@ -1810,7 +1824,7 @@ fprintf(fid, 'stitch_method : %s\n', stitch_method );
 fprintf(fid, 'tomo.rot_angle.full_range : %f * pi rad\n', tomo.rot_angle.full_range / pi);
 fprintf(fid, 'tomo.rot_angle.offset : %f * pi rad\n', tomo.rot_angle.offset / pi);
 fprintf(fid, 'rotation_axis_offset_calculated : %f\n', rot_axis_offset_calc);
-fprintf(fid, 'tomo.rot_angle.offset : %f\n', tomo.rot_axis.offset);
+fprintf(fid, 'rot_axis_offset_reco : %f\n', rot_axis_offset_reco);
 fprintf(fid, 'rotation_axis_offset_reco : %f\n', rot_axis_offset_reco);
 fprintf(fid, 'rotation_axis_position_calculated : %f\n', rot_axis_pos_calc);
 fprintf(fid, 'tomo.rot_axis.position : %f\n', tomo.rot_axis.position);
