@@ -34,6 +34,8 @@ close all hidden % close all open windows
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 fast_reco = 0;
+stop_after_data_reading(1) = 0; % for data analysis, before flat field correlation
+
 %%% SCAN %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 scan_path = ...
     '/asap3/petra3/gpfs/p05/2018/data/11004195/raw/smf_16_be9955_c';
@@ -171,8 +173,7 @@ write.uint8_segmented = 0; % experimental: threshold segmentation for histograms
 %%% END OF PARAMETERS / SETTINGS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-stop_after_data_reading(1) = 0; % before flat field correlation
-
+% overwrite parameters for fast reconstruction
 if fast_reco(1)
     raw_roi = [1000 -1000]; 
     raw_bin = 4; 
@@ -183,11 +184,13 @@ if fast_reco(1)
     write.to_scratch = 1;
 end
 
-%%% External call: parameters set by 'p05_reco_loop' %%%%%%%%%%%%%%%%%%%%%%
+%%% Reco loop: parameters set by external call from 'p05_reco_loop' %%%%%%%
 if exist( 'external_parameter' ,'var')
     visual_output = 0;
     dbstop if error
     interactive_mode.rot_axis_pos = 0;
+    fast_reco = 0;
+    stop_after_data_reading(1) = 0;
     fn = fieldnames( external_parameter );
     for nn = 1:numel( fn )
         var_name = fn{nn};
