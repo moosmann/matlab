@@ -22,7 +22,7 @@
 % Also cite the ASTRA Toolbox, see http://www.astra-toolbox.com/
 %
 % Written by Julian Moosmann. First version: 2016-09-28. Last modifcation:
-% 2018-06-18
+% 2018-06-21
 
 if ~exist( 'external_parameter' ,'var')
     clearvars
@@ -225,7 +225,7 @@ while scan_path(end) == filesep
     scan_path(end) = [];
 end
 [raw_path, scan_name] = fileparts(scan_path);
-% Save raw path in file
+% Save raw path to file for shell short cut
 filename = [userpath, filesep, 'experiments/p05/path_to_latest_raw'];
 fid = fopen( filename , 'w' );
 fprintf( fid, '%s', raw_path );
@@ -235,7 +235,7 @@ scan_path = [scan_path, filesep];
 [beamtime_path, raw_folder] = fileparts(raw_path);
 [~, beamtime_id] = fileparts(beamtime_path);
 if ~strcmp(raw_folder, 'raw')
-    error('Name of folder is not raw: %s', raw_folder)
+    error('Given path does not contain a ''raw'' folder: %s', raw_folder)
 end
 prnt( '%s', scan_name)
 prnt( '\n scan_path:%s', scan_path)

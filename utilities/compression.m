@@ -19,7 +19,7 @@ if nargin < 2
     method = 'ful';
 end
 if nargin < 3
-    paramter = [1 0];
+    parameter = [1 0];
 end
 if nargin < 4
     verbose = 1;
