@@ -186,6 +186,7 @@ end
 
 %%% Reco loop: parameters set by external call from 'p05_reco_loop' %%%%%%%
 if exist( 'external_parameter' ,'var')
+    %verbose = 0;
     visual_output = 0;
     dbstop if error
     interactive_mode.rot_axis_pos = 0;
@@ -582,11 +583,11 @@ im_shape_binned2 = im_shape_binned(2);
 prnt( '\n energy : %.1f keV', energy / 1e3 )
 prnt( '\n distance sample dector : %.1f mm', sample_detector_distance * 1000 )
 prnt( '\n effective pixel size unbinned : %.2f micron',  eff_pixel_size * 1e6)
-prnt( '\n raw image shape : %g  %g', im_shape_raw)
-prnt( '\n raw image shape roi : %g  %g', size( im_roi ) )
-prnt( '\n raw image shape roi binned : %g  %g', im_shape_binned)
+prnt( '\n raw image shape : %u x %u = %u pixels', im_shape_raw, prod( im_shape_raw ))
+prnt( '\n raw image shape roi : %u x %u = %u pixels', size( im_roi ), numel( im_roi ) )
+prnt( '\n raw image shape roi binned : %u x %u = %u pixels', im_shape_binned, prod( im_shape_binned ))
 prnt( '\n raw binning factor : %u', raw_bin)
-prnt( '\n raw bining before pixel filtering : %u', bin_before_filtering)
+prnt( '\n raw binning before pixel filtering : %u', bin_before_filtering)
 
 %%% Start parallel CPU pool %%%
 t = toc;
@@ -754,7 +755,11 @@ elseif ~read_flatcor
     PrintVerbose( verbose && nn,'\n discarded empty refs : %u, %.2f%%', nn, 100*nn/num_ref_found )
     if sum( num_zeros )
         prnt( '\n zeros found in flat fields :' )
-        prnt( ' %u', num_zeros )
+        for nn = 1:numel(num_zeros)
+            if num_zeros(nn) ~= 0
+                prnt( ' %u:%u,', nn, num_zeros(nn) )
+            end
+        end
     end
     
     % Show flat field
@@ -894,9 +899,13 @@ elseif ~read_flatcor
     num_proj_used = num_proj_used - num_empty;
     prnt( ' done in %.1f s (%.2f min)', toc - t, ( toc - t ) / 60 )
     PrintVerbose( verbose && num_empty,'\n discarded empty projections : %u, %.2f%%', num_empty, 100*num_empty/size(proj,3) )
-     if sum( num_zeros )
+    if sum( num_zeros )
         prnt( '\n zeros found in projections :' )
-        prnt( ' %u', num_zeros )
+        for nn = 1:numel(num_zeros)
+            if num_zeros(nn) ~= 0
+                prnt( ' %u:%u,', nn, num_zeros(nn) )
+            end
+        end
     end
     prnt( '\n hot- / dark-pixel filter threshold : %f, %f', HotThresh, DarkThresh )
     prnt( '\n global min/max of raws after filtering and binning:  %6g %6g', raw_min, raw_max)

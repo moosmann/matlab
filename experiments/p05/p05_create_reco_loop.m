@@ -1,7 +1,8 @@
-function p05_create_reco_loop( raw_path, folder_pattern, exp_name, out_path)
-% Create template file to loop over reconstruction for all data sets, i.e.
-% folder, found in 'raw_path' matching the 'folder_pattern'. Created file
-% will be immediately opened in the MATLAB editor for editing.
+function p05_create_reco_loop( raw_path, scan_name_pattern, out_path, suffix_to_scrip_name)
+% Create template script to loop reconstruction over all data sets i.e.
+% folders found under 'raw_path' matching the 'scan_name_pattern'. The
+% created script will be opened immediately in the MATLAB editor for
+% further editing. 
 %
 % !! Uses parameter setting of the main reco script 'p05_reco' if not
 % changed in the created templated file. See help within created template!!
@@ -9,33 +10,33 @@ function p05_create_reco_loop( raw_path, folder_pattern, exp_name, out_path)
 % ARGUMTENTS:
 % raw_path : string. Default: use present working directory. path to scan
 %   for data sets. 
-% folder_pattern : string. Default: ''. only add folders matching pattern,
+% scan_name_pattern : string. Default: ''. only add folders matching pattern,
 %   e.g. 'dataSetNamePrefix*'. Asterisk (*) is required to match pattern.
-% exp_name : str. Default: ''. String to append to filename of the script.
+% suffix_to_scrip_name : str. Default: ''. String to append to filename of the script.
 %   A 3-digit running index is used to avoid overwriting existing scripts.
-% out_path : path where loop script will be stored. It's recommended to a
+% out_path : path where loop script will be saved. It's recommended to a
 %   use path within the MATLAB search path. Defaul:
 %   $MATLAB_SEARCH_PATH/experiments/p05/data/$USER/
 
 %   
 % Written by Julian Moosmann, 2017-10-10. Last version: 2017-12-01
 %
-% p05_create_reco_loop( raw_path, folder_pattern, exp_name, out_path)
+% p05_create_reco_loop( raw_path, scan_name_pattern, suffix_to_scrip_name, out_path)
 
 % TODO: Option to overwrite existing file 
-% TODO: file location: add search path
+% TODO: file location: add to search path
 
 %% Default arguments %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 if nargin < 1   
     raw_path = pwd;
 end
 if nargin < 2
-    folder_pattern = '';
-end
-if nargin < 3
-    exp_name = '';
+    scan_name_pattern = '';
 end
 if nargin < 4
+    suffix_to_scrip_name = '';
+end
+if nargin < 3
     out_path = '';
 end
 
@@ -57,7 +58,7 @@ CheckTrailingSlash( out_path )
 CheckAndMakePath( out_path )
 
 %% Folders to read
-folders = dir( [raw_path filesep folder_pattern]);
+folders = dir( [raw_path filesep scan_name_pattern]);
 isub = [folders(:).isdir];
 folders = {folders(isub).name};
 fprintf( '\n Found %u data sets in ''%s'' matching the pattern:', numel(folders), raw_path )
@@ -73,8 +74,8 @@ func_name0 = 'p05_reco_loop_';
 %parent_path = [processed_path filesep];
 parent_path = out_path;
 
-if ~isempty( exp_name )
-    func_name0 = [func_name0 exp_name ];
+if ~isempty( suffix_to_scrip_name )
+    func_name0 = [func_name0 suffix_to_scrip_name ];
 end
 nn = 0;
 func_name = sprintf( '%s_%03u', func_name0, nn);
