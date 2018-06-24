@@ -585,7 +585,8 @@ prnt( '\n distance sample dector : %.1f mm', sample_detector_distance * 1000 )
 prnt( '\n effective pixel size unbinned : %.2f micron',  eff_pixel_size * 1e6)
 prnt( '\n raw image shape : %u x %u = %u pixels', im_shape_raw, prod( im_shape_raw ))
 prnt( '\n raw image shape roi : %u x %u = %u pixels', size( im_roi ), numel( im_roi ) )
-prnt( '\n raw image shape roi binned : %u x %u = %u pixels', im_shape_binned, prod( im_shape_binned ))
+numel_im_roi_binned = prod( im_shape_binned );
+prnt( '\n raw image shape roi binned : %u x %u = %u pixels', im_shape_binned, numel_im_roi_binned)
 prnt( '\n raw binning factor : %u', raw_bin)
 prnt( '\n raw binning before pixel filtering : %u', bin_before_filtering)
 
@@ -593,7 +594,7 @@ prnt( '\n raw binning before pixel filtering : %u', bin_before_filtering)
 t = toc;
 [poolobj, poolsize] = OpenParpool(poolsize, use_cluster, [beamtime_path filesep 'scratch_cc']);
 PrintVerbose( verbose && (poolsize > 1), '\nParpool opened on %s using %u workers. ', poolobj.Cluster.Profile, poolobj.Cluster.NumWorkers)
-PrintVerbose( verbose && (poolsize > 1), ' Time elapsed: %.1f s (%.2f min)', toc - t, ( toc - t ) / 60 );
+PrintVerbose( verbose && (poolsize > 1), ' done in %.1f s (%.2f min)', toc - t, ( toc - t ) / 60 );
 cdscandir = cd( scan_path );
 
 %%% Read flat corrected projection %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -630,7 +631,7 @@ if read_flatcor(1)
         filename = sprintf('%s%s', flatcor_path, proj_names_mat(nn, :));
         proj(:, :, nn) = fliplr( read_image( filename ) );
     end
-    prnt( ' Time elapsed: %.1f s (%.2f min)', toc - t, ( toc - t ) / 60 )
+    prnt( ' done in %.1f s (%.2f min)', toc - t, ( toc - t ) / 60 )
     
 %%% Read and preprocess raw data %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 elseif ~read_flatcor    
@@ -754,10 +755,15 @@ elseif ~read_flatcor
     prnt( ' done in %.1f s', toc-t)
     PrintVerbose( verbose && nn,'\n discarded empty refs : %u, %.2f%%', nn, 100*nn/num_ref_found )
     if sum( num_zeros )
-        prnt( '\n zeros found in flat fields :' )
+        prnt( '\n flat fields with zeros :' )
+        % print #zeros if not all pixels are zero
         for nn = 1:numel(num_zeros)
             if num_zeros(nn) ~= 0
-                prnt( ' %u:%u,', nn, num_zeros(nn) )
+                if isequal( num_zeros(nn), numel_im_roi_binned )
+                    prnt( ' %u', nn )
+                else
+                    prnt( ' %u:%u', nn, num_zeros(nn) )
+                end
             end
         end
     end
@@ -802,7 +808,7 @@ elseif ~read_flatcor
         drawnow        
     end
     
-    % Get absolute filter thresholds from percentage-wise pixel filtering
+    % Get absolut filter thresholds from percentage-wise pixel filtering
     % of 1st, middle, and last projection to speed up processing
     if pixel_filter_threshold_proj(1) < 1 || pixel_filter_threshold_proj(2) < 0.5        
         filename = sprintf('%s%s', scan_path, img_names_mat(num_proj_used, :));
@@ -900,10 +906,15 @@ elseif ~read_flatcor
     prnt( ' done in %.1f s (%.2f min)', toc - t, ( toc - t ) / 60 )
     PrintVerbose( verbose && num_empty,'\n discarded empty projections : %u, %.2f%%', num_empty, 100*num_empty/size(proj,3) )
     if sum( num_zeros )
-        prnt( '\n zeros found in projections :' )
+        prnt( '\n projections with zeros :' )
+        % print #zeros if not all pixels are zero
         for nn = 1:numel(num_zeros)
             if num_zeros(nn) ~= 0
-                prnt( ' %u:%u,', nn, num_zeros(nn) )
+                if isequal( num_zeros(nn), numel_im_roi_binned )
+                    prnt( ' %u', nn )
+                else
+                    prnt( ' %u:%u', nn, num_zeros(nn) )
+                end
             end
         end
     end
@@ -1010,7 +1021,7 @@ elseif ~read_flatcor
             filename = sprintf('%sproj_%06u.tif', flatcor_path, nn );
             write32bitTIFfromSingle(filename, rot90( proj(:, :, nn) ) );
         end
-        prnt( ' Time elapsed: %.1f (%.2f min)', toc-t, (toc-t)/60)
+        prnt( ' done in %.1f (%.2f min)', toc-t, (toc-t)/60)
     end
 end
 
@@ -1551,8 +1562,7 @@ if write.sino
         write32bitTIFfromSingle( filename, squeeze( proj( :, nn, :) )' )
     end
     pause(0.01)
-    prnt( ' done.')
-    prnt( ' Time elapsed: %.1f s (%.2f min)', toc-t, (toc-t)/60)
+    prnt( ' done in %.1f s (%.2f min)', toc-t, (toc-t)/60)
 end
 
 %% Phase retrieval %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -1663,6 +1673,7 @@ if tomo.run
     tomo.tilt_camera = ~interactive_mode.lamino * tomo.rot_axis.tilt;
     tomo.tilt_lamino = interactive_mode.lamino * tomo.rot_axis.tilt;
     tomo.angles = tomo.rot_angle.offset + angles_reco;
+    %%%%%%%%% Change offset_shit additon %%%%%%%%% !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     tomo.rot_axis.offset = rot_axis_offset_reco + offset_shift;
     vol = astra_parallel3D( tomo, permute(proj, [1 3 2]) );
     pause(0.01)
@@ -1885,7 +1896,7 @@ fprintf(fid, 'compression_limits : %f %f\n', tlow, thigh);
 fprintf(fid, 'reco_bin : %u\n', reco_bin);
 fprintf(fid, 'full_reconstruction_time : %.1f s\n', toc);
 fprintf(fid, 'date_of_reconstruction : %s\n', datetime);
-fprintf(fid, 'tomo.rot_axis.offset at %u x binning : %f\n', raw_bin, tomo.rot_axis.offset);
+fprintf(fid, 'tomo.rot_axis.offset at %u x binning : %f\n', raw_bin, rot_axis_offset_reco);
 fclose(fid);
 % End of log file
 

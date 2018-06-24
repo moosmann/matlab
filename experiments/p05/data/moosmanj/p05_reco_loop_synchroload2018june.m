@@ -146,7 +146,7 @@ tomo.sirt.MinConstraint = []; % If specified, all values below MinConstraint wil
 tomo.sirt.MaxConstraint = []; % If specified, all values above MaxConstraint will be set to MaxConstraint.
 %%% OUTPUT %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 write.path = '';'/gpfs/petra3/scratch/moosmanj';% absolute path were output data will be stored. !!overwrites the write.to_scratch flag. if empty uses the beamtime directory and either 'processed' or 'scratch_cc'
-write.to_scratch = 1; % write to 'scratch_cc' instead of 'processed'
+write.to_scratch = 0; % write to 'scratch_cc' instead of 'processed'
 write.parfolder = '';% parent folder to 'reco', 'sino', 'phase', and 'flat_corrected'
 write.subfolder.flatcor = ''; % subfolder in 'flat_corrected'
 write.subfolder.phase_map = ''; % subfolder in 'phase_map'
@@ -161,7 +161,7 @@ write.float = 1; % single precision (32-bit float) tiff
 write.uint16 = 0; % additionally save 16bit unsigned integer tiff using 'write.compression.method'
 write.uint8 = 0; % additionally save binned 8bit unsigned integer tiff using 'write.compression.method'
 % Optionally save binned reconstructions
-write.float_binned = 1; % additionally save binned single precision (32-bit float) tiff
+write.float_binned = 0; % additionally save binned single precision (32-bit float) tiff
 write.uint16_binned = 0; % additionally save binned 16bit unsigned integer tiff using 'write.compression.method'
 write.uint8_binned = 0; % additionally save binned 8bit unsigned integer tiff using 'wwrite.compression.method'
 write.reco_binning_factor = 2; % IF BINNED VOLUMES ARE SAVED: binning factor of reconstructed volume
@@ -282,7 +282,7 @@ scan_path = [raw_path 'syn008_76R_Mg10Gd_8w_008']; ADD
 scan_path = [raw_path 'syn008_76R_Mg10Gd_8w_009']; ADD
 scan_path = [raw_path 'syn008_76R_Mg10Gd_8w_010']; ADD
 scan_path = [raw_path 'syn008_76R_Mg10Gd_8w_011']; ADD
-scan_path = [raw_path 'syn008_76R_Mg10Gd_8w_012']; ADD
+%scan_path = [raw_path 'syn008_76R_Mg10Gd_8w_012']; ADD
 scan_path = [raw_path 'syn008_76R_Mg10Gd_8w_013']; ADD
 
 tomo.rot_axis.offset = -1.4;
@@ -298,6 +298,7 @@ scan_path = [raw_path 'syn009_32R_PEEK_8w_009']; ADD
 scan_path = [raw_path 'syn009_32R_PEEK_8w_010']; ADD
 
 tomo.rot_axis.offset = -1.0;
+%% Check commented scan if really empty
 scan_path = [raw_path 'syn010_19R_PEEK_4w_000']; ADD
 scan_path = [raw_path 'syn010_19R_PEEK_4w_001']; ADD
 scan_path = [raw_path 'syn010_19R_PEEK_4w_002']; ADD
@@ -313,10 +314,10 @@ scan_path = [raw_path 'syn010_19R_PEEK_4w_011']; ADD
 scan_path = [raw_path 'syn010_19R_PEEK_4w_012']; ADD
 scan_path = [raw_path 'syn010_19R_PEEK_4w_013']; ADD
 %scan_path = [raw_path 'syn010_19R_PEEK_4w_014']; ADD
-scan_path = [raw_path 'syn010_19R_PEEK_4w_2nd_014']; ADD
+%scan_path = [raw_path 'syn010_19R_PEEK_4w_2nd_014']; ADD
 %scan_path = [raw_path 'syn010_19R_PEEK_4w_2nd_015']; ADD
 scan_path = [raw_path 'syn010_19R_PEEK_4w_3nd_015']; ADD
-scan_path = [raw_path 'syn010_19R_PEEK_4w_3nd_016']; ADD
+%scan_path = [raw_path 'syn010_19R_PEEK_4w_3nd_016']; ADD
 %scan_path = [raw_path 'syn010_19R_PEEK_4w_3nd_017']; ADD
 scan_path = [raw_path 'syn010_19R_PEEK_4w_4nd_017']; ADD
 
@@ -338,16 +339,17 @@ tomo.rot_axis.offset = -1.2;
 scan_path = [raw_path 'syn012_79L_Mg5Gd_8w_000']; ADD
 scan_path = [raw_path 'syn012_79L_Mg5Gd_8w_001']; ADD
 scan_path = [raw_path 'syn012_79L_Mg5Gd_8w_002']; ADD
-scan_path = [raw_path 'syn012_79L_Mg5Gd_8w_003']; ADD
-scan_path = [raw_path 'syn012_79L_Mg5Gd_8w_004']; ADD
-scan_path = [raw_path 'syn012_79L_Mg5Gd_8w_005']; ADD
-scan_path = [raw_path 'syn012_79L_Mg5Gd_8w_006']; ADD
-scan_path = [raw_path 'syn012_79L_Mg5Gd_8w_007']; ADD
-scan_path = [raw_path 'syn012_79L_Mg5Gd_8w_008']; ADD
-scan_path = [raw_path 'syn012_79L_Mg5Gd_8w_009']; ADD
-scan_path = [raw_path 'syn012_79L_Mg5Gd_8w_010']; ADD
-scan_path = [raw_path 'syn012_79L_Mg5Gd_8w_011']; ADD
-scan_path = [raw_path 'syn012_79L_Mg5Gd_8w_012']; ADD
+% No beam from 003 to 012
+%scan_path = [raw_path 'syn012_79L_Mg5Gd_8w_003']; ADD
+% scan_path = [raw_path 'syn012_79L_Mg5Gd_8w_004']; ADD
+% scan_path = [raw_path 'syn012_79L_Mg5Gd_8w_005']; ADD
+% scan_path = [raw_path 'syn012_79L_Mg5Gd_8w_006']; ADD
+% scan_path = [raw_path 'syn012_79L_Mg5Gd_8w_007']; ADD
+% scan_path = [raw_path 'syn012_79L_Mg5Gd_8w_008']; ADD
+% scan_path = [raw_path 'syn012_79L_Mg5Gd_8w_009']; ADD
+% scan_path = [raw_path 'syn012_79L_Mg5Gd_8w_010']; ADD
+% scan_path = [raw_path 'syn012_79L_Mg5Gd_8w_011']; ADD
+% scan_path = [raw_path 'syn012_79L_Mg5Gd_8w_012']; ADD
 scan_path = [raw_path 'syn012_79L_Mg5Gd_8w_013']; ADD
 scan_path = [raw_path 'syn012_79L_Mg5Gd_8w_014']; ADD
 scan_path = [raw_path 'syn012_79L_Mg5Gd_8w_015']; ADD
