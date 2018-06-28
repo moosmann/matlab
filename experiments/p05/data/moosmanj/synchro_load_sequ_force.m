@@ -23,8 +23,6 @@ end
 xt = [xt{:}];
 xr = [xr{:}];
 
-
-
 % Create figure
 fig = figure(1);
 

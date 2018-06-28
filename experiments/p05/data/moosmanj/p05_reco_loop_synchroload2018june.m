@@ -264,8 +264,10 @@ scan_path = [raw_path 'syn007_94L_Mg10Gd_8w_003']; ADD
 scan_path = [raw_path 'syn007_94L_Mg10Gd_8w_004']; ADD
 scan_path = [raw_path 'syn007_94L_Mg10Gd_8w_005']; ADD
 scan_path = [raw_path 'syn007_94L_Mg10Gd_8w_006']; ADD
-scan_path = [raw_path 'syn007_94L_Mg10Gd_8w_007']; ADD
+%% offset_shift and num_proj don't match, sever intensity jumps, likely due to the camera
+%scan_path = [raw_path 'syn007_94L_Mg10Gd_8w_007']; ADD
 scan_path = [raw_path 'syn007_94L_Mg10Gd_8w_008']; ADD
+%% ring normalization not working because names are inconsisten, check data.
 scan_path = [raw_path 'syn007_94L_Mg10Gd_8w_009']; ADD
 scan_path = [raw_path 'syn007_94L_Mg10Gd_8w_010']; ADD
 
@@ -281,7 +283,7 @@ scan_path = [raw_path 'syn008_76R_Mg10Gd_8w_007']; ADD
 scan_path = [raw_path 'syn008_76R_Mg10Gd_8w_008']; ADD
 scan_path = [raw_path 'syn008_76R_Mg10Gd_8w_009']; ADD
 scan_path = [raw_path 'syn008_76R_Mg10Gd_8w_010']; ADD
-scan_path = [raw_path 'syn008_76R_Mg10Gd_8w_011']; ADD
+%scan_path = [raw_path 'syn008_76R_Mg10Gd_8w_011']; ADD
 %scan_path = [raw_path 'syn008_76R_Mg10Gd_8w_012']; ADD
 scan_path = [raw_path 'syn008_76R_Mg10Gd_8w_013']; ADD
 

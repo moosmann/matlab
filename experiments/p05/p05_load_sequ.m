@@ -27,7 +27,8 @@ proc_path = '/asap3/petra3/gpfs/p05/2017/data/11004016/processed';
 %scan_name = 'syn004_84L_Mg10Gd_4w'; regdir = 'y';
 %scan_name = 'syn005_81L_Mg5Gd_8w'; 
 %scan_name = 'syn006_75R_Mg10Gd_8w';
-scan_name = 'syn008_76R_Mg10Gd_8w';
+scan_name = 'syn007_94L_Mg10Gd_8w';
+%scan_name = 'syn008_76R_Mg10Gd_8w';
 %scan_name = 'syn009_32R_PEEK_8w';
 %scan_name = 'syn010_19R_PEEK_4w';
 %scan_name = 'syn011_14R_PEEK_4w'; regdir = 'y';
@@ -127,8 +128,9 @@ fprintf( '%g ', shift)
 fprintf( '\n global shifts : ' )
 fprintf( '%g ', z0)
 
-fprintf( '\n Cropping volumes. ' )
+fprintf( '\n Cropping volumes. Original size : %u x %u x %u x %u.', size( vol) )
 vol_reg = zeros( [size(vol,1), size(vol,2), size(vol,3) - max(z0), nn_max], 'uint8' );
+fprintf( '\n New size : %u x %u x %u x %u ', size( vol_reg) )
 for nn = 1:nn_max
     vol_reg(:,:,:,nn) = vol(:,:,1+z0(nn):end-z1(nn),nn);
     %disp( size( vol(:,:,1+z0(nn):end-z1(nn),nn) ) )
