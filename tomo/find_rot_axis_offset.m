@@ -108,7 +108,12 @@ for nn = 1:numel( offset )
     par.rot_axis.offset = offset(nn) + offset_shift + eps;
     
     %% Reco
-    im = astra_parallel3D( par, permute( sino, [1 3 2]) );
+    switch lower( par.reco_mode )
+        case '3d'
+            im = astra_parallel3D( par, permute( sino, [1 3 2]) );
+        case 'slice'
+            im = astra_parallel2D( par, permute( sino, [3 1 2]) );
+    end
     vol(:,:,nn) = FilterHisto(im, number_of_stds, filter_histo_roi);
     
     %% Metrics    

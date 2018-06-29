@@ -1,8 +1,9 @@
-function vol = astra_parallel3D(par, sino)
-% Parallel backprojection of 2D or 3D sinograms using ASTRA's
-% parallel 3D geometry with vector notation. 
+function vol = astra_parallel2D(par, sino)
+% Slicewise parallel backprojection of 2D or 3D sinograms using ASTRA.
 %
 % sino: 2D-or-3D array.
+% par : struct with following fields:
+%
 % angles: scalar or vector. Default: pi. If calar it is the angular range
 %   covered during one tomogram and the angles are computed as angles * (0:num_proj-1) /
 %   num_proj. If vector it is the angles of the projections. If scalar the 
@@ -32,7 +33,7 @@ function vol = astra_parallel3D(par, sino)
 % kernel.
 %
 % Written by Julian Moosmann
-% First version: 2016-10-5. Last modification: 2017-10-30
+% First version: 2018-06-29. Last modification: 2018
 
 %% TODO: test double precision support
 %% TODO: proper Ram-Lak filter for tilted axis
@@ -40,20 +41,23 @@ function vol = astra_parallel3D(par, sino)
 
 %% Default arguments %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 angles = assign_from_struct( par, 'angles', pi );
-rotation_axis_offset = assign_from_struct( par.rot_axis, 'offset', 0);
 vol_shape = assign_from_struct( par, 'vol_shape', [size( sino, 1), size( sino, 1), size(sino, 3) ] );
 vol_size = assign_from_struct( par, 'vol_size', [] );
-pixel_size = assign_from_struct( par, 'astra_pixel_size', [1 1] );
+pixel_size = assign_from_struct( par, 'astra_pixel_size', 1 );
 tilt = assign_from_struct( par, 'tilt_camera', 0 );
-tilt_lamino = assign_from_struct( par, 'tilt_lamino', 0 );
 link_data = assign_from_struct( par, 'astra_link_data', 0 );
 gpu_index = assign_from_struct( par, 'astra_gpu_index', [] );
 algorithm = assign_from_struct( par, 'algorithm', 'fbp' );
 iterations = assign_from_struct( par, 'iterations', 100);
+rotation_axis_offset = assign_from_struct( par.rot_axis, 'offset', 0);
 %MinConstraint = assign_from_struct( par.sirt, 'MinConstraint', [] );
 %MaxConstraint = assign_from_struct( par.sirt, 'MaxConstraint', [] );
  
 %% Main %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+if tilt ~= 0
+    error( 'Rotation axis tilt is not supported for 2D slicewise reconstructions' )
+end
 
 angles = double( angles );
 %rotation_axis_offset = double( rotation_axis_offset );
@@ -66,23 +70,21 @@ else
 end
 
 %% Detector geometry
-det_col_count = size( sino, 1);
-det_row_count = size( sino, 3);
-num_proj = size( sino, 2);
+det_col_count = size( sino, 2);
+num_proj = size( sino, 1);
 if numel(angles) == 1
     angles = angles * (0:num_proj-1) / num_proj;
 end
-if numel( pixel_size ) == 1
-    pixel_size(2) = pixel_size;
+if numel( pixel_size ) == 2
+    error( 'astra_pixel_size (%f,%f) does not fit geometry', pixel_size )
 end    
 DetectorSpacingX = pixel_size(1);
-DetectorSpacingY = pixel_size(2);
-if numel( angles ) ~= size( sino, 2)
+if numel( angles ) ~= size( sino, 1)
     error('Size of ANGLES and size of sinogram do not match.')
 end
 
 % Create geometry vector
-vectors = zeros( numel(angles), 12);
+vectors = zeros( numel(angles), 6);
 for nn = 1:num_proj
     
     theta = angles( nn );
@@ -96,76 +98,66 @@ for nn = 1:num_proj
     %% CHECK
     vectors(nn,1) =  sin( theta );
     vectors(nn,2) = -cos( theta );
-    vectors(nn,3) = -sin(tilt_lamino);
 
     % center of detector
-    vectors(nn,4) = -rao * cos( theta );
-    vectors(nn,5) = -rao * sin( theta );
-    vectors(nn,6) = sin( tilt_lamino );
+    vectors(nn,3) = -rao * cos( theta );
+    vectors(nn,4) = -rao * sin( theta );
 
-    % vector from detector pixel (0,0) to (0,1)
-    vectors(nn,7) = cos( tilt ) * cos( theta ) * DetectorSpacingX;
-    vectors(nn,8) = cos( tilt) * sin( theta ) * DetectorSpacingX;
-    vectors(nn,9) = cos( tilt_lamino ) * sin( tilt ) * DetectorSpacingX;
-
-    % vector from detector pixel (0,0) to (1,0)
-    vectors(nn,10) = -sin( tilt) * cos( theta ) * DetectorSpacingY;
-    vectors(nn,11) = -sin( tilt) * sin( theta ) * DetectorSpacingY;
-    vectors(nn,12) = cos( tilt_lamino) * cos(tilt) * DetectorSpacingY;
-
+    % vector from detector pixel 0 to 1
+    vectors(nn,5) = cos( theta ) * DetectorSpacingX;
+    vectors(nn,6) = sin( theta ) * DetectorSpacingX;
 end
 
+
 %% Projection geometry
-proj_geom = astra_create_proj_geom('parallel3d_vec',  det_row_count, det_col_count, vectors);
+%proj_geom = astra_create_proj_geom('parallel3d_vec',  det_row_count, det_col_count, vectors);
+%proj_geom = astra_create_proj_geom('parallel', DetectorSpacingX, det_col_count, angles);
+proj_geom = astra_create_proj_geom('parallel_vec', det_col_count, vectors);
 
 %% Volume geometry
-% Volume shape: y, x, z
-%vol_size_astra = [vol_shape(2), vol_shape(1), vol_shape(3)];
+% Volume shape: y, x
 row_count = vol_shape(2);
 col_count = vol_shape(1);
-slice_count = vol_shape(3);
 % Volume size
 if isempty( vol_size )
-    vol_size = [-vol_shape(1)/2, vol_shape(1)/2, ...
-        -vol_shape(2)/2, vol_shape(2)/2, -vol_shape(3)/2, vol_shape(3)/2];
+    vol_size = [-vol_shape(1)/2, vol_shape(1)/2, -vol_shape(2)/2, vol_shape(2)/2];
 end 
 min_x = vol_size(3);
 max_x = vol_size(4);
 min_y = vol_size(1);
 max_y = vol_size(2);
-min_z = vol_size(5);
-max_z = vol_size(6);
+
 % Volume geometry object
-vol_geom = astra_create_vol_geom(row_count, col_count, slice_count, min_x, max_x, min_y, max_y, min_z, max_z);
+%vol_geom = astra_create_vol_geom(row_count, col_count, slice_count, min_x, max_x, min_y, max_y, min_z, max_z);
+vol_geom = astra_create_vol_geom(row_count, col_count, min_x, max_x, min_y, max_y);
 
 % Normalize sino instead of volume
+%% CHECK!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 sino = pi / 2 / length(angles) * sino;
 
 %% Sinogram object
-if link_data
-    sino_id = astra_mex_data3d_c('link', '-proj3d', proj_geom, sino, 1, 0);
-else
-    sino_id = astra_mex_data3d('create', '-proj3d', proj_geom, sino);
-end
+sino_id = astra_mex_data2d('create', '-sino', proj_geom, sino);
 
 %% Volume object
-if link_data
-    vol = zeros(vol_shape, 'single');
-    vol_id = astra_mex_data3d_c('link', '-vol', vol_geom, vol, 1, 0);    
-else
-    vol_id = astra_mex_data3d('create', '-vol', vol_geom);
-end
+vol_id = astra_mex_data2d('create', '-vol', vol_geom);
+
+%% Projector
+%proj_id = astra_create_projector('linear', proj_geom, vol_geom);
 
 %% ASTRA config struct
 switch lower( algorithm )
     case 'fbp'
-        cfg = astra_struct('BP3D_CUDA');
+        cfg = astra_struct('BP_CUDA');
     case 'sirt'
-        cfg = astra_struct('SIRT3D_CUDA');
-%        cfg.option.MinConstraint = MinConstraint;
- %       cfg.option.MaxConstraint = MaxConstraint;
+        cfg = astra_struct('SIRT_CUDA');
+        cfg.option.MinConstraint = MinConstraint;
+        cfg.option.MaxConstraint = MaxConstraint;
+    case 'sart'
+        cfg = astra_struct('SART_CUDA');
+        cfg.option.MinConstraint = MinConstraint;
+        cfg.option.MaxConstraint = MaxConstraint;
     case 'cgls'
-        cfg = astra_struct('CGLS3D_CUDA');        
+        cfg = astra_struct('CGLS_CUDA');        
 end
 cfg.ProjectionDataId = sino_id;
 cfg.ReconstructionDataId = vol_id;
@@ -183,11 +175,9 @@ astra_mex_algorithm('delete', bp_id);
 astra_mex_data3d('delete', sino_id)
 
 %% Fetch data from ASTRA memory
-if ~link_data
-    vol = astra_mex_data3d('get_single', vol_id);
-end
-astra_mex_data3d('delete', vol_id)
-astra_mex_projector3d('clear')
+vol = astra_mex_data2d('get_single', vol_id);
+astra_mex_data2d('delete', vol_id)
+%astra_mex_projector2d('clear')
 
 % Required for adjoint?
 %vol = pi / 2 / numel(angles) * vol;

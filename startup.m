@@ -14,20 +14,18 @@ fprintf( '\nuserpath : %s', userpath );
 fprintf( '\nCUDA_PATH : %s', getenv( 'CUDA_PATH' ) );
 
 %% ASTRA
+% ASTRA 1.9 local
+path_to_astra = '/asap3/petra3/gpfs/common/p05/astra/1.9/matlab';
 % ASTRA 1.8 local
-path_to_astra = '/asap3/petra3/gpfs/common/p05/astra/1.8/matlab';
-% ASTRA 1.7.1 global, probably broken
-%path_to_astra = '/opt/xray/astra-toolbox/1.7.1/matlab';
+%path_to_astra = '/asap3/petra3/gpfs/common/p05/astra/1.8/matlab';
 if strcmp( hostname(1:8), 'max-hzgg')    
     addpath( genpath( path_to_astra ) );
 elseif strcmp( hostname(1:8), 'max-p3ag')   
     addpath( genpath( path_to_astra ) );
 elseif strcmp( hostname(1:8), 'max-nova')
-    %path_to_astra = '/asap3/petra3/gpfs/common/p05/astra/1.8_old/matlab';
     addpath( genpath( path_to_astra ) );
 else    
     addpath( genpath( path_to_astra ) );
-    %addpath( genpath( '/usr/share/astra/matlab' ) );
 end
 fprintf( '\nASTRA path : %s', path_to_astra );
 
@@ -59,3 +57,5 @@ end
 
 % Fix error: “dlopen: cannot load any more object with static TLS”
 %ones(10) * ones(10);
+
+fprintf( '\n' )

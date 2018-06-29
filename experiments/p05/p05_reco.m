@@ -33,17 +33,12 @@ close all hidden % close all open windows
 %% PARAMETERS / SETTINGS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-fast_reco = 0;
+fast_reco = 1;
 stop_after_data_reading(1) = 0; % for data analysis, before flat field correlation
 
 %%% SCAN %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 scan_path = ...
-    '/asap3/petra3/gpfs/p05/2018/data/11004195/raw/smf_16_be9955_c';
-    '/asap3/petra3/gpfs/p05/2017/data/11004016/raw/syn010_19R_PEEK_4w_3nd_016';
-    '/asap3/petra3/gpfs/p05/2017/data/11004016/processed/syn010_19R_PEEK_4w_end_014';
-    '/asap3/petra3/gpfs/p05/2017/data/11004016/raw/syn010_19R_PEEK_4w_000';
-    '/asap3/petra3/gpfs/p05/2018/data/11004326/raw/nova_166_a';
-    '/asap3/petra3/gpfs/p05/2017/data/11003488/raw/cnk_26/';
+    '/asap3/petra3/gpfs/p05/2017/data/11004016/raw/syn002_6L_PEEK_4w_002';
 read_flatcor = 0; % read flatfield-corrected images from disc, skips preprocessing
 read_flatcor_path = ''; % subfolder of 'flat_corrected' containing projections
 energy = []; % in eV! if empty: read from log file
@@ -103,6 +98,7 @@ phase_retrieval.cutoff_frequ = 2 * pi; % in radian. frequency cutoff in Fourier 
 phase_retrieval.padding = 1; % padding of intensities before phase retrieval, 0: no padding
 %%% TOMOGRAPHY %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 tomo.run = 1; % run tomographic reconstruction
+tomo.reco_mode = 'slice'; '3D';
 tomo.vol_size = []; %[-0.5 0.5 -0.5 0.5 -0.5 0.5];% for excentric rot axis pos; 6-component vector [xmin xmax ymin ymax zmin zmax]. if empty, volume is centerd within tomo.vol_shape. unit voxel size is assumed. if smaller than 10 values are interpreted as relative size w.r.t. the detector size. Take care bout minus signs!
 tomo.vol_shape = []; %[1 1 1] shape (# voxels) of reconstruction volume. used for excentric rot axis pos. if empty, inferred from 'tomo.vol_size'. in absolute numbers of voxels or in relative number w.r.t. the default volume which is given by the detector width and height.
 tomo.rot_angle.full_range = []; % in radians: empty ([]), full angle of rotation, or array of angles. if empty full rotation angles is determined automatically to pi or 2 pi
@@ -178,7 +174,7 @@ if fast_reco(1)
     raw_roi = [1000 -1000]; 
     raw_bin = 4; 
     bin_before_filtering(1) = 1;
-    proj_range = 2;
+    proj_range = 3;
     ref_range = 10;
     image_correlation.method = 'none';
     write.to_scratch = 1;
@@ -203,6 +199,10 @@ end
 
 %% Preprocessing up to proj/flat correlation %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 tic
+if interactive_mode.rot_axis_tilt && strcmpi( tomo.reco_mode, 'slice' )
+    error( 'Slicewise reconstruction and reconstruction with tilted rotation axis are not compatible!' )
+end
+
 if ~isempty( tomo.vol_size ) && isempty( tomo.vol_shape )
     tomo.vol_shape = tomo.vol_size(2:2:end) - tomo.vol_size(1:2:end);
 end
@@ -1667,116 +1667,177 @@ if tomo.run
     end
     
     % Backprojection
-    prnt( '\n Backproject:')
-    t2 = toc;    
-    %%% Move parameters to appropiate position or replace globally !!!!!!!!!!!!!!!!!!
-    tomo.tilt_camera = ~interactive_mode.lamino * tomo.rot_axis.tilt;
-    tomo.tilt_lamino = interactive_mode.lamino * tomo.rot_axis.tilt;
-    tomo.angles = tomo.rot_angle.offset + angles_reco;
-    %%%%%%%%% Change offset_shit additon %%%%%%%%% !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    tomo.rot_axis.offset = rot_axis_offset_reco + offset_shift;
-    vol = astra_parallel3D( tomo, permute(proj, [1 3 2]) );
-    pause(0.01)
-    prnt( ' done in %.2f min.', (toc - t2) / 60)
-    
-    vol_min = min( vol(:) );
-    vol_max = max( vol(:) );
-    
-    % Show orthogonal vol cuts
-    if visual_output(1)
-        
-        figure('Name', 'Volume cut z');        
-        nn = round( size( vol, 3 ) / 2);
-        imsc( squeeze( vol(:,:,nn) ) )
-        axis equal tight
-        title( sprintf( 'vol z = %u', nn ) )
-        colorbar
-        
-        figure('Name', 'Volume cut y');        
-        nn = round( size( vol, 2 ) / 2);
-        im = squeeze( vol(:,nn,:) );
-        if size( im , 1) < size( im , 2)
-            imsc( im )
-        else
-            imsc( im' )
-        end
-        axis equal tight
-        title( sprintf( 'vol y = %u', nn ) )
-        colorbar
-                
-        figure('Name', 'Volume cut x');        
-        nn = round( size( vol, 1 ) / 2);
-        im = squeeze( vol(nn,:,:) );
-        if size( im , 1) < size( im , 2)
-            imsc( im )
-        else
-            imsc( im' )
-        end        
-        axis equal tight
-        title( sprintf( 'vol x = %u', nn ) )
-        colorbar
-        
-        drawnow
-    end
-        
-    if phase_retrieval.apply
-        reco_path = reco_phase_path;
-    end
-    % Save volume
-    if write.reco
-        reco_bin = write.reco_binning_factor; % alias for readablity
-        CheckAndMakePath( reco_path )
-        
-        % Save reco path to file
-        filename = [userpath, filesep, 'experiments/p05/path_to_latest_reco'];
-        fid = fopen( filename , 'w' );
-        fprintf( fid, '%s', reco_path );
-        fclose( fid );
-        
-        % Single precision: 32-bit float tiff
-        write_volume( write.float, vol, 'float', reco_path, raw_bin, phase_bin, 1, 0, verbose);
-        
-        % Compression of dynamic range
-        if write.uint8 || write.uint8_binned || write.uint16 || write.uint16_binned
-            [tlow, thigh] = compression( vol, write.compression.method, write.compression.parameter );
-        else
-            tlow = 0;
-            thigh = 1;
-        end
-        
-        % 16-bit tiff
-        write_volume( write.uint16, (vol - tlow)/(thigh - tlow), 'uint16', reco_path, raw_bin, phase_bin, 1, 0, verbose);
-        
-        % 8-bit tiff
-        write_volume( write.uint8, (vol - tlow)/(thigh - tlow), 'uint8', reco_path, raw_bin, phase_bin, 1, 0, verbose);
-        
-        % Bin data
-        if write.float_binned || write.uint16_binned || write.uint8_binned || write.uint8_segmented
-            prnt( '\n Binning:')
+    switch lower( tomo.reco_mode )
+        case '3d'
+            prnt( '\n Backproject:')
             t2 = toc;
-            vol = Binning( vol, reco_bin ) / reco_bin^3;
+            %%% Move parameters to appropiate position or replace globally !!!!!!!!!!!!!!!!!!
+            tomo.tilt_camera = ~interactive_mode.lamino * tomo.rot_axis.tilt;
+            tomo.tilt_lamino = interactive_mode.lamino * tomo.rot_axis.tilt;
+            tomo.angles = tomo.rot_angle.offset + angles_reco;
+            %%%%%%%%% Change offset_shit additon %%%%%%%%% !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+            tomo.rot_axis.offset = rot_axis_offset_reco + offset_shift;
+            vol = astra_parallel3D( tomo, permute(proj, [1 3 2]) );
+            pause(0.01)
             prnt( ' done in %.2f min.', (toc - t2) / 60)
-        end
-        
-        % Binned single precision: 32-bit float tiff
-        write_volume( write.float_binned, vol, 'float', reco_path, raw_bin, phase_bin, reco_bin, 0, verbose);
-        
-        % 16-bit tiff binned
-        write_volume( write.uint16_binned, (vol - tlow)/(thigh - tlow), 'uint16', reco_path, raw_bin, phase_bin, reco_bin, 0, verbose);
-        
-        % 8-bit tiff binned
-        write_volume( write.uint8_binned, (vol - tlow)/(thigh - tlow), 'uint8', reco_path, raw_bin, phase_bin, reco_bin, 0, verbose);
-        
-        % segmentation
-        if write.uint8_segmented
-            [vol, out] = segment_volume(vol, 2^10, visual_output, verbose);
-            save_path = write_volume( 1, vol/255, 'uint8', reco_path, raw_bin, phase_bin, reco_bin, 0, verbose, '_segmented');
-            save( sprintf( '%ssegmentation_info.m', save_path), 'out', '-mat', '-v7.3')
-        end
-        
+            
+            vol_min = min( vol(:) );
+            vol_max = max( vol(:) );
+            
+            % Show orthogonal vol cuts
+            if visual_output(1)
+                
+                figure('Name', 'Volume cut z');
+                nn = round( size( vol, 3 ) / 2);
+                imsc( squeeze( vol(:,:,nn) ) )
+                axis equal tight
+                title( sprintf( 'vol z = %u', nn ) )
+                colorbar
+                
+                figure('Name', 'Volume cut y');
+                nn = round( size( vol, 2 ) / 2);
+                im = squeeze( vol(:,nn,:) );
+                if size( im , 1) < size( im , 2)
+                    imsc( im )
+                else
+                    imsc( im' )
+                end
+                axis equal tight
+                title( sprintf( 'vol y = %u', nn ) )
+                colorbar
+                
+                figure('Name', 'Volume cut x');
+                nn = round( size( vol, 1 ) / 2);
+                im = squeeze( vol(nn,:,:) );
+                if size( im , 1) < size( im , 2)
+                    imsc( im )
+                else
+                    imsc( im' )
+                end
+                axis equal tight
+                title( sprintf( 'vol x = %u', nn ) )
+                colorbar
+                
+                drawnow
+            end
+            
+            if phase_retrieval.apply
+                reco_path = reco_phase_path;
+            end
+            
+            % Save volume
+            if write.reco
+                reco_bin = write.reco_binning_factor; % alias for readablity
+                CheckAndMakePath( reco_path )
+                
+                % Save reco path to file
+                filename = [userpath, filesep, 'experiments/p05/path_to_latest_reco'];
+                fid = fopen( filename , 'w' );
+                fprintf( fid, '%s', reco_path );
+                fclose( fid );
+                
+                % Single precision: 32-bit float tiff
+                write_volume( write.float, vol, 'float', reco_path, raw_bin, phase_bin, 1, 0, verbose);
+                
+                % Compression of dynamic range
+                if write.uint8 || write.uint8_binned || write.uint16 || write.uint16_binned
+                    [tlow, thigh] = compression( vol, write.compression.method, write.compression.parameter );
+                else
+                    tlow = 0;
+                    thigh = 1;
+                end
+                
+                % 16-bit tiff
+                write_volume( write.uint16, (vol - tlow)/(thigh - tlow), 'uint16', reco_path, raw_bin, phase_bin, 1, 0, verbose);
+                
+                % 8-bit tiff
+                write_volume( write.uint8, (vol - tlow)/(thigh - tlow), 'uint8', reco_path, raw_bin, phase_bin, 1, 0, verbose);
+                
+                % Bin data
+                if write.float_binned || write.uint16_binned || write.uint8_binned || write.uint8_segmented
+                    prnt( '\n Binning:')
+                    t2 = toc;
+                    vol = Binning( vol, reco_bin ) / reco_bin^3;
+                    prnt( ' done in %.2f min.', (toc - t2) / 60)
+                end
+                
+                % Binned single precision: 32-bit float tiff
+                write_volume( write.float_binned, vol, 'float', reco_path, raw_bin, phase_bin, reco_bin, 0, verbose);
+                
+                % 16-bit tiff binned
+                write_volume( write.uint16_binned, (vol - tlow)/(thigh - tlow), 'uint16', reco_path, raw_bin, phase_bin, reco_bin, 0, verbose);
+                
+                % 8-bit tiff binned
+                write_volume( write.uint8_binned, (vol - tlow)/(thigh - tlow), 'uint8', reco_path, raw_bin, phase_bin, reco_bin, 0, verbose);
+                
+                % segmentation
+                if write.uint8_segmented
+                    [vol, out] = segment_volume(vol, 2^10, visual_output, verbose);
+                    save_path = write_volume( 1, vol/255, 'uint8', reco_path, raw_bin, phase_bin, reco_bin, 0, verbose, '_segmented');
+                    save( sprintf( '%ssegmentation_info.m', save_path), 'out', '-mat', '-v7.3')
+                end
+                
+            end
+            prnt( ' done in %.1f s (%.2f min)', toc-t, (toc-t)/60 )
+            
+        case 'slice'
+            %% Slicewise backprojection %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+            prnt( '\n Backproject and save slices:')
+            t2 = toc;
+            
+            if phase_retrieval.apply
+                reco_path = reco_phase_path;
+            end
+            
+            if write.reco
+                reco_bin = write.reco_binning_factor; % alias for readablity
+                CheckAndMakePath( reco_path )
+                % Save reco path to file
+                filename = [userpath, filesep, 'experiments/p05/path_to_latest_reco'];
+                fid = fopen( filename , 'w' );
+                fprintf( fid, '%s', reco_path );
+                fclose( fid );
+            end
+            
+            tomo.angles = tomo.rot_angle.offset + angles_reco;
+            %%%%%%%%% Change offset_shit additon %%%%%%%%% !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+            tomo.rot_axis.offset = rot_axis_offset_reco + offset_shift;
+            
+            % Reconstruct central slices first
+            [~, ind] = sort( abs( (1:size( proj, 2)) - round( size( proj, 2) / 2 ) ) );
+            
+            % Loop over slices
+            vol_min = Inf;
+            vol_max = -Inf;
+            for nn = 1:size( proj, 2 )
+                
+                % Backproject
+                vol = astra_parallel2D( tomo, permute( proj(:,ind(nn),:), [3 1 2]) );
+                
+                vol_min = min( vol_min, min( vol(:) ) );
+                vol_max = max( vol_max, max( vol(:) ) );
+                
+                % Show orthogonal vol cuts
+                if visual_output(1) && isequal( nn, 1 )
+                    figure('Name', sprintf( 'Volume slice %u', ind(1) ));
+                    imsc( vol )
+                    axis equal tight
+                    title( sprintf( 'vol z = %u', nn ) )
+                    colorbar
+                    drawnow
+                    pause( 0.1 )
+                end
+                
+                % Save
+                %%% ADD more other format options!!!!!!!!!!!!!!!!!!!!!!!!!
+                
+                % Single precision: 32-bit float tiff
+                write_volume( write.float, vol, 'float', reco_path, raw_bin, phase_bin, 1, ind(nn) - 1, 0);
+                
+            end
+            prnt( ' done in %.2f min.', (toc - t2) / 60)
+            
     end
-    
-    prnt( ' done in %.1f s (%.2f min)', toc-t, (toc-t)/60 )
 end
 
 %% Write reco log file %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -1844,6 +1905,7 @@ fprintf(fid, 'excentric_rot_axis : %i\n', excentric_rot_axis);
 fprintf(fid, 'crop_at_rot_axis : %u\n', crop_at_rot_axis);
 fprintf(fid, 'stitch_projections : %u\n', stitch_projections);
 fprintf(fid, 'stitch_method : %s\n', stitch_method );
+fprintf(fid, 'tomo.reco_mode : %s\n', tomo.reco_mode);
 fprintf(fid, 'tomo.rot_angle.full_range : %f * pi rad\n', tomo.rot_angle.full_range / pi);
 fprintf(fid, 'tomo.rot_angle.offset : %f * pi rad\n', tomo.rot_angle.offset / pi);
 fprintf(fid, 'rotation_axis_offset_calculated : %f\n', rot_axis_offset_calc);
@@ -1886,14 +1948,16 @@ if exist( 'vol_min', 'var')
     fprintf(fid, '[volume_min volume_max] : [%g %g]\n', vol_min, vol_max);
 end
 fprintf(fid, 'write.float : %u\n', write.float);
-fprintf(fid, 'write.float_binned : %u\n', write.float_binned);
-fprintf(fid, 'write.uint16 : %g\n', write.uint16);
-fprintf(fid, 'write.uint16_binned : %g\n', write.uint16_binned);
-fprintf(fid, 'write.uint8 : %u\n', write.uint8);
-fprintf(fid, 'write.uint8_binned : %u\n', write.uint8_binned);
-fprintf(fid, 'write.compression.method : %s\n', write.compression.method);
-fprintf(fid, 'compression_limits : %f %f\n', tlow, thigh);
-fprintf(fid, 'reco_bin : %u\n', reco_bin);
+if strcmpi( tomo.reco_mode, '3d' )
+    fprintf(fid, 'write.float_binned : %u\n', write.float_binned);
+    fprintf(fid, 'write.uint16 : %g\n', write.uint16);
+    fprintf(fid, 'write.uint16_binned : %g\n', write.uint16_binned);
+    fprintf(fid, 'write.uint8 : %u\n', write.uint8);
+    fprintf(fid, 'write.uint8_binned : %u\n', write.uint8_binned);
+    fprintf(fid, 'write.compression.method : %s\n', write.compression.method);
+    fprintf(fid, 'compression_limits : %f %f\n', tlow, thigh);
+    fprintf(fid, 'reco_bin : %u\n', reco_bin);
+end
 fprintf(fid, 'full_reconstruction_time : %.1f s\n', toc);
 fprintf(fid, 'date_of_reconstruction : %s\n', datetime);
 fprintf(fid, 'tomo.rot_axis.offset at %u x binning : %f\n', raw_bin, rot_axis_offset_reco);
