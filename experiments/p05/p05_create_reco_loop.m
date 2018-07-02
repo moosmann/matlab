@@ -12,14 +12,13 @@ function p05_create_reco_loop( raw_path, scan_name_pattern, out_path, suffix_to_
 %   for data sets. 
 % scan_name_pattern : string. Default: ''. only add folders matching pattern,
 %   e.g. 'dataSetNamePrefix*'. Asterisk (*) is required to match pattern.
+% out_path : path where loop script will be saved. It's recommended to a
+%   use path within the MATLAB search path. Default:
+%   $MATLAB_SEARCH_PATH/experiments/p05/data/$USER/
 % suffix_to_scrip_name : str. Default: ''. String to append to filename of the script.
 %   A 3-digit running index is used to avoid overwriting existing scripts.
-% out_path : path where loop script will be saved. It's recommended to a
-%   use path within the MATLAB search path. Defaul:
-%   $MATLAB_SEARCH_PATH/experiments/p05/data/$USER/
-
 %   
-% Written by Julian Moosmann, 2017-10-10. Last version: 2017-12-01
+% Written by Julian Moosmann, 2017-10-10. Last version: 2018-07-02
 %
 % p05_create_reco_loop( raw_path, scan_name_pattern, suffix_to_scrip_name, out_path)
 
@@ -33,11 +32,11 @@ end
 if nargin < 2
     scan_name_pattern = '';
 end
-if nargin < 4
-    suffix_to_scrip_name = '';
-end
 if nargin < 3
     out_path = '';
+end
+if nargin < 4
+    suffix_to_scrip_name = '';
 end
 
 %% Main %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

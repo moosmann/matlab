@@ -33,7 +33,7 @@ close all hidden % close all open windows
 %% PARAMETERS / SETTINGS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-fast_reco = 1;
+fast_reco = 1; % OVERWRITES PARAMETERS SET BELOW
 stop_after_data_reading(1) = 0; % for data analysis, before flat field correlation
 
 %%% SCAN %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -46,8 +46,8 @@ sample_detector_distance = []; % in m. if empty: read from log file
 eff_pixel_size = []; % in m. if empty: read from log file. effective pixel size =  detector pixel size / magnification
 %%% PREPROCESSING %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 raw_roi = [1200 1500]; % if []: use full image; if [y0 y1]: vertical ROI, skips first raw_roi(1)-1 lines, reads until raw_roi(2). When raw_roi(2) < 0 reads until end - |raw_roi(2)|; if negative scalar: auto roi, selects ROI automatically.Not working for *.raw data where images are flipped.
-raw_bin = 5; % projection binning factor: integer
-bin_before_filtering(1) = 0; % Apply binning before filtering pixel. less effective, but much faster especially for KIT camera.
+raw_bin = 4; % projection binning factor: integer
+bin_before_filtering(1) = 1; % Apply binning before filtering pixel. less effective, but much faster especially for KIT camera.
 excentric_rot_axis = 0; % off-centered rotation axis increasing FOV. -1: left, 0: centeerd, 1: right. influences tomo.rot_axis.corr_area1
 crop_at_rot_axis = 0; % for recos of scans with excentric rotation axis but WITHOUT projection stitching
 stitch_projections = 0; % for 2 pi scans: stitch projection at rotation axis position. Recommended with phase retrieval to reduce artefacts. Standard absorption contrast data should work well without stitching. Subpixel stitching not supported (non-integer rotation axis position is rounded, less/no binning before reconstruction can be used to improve precision).
@@ -82,7 +82,7 @@ ring_filter.apply = 0; % ring artifact filter (use only for scans without latera
 ring_filter.apply_before_stitching = 0; % ! Consider when phase retrieval is applied !
 ring_filter.method = 'jm'; 'wavelet-fft';
 ring_filter.waveletfft.dec_levels = 2:5; % decomposition levels for 'wavelet-fft'
-ring_filter.waveletfft.wname = 'db25';'db30'; % wavelet type for 'wavelet-fft'
+ring_filter.waveletfft.wname = 'db25';'db30'; % wavelet type, see 'FilterStripesCombinedWaveletFFT' or 'waveinfo'
 ring_filter.waveletfft.sigma = 2.4; %  suppression factor for 'wavelet-fft'
 ring_filter.jm.median_width = 11; % multiple widths are applied consecutively, eg [3 11 21 31 39];
 strong_abs_thresh = 1; % Experimental: if 1: does nothing, if < 1: flat-corrected values below threshold are set to one
@@ -98,7 +98,7 @@ phase_retrieval.cutoff_frequ = 2 * pi; % in radian. frequency cutoff in Fourier 
 phase_retrieval.padding = 1; % padding of intensities before phase retrieval, 0: no padding
 %%% TOMOGRAPHY %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 tomo.run = 1; % run tomographic reconstruction
-tomo.reco_mode = 'slice'; '3D';
+tomo.reco_mode = 'slice'; '3D'; % slice-wise or full 3D backprojection. 'slice': no support of rotation axis tilt, reco binning, save compressed
 tomo.vol_size = []; %[-0.5 0.5 -0.5 0.5 -0.5 0.5];% for excentric rot axis pos; 6-component vector [xmin xmax ymin ymax zmin zmax]. if empty, volume is centerd within tomo.vol_shape. unit voxel size is assumed. if smaller than 10 values are interpreted as relative size w.r.t. the detector size. Take care bout minus signs!
 tomo.vol_shape = []; %[1 1 1] shape (# voxels) of reconstruction volume. used for excentric rot axis pos. if empty, inferred from 'tomo.vol_size'. in absolute numbers of voxels or in relative number w.r.t. the default volume which is given by the detector width and height.
 tomo.rot_angle.full_range = []; % in radians: empty ([]), full angle of rotation, or array of angles. if empty full rotation angles is determined automatically to pi or 2 pi
@@ -138,8 +138,8 @@ write.reco = 1; % save reconstructed slices (if tomo.run=1)
 write.float = 1; % single precision (32-bit float) tiff
 write.uint16 = 0; % additionally save 16bit unsigned integer tiff using 'write.compression.method'
 write.uint8 = 0; % additionally save binned 8bit unsigned integer tiff using 'write.compression.method'
-% Optionally save binned reconstructions
-write.float_binned = 1; % additionally save binned single precision (32-bit float) tiff
+% Optionally save binned reconstructions, only works in '3D' reco_mode
+write.float_binned = 0; % additionally save binned single precision (32-bit float) tiff
 write.uint16_binned = 0; % additionally save binned 16bit unsigned integer tiff using 'write.compression.method'
 write.uint8_binned = 0; % additionally save binned 8bit unsigned integer tiff using 'wwrite.compression.method'
 write.reco_binning_factor = 2; % IF BINNED VOLUMES ARE SAVED: binning factor of reconstructed volume
@@ -170,13 +170,14 @@ write.uint8_segmented = 0; % experimental: threshold segmentation for histograms
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % overwrite parameters for fast reconstruction
-if fast_reco(1)
+if exist('fast_reco','var') && fast_reco(1)
     raw_roi = [1000 -1000]; 
     raw_bin = 4; 
     bin_before_filtering(1) = 1;
     proj_range = 3;
     ref_range = 10;
     image_correlation.method = 'none';
+    tomo.reco_mode = 'slice';
     write.to_scratch = 1;
 end
 
@@ -1822,7 +1823,7 @@ if tomo.run
                     figure('Name', sprintf( 'Volume slice %u', ind(1) ));
                     imsc( vol )
                     axis equal tight
-                    title( sprintf( 'vol z = %u', nn ) )
+                    title( sprintf( 'vol z = %u', ind(1) ) )
                     colorbar
                     drawnow
                     pause( 0.1 )

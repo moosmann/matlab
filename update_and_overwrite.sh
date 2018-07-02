@@ -1,6 +1,6 @@
 #!/bin/sh
 
-echo -e "\nUpdate repository and overwrite local changes [y/n]?"
+echo -e "\nUpdate repository and overwrite locally modified files (new unstaged files won't be deleted)[y/n]?"
 read ans
 
 if [ $ans = y -o $ans = Y -o $ans = yes -o $ans = Yes -o $ans = YES ]
@@ -10,7 +10,7 @@ echo -e '\ngit fetch origin master'
 git fetch origin master
 
 echo -e '\ngit reset --hard origin/master'
-git reset --hard origin/master'
+git reset --hard origin/master
 
 fi
 
