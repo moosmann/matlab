@@ -172,7 +172,7 @@ else
     astra_mex_algorithm('iterate', bp_id, iterations);
 end
 astra_mex_algorithm('delete', bp_id);
-astra_mex_data3d('delete', sino_id)
+astra_mex_data2d('delete', sino_id)
 
 %% Fetch data from ASTRA memory
 vol = astra_mex_data2d('get_single', vol_id);

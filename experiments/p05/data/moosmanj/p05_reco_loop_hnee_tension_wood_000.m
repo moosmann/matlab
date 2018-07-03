@@ -63,7 +63,7 @@ sample_detector_distance = []; % in m. if empty: read from log file
 eff_pixel_size = []; % in m. if empty: read from log file. effective pixel size =  detector pixel size / magnification
 %%% PREPROCESSING %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 raw_roi = -1; % if []: use full image; if [y0 y1]: vertical ROI, skips first raw_roi(1)-1 lines, reads until raw_roi(2). When raw_roi(2) < 0 reads until end - |raw_roi(2)|; if negative scalar: auto roi, selects ROI automatically.Not working for *.raw data where images are flipped.
-raw_bin = 4; % projection binning factor: integer
+raw_bin = 2; % projection binning factor: integer
 bin_before_filtering(1) = 1; % Apply binning before filtering pixel. less effective, but much faster especially for KIT camera.
 excentric_rot_axis = 0; % off-centered rotation axis increasing FOV. -1: left, 0: centeerd, 1: right. influences tomo.rot_axis.corr_area1
 crop_at_rot_axis = 0; % for recos of scans with excentric rotation axis but WITHOUT projection stitching
@@ -78,7 +78,7 @@ image_correlation.method = 'ssim-ml';'entropy';'diff';'shift';'ssim';'std';'cov'
 image_correlation.num_flats = 1; % number of flat fields used for average/median of flats. for 'shift'-correlation its the maximum number
 image_correlation.area_width = [0 0.02];%[0.98 1];% correlation area: index vector or relative/absolute position of [first pix, last pix]
 image_correlation.area_height = [0.2 0.8]; % correlation area: index vector or relative/absolute position of [first pix, last pix]
-image_correlation.shift.max_pixelshift = 0.25; % maximum pixelshift allowed for 'shift'-correlation method: if 0 use the best match (i.e. the one with the least shift), if > 0 uses all flats with shifts smaller than image_correlation.shift.max_pixelshift
+image_correlation.shift.max_pixelshift = 0.25;
 ring_filter.apply = 0; % ring artifact filter (use only for scans without lateral sample movement)
 ring_filter.apply_before_stitching = 0; % ! Consider when phase retrieval is applied !
 ring_filter.method = 'jm'; 'wavelet-fft';
@@ -90,7 +90,7 @@ strong_abs_thresh = 1; % Experimental: if 1: does nothing, if < 1: flat-correcte
 decimal_round_precision = 2; % precision when rounding pixel shifts
 %%% PHASE RETRIEVAL %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 phase_retrieval.apply = 0; % See 'PhaseFilter' for detailed description of parameters !
-phase_retrieval.apply_before = 0; % before stitching, interactive mode, etc. For phase-contrast data with an excentric rotation axis phase retrieval should be done afterwards. To find the rotataion axis position use this option in a first run, and then turn it of afterwards.
+phase_retrieval.apply_before = 1; % before stitching, interactive mode, etc. For phase-contrast data with an excentric rotation axis phase retrieval should be done afterwards. To find the rotataion axis position use this option in a first run, and then turn it of afterwards.
 phase_retrieval.post_binning_factor = 1; % Binning factor after phase retrieval, but before tomographic reconstruction
 phase_retrieval.method = 'tie';'qpcut'; %'qp' 'ctf' 'tie' 'qp2' 'qpcut'
 phase_retrieval.reg_par = 1.5; % regularization parameter. larger values tend to blurrier images. smaller values tend to original data.
@@ -170,12 +170,15 @@ raw_path = '/asap3/petra3/gpfs/p05/2018/data/11004450/raw/';
 
 %scan_path = [raw_path 'hnee01_kie_sh_ts_000N']; ADD
 %scan_path = [raw_path 'hnee02_kie_sh_ts_000N']; ADD
-scan_path = [raw_path 'hnee03_kie_sh_ts_000N']; ADD
-scan_path = [raw_path 'hnee04_kie_sh_ts_000N']; ADD
-scan_path = [raw_path 'hnee05_kie_sh_ts_000N']; ADD
-scan_path = [raw_path 'hnee06_kie_sh_ts_000N']; ADD
+%scan_path = [raw_path 'hnee03_kie_sh_ts_000N']; ADD
+%scan_path = [raw_path 'hnee04_kie_sh_ts_000N']; ADD
+%scan_path = [raw_path 'hnee05_kie_sh_ts_000N']; ADD
+%scan_path = [raw_path 'hnee06_kie_sh_ts_000N']; ADD % some mismatch
+raw_roi = [301 3500];
+tomo.rot_axis.offset = 2 * -784 / raw_bin;
 scan_path = [raw_path 'hnee07_kie_sh_ts_000N']; ADD
 
+raw_roi = -1;
 scan_path = [raw_path 'hnee08_kie_sh_ts_000']; ADD
 
 scan_path = [raw_path 'hnee09_kie_sh_ts_001']; ADD
