@@ -89,7 +89,6 @@ ring_filter.jm.median_width = 11; % multiple widths are applied consecutively, e
 strong_abs_thresh = 1; % Experimental: if 1: does nothing, if < 1: flat-corrected values below threshold are set to one
 decimal_round_precision = 2; % precision when rounding pixel shifts
 %%% PHASE RETRIEVAL %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-phase_retrieval.apply = 0; % See 'PhaseFilter' for detailed description of parameters !
 phase_retrieval.apply_before = 1; % before stitching, interactive mode, etc. For phase-contrast data with an excentric rotation axis phase retrieval should be done afterwards. To find the rotataion axis position use this option in a first run, and then turn it of afterwards.
 phase_retrieval.post_binning_factor = 1; % Binning factor after phase retrieval, but before tomographic reconstruction
 phase_retrieval.method = 'tie';'qpcut'; %'qp' 'ctf' 'tie' 'qp2' 'qpcut'
@@ -99,7 +98,7 @@ phase_retrieval.cutoff_frequ = 2 * pi; % in radian. frequency cutoff in Fourier 
 phase_retrieval.padding = 1; % padding of intensities before phase retrieval, 0: no padding
 %%% TOMOGRAPHY %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 tomo.run = 1; % run tomographic reconstruction
-tomo.reco_mode = 'slice'; '3D'; % slice-wise or full 3D backprojection. 'slice': no support of rotation axis tilt, reco binning, save compressed
+tomo.reco_mode = '3D'; % slice-wise or full 3D backprojection. 'slice': no support of rotation axis tilt, reco binning, save compressed
 tomo.vol_size = []; %[-0.5 0.5 -0.5 0.5 -0.5 0.5];% for excentric rot axis pos; 6-component vector [xmin xmax ymin ymax zmin zmax]. if empty, volume is centerd within tomo.vol_shape. unit voxel size is assumed. if smaller than 10 values are interpreted as relative size w.r.t. the detector size. Take care bout minus signs!
 tomo.vol_shape = []; %[1 1 1] shape (# voxels) of reconstruction volume. used for excentric rot axis pos. if empty, inferred from 'tomo.vol_size'. in absolute numbers of voxels or in relative number w.r.t. the default volume which is given by the detector width and height.
 tomo.rot_angle.full_range = []; % in radians: empty ([]), full angle of rotation, or array of angles. if empty full rotation angles is determined automatically to pi or 2 pi
@@ -146,6 +145,7 @@ write.uint8_binned = 0; % additionally save binned 8bit unsigned integer tiff us
 write.reco_binning_factor = 2; % IF BINNED VOLUMES ARE SAVED: binning factor of reconstructed volume
 write.compression.method = 'histo';'full'; 'std'; 'threshold'; % method to compression dynamic range into [0, 1]
 write.compression.parameter = [0.20 0.15]; % compression-method specific parameter
+write.uint8_segmented = 0;
 %%% INTERACTION %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 verbose = 1; % print information to standard output
 visual_output = 1; % show images and plots during reconstruction
@@ -168,17 +168,24 @@ SET_DEFAULT
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 raw_path = '/asap3/petra3/gpfs/p05/2018/data/11004450/raw/';
 
+image_correlation.method = 'none';
+tomo.vol_size = [-0.25 0.25 -0.5 0.5 -0.5 0.5];
+phase_retrieval.apply = 1; 
+raw_roi = [2301 2600];
+write.reco = 0; % save reconstructed slices (if tomo.run=1)
+
 %scan_path = [raw_path 'hnee01_kie_sh_ts_000N']; ADD
 %scan_path = [raw_path 'hnee02_kie_sh_ts_000N']; ADD
 %scan_path = [raw_path 'hnee03_kie_sh_ts_000N']; ADD
 %scan_path = [raw_path 'hnee04_kie_sh_ts_000N']; ADD
 %scan_path = [raw_path 'hnee05_kie_sh_ts_000N']; ADD
 %scan_path = [raw_path 'hnee06_kie_sh_ts_000N']; ADD % some mismatch
-raw_roi = [301 3500];
+raw_roi = [301 3300];
 tomo.rot_axis.offset = 2 * -784 / raw_bin;
 scan_path = [raw_path 'hnee07_kie_sh_ts_000N']; ADD
 
-raw_roi = -1;
+raw_roi = [301 3300];
+tomo.rot_axis.offset = 2 * -784 / raw_bin;
 scan_path = [raw_path 'hnee08_kie_sh_ts_000']; ADD
 
 scan_path = [raw_path 'hnee09_kie_sh_ts_001']; ADD

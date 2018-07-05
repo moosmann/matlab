@@ -98,7 +98,7 @@ phase_retrieval.cutoff_frequ = 2 * pi; % in radian. frequency cutoff in Fourier 
 phase_retrieval.padding = 1; % padding of intensities before phase retrieval, 0: no padding
 %%% TOMOGRAPHY %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 tomo.run = 1; % run tomographic reconstruction
-tomo.reco_mode = 'slice'; '3D'; % slice-wise or full 3D backprojection. 'slice': no support of rotation axis tilt, reco binning, save compressed
+tomo.reco_mode = 'slice'; '3D'; % slice-wise or full 3D backprojection. 'slice': volume must be centered at origin & no support of rotation axis tilt, reco binning, save compressed
 tomo.vol_size = []; %[-0.5 0.5 -0.5 0.5 -0.5 0.5];% for excentric rot axis pos; 6-component vector [xmin xmax ymin ymax zmin zmax]. if empty, volume is centerd within tomo.vol_shape. unit voxel size is assumed. if smaller than 10 values are interpreted as relative size w.r.t. the detector size. Take care bout minus signs!
 tomo.vol_shape = []; %[1 1 1] shape (# voxels) of reconstruction volume. used for excentric rot axis pos. if empty, inferred from 'tomo.vol_size'. in absolute numbers of voxels or in relative number w.r.t. the default volume which is given by the detector width and height.
 tomo.rot_angle.full_range = []; % in radians: empty ([]), full angle of rotation, or array of angles. if empty full rotation angles is determined automatically to pi or 2 pi
@@ -169,18 +169,6 @@ write.uint8_segmented = 0; % experimental: threshold segmentation for histograms
 %%% END OF PARAMETERS / SETTINGS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-% overwrite parameters for fast reconstruction
-if exist('fast_reco','var') && fast_reco(1)
-    raw_roi = [1000 -1000]; 
-    raw_bin = 4; 
-    bin_before_filtering(1) = 1;
-    proj_range = 3;
-    ref_range = 10;
-    image_correlation.method = 'none';
-    tomo.reco_mode = 'slice';
-    write.to_scratch = 1;
-end
-
 %%% Reco loop: parameters set by external call from 'p05_reco_loop' %%%%%%%
 if exist( 'external_parameter' ,'var')
     %verbose = 0;
@@ -196,6 +184,18 @@ if exist( 'external_parameter' ,'var')
         assignin('caller', var_name, var_val )
     end
     clear external_parameter;
+end
+
+% overwrite parameters for fast reconstruction
+if exist('fast_reco','var') && fast_reco(1)
+    raw_roi = [1000 -1000]; 
+    raw_bin = 4; 
+    bin_before_filtering(1) = 1;
+    proj_range = 3;
+    ref_range = 10;
+    image_correlation.method = 'none';
+    tomo.reco_mode = 'slice';
+    write.to_scratch = 1;
 end
 
 %% Preprocessing up to proj/flat correlation %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -1819,8 +1819,8 @@ if tomo.run
                 vol_max = max( vol_max, max( vol(:) ) );
                 
                 % Show orthogonal vol cuts
-                if visual_output(1) && isequal( nn, 1 )
-                    figure('Name', sprintf( 'Volume slice %u', ind(1) ));
+                if visual_output(1) && ~mod( nn - 1, 100 )
+                    figure('Name', sprintf( 'Volume slice'));
                     imsc( vol )
                     axis equal tight
                     title( sprintf( 'vol z = %u', ind(1) ) )
@@ -1830,10 +1830,11 @@ if tomo.run
                 end
                 
                 % Save
-                %%% ADD more other format options!!!!!!!!!!!!!!!!!!!!!!!!!
-                
-                % Single precision: 32-bit float tiff
-                write_volume( write.float, vol, 'float', reco_path, raw_bin, phase_bin, 1, ind(nn) - 1, 0);
+                %%% ADD other format options!!!!!!!!!!!!!!!!!!!!!!!!!
+                if write.reco
+                    % Single precision: 32-bit float tiff
+                    write_volume( write.float, vol, 'float', reco_path, raw_bin, phase_bin, 1, ind(nn) - 1, 0);
+                end
                 
             end
             prnt( ' done in %.2f min.', (toc - t2) / 60)

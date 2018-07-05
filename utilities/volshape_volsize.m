@@ -31,6 +31,10 @@ end
 
 %% Main %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+if ~isempty( vol_size ) && isempty( vol_shape )
+    vol_shape = vol_size(2:2:end) - vol_size(1:2:end);
+end
+
 %% Shape
 vol_shape_hor = max( size( proj, 1), round( 2 * ( size( proj, 1)/2 + rot_axis_offset ) ) );
 vol_shape_vert = size( proj, 2 );

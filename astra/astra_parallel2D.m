@@ -32,12 +32,13 @@ function vol = astra_parallel2D(par, sino)
 % For GPUs the only interpolation method available in ASTRA is the Josehp
 % kernel.
 %
+%% Note: For usage with GPU code, the volume must be centered around the
+%% origin and pixels must be square. This is not always explicitly checked
+%% in all functions, so not following these requirements may have
+%% unpredictable results.
+%
 % Written by Julian Moosmann
-% First version: 2018-06-29. Last modification: 2018
-
-%% TODO: test double precision support
-%% TODO: proper Ram-Lak filter for tilted axis
-%% TODO: check normalization factor pi / (2 * # angles)
+% First version: 2018-06-29. Last modification: 2018-07-03
 
 %% Default arguments %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 angles = assign_from_struct( par, 'angles', pi );
@@ -45,7 +46,6 @@ vol_shape = assign_from_struct( par, 'vol_shape', [size( sino, 1), size( sino, 1
 vol_size = assign_from_struct( par, 'vol_size', [] );
 pixel_size = assign_from_struct( par, 'astra_pixel_size', 1 );
 tilt = assign_from_struct( par, 'tilt_camera', 0 );
-link_data = assign_from_struct( par, 'astra_link_data', 0 );
 gpu_index = assign_from_struct( par, 'astra_gpu_index', [] );
 algorithm = assign_from_struct( par, 'algorithm', 'fbp' );
 iterations = assign_from_struct( par, 'iterations', 100);
