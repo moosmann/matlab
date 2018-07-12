@@ -41,6 +41,7 @@ function vol = astra_parallel3D(par, sino)
 %% Default arguments %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 angles = assign_from_struct( par, 'angles', pi );
 rotation_axis_offset = assign_from_struct( par.rot_axis, 'offset', 0);
+angle_offset = assign_from_struct( par.rot_angle, 'offset', 0 );
 vol_shape = assign_from_struct( par, 'vol_shape', [size( sino, 1), size( sino, 1), size(sino, 3) ] );
 vol_size = assign_from_struct( par, 'vol_size', [] );
 pixel_size = assign_from_struct( par, 'astra_pixel_size', [1 1] );
@@ -85,7 +86,7 @@ end
 vectors = zeros( numel(angles), 12);
 for nn = 1:num_proj
     
-    theta = angles( nn );
+    theta = angles( nn ) + angle_offset;
     if isequal( numel( rotation_axis_offset ), 1 )
         rao = rotation_axis_offset;
     else

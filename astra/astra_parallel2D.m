@@ -50,6 +50,7 @@ gpu_index = assign_from_struct( par, 'astra_gpu_index', [] );
 algorithm = assign_from_struct( par, 'algorithm', 'fbp' );
 iterations = assign_from_struct( par, 'iterations', 100);
 rotation_axis_offset = assign_from_struct( par.rot_axis, 'offset', 0);
+angle_offset = assign_from_struct( par.rot_angle, 'offset', 0 );
 %MinConstraint = assign_from_struct( par.sirt, 'MinConstraint', [] );
 %MaxConstraint = assign_from_struct( par.sirt, 'MaxConstraint', [] );
  

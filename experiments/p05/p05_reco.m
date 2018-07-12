@@ -1263,7 +1263,7 @@ if tomo.run || tomo.run_interactive_mode
             set( ax1, 'YTick', [] )
             ax2 = axes( 'Position', ax1.Position, 'XAxisLocation', 'top', 'YAxisLocation', 'right', 'Color', 'none');
             line(1:numel( offset ), 0, 'Parent', ax2 )
-            xlabel( 'index' )
+            xlabel( 'index (image no.)' )
             set( ax2, 'YTick', [] )
             title(sprintf('rotation axis: metrices VS offset'))
             drawnow

@@ -254,6 +254,7 @@ tomo.rot_axis.offset = 2 * 8.5 / raw_bin;
 scan_path = [raw_path 'hnee20_pappel_tensionWood_001']; ADD
 tomo.rot_axis.offset = 2 * 8.25 / raw_bin;
 scan_path = [raw_path 'hnee20_pappel_tensionWood_002']; ADD
+tomo.rot_axis.offset = 2 * 8.0 / raw_bin;
 scan_path = [raw_path 'hnee20_pappel_tensionWood_003']; ADD
 
 scan_path = [raw_path 'hnee21_pappel_oppositeWood_000']; ADD
