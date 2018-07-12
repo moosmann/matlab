@@ -98,18 +98,19 @@ phase_retrieval.cutoff_frequ = 2 * pi; % in radian. frequency cutoff in Fourier 
 phase_retrieval.padding = 1; % padding of intensities before phase retrieval, 0: no padding
 %%% TOMOGRAPHY %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 tomo.run = 1; % run tomographic reconstruction
+tomo.run_interactive_mode = 1; % if tomo.run = 0;
 tomo.reco_mode = '3D'; % slice-wise or full 3D backprojection. 'slice': no support of rotation axis tilt, reco binning, save compressed
 tomo.vol_size = []; %[-0.5 0.5 -0.5 0.5 -0.5 0.5];% for excentric rot axis pos; 6-component vector [xmin xmax ymin ymax zmin zmax]. if empty, volume is centerd within tomo.vol_shape. unit voxel size is assumed. if smaller than 10 values are interpreted as relative size w.r.t. the detector size. Take care bout minus signs!
 tomo.vol_shape = []; %[1 1 1] shape (# voxels) of reconstruction volume. used for excentric rot axis pos. if empty, inferred from 'tomo.vol_size'. in absolute numbers of voxels or in relative number w.r.t. the default volume which is given by the detector width and height.
 tomo.rot_angle.full_range = []; % in radians: empty ([]), full angle of rotation, or array of angles. if empty full rotation angles is determined automatically to pi or 2 pi
-tomo.rot_angle.offset = pi; % global rotation of reconstructed volume
+tomo.rot_angle.offset = pi / 2; % global rotation of reconstructed volume
 tomo.rot_axis.offset = [];%-2.5;[];% if empty use automatic computation
 tomo.rot_axis.position = []; % if empty use automatic computation. EITHER OFFSET OR POSITION MUST BE EMPTY. YOU MUST NOT USE BOTH!
 tomo.rot_axis.tilt = 0; % in rad. camera tilt w.r.t rotation axis. if empty calculate from registration of projections at 0 and pi
 tomo.rot_axis.corr_area1 = []; % ROI to correlate projections at angles 0 & pi. Use [0.75 1] or so for scans with an excentric rotation axis
 tomo.rot_axis.corr_area2 = []; % ROI to correlate projections at angles 0 & pi
 tomo.rot_axis.corr_gradient = 0; % use gradient of intensity maps if signal variations are too weak to correlate projections
-tomo.fbp_filter.type = 'Ram-Lak';'linear'; % see iradonDesignFilter for more options. Ram-Lak according to Kak/Slaney
+tomo.fbp_filter.type = 'linear';
 tomo.fbp_filter.freq_cutoff = 1; % Cut-off frequency in Fourier space of the above FBP filter
 tomo.fbp_filter.padding = 1; % symmetric padding for consistent boundary conditions, 0: no padding
 tomo.fbp_filter.padding_method = 'symmetric';
@@ -169,10 +170,11 @@ SET_DEFAULT
 raw_path = '/asap3/petra3/gpfs/p05/2018/data/11004450/raw/';
 
 image_correlation.method = 'none';
-tomo.vol_size = [-0.25 0.25 -0.5 0.5 -0.5 0.5];
+tomo.vol_size = [-0.5 0.5 -0.5 0.5 -0.5 0.5];
 phase_retrieval.apply = 1; 
 raw_roi = [2301 2600];
-write.reco = 0; % save reconstructed slices (if tomo.run=1)
+write.reco = 0;
+tomo.run = 0;
 
 %scan_path = [raw_path 'hnee01_kie_sh_ts_000N']; ADD
 %scan_path = [raw_path 'hnee02_kie_sh_ts_000N']; ADD
@@ -180,14 +182,13 @@ write.reco = 0; % save reconstructed slices (if tomo.run=1)
 %scan_path = [raw_path 'hnee04_kie_sh_ts_000N']; ADD
 %scan_path = [raw_path 'hnee05_kie_sh_ts_000N']; ADD
 %scan_path = [raw_path 'hnee06_kie_sh_ts_000N']; ADD % some mismatch
-raw_roi = [301 3300];
+%raw_roi = [301 3300];
 tomo.rot_axis.offset = 2 * -784 / raw_bin;
 scan_path = [raw_path 'hnee07_kie_sh_ts_000N']; ADD
 
-raw_roi = [301 3300];
-tomo.rot_axis.offset = 2 * -784 / raw_bin;
+%raw_roi = [301 3300];
+tomo.rot_axis.offset = 2 * -783.5 / raw_bin;
 scan_path = [raw_path 'hnee08_kie_sh_ts_000']; ADD
-
 scan_path = [raw_path 'hnee09_kie_sh_ts_001']; ADD
 scan_path = [raw_path 'hnee09_kie_sh_ts_002']; ADD
 scan_path = [raw_path 'hnee09_kie_sh_ts_003']; ADD
@@ -209,28 +210,49 @@ scan_path = [raw_path 'hnee15_kie_fh_ts_000']; ADD
 scan_path = [raw_path 'hnee16_kie_fh_ts_000']; ADD
 scan_path = [raw_path 'hnee17_kie_fh_ts_000']; ADD
 
+tomo.rot_axis.offset = 2 * -10.0 / raw_bin;
 scan_path = [raw_path 'hnee18_pappel_tensionWood_000']; ADD
+tomo.rot_axis.offset = 2 * -10.75 / raw_bin;
 scan_path = [raw_path 'hnee18_pappel_tensionWood_001']; ADD
+tomo.rot_axis.offset = 2 * -10.75 / raw_bin;
 scan_path = [raw_path 'hnee18_pappel_tensionWood_002']; ADD
+tomo.rot_axis.offset = 2 * -10.85 / raw_bin;
 scan_path = [raw_path 'hnee18_pappel_tensionWood_003']; ADD
+tomo.rot_axis.offset = 2 * -11.0 / raw_bin;
 scan_path = [raw_path 'hnee18_pappel_tensionWood_004']; ADD
 scan_path = [raw_path 'hnee18_pappel_tensionWood_005']; ADD
+tomo.rot_axis.offset = 2 * -10.75 / raw_bin;
 scan_path = [raw_path 'hnee18_pappel_tensionWood_006']; ADD
+tomo.rot_axis.offset = 2 * -11.0 / raw_bin;
 scan_path = [raw_path 'hnee18_pappel_tensionWood_007']; ADD
+tomo.rot_axis.offset = 2 * -11.25 / raw_bin;
 scan_path = [raw_path 'hnee18_pappel_tensionWood_008']; ADD
 
+tomo.rot_axis.offset = 2 * -10.85 / raw_bin;
 scan_path = [raw_path 'hnee19_pappel_oppositeWood_000']; ADD
+tomo.rot_axis.offset = 2 * -10.3 / raw_bin;
 scan_path = [raw_path 'hnee19_pappel_oppositeWood_001']; ADD
+tomo.rot_axis.offset = 2 * -10.35 / raw_bin;
 scan_path = [raw_path 'hnee19_pappel_oppositeWood_002']; ADD
-scan_path = [raw_path 'hnee19_pappel_oppositeWood_003']; ADD
+tomo.rot_axis.offset = 2 * -10.35 / raw_bin;
+scan_path = [raw_path 'hnee19_pappel_oppositeWood_003']; ADD 
+% bad reco
 scan_path = [raw_path 'hnee19_pappel_oppositeWood_004']; ADD
+tomo.rot_axis.offset = 2 * -10.6 / raw_bin;
 scan_path = [raw_path 'hnee19_pappel_oppositeWood_005']; ADD
+tomo.rot_axis.offset = 2 * -10.7 / raw_bin;
 scan_path = [raw_path 'hnee19_pappel_oppositeWood_006']; ADD
+tomo.rot_axis.offset = 2 * -10.75 / raw_bin;
 scan_path = [raw_path 'hnee19_pappel_oppositeWood_007']; ADD
+tomo.rot_axis.offset = 2 * -10.75 / raw_bin;
 scan_path = [raw_path 'hnee19_pappel_oppositeWood_008']; ADD
 
+% Movement
+tomo.rot_axis.offset = 2 * 8.5 / raw_bin;
 scan_path = [raw_path 'hnee20_pappel_tensionWood_000']; ADD
+tomo.rot_axis.offset = 2 * 8.5 / raw_bin;
 scan_path = [raw_path 'hnee20_pappel_tensionWood_001']; ADD
+tomo.rot_axis.offset = 2 * 8.25 / raw_bin;
 scan_path = [raw_path 'hnee20_pappel_tensionWood_002']; ADD
 scan_path = [raw_path 'hnee20_pappel_tensionWood_003']; ADD
 
