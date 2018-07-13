@@ -257,19 +257,32 @@ scan_path = [raw_path 'hnee20_pappel_tensionWood_002']; ADD
 tomo.rot_axis.offset = 2 * 8.0 / raw_bin;
 scan_path = [raw_path 'hnee20_pappel_tensionWood_003']; ADD
 
+tomo.rot_axis.offset = 2 * 7.5 / raw_bin;
 scan_path = [raw_path 'hnee21_pappel_oppositeWood_000']; ADD
+tomo.rot_axis.offset = 2 * 9.0 / raw_bin;
 scan_path = [raw_path 'hnee21_pappel_oppositeWood_001']; ADD
+tomo.rot_axis.offset = 2 * 8.85 / raw_bin;
 scan_path = [raw_path 'hnee21_pappel_oppositeWood_002']; ADD
+tomo.rot_axis.offset = 2 * 8.9 / raw_bin;
 scan_path = [raw_path 'hnee21_pappel_oppositeWood_003']; ADD
+tomo.rot_axis.offset = 2 * 8.9 / raw_bin;
 scan_path = [raw_path 'hnee21_pappel_oppositeWood_004']; ADD
+tomo.rot_axis.offset = 2 * 8.8 / raw_bin;
 scan_path = [raw_path 'hnee21_pappel_oppositeWood_005']; ADD
+tomo.rot_axis.offset = 2 * 9.05 / raw_bin;
 scan_path = [raw_path 'hnee21_pappel_oppositeWood_006']; ADD
 
+tomo.rot_axis.offset = 2 * 9.1 / raw_bin;
 scan_path = [raw_path 'hnee22_pappel_oppositeWood_000']; ADD
+tomo.rot_axis.offset = 2 * 9.1 / raw_bin;
 scan_path = [raw_path 'hnee22_pappel_oppositeWood_001']; ADD
+tomo.rot_axis.offset = 2 * 9.1 / raw_bin;
 scan_path = [raw_path 'hnee22_pappel_oppositeWood_002']; ADD
+tomo.rot_axis.offset = 2 * 10.3 / raw_bin;
 scan_path = [raw_path 'hnee22_pappel_oppositeWood_003']; ADD
+tomo.rot_axis.offset = 2 * 10.3 / raw_bin;
 scan_path = [raw_path 'hnee22_pappel_oppositeWood_004']; ADD
+tomo.rot_axis.offset = 2 * 10.39 / raw_bin;
 scan_path = [raw_path 'hnee22_pappel_oppositeWood_005']; ADD
 
 scan_path = [raw_path 'hnee23_pappel_tensionWood_000']; ADD

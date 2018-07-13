@@ -1041,6 +1041,7 @@ end
 %%% Rotation axis position and tomgraphic reconstruction parameters %%%
 tint = 0;
 if tomo.run || tomo.run_interactive_mode
+    prnt( '\nTomography:')
     t = toc;
     % ROI for correlation of projections at angles 0 & pi
     if isempty( tomo.rot_axis.corr_area1 )
@@ -1168,7 +1169,11 @@ if tomo.run || tomo.run_interactive_mode
         else
             itake_neg_log = 1;
         end
-        inumber_of_stds = 4;        
+        if phase_retrieval.apply
+            inumber_of_stds = 9;
+        else
+            inumber_of_stds = 4;
+        end
         if interactive_mode.slice_number > 1
             slice = interactive_mode.slice_number;
         elseif interactive_mode.slice_number <= 1 && interactive_mode.slice_number >= 0
@@ -1265,7 +1270,7 @@ if tomo.run || tomo.run_interactive_mode
             line(1:numel( offset ), 0, 'Parent', ax2 )
             xlabel( 'index (image no.)' )
             set( ax2, 'YTick', [] )
-            title(sprintf('rotation axis: metrices VS offset'))
+            title(sprintf('rotation axis: metrics VS offset'))
             drawnow
             
             % Play
@@ -1362,8 +1367,15 @@ if tomo.run || tomo.run_interactive_mode
                         Y = cell2mat({metrics_tilt(x).val});
                         plot( tilt, Y, '-+');
                         axis tight
+                        xlabel( 'tilt angle' )
                         legend( metrics_tilt(x).name)
-                        title(sprintf('metric VS rotation axis tilt'))
+                        ax1 = gca;
+                        set( ax1, 'YTick', [] )
+                        ax2 = axes( 'Position', ax1.Position, 'XAxisLocation', 'top', 'YAxisLocation', 'right', 'Color', 'none');
+                        line(1:numel( offset ), 0, 'Parent', ax2 )
+                        xlabel( 'index (image no.)' )
+                        set( ax2, 'YTick', [] )
+                        title(sprintf('rotation axis: metrics VS tilt'))
                         drawnow
                         
                         % Play
