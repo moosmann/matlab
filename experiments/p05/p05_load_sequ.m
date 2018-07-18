@@ -1,3 +1,4 @@
+function [vol, vol_reg] = p05_load_sequ( proc_path, scan_name, reco_sub, regdir, nn_max, out_thresh, register )
 % Create images sequences from 4D load tomography data.
 %
 % Script to process in 4D image squences e.g. from load tomography. Read in
@@ -13,34 +14,48 @@
 % out_thresh : scalar, < 1, percentage of outliers to be filtered before
 %   8bit conversion
 
-tic
-close all hidden
-
-% PARAMETERS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-nn_max = []; % # of tomos to process, use low number for testing
-regdir = 'x'; % x or y cut, y sometimes works better if there are more structures to correlate
-
-proc_path = '/asap3/petra3/gpfs/p05/2017/data/11004016/processed';
-%scan_name = 'syn002_6L_PEEK_4w'; 
-%scan_name = 'syn003_92L_Mg10Gd_4w';
-%scan_name = 'syn004_84L_Mg10Gd_4w'; regdir = 'y';
-%scan_name = 'syn005_81L_Mg5Gd_8w'; 
-%scan_name = 'syn006_75R_Mg10Gd_8w';
-scan_name = 'syn007_94L_Mg10Gd_8w';
-%scan_name = 'syn008_76R_Mg10Gd_8w';
-%scan_name = 'syn009_32R_PEEK_8w';
-%scan_name = 'syn010_19R_PEEK_4w';
-%scan_name = 'syn011_14R_PEEK_4w'; regdir = 'y';
-%scan_name = 'syn012_79L_Mg5Gd_8w'; % empty scans [1:3 14:20];
-
-reco_sub = 'float_rawBin4';
-out_thresh = 0.01; % percentage of outliers to be thresholded 
+%% DEFAULT ARGUMENTS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+if nargin < 1
+    proc_path = '/asap3/petra3/gpfs/p05/2017/data/11004016/processed';
+end
+if nargin < 2
+    %scan_name = 'syn002_6L_PEEK_4w';
+    %scan_name = 'syn003_92L_Mg10Gd_4w';
+    %scan_name = 'syn004_84L_Mg10Gd_4w'; regdir = 'y';
+    %scan_name = 'syn005_81L_Mg5Gd_8w';
+    %scan_name = 'syn006_75R_Mg10Gd_8w';
+    scan_name = 'syn007_94L_Mg10Gd_8w';
+    %scan_name = 'syn008_76R_Mg10Gd_8w';
+    %scan_name = 'syn009_32R_PEEK_8w';
+    %scan_name = 'syn010_19R_PEEK_4w';
+    %scan_name = 'syn011_14R_PEEK_4w'; regdir = 'y';
+    %scan_name = 'syn012_79L_Mg5Gd_8w'; % empty scans [1:3 14:20];
+end
+if nargin < 3
+    reco_sub = ['/reco/float_rawBin4'];
+end
+if nargin < 4
+    regdir = 'x'; % x or y cut, y sometimes works better if there are more structures to correlate
+end
+if nargin < 5
+    nn_max = []; % # of tomos to process, use low number for testing
+    
+end
+if nargin < 6
+    out_thresh = 0.01; % percentage of outliers to be thresholded
+end
+if nargin < 7
+    register = 0;
+end
 
 % TO DO
 % get outlier thresholds from severl slices
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+tic
+close all hidden
+
 fprintf( '\n LOAD SEQUENCE PROCESSING')
 
 scan_path = [proc_path filesep scan_name];
@@ -56,9 +71,13 @@ if isempty( nn_max )
     nn_max = numel( struct_scans);
 end
 
+if ~strcmp( reco_sub(1), '/' )
+    reco_sub = [ '/' reco_sub];
+end
+
 % Preallocation
 fprintf( '\n Allocation of 4D volume. Size:' )
-p = [proc_path filesep struct_scans(3).name '/reco/' reco_sub];
+p = [proc_path filesep struct_scans(3).name reco_sub];
 struct_slices = dir( [p filesep '*.tif']);
 num_slices = numel( struct_slices );
 tinfo = imfinfo( [struct_slices(1).folder filesep struct_slices( floor( num_slices / 2 )).name]);
@@ -94,7 +113,7 @@ drawnow
 t = toc;
 for nn = 1:nn_max
     fprintf( '\n %2u : %s.', nn, struct_scans(nn).name)
-    p = [proc_path filesep struct_scans(nn).name '/reco/' reco_sub];
+    p = [proc_path filesep struct_scans(nn).name reco_sub];
     struct_slices = dir( [p filesep '*.tif']);
     num_slices = numel( struct_slices );
     parfor mm = 1:num_slices
@@ -107,36 +126,41 @@ end
 fprintf( '\n Read data in %.1f s', toc - t);
 
 %% Registering
-t = toc;
-fprintf( '\n Registering slices ' )
-shift = zeros(nn_max,1);
-for nn = 1:nn_max-1
-    if strcmp( regdir, 'x')
-        im1 = squeeze( vol(round(size(vol,1)/2),100:end-100,100:end-100,nn));
-        im2 = squeeze( vol(round(size(vol,1)/2),100:end-100,100:end-100,nn + 1));
-    elseif strcmp( regdir, 'y' )
-        im1 = squeeze( vol(100:end-100,round(size(vol,2)/2),100:end-100,nn));
-        im2 = squeeze( vol(100:end-100,round(size(vol,2)/2),100:end-100,nn + 1));
+if register
+    t = toc;
+    fprintf( '\n Registering slices ' )
+    shift = zeros(nn_max,1);
+    for nn = 1:nn_max-1
+        if strcmp( regdir, 'x')
+            im1 = squeeze( vol(round(size(vol,1)/2),100:end-100,100:end-100,nn));
+            im2 = squeeze( vol(round(size(vol,1)/2),100:end-100,100:end-100,nn + 1));
+        elseif strcmp( regdir, 'y' )
+            im1 = squeeze( vol(100:end-100,round(size(vol,2)/2),100:end-100,nn));
+            im2 = squeeze( vol(100:end-100,round(size(vol,2)/2),100:end-100,nn + 1));
+        end
+        out = ImageCorrelation(im1,im2);
+        shift(nn+1) = round( out.shift2);
     end
-    out = ImageCorrelation(im1,im2);
-    shift(nn+1) = round( out.shift2);
-end
-z0 = abs( cumsum( shift ) );
-z1 = max(z0) - z0;
-fprintf( '\n frame-to-frame shifts : ' )
-fprintf( '%g ', shift)
-fprintf( '\n global shifts : ' )
-fprintf( '%g ', z0)
-
-fprintf( '\n Cropping volumes. Original size : %u x %u x %u x %u.', size( vol) )
-vol_reg = zeros( [size(vol,1), size(vol,2), size(vol,3) - max(z0), nn_max], 'uint8' );
-fprintf( '\n New size : %u x %u x %u x %u ', size( vol_reg) )
-for nn = 1:nn_max
-    vol_reg(:,:,:,nn) = vol(:,:,1+z0(nn):end-z1(nn),nn);
-    %disp( size( vol(:,:,1+z0(nn):end-z1(nn),nn) ) )
+    z0 = abs( cumsum( shift ) );
+    z1 = max(z0) - z0;
+    fprintf( '\n frame-to-frame shifts : ' )
+    fprintf( '%g ', shift)
+    fprintf( '\n global shifts : ' )
+    fprintf( '%g ', z0)
     
+    fprintf( '\n Cropping volumes. Original size : %u x %u x %u x %u.', size( vol) )
+    vol_reg = zeros( [size(vol,1), size(vol,2), size(vol,3) - max(z0), nn_max], 'uint8' );
+    fprintf( '\n New size : %u x %u x %u x %u ', size( vol_reg) )
+    for nn = 1:nn_max
+        vol_reg(:,:,:,nn) = vol(:,:,1+z0(nn):end-z1(nn),nn);
+        %disp( size( vol(:,:,1+z0(nn):end-z1(nn),nn) ) )
+        
+    end
+    fprintf( 'Done in %.1f s', toc - t);
+else
+    fprintf( '\n No registerion of slice ' )
+    vol_reg = vol;
 end
-fprintf( 'Done in %.1f s', toc - t);
 
 %% Save
 %nimplay(cat(3,im1(s:end,:),im2(1:end-s+1,:)))

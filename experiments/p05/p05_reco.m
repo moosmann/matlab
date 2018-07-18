@@ -1260,15 +1260,15 @@ if tomo.run || tomo.run_interactive_mode
             h_rot_off = figure('Name', 'OFFSET: metrics');
             x = 1:7;%[1:4 6:7];
             Y = cell2mat({metrics_offset(x).val});
-            plot( offset, Y, '-+');
+            plot( offset, Y, '-+');            
             axis tight
             xlabel( 'offset' )
             legend( metrics_offset(x).name )
-            ax1 = gca;
-            set( ax1, 'YTick', [] )
+            ax1 = gca;            
             ax2 = axes( 'Position', ax1.Position, 'XAxisLocation', 'top', 'YAxisLocation', 'right', 'Color', 'none');
             line(1:numel( offset ), 0, 'Parent', ax2 )
             xlabel( 'index (image no.)' )
+            set( ax1, 'YTick', [] ) % 'XTickMode', 'auto', 'XMinorTick', 'on')
             set( ax2, 'YTick', [] )
             title(sprintf('rotation axis: metrics VS offset'))
             drawnow
@@ -1978,7 +1978,7 @@ if write.reco
         fprintf(fid, 'write.uint8 : %u\n', write.uint8);
         fprintf(fid, 'write.uint8_binned : %u\n', write.uint8_binned);
         fprintf(fid, 'write.compression.method : %s\n', write.compression.method);
-        if exist( tlow, 'var' ) && exist( tlow, 'var' )
+        if exist( 'tlow', 'var' ) && exist( 'thigh', 'var' )
             fprintf(fid, 'compression_limits : %f %f\n', tlow, thigh);
         end
         fprintf(fid, 'reco_bin : %u\n', reco_bin);
