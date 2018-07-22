@@ -7,7 +7,7 @@ if nargin < 2
     SourceSample_m =  145;
 end
 if nargin < 3
-    SourceSize_micron = SigmaToFWHM(90);
+    SourceSize_micron = sigma_to_FWHM(90);
 end
 if nargin < 4
     SampleDetector_m = 2;
@@ -37,6 +37,21 @@ end
 
 % ESRF, odd IDs: sigma = fwhm/2.355 = h: 51, v: 8.6
 
+% DLS
+% https://www.diamond.ac.uk/Science/Machine.html
+%I13-2: Imaging
+% source size hor 267.6 micron
+% source size ver 2.9 micron
+% source divergence hor 26.5 micro rad
+% source divergence ver 2.8 micro rad
+
+%I13-1: Coherence
+% source size hor 307.8 micron
+% source size ver 3.6  micron
+% source divergence hor 18.6 micro rad
+% source divergence ver 2.3 micro rad
+
+% distance source sample 250m
 
 %% all outpus in micron
 
@@ -98,7 +113,7 @@ disp(out.omega)
 fprintf('Geometric blur in micron: \n\n')
 disp(out.blur)
 
-fprintf('Blur-induced over resolution-induced frequency cut-off: \n\n')
+fprintf('Geometric blur induced frequency cut-off (pixel size / geomtric blur): \n\n')
 disp(out.frequency)
 
 fprintf('Distance between sample points that interfere due to autocorrelation in micron: \n\n')

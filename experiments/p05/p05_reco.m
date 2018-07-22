@@ -1746,6 +1746,18 @@ if tomo.run
                 reco_path = reco_phase_path;
             end
             
+            % Save ortho slices x
+            nn = round( size( vol, 1 ) / 2);
+            im = squeeze( vol(nn,:,:) );
+            filename = sprintf( '%s/reco_x%05u', reco_path, nn);
+            write32bitTIFfromSingle( filename, im);
+            
+            % Save ortho slices y
+            nn = round( size( vol, 2 ) / 2);
+            im = squeeze( vol(:,nn,:) );
+            filename = sprintf( '%s/reco_y%05u', reco_path, nn);
+            write32bitTIFfromSingle( filename, im);
+            
             % Save volume
             if write.reco
                 reco_bin = write.reco_binning_factor; % alias for readablity
