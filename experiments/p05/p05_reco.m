@@ -99,8 +99,8 @@ phase_retrieval.padding = 1; % padding of intensities before phase retrieval, 0:
 %%% TOMOGRAPHY %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 tomo.run = 1; % run tomographic reconstruction
 tomo.run_interactive_mode = 1; % if tomo.run = 0;
-tomo.reco_mode = 'slice'; '3D'; % slice-wise or full 3D backprojection. 'slice': volume must be centered at origin & no support of rotation axis tilt, reco binning, save compressed
-tomo.vol_size = []; %[-0.5 0.5 -0.5 0.5 -0.5 0.5];% for excentric rot axis pos; 6-component vector [xmin xmax ymin ymax zmin zmax]. if empty, volume is centerd within tomo.vol_shape. unit voxel size is assumed. if smaller than 10 values are interpreted as relative size w.r.t. the detector size. Take care bout minus signs!
+tomo.reco_mode = '3D'; 'slice'; % slice-wise or full 3D backprojection. 'slice': volume must be centered at origin & no support of rotation axis tilt, reco binning, save compressed
+tomo.vol_size = []; %[-0.5 0.5 -0.5 0.5 -0.5 0.5];% 6-component vector [xmin xmax ymin ymax zmin zmax], for excentric rot axis pos / extended FoV;. if empty, volume is centerd within tomo.vol_shape. unit voxel size is assumed. if smaller than 10 values are interpreted as relative size w.r.t. the detector size. Take care bout minus signs! Note that if empty vol_size is dependent on the rotation axis position.
 tomo.vol_shape = []; %[1 1 1] shape (# voxels) of reconstruction volume. used for excentric rot axis pos. if empty, inferred from 'tomo.vol_size'. in absolute numbers of voxels or in relative number w.r.t. the default volume which is given by the detector width and height.
 tomo.rot_angle.full_range = []; % in radians: empty ([]), full angle of rotation, or array of angles. if empty full rotation angles is determined automatically to pi or 2 pi
 tomo.rot_angle.offset = pi; % global rotation of reconstructed volume
@@ -195,7 +195,7 @@ if exist('fast_reco','var') && fast_reco(1)
     proj_range = 3;
     ref_range = 10;
     image_correlation.method = 'none';
-    tomo.reco_mode = 'slice';
+    %tomo.reco_mode = 'slice';
     write.to_scratch = 1;
 end
 
@@ -204,7 +204,7 @@ tic
 if interactive_mode.rot_axis_tilt && strcmpi( tomo.reco_mode, 'slice' )
     error( 'Slicewise reconstruction and reconstruction with tilted rotation axis are not compatible!' )
 end
-
+% set (relative) vol_shape from vol_size if vol_shape is empty, but vol_size is given
 if ~isempty( tomo.vol_size ) && isempty( tomo.vol_shape )
     tomo.vol_shape = tomo.vol_size(2:2:end) - tomo.vol_size(1:2:end);
 end

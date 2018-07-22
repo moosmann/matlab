@@ -18,7 +18,7 @@ function p05_create_reco_loop( raw_path, scan_name_pattern, out_path, suffix_to_
 % suffix_to_scrip_name : str. Default: ''. String to append to filename of the script.
 %   A 3-digit running index is used to avoid overwriting existing scripts.
 %   
-% Written by Julian Moosmann, 2017-10-10. Last version: 2018-07-02
+% Written by Julian Moosmann, 2017-10-10. Last version: 2018-07-22
 %
 % p05_create_reco_loop( raw_path, scan_name_pattern, suffix_to_scrip_name, out_path)
 
@@ -88,7 +88,7 @@ end
 %% Create template %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % Read top and bottom parts from files
-p = '/asap3/petra3/gpfs/common/p05/jm/matlab/experiments/p05/';
+p = [userpath '/experiments/p05/'];
 top = fileread( sprintf('%s%s', p, 'reco_loop_template_top.m' ) );
 middle = fileread( sprintf('%s%s', p, 'reco_loop_template_middle.m' ) );
 middle_2 = fileread( sprintf('%s%s', p, 'reco_loop_template_middle_2.m' ) );
@@ -104,7 +104,7 @@ fprintf(fid, 'Created on %s by %s\n', date, getenv('USER') );
 fprintf(fid, '\n%s', middle);
 
 % Paramter set
-fidrec = fopen( '/asap3/petra3/gpfs/common/p05/jm/matlab/experiments/p05/p05_reco.m', 'r' );
+fidrec = fopen( [userpath '/experiments/p05/p05_reco.m'], 'r' );
 writetag = 0;
 while 1
     c = textscan(fidrec,'%s',1, 'Delimiter', {'\n'});
