@@ -16,7 +16,7 @@ function [tlow, thigh, histo] = compression( vol, method, parameter, verbose )
 % [tlow, thigh, histo] = compression( vol, method, parameter, verbose )
 
 if nargin < 2
-    method = 'ful';
+    method = 'outlier';
 end
 if nargin < 3
     parameter = [1 0];
@@ -41,7 +41,7 @@ switch lower( method )
         % deviations centered around the mean value of the data
         vol_mean = mean3( vol );
         vol_std = std3( vol );
-        num_std = parameter(1);
+        %num_std = parameter(1);
         tlow = vol_mean - num_stds * vol_std;
         thigh = vol_mean + num_stds * vol_std;        
     
@@ -49,7 +49,9 @@ switch lower( method )
         % use dyanmic range within given lower and upper
         % thresholds
         tlow = parameter(1);
-        thigh = parameter(2);    
+        thigh = parameter(2);
+    case 'outlier'
+        [~, tlow, thigh] = FilterOutlier( vol, parameter(1), parameter(2), '', 1, 0 );
     
     case 'histo'
         % crop dynamic range using histogram of volume ROI

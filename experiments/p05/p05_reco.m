@@ -137,16 +137,17 @@ write.sino = 0; % save sinograms (after preprocessing & before FBP filtering and
 write.phase_sino = 0; % save sinograms of phase maps
 write.reco = 1; % save reconstructed slices (if tomo.run=1)
 write.float = 1; % single precision (32-bit float) tiff
-write.uint16 = 0; % additionally save 16bit unsigned integer tiff using 'write.compression.method'
-write.uint8 = 0; % additionally save binned 8bit unsigned integer tiff using 'write.compression.method'
+write.uint16 = 0; % save 16bit unsigned integer tiff using 'write.compression.method'
+write.uint8 = 0; % save binned 8bit unsigned integer tiff using 'write.compression.method'
 % Optionally save binned reconstructions, only works in '3D' reco_mode
-write.float_binned = 0; % additionally save binned single precision (32-bit float) tiff
-write.uint16_binned = 0; % additionally save binned 16bit unsigned integer tiff using 'write.compression.method'
-write.uint8_binned = 0; % additionally save binned 8bit unsigned integer tiff using 'wwrite.compression.method'
+write.float_binned = 0; % save binned single precision (32-bit float) tiff
+write.uint16_binned = 0; % save binned 16bit unsigned integer tiff using 'write.compression.method'
+write.uint8_binned = 0; % save binned 8bit unsigned integer tiff using 'wwrite.compression.method'
 write.reco_binning_factor = 2; % IF BINNED VOLUMES ARE SAVED: binning factor of reconstructed volume
 write.compression.method = 'outlier';'histo';'full'; 'std'; 'threshold'; % method to compression dynamic range into [0, 1]
 write.compression.parameter = [0.20 0.15]; % compression-method specific parameter
 % dynamic range is compressed s.t. new dynamic range assumes
+% 'outlier' : [LOW, HIGH] = write.compression.parameter, eg. [0.01 0.03], outlier given in percent, if scalear LOW = HIGH.
 % 'full' : full dynamic range is used
 % 'threshold' : [LOW HIGH] = write.compression.parameter, eg. [-0.01 1]
 % 'std' : NUM = write.compression.parameter, mean +/- NUM*std, dynamic range is rescaled to within -/+ NUM standard deviations around the mean value
