@@ -144,7 +144,7 @@ write.float_binned = 0; % additionally save binned single precision (32-bit floa
 write.uint16_binned = 0; % additionally save binned 16bit unsigned integer tiff using 'write.compression.method'
 write.uint8_binned = 0; % additionally save binned 8bit unsigned integer tiff using 'wwrite.compression.method'
 write.reco_binning_factor = 2; % IF BINNED VOLUMES ARE SAVED: binning factor of reconstructed volume
-write.compression.method = 'histo';'full'; 'std'; 'threshold'; % method to compression dynamic range into [0, 1]
+write.compression.method = 'outlier';'histo';'full'; 'std'; 'threshold'; % method to compression dynamic range into [0, 1]
 write.compression.parameter = [0.20 0.15]; % compression-method specific parameter
 % dynamic range is compressed s.t. new dynamic range assumes
 % 'full' : full dynamic range is used
@@ -1470,7 +1470,7 @@ if tomo.run || tomo.run_interactive_mode
         axis equal tight
         title(sprintf('proj at pi'))
         colorbar
-                
+        
         xt = ceil( 3 * abs( sin(2*tomo.rot_axis.tilt) ) * max( size(im1c)) ) + 2;
         subplot(m, n, 3)
         imsc1( abs( im1c(xt:end-xt,xt:end-xt) - im2c(xt:end-xt,xt:end-xt) ) )
@@ -1550,7 +1550,7 @@ if stitch_projections(1)
 end
 
 %% Ring artifact filter %%
-if ring_filter.apply && ~ring_filter.apply_before_stitching    
+if ring_filter.apply && ~ring_filter.apply_before_stitching
     [proj, h] = p05_filter_ring_artefacts( ring_filter, proj, angles, verbose, visual_output);
     proj_min = min( proj(:) );
     proj_max = max( proj(:) );
@@ -1588,7 +1588,7 @@ end
 
 %% Phase retrieval %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 if phase_retrieval.apply && ~phase_retrieval.apply_before
-    edp = [energy, sample_detector_distance, eff_pixel_size_binned];    
+    edp = [energy, sample_detector_distance, eff_pixel_size_binned];
     [proj, reco_phase_path] = p05_phase_retrieval( phase_retrieval, edp, proj, write.path, write.subfolder.reco, write, phase_map_path, verbose, visual_output);
 end
 
@@ -1602,7 +1602,7 @@ if phase_retrieval.apply && write.phase_sino
         filename = sprintf( '%ssino_%06u.tif', sino_phase_path, nn);
         write32bitTIFfromSingle( filename, squeeze( proj( :, nn, :) )' )
     end
-    pause(0.01)    
+    pause(0.01)
     prnt( ' done in %.1f s (%.2f min)', toc - t, (toc - t) / 60)
 end
 
@@ -1628,7 +1628,7 @@ if tomo.run
     prnt( '\nTomographic reconstruction:')
     
     vol = zeros( tomo.vol_shape, 'single' );
-
+    
     prnt( '\n volume shape: [%g, %g, %g]', tomo.vol_shape )
     prnt( '\n volume memory allocated: %.2f GiB', Bytes( vol, 3 ) )
     %prod( tomo.vol_shape ) * 4 / 1024^3 ;
@@ -1880,6 +1880,7 @@ if write.reco
 else
     logfile_path = write.path;
 end
+CheckAndMakePath( logfile_path )
 if write.reco
     logfile_name = sprintf( '%sreco.log', logfile_path);
     fid = fopen( logfile_name, 'w');
@@ -1932,72 +1933,74 @@ if write.reco
         fprintf(fid, 'phase_retrieval.cutoff_frequency : %f pi\n', phase_retrieval.cutoff_frequ / pi);
         fprintf(fid, 'phase_retrieval.post_binning_factor : %u\n', phase_bin);
     end
-    % Volume
-    fprintf(fid, 'tomo.vol_shape : %u %u %u\n', tomo.vol_shape(1), tomo.vol_shape(2), tomo.vol_shape(3));
-    fprintf(fid, 'tomo.vol_size : %f %f %f %f %f %f\n', tomo.vol_size(1), tomo.vol_size(2), tomo.vol_size(3), tomo.vol_size(4), tomo.vol_size(5), tomo.vol_size(6));
-    % Rotation
-    fprintf(fid, 'excentric_rot_axis : %i\n', excentric_rot_axis);
-    fprintf(fid, 'crop_at_rot_axis : %u\n', crop_at_rot_axis);
-    fprintf(fid, 'stitch_projections : %u\n', stitch_projections);
-    fprintf(fid, 'stitch_method : %s\n', stitch_method );
-    fprintf(fid, 'tomo.reco_mode : %s\n', tomo.reco_mode);
-    fprintf(fid, 'tomo.rot_angle.full_range : %f * pi rad\n', tomo.rot_angle.full_range / pi);
-    fprintf(fid, 'tomo.rot_angle.offset : %f * pi rad\n', tomo.rot_angle.offset / pi);
-    fprintf(fid, 'rotation_axis_offset_calculated : %f\n', rot_axis_offset_calc);
-    fprintf(fid, 'rot_axis_offset_reco : %f\n', rot_axis_offset_reco);
-    fprintf(fid, 'rotation_axis_offset_reco : %f\n', rot_axis_offset_reco);
-    fprintf(fid, 'rotation_axis_position_calculated : %f\n', rot_axis_pos_calc);
-    fprintf(fid, 'tomo.rot_axis.position : %f\n', tomo.rot_axis.position);
-    fprintf(fid, 'rotation_axis_tilt_calculated : %f\n', rot_axis_tilt_calc);
-    fprintf(fid, 'tomo.rot_axis.tilt : %f\n', tomo.rot_axis.tilt);
-    fprintf(fid, 'raw_image_binned_center : %f\n', im_shape_binned1 / 2);
-    fprintf(fid, 'tomo.rot_axis.corr_area1 : %u:%u:%u\n', tomo.rot_axis.corr_area1(1), tomo.rot_axis.corr_area1(2) - tomo.rot_axis.corr_area1(1), tomo.rot_axis.corr_area1(end));
-    fprintf(fid, 'tomo.rot_axis.corr_area2 : %u:%u:%u\n', tomo.rot_axis.corr_area2(1), tomo.rot_axis.corr_area2(2) - tomo.rot_axis.corr_area2(1), tomo.rot_axis.corr_area2(end));
-    fprintf(fid, 'interactive_mode.rot_axis_pos : %u\n', interactive_mode.rot_axis_pos);
-    % Ring filter
-    fprintf(fid, 'ring_filter.apply : %u\n', ring_filter.apply);
-    if ring_filter.apply
-        fprintf(fid, 'ring_filter.method : %s\n', ring_filter.method);
-        fprintf(fid, 'ring_filter.apply_before_stitching : %u\n', ring_filter.apply_before_stitching);
-        switch lower( ring_filter.method )
-            case 'wavelet-fft'
-                fprintf(fid, 'ring_filter.waveletfft.wname : %s\n', ring_filter.waveletfft.wname );
-                fprintf(fid, 'ring_filter.waveletfft.dec_levels : [%s]\n', sprintf( ' %u', ring_filter.waveletfft.dec_levels) );
-                fprintf(fid, 'ring_filter.waveletfft.sigma : %f\n', ring_filter.waveletfft.sigma );
-            case 'jm'
-                fprintf(fid, 'ring_filter.jm.median_width : %s\n', sprintf( '%u ', ring_filter.jm.median_width) );
+    if tomo.apply
+        % Volume
+        fprintf(fid, 'tomo.vol_shape : %u %u %u\n', tomo.vol_shape(1), tomo.vol_shape(2), tomo.vol_shape(3));
+        fprintf(fid, 'tomo.vol_size : %f %f %f %f %f %f\n', tomo.vol_size(1), tomo.vol_size(2), tomo.vol_size(3), tomo.vol_size(4), tomo.vol_size(5), tomo.vol_size(6));
+        % Rotation
+        fprintf(fid, 'excentric_rot_axis : %i\n', excentric_rot_axis);
+        fprintf(fid, 'crop_at_rot_axis : %u\n', crop_at_rot_axis);
+        fprintf(fid, 'stitch_projections : %u\n', stitch_projections);
+        fprintf(fid, 'stitch_method : %s\n', stitch_method );
+        fprintf(fid, 'tomo.reco_mode : %s\n', tomo.reco_mode);
+        fprintf(fid, 'tomo.rot_angle.full_range : %f * pi rad\n', tomo.rot_angle.full_range / pi);
+        fprintf(fid, 'tomo.rot_angle.offset : %f * pi rad\n', tomo.rot_angle.offset / pi);
+        fprintf(fid, 'rotation_axis_offset_calculated : %f\n', rot_axis_offset_calc);
+        fprintf(fid, 'rot_axis_offset_reco : %f\n', rot_axis_offset_reco);
+        fprintf(fid, 'rotation_axis_offset_reco : %f\n', rot_axis_offset_reco);
+        fprintf(fid, 'rotation_axis_position_calculated : %f\n', rot_axis_pos_calc);
+        fprintf(fid, 'tomo.rot_axis.position : %f\n', tomo.rot_axis.position);
+        fprintf(fid, 'rotation_axis_tilt_calculated : %f\n', rot_axis_tilt_calc);
+        fprintf(fid, 'tomo.rot_axis.tilt : %f\n', tomo.rot_axis.tilt);
+        fprintf(fid, 'raw_image_binned_center : %f\n', im_shape_binned1 / 2);
+        fprintf(fid, 'tomo.rot_axis.corr_area1 : %u:%u:%u\n', tomo.rot_axis.corr_area1(1), tomo.rot_axis.corr_area1(2) - tomo.rot_axis.corr_area1(1), tomo.rot_axis.corr_area1(end));
+        fprintf(fid, 'tomo.rot_axis.corr_area2 : %u:%u:%u\n', tomo.rot_axis.corr_area2(1), tomo.rot_axis.corr_area2(2) - tomo.rot_axis.corr_area2(1), tomo.rot_axis.corr_area2(end));
+        fprintf(fid, 'interactive_mode.rot_axis_pos : %u\n', interactive_mode.rot_axis_pos);
+        % Ring filter
+        fprintf(fid, 'ring_filter.apply : %u\n', ring_filter.apply);
+        if ring_filter.apply
+            fprintf(fid, 'ring_filter.method : %s\n', ring_filter.method);
+            fprintf(fid, 'ring_filter.apply_before_stitching : %u\n', ring_filter.apply_before_stitching);
+            switch lower( ring_filter.method )
+                case 'wavelet-fft'
+                    fprintf(fid, 'ring_filter.waveletfft.wname : %s\n', ring_filter.waveletfft.wname );
+                    fprintf(fid, 'ring_filter.waveletfft.dec_levels : [%s]\n', sprintf( ' %u', ring_filter.waveletfft.dec_levels) );
+                    fprintf(fid, 'ring_filter.waveletfft.sigma : %f\n', ring_filter.waveletfft.sigma );
+                case 'jm'
+                    fprintf(fid, 'ring_filter.jm.median_width : %s\n', sprintf( '%u ', ring_filter.jm.median_width) );
+            end
         end
-    end
-    % FBP
-    fprintf(fid, 'tomo.fbp_filter.type : %s\n', tomo.fbp_filter.type);
-    fprintf(fid, 'tomo.fbp_filter.freq_cutoff : %f\n', tomo.fbp_filter.freq_cutoff);
-    fprintf(fid, 'tomo.fbp_filter.padding : %u\n', tomo.fbp_filter.padding);
-    fprintf(fid, 'tomo.fbp_filter.padding_method : %s\n', tomo.fbp_filter.padding_method);
-    fprintf(fid, 'tomo.butterworth_filter.apply : %u\n', tomo.butterworth_filter.apply);
-    fprintf(fid, 'tomo.butterworth_filter.order : %u\n', tomo.butterworth_filter.order);
-    fprintf(fid, 'tomo.butterworth_filter.frequ_cutoff : %f\n', tomo.butterworth_filter.frequ_cutoff);
-    fprintf(fid, 'tomo.astra_pixel_size : %f\n', tomo.astra_pixel_size);
-    fprintf(fid, 'tomo.take_neg_log : %u\n', tomo.take_neg_log);
-    fprintf(fid, 'gpu_name : %s\n', gpu.Name);
-    if exist( 'vol_min', 'var')
-        fprintf(fid, '[volume_min volume_max] : [%g %g]\n', vol_min, vol_max);
-    end
-    fprintf(fid, 'write.float : %u\n', write.float);
-    if strcmpi( tomo.reco_mode, '3d' )
-        fprintf(fid, 'write.float_binned : %u\n', write.float_binned);
-        fprintf(fid, 'write.uint16 : %g\n', write.uint16);
-        fprintf(fid, 'write.uint16_binned : %g\n', write.uint16_binned);
-        fprintf(fid, 'write.uint8 : %u\n', write.uint8);
-        fprintf(fid, 'write.uint8_binned : %u\n', write.uint8_binned);
-        fprintf(fid, 'write.compression.method : %s\n', write.compression.method);
-        if exist( 'tlow', 'var' ) && exist( 'thigh', 'var' )
-            fprintf(fid, 'compression_limits : %f %f\n', tlow, thigh);
+        % FBP
+        fprintf(fid, 'tomo.fbp_filter.type : %s\n', tomo.fbp_filter.type);
+        fprintf(fid, 'tomo.fbp_filter.freq_cutoff : %f\n', tomo.fbp_filter.freq_cutoff);
+        fprintf(fid, 'tomo.fbp_filter.padding : %u\n', tomo.fbp_filter.padding);
+        fprintf(fid, 'tomo.fbp_filter.padding_method : %s\n', tomo.fbp_filter.padding_method);
+        fprintf(fid, 'tomo.butterworth_filter.apply : %u\n', tomo.butterworth_filter.apply);
+        fprintf(fid, 'tomo.butterworth_filter.order : %u\n', tomo.butterworth_filter.order);
+        fprintf(fid, 'tomo.butterworth_filter.frequ_cutoff : %f\n', tomo.butterworth_filter.frequ_cutoff);
+        fprintf(fid, 'tomo.astra_pixel_size : %f\n', tomo.astra_pixel_size);
+        fprintf(fid, 'tomo.take_neg_log : %u\n', tomo.take_neg_log);
+        fprintf(fid, 'gpu_name : %s\n', gpu.Name);
+        if exist( 'vol_min', 'var')
+            fprintf(fid, '[volume_min volume_max] : [%g %g]\n', vol_min, vol_max);
         end
-        fprintf(fid, 'reco_bin : %u\n', reco_bin);
+        fprintf(fid, 'write.float : %u\n', write.float);
+        if strcmpi( tomo.reco_mode, '3d' )
+            fprintf(fid, 'write.float_binned : %u\n', write.float_binned);
+            fprintf(fid, 'write.uint16 : %g\n', write.uint16);
+            fprintf(fid, 'write.uint16_binned : %g\n', write.uint16_binned);
+            fprintf(fid, 'write.uint8 : %u\n', write.uint8);
+            fprintf(fid, 'write.uint8_binned : %u\n', write.uint8_binned);
+            fprintf(fid, 'write.compression.method : %s\n', write.compression.method);
+            if exist( 'tlow', 'var' ) && exist( 'thigh', 'var' )
+                fprintf(fid, 'compression_limits : %f %f\n', tlow, thigh);
+            end
+            fprintf(fid, 'reco_bin : %u\n', reco_bin);
+        end
+        fprintf(fid, 'full_reconstruction_time : %.1f s\n', toc);
+        fprintf(fid, 'date_of_reconstruction : %s\n', datetime);
+        fprintf(fid, 'tomo.rot_axis.offset at %u x binning : %f\n', raw_bin, rot_axis_offset_reco);
     end
-    fprintf(fid, 'full_reconstruction_time : %.1f s\n', toc);
-    fprintf(fid, 'date_of_reconstruction : %s\n', datetime);
-    fprintf(fid, 'tomo.rot_axis.offset at %u x binning : %f\n', raw_bin, rot_axis_offset_reco);
     fclose(fid);
     % End of log file
     prnt( '\n log file : %s', logfile_name)
