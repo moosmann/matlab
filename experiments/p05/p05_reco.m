@@ -88,9 +88,9 @@ ring_filter.jm.median_width = 11; % multiple widths are applied consecutively, e
 strong_abs_thresh = 1; % Experimental: if 1: does nothing, if < 1: flat-corrected values below threshold are set to one
 decimal_round_precision = 2; % precision when rounding pixel shifts
 %%% PHASE RETRIEVAL %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-phase_retrieval.apply = 0; % See 'PhaseFilter' for detailed description of parameters !
+phase_retrieval.apply = 1; % See 'PhaseFilter' for detailed description of parameters !
 phase_retrieval.apply_before = 0; % before stitching, interactive mode, etc. For phase-contrast data with an excentric rotation axis phase retrieval should be done afterwards. To find the rotataion axis position use this option in a first run, and then turn it of afterwards.
-phase_retrieval.post_binning_factor = 1; % Binning factor after phase retrieval, but before tomographic reconstruction
+phase_retrieval.post_binning_factor = 2; % Binning factor after phase retrieval, but before tomographic reconstruction
 phase_retrieval.method = 'tie';'qpcut'; %'qp' 'ctf' 'tie' 'qp2' 'qpcut'
 phase_retrieval.reg_par = 1.5; % regularization parameter. larger values tend to blurrier images. smaller values tend to original data.
 phase_retrieval.bin_filt = 0.15; % threshold for quasiparticle retrieval 'qp', 'qp2'
@@ -104,7 +104,7 @@ tomo.vol_size = []; %[-0.5 0.5 -0.5 0.5 -0.5 0.5];% 6-component vector [xmin xma
 tomo.vol_shape = []; %[1 1 1] shape (# voxels) of reconstruction volume. used for excentric rot axis pos. if empty, inferred from 'tomo.vol_size'. in absolute numbers of voxels or in relative number w.r.t. the default volume which is given by the detector width and height.
 tomo.rot_angle.full_range = []; % in radians: empty ([]), full angle of rotation, or array of angles. if empty full rotation angles is determined automatically to pi or 2 pi
 tomo.rot_angle.offset = pi; % global rotation of reconstructed volume
-tomo.rot_axis.offset = [];%-2.5;[];% if empty use automatic computation
+tomo.rot_axis.offset = -1;[];%-2.5;[];% if empty use automatic computation
 tomo.rot_axis.position = []; % if empty use automatic computation. EITHER OFFSET OR POSITION MUST BE EMPTY. YOU MUST NOT USE BOTH!
 tomo.rot_axis.tilt = 0; % in rad. camera tilt w.r.t rotation axis. if empty calculate from registration of projections at 0 and pi
 tomo.rot_axis.corr_area1 = []; % ROI to correlate projections at angles 0 & pi. Use [0.75 1] or so for scans with an excentric rotation axis
@@ -132,9 +132,9 @@ write.subfolder.phase_map = ''; % subfolder in 'phase_map'
 write.subfolder.sino = ''; % subfolder in 'sino'
 write.subfolder.reco = ''; % subfolder in 'reco'
 write.flatcor = 0; % save preprocessed flat corrected projections
-write.phase_map = 0; % save phase maps (if phase retrieval is not 0)
+write.phase_map = 1; % save phase maps (if phase retrieval is not 0)
 write.sino = 0; % save sinograms (after preprocessing & before FBP filtering and phase retrieval)
-write.phase_sino = 0; % save sinograms of phase maps
+write.phase_sino = 1; % save sinograms of phase maps
 write.reco = 1; % save reconstructed slices (if tomo.run=1)
 write.float = 1; % single precision (32-bit float) tiff
 write.uint16 = 0; % save 16bit unsigned integer tiff using 'write.compression.method'
@@ -145,7 +145,7 @@ write.uint16_binned = 0; % save binned 16bit unsigned integer tiff using 'write.
 write.uint8_binned = 0; % save binned 8bit unsigned integer tiff using 'wwrite.compression.method'
 write.reco_binning_factor = 2; % IF BINNED VOLUMES ARE SAVED: binning factor of reconstructed volume
 write.compression.method = 'outlier';'histo';'full'; 'std'; 'threshold'; % method to compression dynamic range into [0, 1]
-write.compression.parameter = [0.20 0.15]; % compression-method specific parameter
+write.compression.parameter = [0.02 0.02]; % compression-method specific parameter
 % dynamic range is compressed s.t. new dynamic range assumes
 % 'outlier' : [LOW, HIGH] = write.compression.parameter, eg. [0.01 0.03], outlier given in percent, if scalear LOW = HIGH.
 % 'full' : full dynamic range is used
@@ -155,7 +155,7 @@ write.compression.parameter = [0.20 0.15]; % compression-method specific paramet
 %%% INTERACTION %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 verbose = 1; % print information to standard output
 visual_output = 1; % show images and plots during reconstruction
-interactive_mode.rot_axis_pos = 1; % reconstruct slices with dif+ferent rotation axis offsets
+interactive_mode.rot_axis_pos = 0; % reconstruct slices with dif+ferent rotation axis offsets
 interactive_mode.rot_axis_tilt = 0; % reconstruct slices with different offset AND tilts of the rotation axis
 interactive_mode.lamino = 0; % find laminography tilt instead camera rotation
 interactive_mode.fixed_other_tilt = 0; % fixed other tilt
@@ -273,22 +273,22 @@ PrintVerbose(verbose & write.flatcor, '\n flatcor_path: %s', flatcor_path)
 
 % Path to retreived phase maps
 if isempty( write.subfolder.phase_map )
-    phase_map_path = [write.path, filesep, 'phase_map', filesep];
+    write.phase_map_path = [write.path, filesep, 'phase_map', filesep];
 else
-    phase_map_path = [write.path, filesep, 'phase_map', filesep, write.subfolder.phase_map, filesep];
+    write.phase_map_path = [write.path, filesep, 'phase_map', filesep, write.subfolder.phase_map, filesep];
 end
-PrintVerbose(verbose & write.phase_map, '\n phase_map_path: %s', phase_map_path)
+PrintVerbose(verbose & write.phase_map, '\n phase_map_path: %s', write.phase_map_path)
 
 % Sinogram path
 if isempty( write.subfolder.sino )
     sino_path = [write.path, filesep, 'sino', filesep];
-    sino_phase_path = [write.path, filesep, 'sino_phase', filesep];
+    write.sino_phase_path = [write.path, filesep, 'sino_phase', filesep];
 else
     sino_path = [write.path, filesep, 'sino', filesep, write.subfolder.sino, filesep];
-    sino_phase_path = [write.path, filesep, 'sino_phase', filesep, write.subfolder.sino, filesep];
+    write.sino_phase_path = [write.path, filesep, 'sino_phase', filesep, write.subfolder.sino, filesep];
 end
 PrintVerbose(verbose & write.sino, '\n sino_path: %s', sino_path)
-PrintVerbose(verbose & write.phase_sino, '\n sino_phase_path: %s', sino_phase_path)
+PrintVerbose(verbose & write.phase_sino, '\n sino_phase_path: %s', write.sino_phase_path)
 
 % Reco path
 if isempty( write.subfolder.reco )
@@ -1030,16 +1030,25 @@ end
 
 %% Phase retrieval %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 if phase_retrieval.apply
+    phase_retrieval.energy = energy;
+    phase_retrieval.sample_detector_distance = sample_detector_distance;
+    phase_retrieval.eff_pixel_size_binned = eff_pixel_size_binned;
     if isempty( tomo.take_neg_log )
         tomo.take_neg_log = 0;
     end
+    phase_bin = phase_retrieval.post_binning_factor; % alias for readablity
     if phase_retrieval.apply_before
-        edp = [energy, sample_detector_distance, eff_pixel_size_binned];
-        [proj, reco_phase_path] = p05_phase_retrieval( phase_retrieval, edp, proj, write.path, write.subfolder.reco, write, phase_map_path, verbose, visual_output);
+        % Retrieval
+        [proj, write] = p05_phase_retrieval( phase_retrieval, proj, write, verbose, visual_output);
+        % Post phase retrieval binning issues
+        tomo.rot_axis.position = tomo.rot_axis.position / phase_bin;
+        tomo.rot_axis.offset = tomo.rot_axis.offset / phase_bin;
+        [tomo.vol_shape, tomo.vol_size] = volshape_volsize( proj, [], [], 0);
+        offset_shift = offset_shift / phase_bin;
     end
 end
 
-%%% Rotation axis position and tomgraphic reconstruction parameters %%%
+%% Rotation axis position and tomgraphic reconstruction parameters %%%
 tint = 0;
 if tomo.run || tomo.run_interactive_mode
     prnt( '\nTomography:')
@@ -1588,40 +1597,16 @@ if write.sino
 end
 
 %% Phase retrieval %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-if phase_retrieval.apply && ~phase_retrieval.apply_before
-    edp = [energy, sample_detector_distance, eff_pixel_size_binned];
-    [proj, reco_phase_path] = p05_phase_retrieval( phase_retrieval, edp, proj, write.path, write.subfolder.reco, write, phase_map_path, verbose, visual_output);
-end
-
-%%% Save sinograms of phase maps %%%
-if phase_retrieval.apply && write.phase_sino
-    t = toc;
-    prnt( '\nSave phase map sinogram:')
-    CheckAndMakePath(sino_phase_path)
-    % Save slices
-    parfor nn = 1:im_shape_binned2
-        filename = sprintf( '%ssino_%06u.tif', sino_phase_path, nn);
-        write32bitTIFfromSingle( filename, squeeze( proj( :, nn, :) )' )
+if phase_retrieval.apply
+    if ~phase_retrieval.apply_before
+        % Retrieval
+        [proj, write] = p05_phase_retrieval( phase_retrieval, proj, write, verbose, visual_output);
+        % Post phase retrieval binning
+        tomo.rot_axis.position = tomo.rot_axis.position / phase_bin;
+        tomo.rot_axis.offset = tomo.rot_axis.offset / phase_bin;
+        [tomo.vol_shape, tomo.vol_size] = volshape_volsize( proj, [], [], 0);
+        offset_shift = offset_shift / phase_bin;
     end
-    pause(0.01)
-    prnt( ' done in %.1f s (%.2f min)', toc - t, (toc - t) / 60)
-end
-
-%%% Post phase retrieval binning %%%
-phase_bin = phase_retrieval.post_binning_factor; % alias for readablity
-if phase_retrieval.apply && ( phase_bin(1) > 1)
-    t = toc;
-    prnt( '\nPost phase retrieval binning:')
-    proj_bin = zeros( floor(size( proj ) ./ [phase_bin phase_bin 1] ), 'single');
-    parfor nn = 1:size( proj, 3)
-        proj_bin(:,:,nn) = Binning( proj(:,:,nn), phase_bin ) / phase_bin^2;
-    end
-    proj = proj_bin;
-    clear proj_bin;
-    tomo.rot_axis.position = tomo.rot_axis.position / phase_bin;
-    tomo.rot_axis.offset = tomo.rot_axis.offset / phase_bin;
-    [tomo.vol_shape, tomo.vol_size] = volshape_volsize( proj, [], [], 0);
-    prnt( ' done in %g s (%.2f min)', toc - t, (toc - t) / 60)
 end
 
 %% Tomographic reco %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -1632,7 +1617,6 @@ if tomo.run
     
     prnt( '\n volume shape: [%g, %g, %g]', tomo.vol_shape )
     prnt( '\n volume memory allocated: %.2f GiB', Bytes( vol, 3 ) )
-    %prod( tomo.vol_shape ) * 4 / 1024^3 ;
     
     if stitch_projections(1)
         rot_axis_offset_reco = 0;
@@ -1744,20 +1728,20 @@ if tomo.run
             end
             
             if phase_retrieval.apply
-                reco_path = reco_phase_path;
+                reco_path = write.reco_phase_path;
             end
             
             % Save ortho slices x
             nn = round( size( vol, 1 ) / 2);
             im = squeeze( vol(nn,:,:) );
             filename = sprintf( '%s/reco_x%05u', reco_path, nn);
-            write32bitTIFfromSingle( filename, im);
+            write32bitTIFfromSingle( filename, rot90(im,1) );
             
             % Save ortho slices y
             nn = round( size( vol, 2 ) / 2);
             im = squeeze( vol(:,nn,:) );
             filename = sprintf( '%s/reco_y%05u', reco_path, nn);
-            write32bitTIFfromSingle( filename, im);
+            write32bitTIFfromSingle( filename, rot90(im,1) );
             
             % Save volume
             if write.reco
@@ -1820,7 +1804,7 @@ if tomo.run
             t2 = toc;
             
             if phase_retrieval.apply
-                reco_path = reco_phase_path;
+                reco_path = write.reco_phase_path;
             end
             
             if write.reco
@@ -1934,7 +1918,7 @@ if write.reco
         fprintf(fid, 'phase_retrieval.cutoff_frequency : %f pi\n', phase_retrieval.cutoff_frequ / pi);
         fprintf(fid, 'phase_retrieval.post_binning_factor : %u\n', phase_bin);
     end
-    if tomo.apply
+    if tomo.run
         % Volume
         fprintf(fid, 'tomo.vol_shape : %u %u %u\n', tomo.vol_shape(1), tomo.vol_shape(2), tomo.vol_shape(3));
         fprintf(fid, 'tomo.vol_size : %f %f %f %f %f %f\n', tomo.vol_size(1), tomo.vol_size(2), tomo.vol_size(3), tomo.vol_size(4), tomo.vol_size(5), tomo.vol_size(6));
