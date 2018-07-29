@@ -1,9 +1,9 @@
 function [k,alpha,res_norm1,sol_norm1,phi1,phi2]=lcurve(data,alphamin,alphamax,pts,lambda,distance,pixelsize,show_plots)
-    
-    if (nargin<7)||isempty(show_plots),show_plots=1;end;
+
+if (nargin<7)||isempty(show_plots),show_plots=1;end
 
 padvalue    = 0;
-padding     = 1 ;  
+padding     = 1 ;
 
 % Fourier space cooridnates.
 [dim1,dim2] = size(data);
@@ -21,17 +21,17 @@ phi1        = zeros(dim1,dim2,pts);
 phi2        = zeros(dim1,dim2,pts);
 
 tic;
-for ii=1:pts;
-  alpha(ii)       = alphamin + (alphamax - alphamin)*(ii-1)/(pts-1);
-  [phi_stack]     = Reco(data,alpha(ii),lambda,distance,pixelsize);
-  phi1(:,:,ii)    = phi_stack(:,:,1);
-  phi2(:,:,ii)    = phi_stack(:,:,2);
-  
-  sol_norm1(ii)   = log10(norm(phi_stack(:,:,1)));
-  sol_norm(ii)    = log10(norm(phi_stack(:,:,1)+phi_stack(:,:,2)));
-  res_norm1(ii)   = log10(norm(ifft2(lap.*fft2(phi1))-data));
-  res_norm(ii)    = log10(norm(ifft2(lap.*fft2(phi))-data));
-end;
+for ii=pts:-1:1
+    alpha(ii)       = alphamin + (alphamax - alphamin)*(ii-1)/(pts-1);
+    [phi_stack]     = Reco(data,alpha(ii),lambda,distance,pixelsize);
+    phi1(:,:,ii)    = phi_stack(:,:,1);
+    phi2(:,:,ii)    = phi_stack(:,:,2);
+    
+    sol_norm1(ii)   = log10(norm(phi_stack(:,:,1)));
+    sol_norm(ii)    = log10(norm(phi_stack(:,:,1)+phi_stack(:,:,2)));
+    res_norm1(ii)   = log10(norm(ifft2(lap.*fft2(phi1))-data));
+    res_norm(ii)    = log10(norm(ifft2(lap.*fft2(phi))-data));
+end
 trec = toc;
 
 tic;
@@ -52,8 +52,8 @@ fprintf('At index %i where alpha = %g the curvature is maximum with k = %g\n',i_
 
 % L-curve plots.
 if show_plots
-figure('Name','L-curve: LO'),plot(res_norm1,sol_norm1,'.-'), ...
-for ii=1:pts, text(res_norm1(ii),sol_norm1(ii),num2str(ii/pts*alphamax));end;
-figure('Name','Curvature: LO'),plot(2:pts-1,k);
-end;
+    figure('Name','L-curve: LO'),plot(res_norm1,sol_norm1,'.-'), ...
+        for ii=1:pts, text(res_norm1(ii),sol_norm1(ii),num2str(ii/pts*alphamax));end
+    figure('Name','Curvature: LO'),plot(2:pts-1,k);
+end
 

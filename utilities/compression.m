@@ -51,7 +51,7 @@ switch lower( method )
         tlow = parameter(1);
         thigh = parameter(2);
     case 'outlier'
-        [~, tlow, thigh] = FilterOutlier( vol, parameter(1), parameter(2), '', 1, 0 );
+        [~, tlow, thigh] = FilterOutlier( vol, [parameter(1), parameter(2)], '', 1, 0 );
     
     case 'histo'
         % crop dynamic range using histogram of volume ROI

@@ -1,4 +1,4 @@
-function [vol, reco_metric] = find_rot_axis_offset( par, proj)
+function [vol, reco_metric] = find_rot_axis_offset( tomo, proj)
 % Reconstruct slices from sinogram for a range of rotation axis position
 % offsets.
 %
@@ -11,20 +11,20 @@ function [vol, reco_metric] = find_rot_axis_offset( par, proj)
 % 
 % Written by Julian Moosmann. Last modification: 2018-04-11
 %
-% [vol, reco_metric] = find_rot_axis_offset( par, proj );
+% [vol, reco_metric] = find_rot_axis_offset( tomo, proj );
 
 %% Default arguments %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-slice = assign_from_struct( par, 'slice', [] );
-vol_shape = assign_from_struct( par, 'vol_shape', [] );
-vol_size = assign_from_struct( par, 'vol_size', [] );
-offset = double( assign_from_struct( par, 'offset', -10:10 ));
-offset_shift = assign_from_struct( par, 'offset_shift', 0 );
-tilt = assign_from_struct( par, 'tilt', 0 );
-lamino = assign_from_struct( par, 'lamino', 0 );
-fixed_tilt = assign_from_struct( par, 'fixed_tilt', 0 );
-take_neg_log = assign_from_struct( par, 'take_neg_log', 1 );
-number_of_stds = assign_from_struct( par, 'number_of_stds', 4 );
-butterworth_filtering = assign_from_struct( par.butterworth_filter, 'apply', 0 );
+slice = assign_from_struct( tomo, 'slice', [] );
+vol_shape = assign_from_struct( tomo, 'vol_shape', [] );
+vol_size = assign_from_struct( tomo, 'vol_size', [] );
+offset = double( assign_from_struct( tomo, 'offset', -10:10 ));
+offset_shift = assign_from_struct( tomo, 'offset_shift', 0 );
+tilt = assign_from_struct( tomo, 'tilt', 0 );
+lamino = assign_from_struct( tomo, 'lamino', 0 );
+fixed_tilt = assign_from_struct( tomo, 'fixed_tilt', 0 );
+take_neg_log = assign_from_struct( tomo, 'take_neg_log', 1 );
+number_of_stds = assign_from_struct( tomo, 'number_of_stds', 4 );
+butterworth_filtering = assign_from_struct( tomo.butterworth_filter, 'apply', 0 );
 
 mask_rad = 0.95;
 mask_val = 0;
@@ -38,18 +38,18 @@ if isempty( vol_shape )
 else
     vol_shape(3) = 1;
 end
-par.vol_shape = vol_shape;
+tomo.vol_shape = vol_shape;
 if isempty( vol_size )
     vol_size = [-num_pix/2 num_pix/2 -num_pix/2 num_pix/2 -0.5 0.5];
 else
     vol_size(5) = -0.5;
     vol_size(6) = 0.5;
 end
-par.vol_size = vol_size;
+tomo.vol_size = vol_size;
 if isempty( slice )
     slice = round( num_row / 2 );
 end
-par.slice = slice;
+tomo.slice = slice;
 
 % Calculate required slab
 rot_axis_pos = offset + vol_shape(1) / 2;
@@ -63,7 +63,7 @@ end
 y_range = slice + (-dz:dz);
 sino = proj(:, y_range, :);
 
-if strcmpi( par.algorithm, 'fbp' )
+if strcmpi( tomo.algorithm, 'fbp' )
     % Ramp filter
     filt = iradonDesignFilter('Ram-Lak', 2 * num_pix, 0.9);
     
@@ -96,23 +96,23 @@ for nn = 1:numel(reco_metric)
 end
 
 if ~lamino
-    par.tilt_camera = tilt;
-    par.tilt_lamino = fixed_tilt;
+    tomo.tilt_camera = tilt;
+    tomo.tilt_lamino = fixed_tilt;
 else
-    par.tilt_camera = fixed_tilt;
-    par.tilt_lamino = tilt;
+    tomo.tilt_camera = fixed_tilt;
+    tomo.tilt_lamino = tilt;
 end
 
 % Backprojection
 for nn = 1:numel( offset )
-    par.rot_axis.offset = offset(nn) + offset_shift + eps;
+    tomo.rot_axis.offset = offset(nn) + offset_shift + eps;
     
     %% Reco
-    switch lower( par.reco_mode )
+    switch lower( tomo.reco_mode )
         case '3d'
-            im = astra_parallel3D( par, permute( sino, [1 3 2]) );
+            im = astra_parallel3D( tomo, permute( sino, [1 3 2]) );
         case 'slice'
-            im = astra_parallel2D( par, permute( sino, [3 1 2]) );
+            im = astra_parallel2D( tomo, permute( sino, [3 1 2]) );
     end
     vol(:,:,nn) = FilterHisto(im, number_of_stds, filter_histo_roi);
     
