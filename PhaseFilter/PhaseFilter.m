@@ -1,5 +1,5 @@
-function [fourier_filter, string_appendix] = PhaseFilter(method, filter_size, energy_distance_pixelsize, regularization_parameter, binary_filter_threshold, frequency_cutoff, precision)
-% Fourier space filter for Fourier-transform-absed, simple algebraic,
+function [fourier_filter, parameter_string] = PhaseFilter(method, filter_size, energy_distance_pixelsize, regularization_parameter, binary_filter_threshold, frequency_cutoff, precision)
+% Fourier space filter for Fourier-transform-based, simple algebraic,
 % single-distance phase retrieval.
 %
 % Given a normalized intensity map I_z (i.e. flat- and dark-field
@@ -117,37 +117,37 @@ switch lower(method)
     case 'tie'
         %fourier_filter = 1/2./(sinArg + 10^-regularization_parameter);        
         fourier_filter = 1/2*sign(sinArg)./(abs(sinArg)+10^-regularization_parameter);                
-        string_appendix = sprintf('tie_regPar%3.2f',regularization_parameter);
+        parameter_string = sprintf('tie_regPar%3.2f',regularization_parameter);
     case 'ctf'
         sinxiquad   = sin(sinArg);
         fourier_filter = 1/2*sign(sinxiquad)./(abs(sinxiquad)+10^-regularization_parameter);        
-        string_appendix = sprintf('ctf_regPar%3.2f',regularization_parameter);
+        parameter_string = sprintf('ctf_regPar%3.2f',regularization_parameter);
     case {'ctfhalfsine','ctffirsthalfsine','halfsine','firsthalfsine'}
         sinxiquad   = sin(sinArg);
         fourier_filter = 1/2*sign(sinxiquad)./(abs(sinxiquad)+10^-regularization_parameter);
         fourier_filter( sinArg >= pi ) = 0;
-        string_appendix = sprintf('ctfHalfSine_regPar%3.2f',regularization_parameter);
+        parameter_string = sprintf('ctfHalfSine_regPar%3.2f',regularization_parameter);
     case {'qp','pctf','quasi','quasiparticle','quasiparticles'}
         sinxiquad   = sin(sinArg);
         fourier_filter = 1/2*sign(sinxiquad)./(abs(sinxiquad)+10^-regularization_parameter);
         fourier_filter( sinArg > pi/2  &  abs(sinxiquad) < binary_filter_threshold) = 0;
-        string_appendix = sprintf('qp_regPar%3.2f_binFilt%3.3f',regularization_parameter,binary_filter_threshold);
+        parameter_string = sprintf('qp_regPar%3.2f_binFilt%3.3f',regularization_parameter,binary_filter_threshold);
     case {'qpcut', 'quasicut', 'quasiparticlecut'}
         sinxiquad   = sin(sinArg);
         fourier_filter = 1/2*sign(sinxiquad)./(abs(sinxiquad)+10^-regularization_parameter);
         fourier_filter( sinArg > pi/2  &  abs(sinxiquad) < binary_filter_threshold) = 0;
         fourier_filter( sinArg >= frequency_cutoff ) = 0;
-        string_appendix = sprintf('qpcut_regPar%3.2f_binFilt%3.3f_cutoff%3.2fpi',regularization_parameter,binary_filter_threshold, frequency_cutoff/pi);
+        parameter_string = sprintf('qpcut_regPar%3.2f_binFilt%3.3f_cutoff%3.2fpi',regularization_parameter,binary_filter_threshold, frequency_cutoff/pi);
     case {'qp2','quasi2','pctf2'}
         sinxiquad   = sin(sinArg);
         fourier_filter = 1/2*sign(sinxiquad)./(abs(sinxiquad)+10^-regularization_parameter);
         mask = sinArg > pi/2  &  abs(sinxiquad) < binary_filter_threshold;
         fourier_filter( mask ) = bsxfun(@(a,b) a(b),sign(fourier_filter)/(2*(binary_filter_threshold+10^-regularization_parameter)),mask);
-        string_appendix = sprintf('qp2_regPar%3.2f_binFilt%3.3f',regularization_parameter,binary_filter_threshold);
+        parameter_string = sprintf('qp2_regPar%3.2f_binFilt%3.3f',regularization_parameter,binary_filter_threshold);
 end
 
 % Replace dots by p
-string_appendix = regexprep(string_appendix,'\.','p');
+parameter_string = regexprep(parameter_string,'\.','p');
 
 %% Dual phase retrieval %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     case 1
@@ -155,7 +155,7 @@ string_appendix = regexprep(string_appendix,'\.','p');
         % for 'PhaseFilterDual'
         method(strInd+(0:3)) = [];
         % Call 'PhaseFilterDual'
-        [fourier_filter,string_appendix] = PhaseFilterDual(method,filter_size,energy_distance_pixelsize,10^-regularization_parameter,binary_filter_threshold,precision);
+        [fourier_filter,parameter_string] = PhaseFilterDual(method,filter_size,energy_distance_pixelsize,10^-regularization_parameter,binary_filter_threshold,precision);
 end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

@@ -1741,13 +1741,13 @@ if tomo.run
             % Save ortho slices x
             nn = round( size( vol, 1 ) / 2);
             im = squeeze( vol(nn,:,:) );
-            filename = sprintf( '%sreco_x%05u.tif', reco_path, nn);
+            filename = sprintf( '%sreco_xMid.tif', reco_path );
             write32bitTIFfromSingle( filename, rot90(im,1) );
             
             % Save ortho slices y
             nn = round( size( vol, 2 ) / 2);
             im = squeeze( vol(:,nn,:) );
-            filename = sprintf( '%sreco_y%05u.tif', reco_path, nn);
+            filename = sprintf( '%sreco_yMid.tif', reco_path );
             write32bitTIFfromSingle( filename, rot90(im,1) );
             
             % Save volume

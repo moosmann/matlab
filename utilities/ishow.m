@@ -32,15 +32,20 @@ for nn = 1:numel(varargin)
         end               
     end
 end
+imroislice = @(im) im(roi,roi,slice);
+imslice = @(im) im(:,:,slice);
+rot = @(im) rot90( im, size(im,1) > size(im,2) );
 %% MAIN %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 if roi(1) > 0
+    im = rot( imroislice( squeeze( im ) ) );
     figure('Name',sprintf('%s.  ROI: %u:%u.  Input size: %ux%ux%u %',NameOfFigure,roi(1),roi(end),size(im),slice))
     %set(gcf,'units','normalized','outerposition',[0 0 1 1]);
-    imshow(squeeze(im(roi,roi,slice)),dynRange,'InitialMagnification','fit');
+    imshow( im, dynRange,'InitialMagnification','fit');
     colorbar;    
 else
+    im = rot( imslice( squeeze( im ) ) );
     figure('Name',sprintf('%s.  Input size: %ux%ux%u %',NameOfFigure,size(im),slice))
     %set(gcf,'units','normalized','outerposition',[0 0 1 1]);
-    imshow(squeeze(im(:,:,slice)),dynRange,'InitialMagnification','fit');
+    imshow( im, dynRange,'InitialMagnification','fit');
     colorbar;    
 end

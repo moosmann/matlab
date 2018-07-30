@@ -3,7 +3,7 @@ function p05_reco_loop(SUBSETS, RUN_RECO, PRINT_PARAMETERS)
 % as defined in global cell array 'PARAMETER_CELL' below.
 %
 % Visual output ('visual_output') and user interaction
-% ('interactive_determination_of_rot_axis') are turned off by default if
+% ('interactive_mode.*') are turned off by default if
 % not set otherwise.
 %
 % Written by Julian Moosmann. First version: 2017-02-15. Last: 2017-06-04

@@ -20,12 +20,19 @@ edp = [phase_retrieval.energy, phase_retrieval.sample_detector_distance, phase_r
 %% Interactive mode %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 tint = 0;
-if interactive_mode.phase_retrieval
+if exist( 'interactive_mode.phase_retrieval', 'var' ) && interactive_mode.phase_retrieval
+    
+    plot_ctf_mask(1) = 0;
     
     if tomo.rot_axis.tilt ~= 0
         error( 'Rotation axis tilt not supported in interactive phase retrieval mode.' )
     end
     
+    if plot_ctf_mask
+        proj1 = proj(:,:,1);
+        proj_mean = mean( proj, 3);
+    end
+            
     fprintf( '\n\nENTER INTERACTIVE PHASE RETRIEVAL MODE' )
     
     reg_par_def_range = 0:6;
@@ -83,7 +90,7 @@ if interactive_mode.phase_retrieval
     reco_metric(4).name = 'iso-grad';
     reco_metric(5).name = 'laplacian';
     reco_metric(6).name = 'entropy';
-    reco_metric(7).name = 'entropy-ML';    
+    reco_metric(7).name = 'entropyML';    
     reco_metric(8).name = '2-norm';
     
     %% Interaction loop
@@ -105,6 +112,35 @@ if interactive_mode.phase_retrieval
             fprintf( '\n current binary filter threshold : %.3f', bin_filt )
         end
         fprintf( '\n current padding factor : %u', padding )
+        
+        if plot_ctf_mask
+            % FFT
+            epsilon = 0;
+            fun = @(im) Binning( FilterHisto(fftshift(log( 10^(-epsilon) + abs( fft2( padarray( im , padding*size(im ), 'symmetric', 'post' ) ) ) ) ), 3), 2*padding);
+            proj1_fft = fun( proj1 );
+            proj_mean_fft = fun( proj_mean );
+            
+            % CTF binary mask
+            [~, mask_half] = BinaryMaskCTF( size(proj1_fft), edp(1), edp(2), ( 1 + 0*padding ) * edp(3), 1, 0.1);
+            
+            % Image plus half mask
+            proj1_fft_mask = normat( proj1_fft ) .* mask_half ;
+            proj_mean_fft_mask = normat( proj_mean_fft ) .* mask_half;
+            
+            figure( 'Name', 'CHECK PHASE RETRIEVAL PARAMETERS: compare Fourier transformed projection and CTF mask' )
+            
+            subplot(1,2,1)
+            imsc( proj1_fft_mask )
+            axis equal tight
+            title(sprintf('FFT projection #1 * CTF mask'))
+            
+            subplot(1,2,2)
+            imsc( proj_mean_fft_mask )
+            axis equal tight
+            title(sprintf('FFT mean projection * CTF mask'))
+            
+            drawnow
+        end
         
         if ~first_round
             
@@ -198,28 +234,27 @@ if interactive_mode.phase_retrieval
             [~, max_pos] = max(cell2mat({reco_metric(:).val}));
             
             % Print image number, regularization parameter, and different metrics
-            fprintf( '\n  ')
-            fprintf( '%11s', 'image no.', 'reg par', reco_metric.name)
+            fprintf( '\n')
+            fprintf( '%10s', 'image no.', 'reg par', 'reg val', reco_metric.name)
             for nn = 1:numel(reg_par)
                 if reg_par(nn) == phase_retrieval.reg_par
-                    cprintf( 'Green', sprintf('\n%11u%11.2f', nn, reg_par(nn)))
+                    cprintf( 'Green', sprintf('\n%10u%10.2f%10.2g', nn, reg_par(nn), 10^-reg_par(nn) ) )
                 else
-                    cprintf( 'Black', '\n%11u%11.2f', nn, reg_par(nn))
+                    cprintf( 'Black', '\n%10u%10.2f%10.2g', nn, reg_par(nn), 10^-reg_par(nn) )
                 end
                 
                 for mm = 1:numel(reco_metric)
                     if min_pos(mm) == nn
-                        cprintf( 'Red', '%11.3g', reco_metric(mm).val(nn) )
+                        cprintf( 'Red', '%10.3g', reco_metric(mm).val(nn) )
                     elseif max_pos(mm) == nn
-                        cprintf( 'Blue', '%11.3g', reco_metric(mm).val(nn) )
+                        cprintf( 'Blue', '%10.3g', reco_metric(mm).val(nn) )
                     else
-                        cprintf( 'Black', '%11.3g', reco_metric(mm).val(nn) )
+                        cprintf( 'Black', '%10.3g', reco_metric(mm).val(nn) )
                     end
                 end
             end
             
             % Plot metrics
-            %h_rot_off = 
             figure('Name', 'REGULARIZATION PARAMETER: metrics');
             x = 1:numel( reco_metric );
             Y = cell2mat({reco_metric(x).val});
@@ -288,8 +323,7 @@ if interactive_mode.phase_retrieval
     phase_retrieval.eff_pixel_size_binned = edp(3);
     
     tint = toc;
-    fprintf( '\nEND OF INTERACTIVE MODE' )
-    
+    fprintf( '\nEND OF INTERACTIVE MODE' )  
 end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

@@ -1,4 +1,4 @@
-function [vol, vol_reg] = p05_load_sequ( proc_path, scan_name, reco_sub, regdir, nn_max, out_thresh, register )
+function [vol, vol_reg] = p05_load_sequ( proc_path, scan_name, reco_sub, regdir, steps, out_thresh, register )
 % Create images sequences from 4D load tomography data.
 %
 % Script to process in 4D image squences e.g. from load tomography. Read in
@@ -8,7 +8,7 @@ function [vol, vol_reg] = p05_load_sequ( proc_path, scan_name, reco_sub, regdir,
 % (4D array is not saved since saving the Matlab array is more time
 % consuming than processing the sequence.) 
 %
-% scan_name : string, name of sequence without trailing indices and
+% proc_name : string, name of sequence without trailing indices and
 %   underscore
 % reco_sub : string, subfolder to 'reco' folder
 % out_thresh : scalar, < 1, percentage of outliers to be filtered before
@@ -19,27 +19,16 @@ if nargin < 1
     proc_path = '/asap3/petra3/gpfs/p05/2017/data/11004016/processed';
 end
 if nargin < 2
-    %scan_name = 'syn002_6L_PEEK_4w';
-    %scan_name = 'syn003_92L_Mg10Gd_4w';
-    %scan_name = 'syn004_84L_Mg10Gd_4w'; regdir = 'y';
-    %scan_name = 'syn005_81L_Mg5Gd_8w';
-    %scan_name = 'syn006_75R_Mg10Gd_8w';
-    scan_name = 'syn007_94L_Mg10Gd_8w';
-    %scan_name = 'syn008_76R_Mg10Gd_8w';
-    %scan_name = 'syn009_32R_PEEK_8w';
-    %scan_name = 'syn010_19R_PEEK_4w';
-    %scan_name = 'syn011_14R_PEEK_4w'; regdir = 'y';
-    %scan_name = 'syn012_79L_Mg5Gd_8w'; % empty scans [1:3 14:20];
+    scan_name = 'syn007_94L_Mg10Gd_8w';    
 end
 if nargin < 3
-    reco_sub = ['/reco/float_rawBin4'];
+    reco_sub = '/reco/float_rawBin4';
 end
 if nargin < 4
     regdir = 'x'; % x or y cut, y sometimes works better if there are more structures to correlate
 end
 if nargin < 5
-    nn_max = []; % # of tomos to process, use low number for testing
-    
+    steps = []; % # of tomos to process, use low number for testing    
 end
 if nargin < 6
     out_thresh = 0.01; % percentage of outliers to be thresholded
@@ -49,12 +38,11 @@ if nargin < 7
 end
 
 % TO DO
-% get outlier thresholds from severl slices
+% get outlier thresholds from several slices
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 tic
-close all hidden
 
 fprintf( '\n LOAD SEQUENCE PROCESSING')
 
@@ -66,14 +54,24 @@ fprintf( '\n scan name : %s', scan_name)
 
 % scans to process
 struct_scans = dir([scan_path '_*']);
+if numel( struct_scans ) == 0
+    error( 'No recos found matching folder pattern: \n%s\n', scan_path )
+end
 
-if isempty( nn_max )
-    nn_max = numel( struct_scans);
+if isempty( steps )
+    steps = 1:numel( struct_scans);
 end
 
 if ~strcmp( reco_sub(1), '/' )
     reco_sub = [ '/' reco_sub];
 end
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+if isscalar( steps )
+    steps = 1:steps;
+end
+num_steps = numel( steps );
 
 % Preallocation
 fprintf( '\n Allocation of 4D volume. Size:' )
@@ -82,7 +80,7 @@ struct_slices = dir( [p filesep '*.tif']);
 num_slices = numel( struct_slices );
 tinfo = imfinfo( [struct_slices(1).folder filesep struct_slices( floor( num_slices / 2 )).name]);
 im = imread( [struct_slices(1).folder filesep struct_slices( floor( num_slices / 2 )).name]);
-vol = zeros( [tinfo.Width tinfo.Height num_slices nn_max] , 'uint8');
+vol = zeros( [tinfo.Width tinfo.Height num_slices num_steps ] , 'uint8');
 fprintf( ' %u ', size( vol) )
 fprintf( '. Memory: %f GiB ', GB( vol ))
 
@@ -111,7 +109,8 @@ drawnow
 
 %% Read in load sequence
 t = toc;
-for nn = 1:nn_max
+fprintf( '\nRead in %u tomograms:', numel( steps ) )
+for nn = 1:numel( steps )
     fprintf( '\n %2u : %s.', nn, struct_scans(nn).name)
     p = [proc_path filesep struct_scans(nn).name reco_sub];
     struct_slices = dir( [p filesep '*.tif']);
@@ -129,8 +128,9 @@ fprintf( '\n Read data in %.1f s', toc - t);
 if register
     t = toc;
     fprintf( '\n Registering slices ' )
-    shift = zeros(nn_max,1);
-    for nn = 1:nn_max-1
+    roi_lat
+    shift = zeros( [num_steps, 1]);
+    for nn = 1:num_steps - 1
         if strcmp( regdir, 'x')
             im1 = squeeze( vol(round(size(vol,1)/2),100:end-100,100:end-100,nn));
             im2 = squeeze( vol(round(size(vol,1)/2),100:end-100,100:end-100,nn + 1));
@@ -149,9 +149,9 @@ if register
     fprintf( '%g ', z0)
     
     fprintf( '\n Cropping volumes. Original size : %u x %u x %u x %u.', size( vol) )
-    vol_reg = zeros( [size(vol,1), size(vol,2), size(vol,3) - max(z0), nn_max], 'uint8' );
+    vol_reg = zeros( [size(vol,1), size(vol,2), size(vol,3) - max(z0), num_steps], 'uint8' );
     fprintf( '\n New size : %u x %u x %u x %u ', size( vol_reg) )
-    for nn = 1:nn_max
+    for nn = 1:num_steps
         vol_reg(:,:,:,nn) = vol(:,:,1+z0(nn):end-z1(nn),nn);
         %disp( size( vol(:,:,1+z0(nn):end-z1(nn),nn) ) )
         
@@ -172,6 +172,7 @@ fprintf( '\n Save animated gifs' )
 
 xx = round( size( vol_reg, 1) / 2);
 
+CheckAndMakePath( scan_path )
 filename = sprintf( '%s/%s_loadSequ_x%04u.gif', scan_path, scan_name, xx );
 fprintf( '\n output file: %s', filename)
 
@@ -226,7 +227,7 @@ fprintf( '\n Done in %.1f s', toc - t);
 %% Show %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %nimplay( squeeze( vol_reg(xx,:,:,:) ) )
 %nimplay( squeeze( vol_reg(:,yy,:,:) ) )
-nimplay( cat(2, flipud(permute( squeeze(vol_reg(xx,:,:,:)), [ 2 1 3])), flipud(permute( squeeze(vol_reg(:,yy,:,:)), [ 2 1 3]))))
+nimplay( cat(2, flipud(permute( squeeze(vol_reg(xx,:,:,:)), [ 2 1 3])), flipud(permute( squeeze(vol_reg(:,yy,:,:)), [ 2 1 3]))), 1, [], 'x-/y-cut sequence' )
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 fprintf( '\n Total time elapsed: %.1f s', toc);
 fprintf('\n')
