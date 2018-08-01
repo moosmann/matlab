@@ -36,7 +36,7 @@ end
 if nargin < 7
     register = 0;
 end
-
+auto_roi_center = 0;
 % TO DO
 % get outlier thresholds from several slices
 
@@ -124,11 +124,27 @@ for nn = 1:numel( steps )
 end
 fprintf( '\n Read data in %.1f s', toc - t);
 
+%% Auto ROI
+if auto_roi_center
+    roi_cen = zeros( [3, 2] );
+    for nn = 1:3
+        for mm = 1:2
+            roi_cen(nn,mm) = CenterOfMass( squeeze( std( squeeze( sum( squeeze( vol(:,:,:,1) ), nn ) ), 0, mm ) ) );
+        end
+    end    
+    xx = mean( roi_cen(3,2) + roi_cen(2,2) );
+    yy = mean( roi_cen(1,2) + roi_cen(3,2) );
+    zz = mean( roi_cen(2,2) + roi_cen(3,2) );
+else
+    xx = round( size( vol, 1) / 2);    
+    yy = round( size( vol, 2) / 2);
+    zz = round( size( vol, 3) / 2);
+end
+
 %% Registering
 if register
     t = toc;
     fprintf( '\n Registering slices ' )
-    roi_lat
     shift = zeros( [num_steps, 1]);
     for nn = 1:num_steps - 1
         if strcmp( regdir, 'x')
@@ -162,6 +178,24 @@ else
     vol_reg = vol;
 end
 
+%% Auto ROI
+if auto_roi_center
+    roi_cen = zeros( [3, 2] );
+    for nn = 1:3
+        for mm = 1:2
+            roi_cen(nn,mm) = CenterOfMass( squeeze( std( sum( squeeze( vol_reg(:,:,:,1) ), nn ), 0, mm ) ) );
+        end
+    end    
+    xx = mean( roi_cen(3,2) + roi_cent(2,2) );
+    yy = mean( roi_cen(1,2) + roi_cent(3,2) );
+    zz = mean( roi_cen(2,2) + roi_cent(3,2) );
+else
+    xx = round( size( vol_reg, 1) / 2);    
+    yy = round( size( vol_reg, 2) / 2);
+    zz = round( size( vol_reg, 3) / 2);
+end
+
+
 %% Save
 %nimplay(cat(3,im1(s:end,:),im2(1:end-s+1,:)))
 %nimplay( squeeze(vol_reg(xx,:,:,:)));
@@ -170,7 +204,7 @@ end
 t = toc;
 fprintf( '\n Save animated gifs' )
 
-xx = round( size( vol_reg, 1) / 2);
+
 
 CheckAndMakePath( scan_path )
 filename = sprintf( '%s/%s_loadSequ_x%04u.gif', scan_path, scan_name, xx );
@@ -187,7 +221,7 @@ for nn = 1:size(vol_reg,4)
     end
 end
 
-yy = round( size( vol_reg, 2) / 2);
+
 
 filename = sprintf( '%s/%s_loadSequ_y%04u.gif', scan_path, scan_name, yy );
 fprintf( '\n output file: %s', filename)
@@ -201,7 +235,7 @@ for nn = 1:size(vol_reg,4)
     end
 end
 
-zz = round( size( vol_reg, 3) / 2);
+
 
 filename = sprintf( '%s/%s_loadSequ_z%04u.gif', scan_path, scan_name, zz );
 fprintf( '\n output file: %s', filename)
@@ -230,4 +264,4 @@ fprintf( '\n Done in %.1f s', toc - t);
 nimplay( cat(2, flipud(permute( squeeze(vol_reg(xx,:,:,:)), [ 2 1 3])), flipud(permute( squeeze(vol_reg(:,yy,:,:)), [ 2 1 3]))), 1, [], 'x-/y-cut sequence' )
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 fprintf( '\n Total time elapsed: %.1f s', toc);
-fprintf('\n')
+fprintf('\nFINISHED\n')

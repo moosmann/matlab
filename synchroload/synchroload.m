@@ -5,10 +5,10 @@
 edit p05_reco_loop_synchroload2018june
 %/asap3/petra3/gpfs/common/p05/jm/matlab/experiments/p05/data/moosmanj/p05_reco_loop_synchroload2018may_000.m
 edit p05_reco_loop_synchroload2018may_000
-
-%% Load value readout %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% Load force value: create figure %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 steps = [];
-out_path = '/gpfs/petra3/scratch/moosmanj/nextcloud';
+out_path = '';'/gpfs/petra3/scratch/moosmanj/nextcloud';
 
 raw_path = '/asap3/petra3/gpfs/p05/2017/data/11004016/raw';
 %scan_name = 'syn002_6L_PEEK_4w';
@@ -31,6 +31,7 @@ p05_load_force_values( raw_path, scan_name, steps, out_path )
 scan_name = 'syn005_55R_Mg5Gd_12w_load';
 p05_load_force_values( raw_path, scan_name, steps, out_path )
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Load sequence processing %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 proc_path = '/asap3/petra3/gpfs/p05/2017/data/11004016/processed';
 %scan_name = 'syn002_6L_PEEK_4w';

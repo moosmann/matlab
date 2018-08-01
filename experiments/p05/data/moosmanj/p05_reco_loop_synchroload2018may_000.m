@@ -130,7 +130,7 @@ tomo.vol_size = []; %[-0.5 0.5 -0.5 0.5 -0.5 0.5];% 6-component vector [xmin xma
 tomo.vol_shape = []; %[1 1 1] shape (# voxels) of reconstruction volume. used for excentric rot axis pos. if empty, inferred from 'tomo.vol_size'. in absolute numbers of voxels or in relative number w.r.t. the default volume which is given by the detector width and height.
 tomo.rot_angle.full_range = []; % in radians: empty ([]), full angle of rotation, or array of angles. if empty full rotation angles is determined automatically to pi or 2 pi
 tomo.rot_angle.offset = pi; % global rotation of reconstructed volume
-tomo.rot_axis.offset = -1;%[];%-2.5;[];% if empty use automatic computation
+tomo.rot_axis.offset = 2 / raw_bin * -1;%[];%-2.5;[];% if empty use automatic computation
 tomo.rot_axis.position = []; % if empty use automatic computation. EITHER OFFSET OR POSITION MUST BE EMPTY. YOU MUST NOT USE BOTH!
 tomo.rot_axis.tilt = 0; % in rad. camera tilt w.r.t rotation axis. if empty calculate from registration of projections at 0 and pi
 tomo.rot_axis.corr_area1 = []; % ROI to correlate projections at angles 0 & pi. Use [0.75 1] or so for scans with an excentric rotation axis
@@ -217,39 +217,43 @@ raw_path = '/asap3/petra3/gpfs/p05/2018/data/11004936/raw/';
 % scan_path = [raw_path 'syn003_99l_Mg5Gd']; ADD
 % scan_path = [raw_path 'syn004_99l_Mg5Gd']; ADD
 
-tomo.rot_axis.offset = -3.75;
+tomo.rot_axis.offset = 2 / raw_bin * -3.75;
 scan_path = [raw_path 'syn005_55R_Mg5Gd_12w_load_000']; ADD
 % MOVEMENT
 tomo.rot_axis.offset = 0;
 scan_path = [raw_path 'syn005_55R_Mg5Gd_12w_load_001']; ADD
-tomo.rot_axis.offset = -3.75;
+tomo.rot_axis.offset = 2 / raw_bin * -3.75;
 scan_path = [raw_path 'syn005_55R_Mg5Gd_12w_load_001_2']; ADD
-tomo.rot_axis.offset = -3.75;
+tomo.rot_axis.offset = 2 / raw_bin * -3.75;
 scan_path = [raw_path 'syn005_55R_Mg5Gd_12w_load_001_3']; ADD
 % MOVEMENT
 scan_path = [raw_path 'syn005_55R_Mg5Gd_12w_load_001_4']; ADD
-tomo.rot_axis.offset = -3.5;
+tomo.rot_axis.offset = 2 / raw_bin * -3.5;
 scan_path = [raw_path 'syn005_55R_Mg5Gd_12w_load_002']; ADD
-tomo.rot_axis.offset = -3.5;
+tomo.rot_axis.offset = 2 / raw_bin * -3.5;
 scan_path = [raw_path 'syn005_55R_Mg5Gd_12w_load_003']; ADD
-tomo.rot_axis.offset = -3.5;
+tomo.rot_axis.offset = 2 / raw_bin * -3.5;
 scan_path = [raw_path 'syn005_55R_Mg5Gd_12w_load_004']; ADD
-tomo.rot_axis.offset = -3.6;
+tomo.rot_axis.offset = 2 / raw_bin * -3.6;
 scan_path = [raw_path 'syn005_55R_Mg5Gd_12w_load_005']; ADD
 
 % MOVEMENT
-tomo.rot_axis.offset = -3.6;
+tomo.rot_axis.offset = 2 / raw_bin * -3.6;
 scan_path = [raw_path 'syn006_104L_Mg5Gd_4w_load_15N_by_hand']; ADD
 
 % Slightly blurry, strong evaporation of liquid film
-tomo.rot_axis.offset = 1;
+tomo.rot_axis.offset = 2 / raw_bin *  1;
 scan_path = [raw_path 'syn007_56R_Mg5Gd_12w_000']; ADD
 % Some movement
-tomo.rot_axis.offset = 1;
+tomo.rot_axis.offset = 2 / raw_bin *  1;
 scan_path = [raw_path 'syn007_56R_Mg5Gd_12w_001']; ADD
+tomo.rot_axis.offset = 2 / raw_bin *  1;
 scan_path = [raw_path 'syn007_56R_Mg5Gd_12w_002']; ADD
+tomo.rot_axis.offset = 2 / raw_bin *  1.125;
 scan_path = [raw_path 'syn007_56R_Mg5Gd_12w_003']; ADD
+tomo.rot_axis.offset = 2 / raw_bin *  1.25;
 scan_path = [raw_path 'syn007_56R_Mg5Gd_12w_004']; ADD
+tomo.rot_axis.offset = 2 / raw_bin *  1.25;
 scan_path = [raw_path 'syn007_56R_Mg5Gd_12w_005']; ADD
 scan_path = [raw_path 'syn007_56R_Mg5Gd_12w_006']; ADD
 scan_path = [raw_path 'syn007_56R_Mg5Gd_12w_007']; ADD

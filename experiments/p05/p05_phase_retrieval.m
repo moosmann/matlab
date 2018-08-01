@@ -20,7 +20,7 @@ edp = [phase_retrieval.energy, phase_retrieval.sample_detector_distance, phase_r
 %% Interactive mode %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 tint = 0;
-if exist( 'interactive_mode.phase_retrieval', 'var' ) && interactive_mode.phase_retrieval
+if exist( 'interactive_mode', 'var' ) && isfield( interactive_mode, 'phase_retrieval' ) && interactive_mode.phase_retrieval
     
     plot_ctf_mask(1) = 0;
     
