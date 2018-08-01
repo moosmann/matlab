@@ -51,8 +51,8 @@ link_data = assign_from_struct( par, 'astra_link_data', 0 );
 gpu_index = assign_from_struct( par, 'astra_gpu_index', [] );
 algorithm = assign_from_struct( par, 'algorithm', 'fbp' );
 iterations = assign_from_struct( par, 'iterations', 100);
-%MinConstraint = assign_from_struct( par.sirt, 'MinConstraint', [] );
-%MaxConstraint = assign_from_struct( par.sirt, 'MaxConstraint', [] );
+MinConstraint = assign_from_struct( par.sirt, 'MinConstraint', [] );
+MaxConstraint = assign_from_struct( par.sirt, 'MaxConstraint', [] );
  
 %% Main %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -163,8 +163,8 @@ switch lower( algorithm )
         cfg = astra_struct('BP3D_CUDA');
     case 'sirt'
         cfg = astra_struct('SIRT3D_CUDA');
-%        cfg.option.MinConstraint = MinConstraint;
- %       cfg.option.MaxConstraint = MaxConstraint;
+        cfg.option.MinConstraint = MinConstraint;
+        cfg.option.MaxConstraint = MaxConstraint;
     case 'cgls'
         cfg = astra_struct('CGLS3D_CUDA');        
 end

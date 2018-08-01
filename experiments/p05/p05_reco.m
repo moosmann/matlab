@@ -86,7 +86,7 @@ ring_filter.waveletfft.dec_levels = 2:5; % decomposition levels for 'wavelet-fft
 ring_filter.waveletfft.wname = 'db25';'db30'; % wavelet type, see 'FilterStripesCombinedWaveletFFT' or 'waveinfo'
 ring_filter.waveletfft.sigma = 2.4; %  suppression factor for 'wavelet-fft'
 ring_filter.jm.median_width = 11; % multiple widths are applied consecutively, eg [3 11 21 31 39];
-strong_abs_thresh = 1; % Experimental: if 1: does nothing, if < 1: flat-corrected values below threshold are set to one
+strong_abs_thresh = 1; % if 1: does nothing, if < 1: flat-corrected values below threshold are set to one. Try with algebratic reco techniques.
 decimal_round_precision = 2; % precision when rounding pixel shifts
 %%% PHASE RETRIEVAL %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 phase_retrieval.apply = 1; % See 'PhaseFilter' for detailed description of parameters !
@@ -120,7 +120,7 @@ tomo.butterworth_filter.order = 1;
 tomo.butterworth_filter.frequ_cutoff = 0.9;
 tomo.astra_pixel_size = 1; % detector pixel size for reconstruction: if different from one 'tomo.vol_size' must to be ajusted, too!
 tomo.take_neg_log = []; % take negative logarithm. if empty, use 1 for attenuation contrast, 0 for phase contrast
-tomo.algorithm = 'fbp';'sirt'; 'cgls';
+tomo.algorithm = 'fbp';'sirt'; 'cgls';'sart';'em';'fbp-astra'; % SART/EM only work for 3D reco mode
 tomo.iterations = 40; % for 'sirt' or 'cgls'.
 tomo.sirt.MinConstraint = []; % If specified, all values below MinConstraint will be set to MinConstraint. This can be used to enforce non-negative reconstructions, for example.
 tomo.sirt.MaxConstraint = []; % If specified, all values above MaxConstraint will be set to MaxConstraint.
@@ -410,6 +410,7 @@ filename = sprintf( '%s/%s', str.folder, str.name);
 if isempty( eff_pixel_size )
     eff_pixel_size = par.eff_pixel_size;
 end
+exposure_time = par.exposure_time;
 eff_pixel_size_binned = raw_bin * eff_pixel_size;
 if isempty( energy )
     if isfield( par, 'energy')
@@ -435,7 +436,7 @@ if ~exist( h5log, 'file')
                 dtype = 'uint16';
         end
         im_raw = read_raw( filename, im_shape_raw, dtype );
-    end        
+    end       
 else
     % HDF5 log
     h5i = h5info( h5log );
@@ -444,12 +445,12 @@ else
         %%% CHECK h5 entry of camera1 / camera2 !!!!!!!!!!!!!!!!!!!!!!!!
         case 'ehd'
             energy = double(h5read( h5log, '/entry/hardware/camera1/calibration/energy') );
-            exp_time = double(h5read( h5log, '/entry/hardware/camera1/calibration/exptime') );
+            exposure_time = double(h5read( h5log, '/entry/hardware/camera1/calibration/exptime') );
             im_shape_raw = [3056 3056];
             dtype = 'uint16';
         case 'kit'
             energy = double(h5read( h5log, '/entry/hardware/camera2/calibration/energy') );
-            exp_time = double(h5read( h5log, '/entry/hardware/camera2/calibration/exptime') );
+            exposure_time = double(h5read( h5log, '/entry/hardware/camera2/calibration/exptime') );
             im_shape_raw = [5120 3840];
             dtype = 'uint16';
     end
@@ -485,7 +486,7 @@ else
     X = double( petra.time(2:end) ); % first value is zero
     V = double( petra.current(2:end) ); % first value is zero
     Xq = double( stimg_name.time );
-    stimg_name.current = (interp1( X, V, Xq, 'next', 100) + interp1( X, V, Xq + exp_time, 'previous', 100) ) / 2;
+    stimg_name.current = (interp1( X, V, Xq, 'next', 100) + interp1( X, V, Xq + exposure_time, 'previous', 100) ) / 2;
     cur_ref_val = stimg_name.current( stimg_key.value == 1 );
     cur_ref_name = stimg_name.value( stimg_key.value == 1 );    
     for nn = numel( cur_ref_name ):-1:1
@@ -941,14 +942,16 @@ elseif ~read_flatcor
     proj_max0 = max( proj(:) );
     prnt( '\n global min/max after flat-field corrected:  %6g %6g', proj_min0, proj_max0);   
 
-    % Experimental: Filter strong absorption
+    % Filter strong/full absorption (combine with iterative reco
+    % techniques)
     if strong_abs_thresh < 1
         t = toc;
         prnt( '\n set flat-corrected values below %f to one, ', strong_abs_thresh)
         parfor nn = 1:size( proj, 3 )
             im = proj(:,:,nn);
             m = im < strong_abs_thresh;
-            im(m) = 1;
+            im(m) = 0;
+            im(m) = mean2( im );
             proj(:,:,nn) = im;
         end
             prnt( ' done in %.1f s (%.2f min)', toc - t, ( toc - t ) / 60 )
@@ -1666,6 +1669,8 @@ if tomo.run
         end
         pause(0.01)
         prnt( ' done in %.2f min.', (toc - t2) / 60)
+    else
+        proj = NegLog( proj, take_neg_log );
     end
     
     if crop_at_rot_axis(1)
@@ -1805,7 +1810,7 @@ if tomo.run
             end
             prnt( ' done in %.1f s (%.2f min)', toc-t, (toc-t)/60 )
             
-        case 'slice'
+        case {'slice', '2d'}
             %% Slicewise backprojection %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
             prnt( '\n Backproject and save slices:')
             t2 = toc;
@@ -1834,23 +1839,26 @@ if tomo.run
             % Loop over slices
             vol_min = Inf;
             vol_max = -Inf;
+            indshow = [1, round( [0.25 0.5 0.75 1] * size( proj, 2) )];
             for nn = 1:size( proj, 2 )
                 
                 % Backproject
-                vol = astra_parallel2D( tomo, permute( proj(:,ind(nn),:), [3 1 2]) );
+                vol = rot90( astra_parallel2D( tomo, permute( proj(:,ind(nn),:), [3 1 2]) ), -1);
                 
                 vol_min = min( vol_min, min( vol(:) ) );
                 vol_max = max( vol_max, max( vol(:) ) );
                 
                 % Show orthogonal vol cuts
-                if visual_output(1) && ~mod( nn - 1, 100 )
-                    figure('Name', sprintf( 'Volume slice'));
-                    imsc( vol )
-                    axis equal tight
-                    title( sprintf( 'vol z = %u', ind(1) ) )
-                    colorbar
-                    drawnow
-                    pause( 0.1 )
+                if visual_output(1)
+                    if sum( ind(nn) == indshow )
+                        figure('Name', sprintf( 'Volume slice'));
+                        imsc( vol )
+                        axis equal tight
+                        title( sprintf( 'vol z = %u', ind(nn) ) )
+                        colorbar
+                        drawnow
+                        pause( 0.1 )
+                    end
                 end
                 
                 % Save
@@ -1884,6 +1892,7 @@ if write.reco
     fprintf(fid, 'MATLAB version : %s\n', version);
     fprintf(fid, 'platform : %s\n', computer);
     fprintf(fid, 'camera : %s\n', cam);
+    fprintf(fid, 'exposure_time : %f\n', exposure_time);    
     fprintf(fid, 'num_dark_found : %u\n', num_dark);
     fprintf(fid, 'num_ref_found : %u\n', num_ref_found);
     fprintf(fid, 'num_ref_used : %u\n', num_ref_used);
@@ -1915,6 +1924,7 @@ if write.reco
         fprintf(fid, 'min_max_of_all_corrected_raws :  %6g %6g\n', raw_min2, raw_max2);
         fprintf(fid, 'min_max_of_all_flat_corr_projs : %g %g \n', proj_min, proj_max);
     end
+    fprintf(fid, 'strong_abs_thresh : %f m\n', strong_abs_thresh);
     % Phase retrieval
     fprintf(fid, 'phase_retrieval.apply : %u\n', phase_retrieval.apply);
     if phase_retrieval.apply
@@ -1945,9 +1955,14 @@ if write.reco
         fprintf(fid, 'rotation_axis_tilt_calculated : %f\n', rot_axis_tilt_calc);
         fprintf(fid, 'tomo.rot_axis.tilt : %f\n', tomo.rot_axis.tilt);
         fprintf(fid, 'raw_image_binned_center : %f\n', im_shape_binned1 / 2);
-        fprintf(fid, 'tomo.rot_axis.corr_area1 : %u:%u:%u\n', tomo.rot_axis.corr_area1(1), tomo.rot_axis.corr_area1(2) - tomo.rot_axis.corr_area1(1), tomo.rot_axis.corr_area1(end));
-        fprintf(fid, 'tomo.rot_axis.corr_area2 : %u:%u:%u\n', tomo.rot_axis.corr_area2(1), tomo.rot_axis.corr_area2(2) - tomo.rot_axis.corr_area2(1), tomo.rot_axis.corr_area2(end));
+        if numel( tomo.rot_axis.corr_area1 ) == 2
+            fprintf(fid, 'tomo.rot_axis.corr_area1 : %u:%u:%u\n', tomo.rot_axis.corr_area1(1), tomo.rot_axis.corr_area1(2) - tomo.rot_axis.corr_area1(1), tomo.rot_axis.corr_area1(end));
+        end
+        if numel( tomo.rot_axis.corr_area2 ) == 2
+            fprintf(fid, 'tomo.rot_axis.corr_area2 : %u:%u:%u\n', tomo.rot_axis.corr_area2(1), tomo.rot_axis.corr_area2(2) - tomo.rot_axis.corr_area2(1), tomo.rot_axis.corr_area2(end));
+        end
         fprintf(fid, 'interactive_mode.rot_axis_pos : %u\n', interactive_mode.rot_axis_pos);
+        fprintf(fid, 'interactive_mode.phase_retrieval : %u\n', interactive_mode.phase_retrieval);
         % Ring filter
         fprintf(fid, 'ring_filter.apply : %u\n', ring_filter.apply);
         if ring_filter.apply

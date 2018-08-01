@@ -1,4 +1,4 @@
-function [vol, vol_reg] = p05_load_sequ( proc_path, scan_name, reco_sub, regdir, steps, out_thresh, register )
+function [vol, vol_reg] = p05_load_sequ( proc_path, scan_name, reco_sub, regdir, steps, out_thresh, register, auto_roi_center )
 % Create images sequences from 4D load tomography data.
 %
 % Script to process in 4D image squences e.g. from load tomography. Read in
@@ -36,7 +36,9 @@ end
 if nargin < 7
     register = 0;
 end
-auto_roi_center = 0;
+if nargin < 8
+    auto_roi_center = 0;
+end
 % TO DO
 % get outlier thresholds from several slices
 
@@ -99,11 +101,11 @@ imc = conv8bit( im );
 figure( 'Name', 'Check thresholding for 8bit conversion')
 subplot( 1, 2, 1 )
 imsc(im);
-title(sprintf('full dynamic range'))
+title(sprintf('full range:32bit single float'))
 axis equal tight
 subplot( 1, 2, 2 )
 imsc(imc);
-title(sprintf('after outlier thresholding'))
+title(sprintf('outlier thresholding: 8bit uint'))
 axis equal tight
 drawnow
 
@@ -129,11 +131,15 @@ if auto_roi_center
     roi_cen = zeros( [3, 2] );
     for nn = 1:3
         for mm = 1:2
-            roi_cen(nn,mm) = CenterOfMass( squeeze( std( squeeze( sum( squeeze( vol(:,:,:,1) ), nn ) ), 0, mm ) ) );
+            im = mean( squeeze( vol(:,:,:,1) ), nn );
+            im_std = squeeze( std( squeeze( im ), 0, mm ) ) ;
+            im_std = SubtractMean( im_std );
+            im_std( im_std <= 0 ) = 0;
+            roi_cen(nn,mm) = CenterOfMass( im_std );
         end
     end    
-    xx = mean( roi_cen(3,2) + roi_cen(2,2) );
-    yy = mean( roi_cen(1,2) + roi_cen(3,2) );
+    xx = roi_cen(3,1);
+    yy = roi_cen(3,2);
     zz = mean( roi_cen(2,2) + roi_cen(3,2) );
 else
     xx = round( size( vol, 1) / 2);    

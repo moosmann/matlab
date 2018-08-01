@@ -15,7 +15,9 @@ reg_par = phase_retrieval.reg_par;
 bin_filt = phase_retrieval.bin_filt;
 cutoff_frequ = phase_retrieval.cutoff_frequ;
 edp = [phase_retrieval.energy, phase_retrieval.sample_detector_distance, phase_retrieval.eff_pixel_size_binned];
-
+if edp(1) <= 0
+    error( 'Energy is zero!' );
+end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Interactive mode %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 

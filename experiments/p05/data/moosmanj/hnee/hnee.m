@@ -21,6 +21,5 @@ regdir = 'x';
 steps = 2;[];
 register = 1;
 outlier_thresh = 0.0001;
-[vol, vol_reg] = p05_load_sequ(proc_path, scan, reco_subfolder, regdir, steps, outlier_thresh, register);
-
-
+auto_roi_center = 1;
+[vol, vol_reg] = p05_load_sequ(proc_path, scan, reco_subfolder, regdir, steps, outlier_thresh, register, auto_roi_center);

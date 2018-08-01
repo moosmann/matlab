@@ -68,6 +68,11 @@ elseif isfield( par, 'n_angles' )
 elseif isfield( par, 'n_angle' )
     par.num_proj = double( par.n_angle );
 end
+
+if isfield( par, 'exptime' )
+    par.exposure_time = double( par.exptime );
+    par = rmfield( par, 'exptime' );
+end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function [par, cur] = KIT_log( file )
 fid = fopen( file );

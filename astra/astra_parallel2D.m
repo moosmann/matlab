@@ -38,7 +38,7 @@ function vol = astra_parallel2D(par, sino)
 %% unpredictable results.
 %
 % Written by Julian Moosmann
-% First version: 2018-06-29. Last modification: 2018-07-03
+% First version: 2018-06-29. Last modification: 2018-08-01
 
 %% Default arguments %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 angles = assign_from_struct( par, 'angles', pi );
@@ -51,8 +51,8 @@ algorithm = assign_from_struct( par, 'algorithm', 'fbp' );
 iterations = assign_from_struct( par, 'iterations', 100);
 rotation_axis_offset = assign_from_struct( par.rot_axis, 'offset', 0);
 angle_offset = assign_from_struct( par.rot_angle, 'offset', 0 );
-%MinConstraint = assign_from_struct( par.sirt, 'MinConstraint', [] );
-%MaxConstraint = assign_from_struct( par.sirt, 'MaxConstraint', [] );
+MinConstraint = assign_from_struct( par.sirt, 'MinConstraint', [] );
+MaxConstraint = assign_from_struct( par.sirt, 'MaxConstraint', [] );
  
 %% Main %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -111,8 +111,6 @@ end
 
 
 %% Projection geometry
-%proj_geom = astra_create_proj_geom('parallel3d_vec',  det_row_count, det_col_count, vectors);
-%proj_geom = astra_create_proj_geom('parallel', DetectorSpacingX, det_col_count, angles);
 proj_geom = astra_create_proj_geom('parallel_vec', det_col_count, vectors);
 
 %% Volume geometry
@@ -129,7 +127,6 @@ min_y = vol_size(1);
 max_y = vol_size(2);
 
 % Volume geometry object
-%vol_geom = astra_create_vol_geom(row_count, col_count, slice_count, min_x, max_x, min_y, max_y, min_z, max_z);
 vol_geom = astra_create_vol_geom(row_count, col_count, min_x, max_x, min_y, max_y);
 
 % Normalize sino instead of volume
@@ -142,13 +139,12 @@ sino_id = astra_mex_data2d('create', '-sino', proj_geom, sino);
 %% Volume object
 vol_id = astra_mex_data2d('create', '-vol', vol_geom);
 
-%% Projector
-%proj_id = astra_create_projector('linear', proj_geom, vol_geom);
-
 %% ASTRA config struct
 switch lower( algorithm )
     case 'fbp'
         cfg = astra_struct('BP_CUDA');
+    case 'fbp-astra'
+        cfg = astra_struct('FBP_CUDA');
     case 'sirt'
         cfg = astra_struct('SIRT_CUDA');
         cfg.option.MinConstraint = MinConstraint;
@@ -158,7 +154,9 @@ switch lower( algorithm )
         cfg.option.MinConstraint = MinConstraint;
         cfg.option.MaxConstraint = MaxConstraint;
     case 'cgls'
-        cfg = astra_struct('CGLS_CUDA');        
+        cfg = astra_struct('CGLS_CUDA');
+    case 'em'
+        cfg = astra_struct('EM_CUDA');
 end
 cfg.ProjectionDataId = sino_id;
 cfg.ReconstructionDataId = vol_id;
@@ -167,6 +165,9 @@ cfg.ReconstructionDataId = vol_id;
 bp_id = astra_mex_algorithm('create', cfg);
 
 %% Backprojection: iterate algorithm 
+% SIRT_CUDA supports astra_mex_algorithm(‘get_res_norm’) to get the 2-norm
+% of the difference between the projection data and the projection of the
+% reconstruction.
 if strcmpi( algorithm, 'fbp' )
     astra_mex_algorithm('iterate', bp_id, 1);
 else
