@@ -22,7 +22,7 @@
 % Also cite the ASTRA Toolbox, see http://www.astra-toolbox.com/
 %
 % Written by Julian Moosmann. First version: 2016-09-28. Last modifcation:
-% 2018-06-21
+% 2018-08-02
 
 if ~exist( 'external_parameter' ,'var')
     clearvars
@@ -33,11 +33,13 @@ close all hidden % close all open windows
 %% PARAMETERS / SETTINGS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-fast_reco = 1; % OVERWRITES PARAMETERS SET BELOW
-stop_after_data_reading(1) = 0; % for data analysis, before flat field correlation
+fast_reco = 1; % OVERWRITES PARAMETERS SET BELOW !!!!!!!!!
+stop_after_data_reading(1) = 0; % for data analysis, before flat field correlation 
+stop_after_proj_flat_correlation(1) = 0; % for data analysis, after flat field correlation
 
 %%% SCAN %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 scan_path = ...
+        '/asap3/petra3/gpfs/p05/2018/data/11004284/raw/Li11_1stCha_fly';
     '/asap3/petra3/gpfs/p05/2017/data/11004016/raw/syn002_6L_PEEK_4w_002';
     '/asap3/petra3/gpfs/p05/2018/data/11004936/raw/syn007_56R_Mg5Gd_12w_009';
 read_flatcor = 0; % read flatfield-corrected images from disc, skips preprocessing
@@ -89,7 +91,7 @@ ring_filter.jm.median_width = 11; % multiple widths are applied consecutively, e
 strong_abs_thresh = 1; % if 1: does nothing, if < 1: flat-corrected values below threshold are set to one. Try with algebratic reco techniques.
 decimal_round_precision = 2; % precision when rounding pixel shifts
 %%% PHASE RETRIEVAL %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-phase_retrieval.apply = 1; % See 'PhaseFilter' for detailed description of parameters !
+phase_retrieval.apply = 0; % See 'PhaseFilter' for detailed description of parameters !
 phase_retrieval.apply_before = 1; % before stitching, interactive mode, etc. For phase-contrast data with an excentric rotation axis phase retrieval should be done afterwards. To find the rotataion axis position use this option in a first run, and then turn it of afterwards.
 phase_retrieval.post_binning_factor = 2; % Binning factor after phase retrieval, but before tomographic reconstruction
 phase_retrieval.method = 'tie';'qpcut'; %'qp' 'ctf' 'tie' 'qp2' 'qpcut'
@@ -105,9 +107,9 @@ tomo.vol_size = []; %[-0.5 0.5 -0.5 0.5 -0.5 0.5];% 6-component vector [xmin xma
 tomo.vol_shape = []; %[1 1 1] shape (# voxels) of reconstruction volume. used for excentric rot axis pos. if empty, inferred from 'tomo.vol_size'. in absolute numbers of voxels or in relative number w.r.t. the default volume which is given by the detector width and height.
 tomo.rot_angle.full_range = []; % in radians: empty ([]), full angle of rotation, or array of angles. if empty full rotation angles is determined automatically to pi or 2 pi
 tomo.rot_angle.offset = pi; % global rotation of reconstructed volume
-tomo.rot_axis.offset = -1;%[];%-2.5;[];% if empty use automatic computation
+tomo.rot_axis.offset = 3;%[];%-2.5;[];% if empty use automatic computation
 tomo.rot_axis.position = []; % if empty use automatic computation. EITHER OFFSET OR POSITION MUST BE EMPTY. YOU MUST NOT USE BOTH!
-tomo.rot_axis.tilt = 0; % in rad. camera tilt w.r.t rotation axis. if empty calculate from registration of projections at 0 and pi
+tomo.rot_axis.tilt = 0.05; % in rad. camera tilt w.r.t rotation axis. if empty calculate from registration of projections at 0 and pi
 tomo.rot_axis.corr_area1 = []; % ROI to correlate projections at angles 0 & pi. Use [0.75 1] or so for scans with an excentric rotation axis
 tomo.rot_axis.corr_area2 = []; % ROI to correlate projections at angles 0 & pi
 tomo.rot_axis.corr_gradient = 0; % use gradient of intensity maps if signal variations are too weak to correlate projections
@@ -155,7 +157,7 @@ write.compression.parameter = [0.02 0.02]; % compression-method specific paramet
 % 'histo' : [LOW HIGH] = write.compression.parameter (100*LOW)% and (100*HIGH)% of the original histogram, e.g. [0.02 0.02]
 %%% INTERACTION %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 verbose = 1; % print information to standard output
-visual_output = 0; % show images and plots during reconstruction
+visual_output = 1; % show images and plots during reconstruction
 interactive_mode.rot_axis_pos = 0; % reconstruct slices with dif+ferent rotation axis offsets
 interactive_mode.rot_axis_tilt = 0; % reconstruct slices with different offset AND tilts of the rotation axis
 interactive_mode.lamino = 0; % find laminography tilt instead camera rotation
@@ -475,7 +477,7 @@ else
     offset_shift = s_stage_x.value( ~boolean( stimg_key.value(par.n_dark+1:end) ) ) * 1e-3 / eff_pixel_size_binned;
     offset_shift = offset_shift - mean( offset_shift );
     offset_shift = offset_shift(proj_range);
-    if visual_output(1) && numel( offset_shift ) > 2
+    if visual_output(1) && numel( offset_shift ) > 2 && abs( std( offset_shift ) ) > 0
         figure('Name', 'Rotation axis offset shift');
         plot( offset_shift, '.')
         title(sprintf('Rotation axis offset shift (zero mean)') )
@@ -941,7 +943,12 @@ elseif ~read_flatcor
     proj_min0 = min( proj(:) );
     proj_max0 = max( proj(:) );
     prnt( '\n global min/max after flat-field corrected:  %6g %6g', proj_min0, proj_max0);   
-
+    
+    if stop_after_proj_flat_correlation
+        fprintf( '\n' )
+        keyboard;
+    end
+    
     % Filter strong/full absorption (combine with iterative reco
     % techniques)
     if strong_abs_thresh < 1
@@ -986,6 +993,16 @@ elseif ~read_flatcor
         colorbar
         axis equal tight
         
+        drawnow
+        
+        figure('Name', 'sinogram');
+        nn = round( size( proj, 3) / 2);
+        sino = CropShift( squeeze( proj(:,nn,:) ), offset_shift );
+        imsc1( sino)
+        %xticks([]);yticks([])
+        title(sprintf('sinogram: proj(:,%u,:)', nn))
+        colorbar
+        axis equal tight
         drawnow
     end
     
@@ -1039,6 +1056,7 @@ tomo.angles = tomo.rot_angle.offset + angles;
 
 %% Phase retrieval %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 phase_bin = phase_retrieval.post_binning_factor; % alias for readablity
+tint_phase = 0;
 if phase_retrieval.apply
     phase_retrieval.energy = energy;
     phase_retrieval.sample_detector_distance = sample_detector_distance;
@@ -1048,7 +1066,7 @@ if phase_retrieval.apply
     end
     if phase_retrieval.apply_before
         % Retrieval
-        [proj, write] = p05_phase_retrieval( proj, phase_retrieval, tomo, write, interactive_mode, verbose, visual_output);
+        [proj, write, tint_phase] = p05_phase_retrieval( proj, phase_retrieval, tomo, write, interactive_mode, verbose, visual_output);
         % Post phase retrieval binning issues
         tomo.rot_axis.position = tomo.rot_axis.position / phase_bin;
         tomo.rot_axis.offset = tomo.rot_axis.offset / phase_bin;
@@ -1425,30 +1443,40 @@ if tomo.run || tomo.run_interactive_mode
                             tform_int = tform_calc;
                             tform_int.T = [cos( 2 * tomo.rot_axis.tilt ) sin( 2 * tomo.rot_axis.tilt ) 0; ...
                                 -sin( 2 * tomo.rot_axis.tilt ) cos( 2 * tomo.rot_axis.tilt ) 0 ; ...
-                                tform_calc.T(3,1) tform_calc.T(3,2) 1];                            
+                                tform_calc.T(3,1) tform_calc.T(3,2) 1];
+                            % Remove translation if very large which is
+                            % likely to be incorrect
+                            if tform_int.T(3,1) > 10
+                                tform_int.T(3,1) = 0;
+                            end
+                            if tform_int.T(3,2) > 10
+                                tform_int.T(3,2) = 0;
+                            end
                             % Translation: [1 0 0, 0 1 0, t_x t_y 0]
                             % Scale: [s_x 0 0, 0 s_y 0, 0 0 1]
                             % Shear: [1 sh_y 0, sh_x 1 0, 0 0 1]
                             % Rotation: [cos(t) sin(t) 0, -sin(t) cos(t) 0, 0 0 1]
-
+                            
                             im2c_warped_int =  imwarp(im2c, tform_int, 'OutputView', imref2d(size(im1c)));
                             
                             xt = ceil( 3 * abs( sin(2*tomo.rot_axis.tilt) ) * max( size(im1c)) ) + 2;
                             
-                            fprintf( '\n current rotation axis tilt from interactive mode: %g rad (%g deg)', tomo.rot_axis.tilt, tomo.rot_axis.tilt * 180 / pi)
-                            fprintf( '\n calcul. rotation axis tilt from registration    : %g rad (%g deg)', rot_axis_tilt_calc, rot_axis_tilt_calc * 180 / pi)
-                            
-                            name = sprintf( 'registered projections at %g and %g degree. rot axis tilt from INTERACTIVE mode: %g, rot axis offset: %g', angles(ind1)/pi*180, angles(ind2)/pi*180, tomo.rot_axis.tilt, tomo.rot_axis.offset);
-                            nimplay( cat(3, im1c(xt:end-xt,xt:end-xt)', im2c_warped_int(xt:end-xt,xt:end-xt)'), 1, 0, name)
-                            
-                            name = sprintf( 'registered projections at %g and %g degree. corrected. rot axis tilt from REGISTRATION: %g, rot axis offset: %g', angles(ind1)/pi*180, angles(ind2)/pi*180, rot_axis_tilt_calc, tomo.rot_axis.offset);
-                            nimplay( cat(3, im1c(xt:end-xt,xt:end-xt)', im2c_warped_calc(xt:end-xt,xt:end-xt)'), 1, 0, name)
-                            
-                            tilt = input( '\nENTER ROTATION AXIS TILT\n (if empty use current value): ');
-                            if isempty( tilt )
-                                tilt = tomo.rot_axis.tilt;
-                            else
-                                tomo.rot_axis.tilt = tilt;
+                            if xt < size( im1c,1)  -10 && xt < size( im1c,2)  -10
+                                fprintf( '\n current rotation axis tilt from interactive mode: %g rad (%g deg)', tomo.rot_axis.tilt, tomo.rot_axis.tilt * 180 / pi)
+                                fprintf( '\n calcul. rotation axis tilt from registration    : %g rad (%g deg)', rot_axis_tilt_calc, rot_axis_tilt_calc * 180 / pi)
+                                
+                                name = sprintf( 'registered projections at %g and %g degree. rot axis tilt from INTERACTIVE mode: %g, rot axis offset: %g', angles(ind1)/pi*180, angles(ind2)/pi*180, tomo.rot_axis.tilt, tomo.rot_axis.offset);
+                                nimplay( cat(3, im1c(xt:end-xt,xt:end-xt)', im2c_warped_int(xt:end-xt,xt:end-xt)'), 1, 0, name)
+                                
+                                name = sprintf( 'registered projections at %g and %g degree. corrected. rot axis tilt from REGISTRATION: %g, rot axis offset: %g', angles(ind1)/pi*180, angles(ind2)/pi*180, rot_axis_tilt_calc, tomo.rot_axis.offset);
+                                nimplay( cat(3, im1c(xt:end-xt,xt:end-xt)', im2c_warped_calc(xt:end-xt,xt:end-xt)'), 1, 0, name)
+                                
+                                tilt = input( '\nENTER ROTATION AXIS TILT\n (if empty use current value): ');
+                                if isempty( tilt )
+                                    tilt = tomo.rot_axis.tilt;
+                                else
+                                    tomo.rot_axis.tilt = tilt;
+                                end
                             end
                             
                             offset = input( '\nENTER RANGE OF OFFSETS TO CONTINUE INTERACTIVE LOOP OR TYPE ENTER TO EXIT LOOP: ');
@@ -1491,6 +1519,9 @@ if tomo.run || tomo.run_interactive_mode
         colorbar
         
         xt = ceil( 3 * abs( sin(2*tomo.rot_axis.tilt) ) * max( size(im1c)) ) + 2;
+        if xt > size( im1c,1)  -10 || xt > size( im1c,2)  -10
+            xt = 1;
+        end
         subplot(m, n, 3)
         imsc1( abs( im1c(xt:end-xt,xt:end-xt) - im2c(xt:end-xt,xt:end-xt) ) )
         axis equal tight
@@ -1498,11 +1529,11 @@ if tomo.run || tomo.run_interactive_mode
         colorbar
         
         subplot(m, n, 4)
-        
-        %%% tform_cal or tform_int !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         [optimizer, metric] = imregconfig('monomodal');
-        tform_calc = imregtform(im2c, im1c, 'rigid', optimizer, metric);
-        im2c_warped_int =  imwarp(im2c, tform_calc, 'OutputView',imref2d(size(im1c)));
+        if ~exist( 'tform_int', 'var' )
+            tform_int = imregtform(im2c, im1c, 'rigid', optimizer, metric);
+        end
+        im2c_warped_int =  imwarp(im2c, tform_int, 'OutputView',imref2d(size(im1c)));
         imsc1( abs( im1c(xt:end-xt,xt:end-xt) - im2c_warped_int(xt:end-xt,xt:end-xt) ) )
         axis equal tight
         title(sprintf('difference corrected'))
@@ -1609,7 +1640,7 @@ end
 if phase_retrieval.apply
     if ~phase_retrieval.apply_before
         % Retrieval
-        [proj, write] = p05_phase_retrieval( proj, phase_retrieval, tomo, write, interactive_mode, verbose, visual_output);
+        [proj, write, tint_phase] = p05_phase_retrieval( proj, phase_retrieval, tomo, write, interactive_mode, verbose, visual_output);
         % Post phase retrieval binning
         tomo.rot_axis.position = tomo.rot_axis.position / phase_bin;
         tomo.rot_axis.offset = tomo.rot_axis.offset / phase_bin;
@@ -1621,11 +1652,10 @@ end
 %% Tomographic reco %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 if tomo.run
     prnt( '\nTomographic reconstruction:')
-    
     vol = zeros( tomo.vol_shape, 'single' );
-    
-    prnt( '\n volume shape: [%g, %g, %g]', tomo.vol_shape )
-    prnt( '\n volume memory allocated: %.2f GiB', Bytes( vol, 3 ) )
+    prnt( '\n method : %s', tomo.algorithm )
+    prnt( '\n volume shape : [%g, %g, %g]', tomo.vol_shape )
+    prnt( '\n volume memory allocated : %.2f GiB', Bytes( vol, 3 ) )
     
     if stitch_projections(1)
         rot_axis_offset_reco = 0;
@@ -1670,7 +1700,7 @@ if tomo.run
         pause(0.01)
         prnt( ' done in %.2f min.', (toc - t2) / 60)
     else
-        proj = NegLog( proj, take_neg_log );
+        proj = NegLog( proj, tomo.take_neg_log );
     end
     
     if crop_at_rot_axis(1)
@@ -2013,8 +2043,9 @@ if write.reco
     prnt( '\n log file : %s', logfile_name)
     prnt( '\n reco_path : \n%s', reco_path)
 end
-PrintVerbose(verbose && interactive_mode.rot_axis_pos, '\nTime elapsed in interactive mode: %g s (%.2f min)', tint, tint / 60 );
-prnt( '\nTime elapsed for computation: %g s (%.2f min)', toc - tint, (toc - tint) / 60 );
+PrintVerbose(verbose && interactive_mode.rot_axis_pos, '\nTime elapsed in interactive rotation axis centering mode: %g s (%.2f min)', tint, tint / 60 );
+PrintVerbose(verbose && interactive_mode.phase_retrieval, '\nTime elapsed in interactive phase retrieval mode: %g s (%.2f min)', tint_phase, tint_phase / 60 );
+prnt( '\nTime elapsed for computation: %g s (%.2f min)', toc - tint -tint_phase, (toc - tint - tint_phase) / 60 );
 prnt( '\nFINISHED: %s\n\n', scan_name)
 % END %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 

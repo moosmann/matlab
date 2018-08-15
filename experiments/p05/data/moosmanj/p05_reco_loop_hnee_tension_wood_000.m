@@ -140,13 +140,13 @@ write.phase_sino = 0;
 write.reco = 1; 
 write.float = 1; 
 write.uint16 = 0;
-write.uint8 = 0; 
+write.uint8 = 1; 
 % Optionally save binned reconstructions
 write.float_binned = 1;
 write.uint16_binned = 0;
 write.uint8_binned = 0; 
 write.reco_binning_factor = 2;
-write.compression.method = 'histo';'full'; 'std'; 'threshold'; % method to compression dynamic range into [0, 1]
+write.compression.method = 'outlier';
 write.compression.parameter = [0.20 0.15]; % compression-method specific parameter
 write.uint8_segmented = 0;
 %%% INTERACTION %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -326,6 +326,13 @@ scan_path = [raw_path 'hnee23_pappel_tensionWood_012']; ADD
 %% CHECK
 tomo.rot_axis.offset = 2 * 10 / raw_bin;
 scan_path = [raw_path 'hnee23_pappel_tensionWood_013']; ADD
+
+%%%% TEST SECTION %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+tomo.algorithm = 'sirt';
+tomo.reco_mode = 'slice';
+tomo.rot_axis.offset = 2 * 9.5 / raw_bin;
+write.subfolder.reco = 'sirt'; 
+scan_path = [raw_path 'hnee23_pappel_tensionWood_000']; ADD
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

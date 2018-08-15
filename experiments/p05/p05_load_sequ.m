@@ -6,7 +6,7 @@ function [vol, vol_reg] = p05_load_sequ( proc_path, scan_name, reco_sub, regdir,
 % sequences cut centrally along x and y as animated gifs. After processing
 % registered 4D volume is available as 4D array in the Matlab workspace.
 % (4D array is not saved since saving the Matlab array is more time
-% consuming than processing the sequence.) 
+% consuming than processing the sequence.)
 %
 % proc_name : string, name of sequence without trailing indices and
 %   underscore
@@ -19,7 +19,7 @@ if nargin < 1
     proc_path = '/asap3/petra3/gpfs/p05/2017/data/11004016/processed';
 end
 if nargin < 2
-    scan_name = 'syn007_94L_Mg10Gd_8w';    
+    scan_name = 'syn007_94L_Mg10Gd_8w';
 end
 if nargin < 3
     reco_sub = '/reco/float_rawBin4';
@@ -28,7 +28,7 @@ if nargin < 4
     regdir = 'x'; % x or y cut, y sometimes works better if there are more structures to correlate
 end
 if nargin < 5
-    steps = []; % # of tomos to process, use low number for testing    
+    steps = []; % # of tomos to process, use low number for testing
 end
 if nargin < 6
     out_thresh = 0.01; % percentage of outliers to be thresholded
@@ -130,22 +130,23 @@ fprintf( '\n Read data in %.1f s', toc - t);
 if auto_roi_center
     roi_cen = zeros( [3, 2] );
     for nn = 1:3
+        im = squeeze( mean( squeeze( vol(:,:,:,1) ), nn ) );
         for mm = 1:2
-            im = mean( squeeze( vol(:,:,:,1) ), nn );
             im_std = squeeze( std( squeeze( im ), 0, mm ) ) ;
             im_std = SubtractMean( im_std );
             im_std( im_std <= 0 ) = 0;
-            roi_cen(nn,mm) = CenterOfMass( im_std );
+            roi_cen(nn,mm) = round( CenterOfMass( im_std ) );
         end
-    end    
+    end
     xx = roi_cen(3,1);
     yy = roi_cen(3,2);
-    zz = mean( roi_cen(2,2) + roi_cen(3,2) );
+    zz = round(( roi_cen(1,2) + roi_cen(2,2) ) / 2);
 else
-    xx = round( size( vol, 1) / 2);    
+    xx = round( size( vol, 1) / 2);
     yy = round( size( vol, 2) / 2);
     zz = round( size( vol, 3) / 2);
 end
+fprintf( '\nroi center before registering: x,y,z = %u,%u,%u',xx,yy,zz)
 
 %% Registering
 if register
@@ -154,11 +155,11 @@ if register
     shift = zeros( [num_steps, 1]);
     for nn = 1:num_steps - 1
         if strcmp( regdir, 'x')
-            im1 = squeeze( vol(round(size(vol,1)/2),100:end-100,100:end-100,nn));
-            im2 = squeeze( vol(round(size(vol,1)/2),100:end-100,100:end-100,nn + 1));
+            im1 = squeeze( vol(xx,100:end-100,100:end-100,nn));
+            im2 = squeeze( vol(xx,100:end-100,100:end-100,nn + 1));
         elseif strcmp( regdir, 'y' )
-            im1 = squeeze( vol(100:end-100,round(size(vol,2)/2),100:end-100,nn));
-            im2 = squeeze( vol(100:end-100,round(size(vol,2)/2),100:end-100,nn + 1));
+            im1 = squeeze( vol(100:end-100,yy,100:end-100,nn));
+            im2 = squeeze( vol(100:end-100,yy,100:end-100,nn + 1));
         end
         out = ImageCorrelation(im1,im2);
         shift(nn+1) = round( out.shift2);
@@ -179,26 +180,33 @@ if register
         
     end
     fprintf( 'Done in %.1f s', toc - t);
+    
+    %% Auto ROI
+    if auto_roi_center
+        roi_cen = zeros( [3, 2] );
+        for nn = 1:3
+            im = squeeze( mean( squeeze( vol_reg(:,:,:,1) ), nn ) );
+            for mm = 1:2
+                im_std = squeeze( std( squeeze( im ), 0, mm ) ) ;
+                im_std = SubtractMean( im_std );
+                im_std( im_std <= 0 ) = 0;
+                roi_cen(nn,mm) = round( CenterOfMass( im_std ) );
+            end
+        end
+        xx = roi_cen(3,1);
+        yy = roi_cen(3,2);
+        zz = round( roi_cen(1,2) + roi_cen(2,2) ) / 2 );
+    else
+        xx = round( size( vol_reg, 1) / 2);
+        yy = round( size( vol_reg, 2) / 2);
+        zz = round( size( vol_reg, 3) / 2);
+    end
+    fprintf( '\n roi center after registering: x,y,z = %u,%u,%u',xx,yy,zz)
+    
+    
 else
     fprintf( '\n No registerion of slice ' )
     vol_reg = vol;
-end
-
-%% Auto ROI
-if auto_roi_center
-    roi_cen = zeros( [3, 2] );
-    for nn = 1:3
-        for mm = 1:2
-            roi_cen(nn,mm) = CenterOfMass( squeeze( std( sum( squeeze( vol_reg(:,:,:,1) ), nn ), 0, mm ) ) );
-        end
-    end    
-    xx = mean( roi_cen(3,2) + roi_cent(2,2) );
-    yy = mean( roi_cen(1,2) + roi_cent(3,2) );
-    zz = mean( roi_cen(2,2) + roi_cent(3,2) );
-else
-    xx = round( size( vol_reg, 1) / 2);    
-    yy = round( size( vol_reg, 2) / 2);
-    zz = round( size( vol_reg, 3) / 2);
 end
 
 
@@ -210,14 +218,12 @@ end
 t = toc;
 fprintf( '\n Save animated gifs' )
 
-
-
 CheckAndMakePath( scan_path )
 filename = sprintf( '%s/%s_loadSequ_x%04u.gif', scan_path, scan_name, xx );
 fprintf( '\n output file: %s', filename)
 
 map = colormap(gray);
-for nn = 1:size(vol_reg,4)    
+for nn = 1:size(vol_reg,4)
     %[A, map] = gray2ind(rot90(squeeze( vol_reg(xx,:,:,nn))));
     A = gray2ind(rot90(squeeze( vol_reg(xx,:,:,nn))));
     if nn == 1
@@ -227,12 +233,10 @@ for nn = 1:size(vol_reg,4)
     end
 end
 
-
-
 filename = sprintf( '%s/%s_loadSequ_y%04u.gif', scan_path, scan_name, yy );
 fprintf( '\n output file: %s', filename)
 
-for nn = 1:size(vol_reg,4)    
+for nn = 1:size(vol_reg,4)
     A = gray2ind(rot90(squeeze( vol_reg(:,yy,:,nn))));
     if nn == 1
         imwrite(A,map,filename,'gif','LoopCount',Inf,'DelayTime',1);
@@ -241,12 +245,10 @@ for nn = 1:size(vol_reg,4)
     end
 end
 
-
-
 filename = sprintf( '%s/%s_loadSequ_z%04u.gif', scan_path, scan_name, zz );
 fprintf( '\n output file: %s', filename)
 
-for nn = 1:size(vol_reg,4)    
+for nn = 1:size(vol_reg,4)
     A = gray2ind((squeeze( vol_reg(:,:,zz,nn))));
     if nn == 1
         imwrite(A,map,filename,'gif','LoopCount',Inf,'DelayTime',1);

@@ -38,10 +38,10 @@ imslice = @(im) im(:,:,slice);
 %% MAIN %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 if roi(1) > 0
     h = imtool( imroislice( squeeze( im ) ),dynRange,'InitialMagnification','fit');
-    %set(h,'units','normalized','outerposition',[0 0 1 1]);
+    set(h,'units','normalized','outerposition',[0 0 1 1]);
     set(h,'Name',sprintf('Image Tool: %s.  ROI: %u:%u.  Input size: %ux%ux%u %',NameOfFigure,roi(1),roi(end),size(im),slice))
 else
     h = imtool( imslice( squeeze(im) ),dynRange,'InitialMagnification','fit');
-    %set(h,'units','normalized','outerposition',[0 0 1 1]);
+    set(h,'units','normalized','outerposition',[0 0 1 1]);
     set(h,'Name',sprintf('Image Tool: %s.  Input size: %ux%ux%u %',NameOfFigure,size(im),slice))
 end

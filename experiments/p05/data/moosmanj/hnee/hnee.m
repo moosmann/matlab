@@ -18,7 +18,7 @@ scan = 'hnee18_pappel_tensionWood';
 'hnee21_pappel_oppositeWood';
 'hnee23_pappel_tensionWood';
 regdir = 'x';
-steps = 2;[];
+steps = 3;[];
 register = 1;
 outlier_thresh = 0.0001;
 auto_roi_center = 1;

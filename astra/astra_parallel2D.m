@@ -88,7 +88,7 @@ end
 vectors = zeros( numel(angles), 6);
 for nn = 1:num_proj
     
-    theta = angles( nn );
+    theta = angles( nn ) + angle_offset;
     if isequal( numel( rotation_axis_offset ), 1 )
         rao = rotation_axis_offset;
     else
@@ -147,12 +147,20 @@ switch lower( algorithm )
         cfg = astra_struct('FBP_CUDA');
     case 'sirt'
         cfg = astra_struct('SIRT_CUDA');
-        cfg.option.MinConstraint = MinConstraint;
-        cfg.option.MaxConstraint = MaxConstraint;
+        if ~isempty( MinConstraint ) 
+            cfg.option.MinConstraint = MinConstraint;
+        end
+        if ~isempty( MaxConstraint )
+            cfg.option.MaxConstraint = MaxConstraint;
+        end
     case 'sart'
         cfg = astra_struct('SART_CUDA');
-        cfg.option.MinConstraint = MinConstraint;
-        cfg.option.MaxConstraint = MaxConstraint;
+        if ~isempty( MinConstraint ) 
+            cfg.option.MinConstraint = MinConstraint;
+        end
+        if ~isempty( MaxConstraint )
+            cfg.option.MaxConstraint = MaxConstraint;
+        end
     case 'cgls'
         cfg = astra_struct('CGLS_CUDA');
     case 'em'

@@ -31,6 +31,24 @@ p05_load_force_values( raw_path, scan_name, steps, out_path )
 scan_name = 'syn005_55R_Mg5Gd_12w_load';
 p05_load_force_values( raw_path, scan_name, steps, out_path )
 
+%% 2017 May
+raw_path = '/asap3/petra3/gpfs/p05/2017/data/11003950/raw';
+scan_name = 'syn13_55L_Mg10Gd_12w_load';
+steps = [];
+out_path = '';
+adc2force = 19.9966; % Not needed for plotting
+readhdf5 = 0;
+p05_load_force_values( raw_path, scan_name, steps, out_path, adc2force, readhdf5 )
+
+%% 2017 November 2nd
+raw_path = '/asap3/petra3/gpfs/p05/2017/data/11003288/raw';
+steps = [];
+out_path = '';
+adc2force = 4.81879;
+scan_name = 'syn166_104R_Mg10Gd_4w';
+readhdf5 = 0;
+p05_load_force_values( raw_path, scan_name, steps, out_path, adc2force, readhdf5 )
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Load sequence processing %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 proc_path = '/asap3/petra3/gpfs/p05/2017/data/11004016/processed';
@@ -45,7 +63,6 @@ proc_path = '/asap3/petra3/gpfs/p05/2017/data/11004016/processed';
 %scan_name = 'syn010_19R_PEEK_4w';
 %scan_name = 'syn011_14R_PEEK_4w'; regdir = 'y';
 %scan_name = 'syn012_79L_Mg5Gd_8w'; % empty scans [1:3 14:20];
-
 
 proc_path = '/asap3/petra3/gpfs/p05/2018/data/11004936/processed';
 reco_subfolder = 'reco/float_rawBin2_phaseBin2';

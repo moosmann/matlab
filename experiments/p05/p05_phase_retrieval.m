@@ -1,4 +1,4 @@
-function [proj, write] = p05_phase_retrieval( proj, phase_retrieval, tomo, write, interactive_mode, verbose, visual_output)
+function [proj, write, tint] = p05_phase_retrieval( proj, phase_retrieval, tomo, write, interactive_mode, verbose, visual_output)
 % Phase retrieval for P05 data.
 %
 % Written by Julian Moosmann, 2018-01-11, last version: 2018-07-27
@@ -20,10 +20,9 @@ if edp(1) <= 0
 end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Interactive mode %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
 tint = 0;
 if exist( 'interactive_mode', 'var' ) && isfield( interactive_mode, 'phase_retrieval' ) && interactive_mode.phase_retrieval
-    
+    tint = toc;
     plot_ctf_mask(1) = 0;
     
     if tomo.rot_axis.tilt ~= 0
@@ -46,8 +45,6 @@ if exist( 'interactive_mode', 'var' ) && isfield( interactive_mode, 'phase_retri
     else
         slice = ceil( size( proj, 2) / 2 );
     end
-    slab_size = interactive_mode.slab_size;
-    dz = round( slab_size / 2 );
     
     % Tomography parameters
     vol_shape = assign_from_struct( tomo, 'vol_shape', [] );
@@ -57,6 +54,7 @@ if exist( 'interactive_mode', 'var' ) && isfield( interactive_mode, 'phase_retri
     [num_pix, num_row, num_proj] = size( proj );
        
     %  Size, shape
+    [vol_shape, vol_size] = volshape_volsize( proj, vol_shape, vol_size, tomo.rot_axis.offset, 0);
     if isempty( vol_shape )
         vol_shape = [num_pix, num_pix, 1];
     else
@@ -99,6 +97,7 @@ if exist( 'interactive_mode', 'var' ) && isfield( interactive_mode, 'phase_retri
     first_round = 1;
     slice_old = 0;
     reg_par = reg_par_def_range;
+    slab_size = 100;
     while ~isscalar( reg_par ) || first_round
         
         % Print parameters
@@ -114,6 +113,7 @@ if exist( 'interactive_mode', 'var' ) && isfield( interactive_mode, 'phase_retri
             fprintf( '\n current binary filter threshold : %.3f', bin_filt )
         end
         fprintf( '\n current padding factor : %u', padding )
+        fprintf( '\n current vertical slab size : %u', slab_size )
         
         if plot_ctf_mask
             % FFT
@@ -146,16 +146,10 @@ if exist( 'interactive_mode', 'var' ) && isfield( interactive_mode, 'phase_retri
         
         if ~first_round
             
-            % Slab
-            rows = slice + (-dz:dz);
-            rows = rows - max( 0, max( rows(:) - size( proj, 2) ) );
-            num_row_slab = numel( rows );
-                        
             % Metric preallocation
             for nn = 1:numel( reco_metric )
                 reco_metric(nn).val = zeros( numel(reg_par), 1);
             end
-            
             
             %% Reconstruction loop overregularization parameter
             pha = zeros( [vol_shape(1), vol_shape(2), numel( reg_par )], 'single' );
@@ -163,11 +157,15 @@ if exist( 'interactive_mode', 'var' ) && isfield( interactive_mode, 'phase_retri
                 
                 fprintf( '\n  Step %2u: ', nn )
                 
-                % Slab, pad, FT
+                % Slab, pad, FT                
+                dz = round( slab_size / 2 );
+                rows = slice + (-dz:dz);
+                rows = rows - max( 0, max( rows(:) - size( proj, 2) ) );
+                num_row_slab = numel( rows );
                 im_shape = [num_pix, num_row_slab, num_proj];
                 if ~isequal( slice, slice_old )
                     t = toc;
-                    fprintf( ' Pad & FT slab: ' )
+                    fprintf( ' fft o pad: ' )
                     slab_ft = fft2( padarray( proj(:, rows, :), [padding,padding,0] .* im_shape, 'symmetric', 'post' ) );
                     fprintf( ' %.1f s.', toc - t)
                 end
@@ -178,21 +176,21 @@ if exist( 'interactive_mode', 'var' ) && isfield( interactive_mode, 'phase_retri
                 
                 % Retrieval plus FBP filter
                 t = toc;
-                fprintf( ' Multiply filters: ' )
+                fprintf( ' filter:' )
                 tmp = bsxfun( @times, slab_ft, phase_filter );
                 if strcmpi( tomo.algorithm, 'fbp' )
                     tmp = bsxfun( @times, tmp, fbp_filt );
                 end
                 fprintf( ' %.1f s.', toc - t)
                 t = toc;
-                fprintf( 'iFT & real: ' )
+                fprintf( ' real o ifft:' )
                 slab = -real( ifft2( tmp ) );
                 sino = slab(1:num_pix,dz + 1,:);
                 fprintf( ' %.1f s.', toc - t)
                 
                 % Tomography
                 t = toc;
-                fprintf( ' Tomo: ' )
+                fprintf( ' tomo:' )
                 reco = astra_parallel2D( tomo, permute( sino, [3 1 2]) );
                 %im = FilterOutlier( im );
                 pha(:,:,nn) = reco;
@@ -200,7 +198,7 @@ if exist( 'interactive_mode', 'var' ) && isfield( interactive_mode, 'phase_retri
                 
                 % Metrics
                 t = toc;
-                fprintf( ' Metrics: ' )
+                fprintf( ' metrics:' )
                 reco = double( MaskingDisc( reco, mask_rad, mask_val) ) * 2^16;
                 % mean
                 reco_metric(1).val(nn) = mean2( reco );
@@ -306,6 +304,8 @@ if exist( 'interactive_mode', 'var' ) && isfield( interactive_mode, 'phase_retri
                             bin_filt = input( '\n\nENTER BINARY FILTER THRESHOLD (in [0,1], typically 0.01-0.1) : ' );
                         case 'p'
                             padding = input( '\n\nENTER PADDING FACTOR (integer 0,1,2,..) : ' );
+                        case 'ss'
+                            slab_size = input( '\n\nENTER SLAB SIZE (integer>1, typically 50-200) : ' );
                         case 'd'
                             keyboard
                     end % switch
@@ -324,7 +324,7 @@ if exist( 'interactive_mode', 'var' ) && isfield( interactive_mode, 'phase_retri
     phase_retrieval.sample_detector_distance = edp(2);
     phase_retrieval.eff_pixel_size_binned = edp(3);
     
-    tint = toc;
+    tint = toc - tint;
     fprintf( '\nEND OF INTERACTIVE MODE' )  
 end
 
