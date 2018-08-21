@@ -36,34 +36,19 @@ if (fid < 0)
   error(['Could not open file for reading:'  filename]);
 end
 
-% Image shape
-si = shape;
-
 % Convert data type to matlab data type
-switch dtype
-    case 'single' % float32, 'F'        
-        byt = 2;
-    case 'double' % 'D'        
-        byt = 4;
-    case 'uint16' %'U'        
-        byt = 2;
-    case 'L' % 'uint32';        
-        byt = 4;
-    otherwise
-        error(['Data type not supported:' type]);
-end
-cl = dtype;
+byte = bytes_of_dtype( dtype );
 
 if isempty( hor_roi )
-    [data, cnt] = fread(fid, si, [cl '=>' cl]);
-    if prod(si) ~= cnt
+    [data, cnt] = fread(fid, shape, [dtype '=>' dtype]);
+    if prod(shape) ~= cnt
         error('Number of elements of data read mismatches provided image shape.')
     end
 else
-    si = [si(1), (hor_roi(2) - hor_roi(1) + 1)];
-    fseek( fid, ( hor_roi(1) - 1 ) * si(1) * byt, 0);
-    [data, cnt] = fread(fid, si, [cl '=>' cl]);
-    if prod(si) ~= cnt
+    shape = [shape(1), (hor_roi(2) - hor_roi(1) + 1)];
+    fseek( fid, ( hor_roi(1) - 1 ) * shape(1) * byte, 0);
+    [data, cnt] = fread(fid, shape, [dtype '=>' dtype]);
+    if prod(shape) ~= cnt
         error('Number of elements of data read mismatches provided image shape.')        
     end
 end

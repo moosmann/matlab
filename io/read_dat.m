@@ -47,14 +47,14 @@ if (numel(pos) < (3 + ndim))
     error('Wrong header information.');
 end
 
-% si=[];
+% shape=[];
 % for i_dim = 0:(ndim - 1)
 %     thisdim = str2double(header((pos(3 + i_dim) + 1):(pos(3 + i_dim + 1) - 1)));
-%     si = [si, thisdim];
+%     shape = [shape, thisdim];
 % end
-si = [];
+shape = [];
 for i_dim = (ndim - 1):-1:0
-    si(i_dim+1) = str2double(header((pos(3 + i_dim) + 1):(pos(3 + i_dim + 1) - 1)));
+    shape(i_dim+1) = str2double(header((pos(3 + i_dim) + 1):(pos(3 + i_dim + 1) - 1)));
 end
 
 % Header information by user included
@@ -66,41 +66,40 @@ end
 % Convert data type to matlab data type
 switch type
     case 'F'
-        cl = 'single'; %(float32)
+        dtype = 'single'; %(float32)
     case 'D'
-        cl = 'double';
+        dtype = 'double';
     case 'U'                %corrected for HARWI-data type
-        cl = 'uint16';      %JH, 11.12.09
+        dtype = 'uint16';      %JH, 11.12.09
     case 'L'
-        cl = 'uint32';
+        dtype = 'uint32';
     case 'I'
-        cl = 'int16';
+        dtype = 'int16';
     otherwise
         error(['Data type not supported:' type]);
 end
 
 % Read the data in binary format
-%fwrite(fid, data, cl);
-%[data, count] = fread(fid, inf, cl);
+%fwrite(fid, data, dtype);
+%[data, count] = fread(fid, inf, dtype);
 %STATUS = fseek(fid, 1, 'cof') 
-[data, cnt] = fread(fid, inf, [cl '=>' cl]);
+[data, cnt] = fread(fid, inf, [dtype '=>' dtype]);
 
 % Close the file
 fclose(fid);
 
 % Reshape the data, for Matlab force two-dimensional array
 if (ndim == 0) 
-    si =[1 1];
+    shape =[1 1];
 end
 if (ndim == 1)
-    si =[1 si];
+    shape =[1 shape];
 end
-if (prod(si) ~= numel(data))
+%if (prod(shape) ~= numel(data))
+if prod(shape) ~= cnt
     error('Number of elements in read data mismatches header information.')
 end
 
-data = reshape(data, si);
-
-% Check the operation system and swap the data if necessary
+data = reshape( data, shape);
 
 end
