@@ -1,4 +1,4 @@
-function stack = Readstack(InputPath,StepSize_or_VecOfImagesToRead,FilenamePattern, raw_im_shape)
+function stack = read_images_to_stack(InputPath,StepSize_or_VecOfImagesToRead,FilenamePattern, raw_im_shape)
 % Read images (default: tif) into 3D stack.
 %
 % Written by Julian Moosmann, first version: 2010. long ago, last version:

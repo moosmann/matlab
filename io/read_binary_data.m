@@ -1,4 +1,4 @@
-function [data] = read_binary_data( filename, shape, dtype)
+function [data] = read_binary_data( filename, shape, dtype, machinefmt)
 % Read arrays of any numerical data type from binary files created with
 % read_dat.
 %
@@ -19,6 +19,9 @@ end
 if nargin < 3
     dtype = 'single';
 end
+if nargin < 4
+    machinefmt = 'l';
+end
 
 %% Main %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % if ~strcmp( filename(end-2:end), 'raw' ) && strcmp( filename(end-2:end), 'vol' )
@@ -36,10 +39,10 @@ end
 
 if numel( shape ) == 2
     % Read
-    [data, cnt] = fread(fid, shape, [dtype '=>' dtype]);
+    [data, cnt] = fread(fid, shape, [dtype '=>' dtype], 0, machinefmt);
 else
     % Read
-    [data, cnt] = fread(fid, inf, [dtype '=>' dtype]);
+    [data, cnt] = fread(fid, inf, [dtype '=>' dtype], 0, machinefmt);
     
     % Reshape
     data = reshape( data, shape );

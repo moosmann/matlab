@@ -38,7 +38,7 @@ end
 nimage=1;
 
 if isempty(head)
-    head=writeheader(size(matrix),esrfdatatype,nbytes,nimage);
+    head=writeedfheader(size(matrix),esrfdatatype,nbytes,nimage);
 end
 
 fid=fopen(filename,'w','b');

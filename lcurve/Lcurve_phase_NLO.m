@@ -89,7 +89,7 @@ if nargout > 2
     rn2_d1 = interp1(1.5:pts,rn2_d1,2:pts-1);
     k2     = abs((rn2_d1.*sn2_d2 - rn2_d2.*sn2_d1)./(sn2_d1.^2 + rn2_d1.^2).^1.5);
     i_k2max = find(k2==max(k2));
-end;
+end
 tcur   = toc;
 % Print parameters.
 fprintf('Time for reconstruction: %gs, time for curvature computation: %gs\n',trec,tcur);

@@ -3,7 +3,7 @@ function nimplay( vol, renorm_slicewise, permute_order, figure_name)
 % default unless renorm_slicewise is set to zero. Movie is run along 3rd
 % dimension unless dimension are rearranged using the permutation order
 % parameter.
-% 
+%
 % vol : 3D-array of images
 % renorm_slicewise : scalar, default: 1. Adjust colorbar slicewise, losing scaling
 %  information relative to other slices. If > 0 and < 1: adjust to
@@ -39,19 +39,32 @@ end
 
 %% Normalization
 if renorm_slicewise == 0
-    armin = min( vol(:) );
-    armax = max( vol(:) );
+    vol_min = min( vol(:) );
+    vol_max = max( vol(:) );
+    
+    % Renormalize: subtract minimum, then divide by maximum-minimum.
+    vol = ( vol - vol_min ) ./ ( vol_max - vol_min );
+    
 else
     % Find minimum and maximum of each matrix in the input array and create a
     % an array corresponding the input array to subtract the values from the
     % input arrray.
-    [d1, d2, ~] = size(vol);
-    armin = renorm_slicewise * repmat(min(min(vol)),[d1,d2,1]);
-    armax = renorm_slicewise * repmat(max(max(vol)),[d1,d2,1]);
+    
+    %     [d1, d2, ~] = size(vol);
+    %     vol_min = renorm_slicewise * repmat(min(min(vol)),[d1,d2,1]);
+    %     vol_max = renorm_slicewise * repmat(max(max(vol)),[d1,d2,1]);
+    %
+    %     % Renormalize: subtract minimum, then divide by maximum-minimum.
+    %     vol = ( vol - vol_min ) ./ ( vol_max - vol_min );
+    
+    vol_min = renorm_slicewise * min( min( vol ) );
+    vol_max = renorm_slicewise * max( max( vol ) );
+    
+    % Renormalize: subtract minimum, then divide by maximum-minimum.
+    vol = bsxfun( @rdivide, bsxfun( @minus, vol, vol_min ), vol_max - vol_min );
+    
 end
 
-%% Renormalize: subtract minimum, then divide by maximum-minimum.
-vol = ( double( vol ) - armin ) ./ ( armax - armin );
 
 %% Play normalized volume in movie player
 h = implay(vol);

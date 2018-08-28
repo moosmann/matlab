@@ -50,13 +50,3 @@ for nn = 1:numel( fs )
     end
     
 end
-
-
-
-
-
-
-
-
-
-whos vol

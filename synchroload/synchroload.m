@@ -74,4 +74,29 @@ register = 1;
 outlier_thresh = 0.01;
 [vol, vol_reg] = p05_load_sequ(proc_path, scan, reco_subfolder, regdir, steps, outlier_thresh, register);
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% DVC %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+input_folder = '/asap3/petra3/gpfs/p05/2017/data/11003288/processed/syn166_104R_Mg10Gd_4w/optical_flow/syn166_results_to_send';
+folder_pattern = 'out*';
+filename_pattern = 'vec*.vol';
+shape = [1240 1120 20];
+dtype = 'single';
+out_path = '/asap3/petra3/gpfs/p05/2017/data/11003288/processed/syn166_104R_Mg10Gd_4w/AvizoTest/HxUniformVectorField3';
+out_name = 'vec';
+steps_to_process = [];
+write_single_component_vector_binaries_to_HxUniformVectorField3( input_folder, folder_pattern, filename_pattern, shape, dtype, out_path, out_name, steps_to_process );
+
+%% 4D volume cropped, DVC with blockiness
+input_folder = '/asap3/petra3/gpfs/p05/2017/data/11003950/processed/syn13_55L_Mg10Gd_12w_load/dvc/raw';
+folder_pattern = 'out*';
+filename_pattern = '*vec*.raw';
+shape = [700 600 500];
+dtype = 'single';
+machinefmt = 'b';
+out_path = '/asap3/petra3/gpfs/p05/2017/data/11003950/processed/syn13_55L_Mg10Gd_12w_load/dvc/HxUniformVectorField3';
+out_name = 'vec';
+steps_to_process = [];
+write_single_component_vector_binaries_to_HxUniformVectorField3( input_folder, folder_pattern, filename_pattern, shape, dtype, machinefmt, out_path, out_name, steps_to_process );
+
+%% END %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

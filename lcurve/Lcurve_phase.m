@@ -1,4 +1,4 @@
-function [out NormOfSolution NormOfResidualOfSolution] = Lcurve2(int,AlphaIntervall,NumOfPts,EnergyDistancePixelsize,doLogOfNorm,Padding_FactorAndValue)
+function [out, NormOfSolution, NormOfResidualOfSolution] = Lcurve2(int,AlphaIntervall,NumOfPts,EnergyDistancePixelsize,doLogOfNorm,Padding_FactorAndValue)
 
 % Compute Lcurve to determine the regularization parameter for the phase
 % retrieval problem.
@@ -7,7 +7,7 @@ function [out NormOfSolution NormOfResidualOfSolution] = Lcurve2(int,AlphaInterv
 if nargin<2,AlphaIntervall=[0 5];end
 if nargin<3,NumOfPts=11;end
 if nargin<4,EnergyDistancePixelsize=[1 1 1];end
-if nargin<5,doLogOfNorm=1;end;
+if nargin<5,doLogOfNorm=1;end
 if nargin<6,Padding_FactorAndValue={1 'symmetric'};end
 
 %% PARAMETERS.
@@ -90,7 +90,7 @@ ResSol_D1  = diff(abs(NormOfResidualOfSolution),1);
 ResSol_D1  = interp1(1.5:NumOfPts,ResSol_D1,2:NumOfPts-1);
 ResSol_D2  = diff(abs(NormOfResidualOfSolution),2);
 curvature  = abs((ResSol_D1.*NormSol_D2 - ResSol_D2.*NormSol_D1)./(NormSol_D1.^2 + ResSol_D2.^2).^1.5);
-[curvatureMax nn_curvatureMax] = max(curvature(2:end-1));
+[curvatureMax, nn_curvatureMax] = max(curvature(2:end-1));
 nn_curvatureMax = nn_curvatureMax + 2;
 
 %% Print info and plots.
