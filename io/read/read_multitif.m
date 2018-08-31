@@ -34,7 +34,7 @@ end
 
 %warning('off','MATLAB:tifftagsread:tiffTag:wrongTagDataFormat')
 
-t = toc;
+tic;
 
 PrintVerbose( verbose, 'Read multi-tif file' );
 
@@ -44,6 +44,19 @@ if isempty( tiff_info )
 end
 num_tiff = numel(tiff_info);
 switch tiff_info(1).BitDepth
+    case 8
+        if tiff_info(1).MaxSampleValue > 128 && tiff_info(1).MinSampleValue >= 0
+            dtype = 'uint8';
+        else
+            dtype = 'int8';
+        end
+    case 16
+        if tiff_info(1).MaxSampleValue > 256 && tiff_info(1).MinSampleValue >= 0
+            dtype = 'uint16';
+        else
+            dtype = 'int16';
+        end
+        
     case 32
         dtype = 'single';
     case 64
@@ -60,7 +73,7 @@ num_read = numel(images_to_read);
 % ROI defined by PixelRegion
 if isempty( PixelRegion )
     shape = [tiff_info(1).Height, tiff_info(1).Width, num_read];
-    PixelRegion = { [1 shape(1) 1], [1 shape(2) 1]};
+    PixelRegion = { [1 1 shape(1)], [1 1 shape(2)]};
 else
     switch numel( PixelRegion{1} )
         case 2
@@ -86,4 +99,4 @@ for nn = 1:num_read
     vol(:,:,nn) = imread( filename, 'Index', images_to_read(nn), 'Info', tiff_info, 'PixelRegion', PixelRegion);
 end
 
-PrintVerbose( verbose, ', done in %.1f s = %.3f min\n', toc -t, (toc - t)/60)
+PrintVerbose( verbose, ', done in %.1f s = %.3f min\n', toc , (toc)/60)
