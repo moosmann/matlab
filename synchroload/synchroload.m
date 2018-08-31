@@ -77,17 +77,21 @@ outlier_thresh = 0.01;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% DVC %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-input_folder = '/asap3/petra3/gpfs/p05/2017/data/11003288/processed/syn166_104R_Mg10Gd_4w/optical_flow/syn166_results_to_send';
+% Convert vector fields to Amira / Avizo compliant vector format
+
+%% syn166
+input_folder = '/asap3/petra3/gpfs/p05/2017/data/11003288/processed/syn166_104R_Mg10Gd_4w/dvc';
 folder_pattern = 'out*';
 filename_pattern = 'vec*.vol';
 shape = [1240 1120 20];
 dtype = 'single';
-out_path = '/asap3/petra3/gpfs/p05/2017/data/11003288/processed/syn166_104R_Mg10Gd_4w/AvizoTest/HxUniformVectorField3';
+machinefmt = 'l';
+out_path = '/asap3/petra3/gpfs/p05/2017/data/11003288/processed/syn166_104R_Mg10Gd_4w/dvc/HxUniformVectorField3';
 out_name = 'vec';
 steps_to_process = [];
-write_single_component_vector_binaries_to_HxUniformVectorField3( input_folder, folder_pattern, filename_pattern, shape, dtype, out_path, out_name, steps_to_process );
+write_single_component_vector_binaries_to_HxUniformVectorField3( input_folder, folder_pattern, filename_pattern, shape, dtype, machinefmt, out_path, out_name, steps_to_process );
 
-%% 4D volume cropped, DVC with blockiness
+%% syn13 4D volume cropped, DVC with blockiness
 input_folder = '/asap3/petra3/gpfs/p05/2017/data/11003950/processed/syn13_55L_Mg10Gd_12w_load/dvc/raw';
 folder_pattern = 'out*';
 filename_pattern = '*vec*.raw';
@@ -98,5 +102,32 @@ out_path = '/asap3/petra3/gpfs/p05/2017/data/11003950/processed/syn13_55L_Mg10Gd
 out_name = 'vec';
 steps_to_process = [];
 write_single_component_vector_binaries_to_HxUniformVectorField3( input_folder, folder_pattern, filename_pattern, shape, dtype, machinefmt, out_path, out_name, steps_to_process );
+
+% Divergence
+
+%% syn13
+input_folder = '/asap3/petra3/gpfs/p05/2017/data/11003950/processed/syn13_55L_Mg10Gd_12w_load/dvc/raw';
+folder_pattern = 'out*';
+filename_pattern = 'stk*.raw';
+shape = [700 600 500];
+dtype = 'single';
+machinefmt = 'b';
+out_path = '/asap3/petra3/gpfs/p05/2017/data/11003950/processed/syn13_55L_Mg10Gd_12w_load/dvc/HxUniformScalarField';
+out_name = 'div';
+steps_to_process = [];
+write_divergence_vector_binaries_to_HxUniformScalarField( input_folder, folder_pattern, filename_pattern, shape, dtype, machinefmt, out_path, out_name, steps_to_process )
+
+%% syn166
+input_folder = '/asap3/petra3/gpfs/p05/2017/data/11003288/processed/syn166_104R_Mg10Gd_4w/dvc';
+folder_pattern = 'out*';
+filename_pattern = 'vec*.vol';
+shape = [1240 1120 20];
+dtype = 'single';
+machinefmt = 'l';
+out_path = '/asap3/petra3/gpfs/p05/2017/data/11003288/processed/syn166_104R_Mg10Gd_4w/dvc/HxUniformScalarField';
+out_name = 'div';
+steps_to_process = [];
+write_divergence_vector_binaries_to_HxUniformScalarField( input_folder, folder_pattern, filename_pattern, shape, dtype, machinefmt, out_path, out_name, steps_to_process )
+
 
 %% END %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
