@@ -22,7 +22,7 @@
 % Also cite the ASTRA Toolbox, see http://www.astra-toolbox.com/
 %
 % Written by Julian Moosmann. First version: 2016-09-28. Last modifcation:
-% 2018-08-02
+% 2018-08-31
 
 if ~exist( 'external_parameter' ,'var')
     clearvars
@@ -33,13 +33,14 @@ close all hidden % close all open windows
 %% PARAMETERS / SETTINGS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-fast_reco = 1; % OVERWRITES PARAMETERS SET BELOW !!!!!!!!!
+fast_reco = 0; % !!! OVERWRITES SOME PARAMETERS SET BELOW !!!
 stop_after_data_reading(1) = 0; % for data analysis, before flat field correlation 
 stop_after_proj_flat_correlation(1) = 0; % for data analysis, after flat field correlation
 
 %%% SCAN %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 scan_path = ...
-        '/asap3/petra3/gpfs/p05/2018/data/11004284/raw/Li11_1stCha_fly';
+    '/asap3/petra3/gpfs/p05/2018/commissioning/c20180619_000_gummi/raw/test_flyshift_07';
+    '/asap3/petra3/gpfs/p05/2018/data/11004284/raw/Li11_1stCha_fly';
     '/asap3/petra3/gpfs/p05/2017/data/11004016/raw/syn002_6L_PEEK_4w_002';
     '/asap3/petra3/gpfs/p05/2018/data/11004936/raw/syn007_56R_Mg5Gd_12w_009';
 read_flatcor = 0; % read flatfield-corrected images from disc, skips preprocessing
@@ -48,7 +49,7 @@ energy = []; % in eV! if empty: read from log file
 sample_detector_distance = []; % in m. if empty: read from log file
 eff_pixel_size = []; % in m. if empty: read from log file. effective pixel size =  detector pixel size / magnification
 %%% PREPROCESSING %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-raw_roi = []; % if []: use full image; if [y0 y1]: vertical ROI, skips first raw_roi(1)-1 lines, reads until raw_roi(2). When raw_roi(2) < 0 reads until end - |raw_roi(2)|; if negative scalar: auto roi, selects ROI automatically.Not working for *.raw data where images are flipped.
+raw_roi = -1; % if []: use full image; if [y0 y1]: vertical ROI, skips first raw_roi(1)-1 lines, reads until raw_roi(2). When raw_roi(2) < 0 reads until end - |raw_roi(2)|; if negative scalar: auto roi, selects ROI automatically.Not working for *.raw data where images are flipped.
 raw_bin = 2; % projection binning factor: integer
 bin_before_filtering(1) = 1; % Apply binning before filtering pixel. less effective, but much faster especially for KIT camera.
 excentric_rot_axis = 0; % off-centered rotation axis increasing FOV. -1: left, 0: centeerd, 1: right. influences tomo.rot_axis.corr_area1
@@ -65,17 +66,18 @@ pixel_filter_threshold_flat = [0.01 0.005]; % Flat fields: threshold parameter f
 pixel_filter_threshold_proj = [0.01 0.005]; % Raw projection: threshold parameter for hot/dark pixel filter, for details see 'FilterPixe
 ring_current_normalization = 1; % normalize flat fields and projections by ring current
 image_correlation.method = 'ssim-ml';'entropy';'diff';'shift';'ssim';'std';'cov';'corr';'cross-entropy12';'cross-entropy21';'cross-entropyx';
-% Correlation of projections and flat fields important for DCM data. For
-% DMM it does not work well. Available methods:
+% Correlation of projections and flat fields. Essential for DCM data. Even
+% though less efficient for DMM data, it still improve reconstruction quality.
+% Available methods ('ssim-ml'/'entropy' usually work best:
+% 'none' : no correlation, uses median flat, for fast recos
 % 'ssim-ml' : Matlab's structural similarity index (SSIM), includes Gaussian smoothing
-% 'ssim' : own implementation of SSIM, smoothing not yet implemented, usually worse than 'ssim-ml'
 % 'entropy' : entropy measure of proj over flat
+% 'ssim' : own implementation of SSIM, smoothing not yet implemented, usually worse, but sometimes better than 'ssim-ml'
 % 'cov' : cross covariance
 % 'corr' : cross correlation = normalized cross covariance
 % 'std' : standard deviation of proj over flat
 % 'diff': difference of proj and flat
 % 'shift': computes relative shift from peak of cross-correlation map
-% 'none' : no correlation, use median flat
 % 'cross-entropy*' : variants of (asymmetric) cross entropy
 image_correlation.num_flats = 1; % number of flat fields used for average/median of flats. for 'shift'-correlation its the maximum number
 image_correlation.area_width = [0 0.02];%[0.98 1];% correlation area: index vector or relative/absolute position of [first pix, last pix]
@@ -91,8 +93,8 @@ ring_filter.jm.median_width = 11; % multiple widths are applied consecutively, e
 strong_abs_thresh = 1; % if 1: does nothing, if < 1: flat-corrected values below threshold are set to one. Try with algebratic reco techniques.
 decimal_round_precision = 2; % precision when rounding pixel shifts
 %%% PHASE RETRIEVAL %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-phase_retrieval.apply = 0; % See 'PhaseFilter' for detailed description of parameters !
-phase_retrieval.apply_before = 1; % before stitching, interactive mode, etc. For phase-contrast data with an excentric rotation axis phase retrieval should be done afterwards. To find the rotataion axis position use this option in a first run, and then turn it of afterwards.
+phase_retrieval.apply = 1; % See 'PhaseFilter' for detailed description of parameters !
+phase_retrieval.apply_before = 0; % before stitching, interactive mode, etc. For phase-contrast data with an excentric rotation axis phase retrieval should be done afterwards. To find the rotataion axis position use this option in a first run, and then turn it of afterwards.
 phase_retrieval.post_binning_factor = 2; % Binning factor after phase retrieval, but before tomographic reconstruction
 phase_retrieval.method = 'tie';'qpcut'; %'qp' 'ctf' 'tie' 'qp2' 'qpcut'
 phase_retrieval.reg_par = 1.5; % regularization parameter. larger values tend to blurrier images. smaller values tend to original data.
@@ -101,7 +103,7 @@ phase_retrieval.cutoff_frequ = 2 * pi; % in radian. frequency cutoff in Fourier 
 phase_retrieval.padding = 1; % padding of intensities before phase retrieval, 0: no padding
 %%% TOMOGRAPHY %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 tomo.run = 1; % run tomographic reconstruction
-tomo.run_interactive_mode = 1; % if tomo.run = 0;
+tomo.run_interactive_mode = 1; % if tomo.run = 0, intendet to determine rot axis positions without processing the full tomogram;
 tomo.reco_mode = '3D'; 'slice'; % slice-wise or full 3D backprojection. 'slice': volume must be centered at origin & no support of rotation axis tilt, reco binning, save compressed
 tomo.vol_size = []; %[-0.5 0.5 -0.5 0.5 -0.5 0.5];% 6-component vector [xmin xmax ymin ymax zmin zmax], for excentric rot axis pos / extended FoV;. if empty, volume is centerd within tomo.vol_shape. unit voxel size is assumed. if smaller than 10 values are interpreted as relative size w.r.t. the detector size. Take care bout minus signs! Note that if empty vol_size is dependent on the rotation axis position.
 tomo.vol_shape = []; %[1 1 1] shape (# voxels) of reconstruction volume. used for excentric rot axis pos. if empty, inferred from 'tomo.vol_size'. in absolute numbers of voxels or in relative number w.r.t. the default volume which is given by the detector width and height.
@@ -109,7 +111,8 @@ tomo.rot_angle.full_range = []; % in radians: empty ([]), full angle of rotation
 tomo.rot_angle.offset = pi; % global rotation of reconstructed volume
 tomo.rot_axis.offset = 3;%[];%-2.5;[];% if empty use automatic computation
 tomo.rot_axis.position = []; % if empty use automatic computation. EITHER OFFSET OR POSITION MUST BE EMPTY. YOU MUST NOT USE BOTH!
-tomo.rot_axis.tilt = 0.05; % in rad. camera tilt w.r.t rotation axis. if empty calculate from registration of projections at 0 and pi
+tomo.rot_axis.tilt = 0; % in rad. camera tilt w.r.t rotation axis. if empty calculate from registration of projections at 0 and pi
+tomo.rot_axis.offset_shift_range = 400; %[]; % absolute lateral movement in pixels during fly-shift-scan, overwrite lateral shift read out from hdf5 log
 tomo.rot_axis.corr_area1 = []; % ROI to correlate projections at angles 0 & pi. Use [0.75 1] or so for scans with an excentric rotation axis
 tomo.rot_axis.corr_area2 = []; % ROI to correlate projections at angles 0 & pi
 tomo.rot_axis.corr_gradient = 0; % use gradient of intensity maps if signal variations are too weak to correlate projections
@@ -128,13 +131,13 @@ tomo.sirt.MinConstraint = []; % If specified, all values below MinConstraint wil
 tomo.sirt.MaxConstraint = []; % If specified, all values above MaxConstraint will be set to MaxConstraint.
 %%% OUTPUT %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 write.path = '';'/gpfs/petra3/scratch/moosmanj';% absolute path were output data will be stored. !!overwrites the write.to_scratch flag. if empty uses the beamtime directory and either 'processed' or 'scratch_cc'
-write.to_scratch = 0; % write to 'scratch_cc' instead of 'processed'
+write.to_scratch = 1; % write to 'scratch_cc' instead of 'processed'
 write.parfolder = '';% parent folder to 'reco', 'sino', 'phase', and 'flat_corrected'
 write.subfolder.flatcor = ''; % subfolder in 'flat_corrected'
 write.subfolder.phase_map = ''; % subfolder in 'phase_map'
 write.subfolder.sino = ''; % subfolder in 'sino'
 write.subfolder.reco = ''; % subfolder in 'reco'
-write.flatcor = 0; % save preprocessed flat corrected projections
+write.flatcor = 1; % save preprocessed flat corrected projections
 write.phase_map = 1; % save phase maps (if phase retrieval is not 0)
 write.sino = 0; % save sinograms (after preprocessing & before FBP filtering and phase retrieval)
 write.phase_sino = 1; % save sinograms of phase maps
@@ -472,10 +475,15 @@ else
     s_rot.value = h5read( h5log, '/entry/scan/data/s_rot/value');    
     s_stage_x.time = double( h5read( h5log, '/entry/scan/data/s_stage_x/time') );
     s_stage_x.value = h5read( h5log, '/entry/scan/data/s_stage_x/value');
-    % wiggle di wiggle
+    % Read out lateral rotation axis shift form log file
     offset_shift = s_stage_x.value( ~boolean( stimg_key.value(par.n_dark+1:end) ) ) * 1e-3 / eff_pixel_size_binned;
     offset_shift = offset_shift - mean( offset_shift );
     offset_shift = offset_shift(proj_range);
+    % Overwrite lateral shift if offset shift range is not empty
+    if isequal( std( offset_shift ), 0 ) && ~isempty( tomo.rot_axis.offset_shift_range )
+        offset_shift = tomo.rot_axis.offset_shift_range / raw_bin * (0:num_proj_used) / num_proj_used;
+        offset_shift = offset_shift - mean( offset_shift );
+    end
     if visual_output(1) && numel( offset_shift ) > 2 && abs( std( offset_shift ) ) > 0
         figure('Name', 'Rotation axis offset shift');
         plot( offset_shift, '.')
@@ -873,6 +881,7 @@ elseif ~read_flatcor
             proj_rcm = mean( proj_rc(:) );
             scale_factor = 100 ./ shiftdim( proj_rc(projs_to_use), -1 );
             proj = bsxfun( @times, proj, scale_factor );
+
             % Plot ring current
             if visual_output(1)
                 if exist( 'hrc', 'var' )
@@ -880,12 +889,6 @@ elseif ~read_flatcor
                 else
                     hrc = figure('Name', 'Ring currents');
                 end
-%                 subplot(2,1,2);
-%                 plot( proj_rc(:), '.' )
-%                 axis tight
-%                 title(sprintf('ring current: raw projections'))
-%                 legend( sprintf( 'mean: %.2f mA', proj_rcm) )
-%                 drawnow
                 subplot(1,1,1);
                 plot( ref_nums, ref_rc(:), '.',proj_nums, proj_rc(:), '.' )
                 axis tight
@@ -938,6 +941,7 @@ elseif ~read_flatcor
     
     %% Projection/flat field correlation and flat field correction %%%%%%%%
     %%%% STOP HERE FOR FLATFIELD CORRELATION MAPPING %%%%%%%%%%%%%%%%%%%%%%
+    %%%% use 'proj_flat_sequ' to show results of the correlcation
     [proj, corr, proj_roi, flat_roi] = proj_flat_correlation( proj, flat, image_correlation.method, image_correlation.area_width, image_correlation.area_height, im_shape_binned, image_correlation.shift.max_pixelshift, image_correlation.num_flats, decimal_round_precision, flatcor_path, verbose, visual_output);
     proj_min0 = min( proj(:) );
     proj_max0 = max( proj(:) );
@@ -998,7 +1002,6 @@ elseif ~read_flatcor
         nn = round( size( proj, 3) / 2);
         sino = CropShift( squeeze( proj(:,nn,:) ), offset_shift );
         imsc1( sino)
-        %xticks([]);yticks([])
         title(sprintf('sinogram: proj(:,%u,:)', nn))
         colorbar
         axis equal tight

@@ -43,4 +43,4 @@ if padding
 else
     vol = real( ifftn( phase_filter .* fftn( vol ) ) );
 end
-fprintf( '3D phase retrieval done in %u s (%.2f min)', round(toc - t), (toc -t)/60 )
+fprintf( '3D phase retrieval done in %u s (%.2f min)\n', round(toc - t), (toc -t)/60 )

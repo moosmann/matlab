@@ -26,7 +26,7 @@ if exist( 'interactive_mode', 'var' ) && isfield( interactive_mode, 'phase_retri
     plot_ctf_mask(1) = 0;
     
     if tomo.rot_axis.tilt ~= 0
-        error( 'Rotation axis tilt not supported in interactive phase retrieval mode.' )
+        error( 'Rotation axis tilt not supported in interactive phase retrieval mode. Set ''tomo.rot_axis.tilt'' to 0 in order to run interactive reco.' )
     end
     
     if plot_ctf_mask
