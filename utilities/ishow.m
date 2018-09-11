@@ -40,13 +40,14 @@ if roi(1) > 0
     im = rot( imroislice( squeeze( im ) ) );
     figure('Name',sprintf('%s.  ROI: %u:%u.  Input size: %ux%ux%u %',NameOfFigure,roi(1),roi(end),size(im),slice))
     %set(gcf,'units','normalized','outerposition',[0 0 1 1]);
-    imshow( im, dynRange,'InitialMagnification','fit', 'XData',[1 size(im,1)]);
-    colorbar;    
-    
+    imshow( im, dynRange,'InitialMagnification','fit', 'XData',[1 size(im,2)], 'YData',[1 size(im,1)] );
+    colorbar;
+    axis equal tight
 else
     im = rot( imslice( squeeze( im ) ) );
     figure('Name',sprintf('%s.  Input size: %ux%ux%u %',NameOfFigure,size(im),slice))
     %set(gcf,'units','normalized','outerposition',[0 0 1 1]);
-    imshow( im, dynRange,'InitialMagnification','fit','XData',[1 size(im,1)]);
+    imshow( im, dynRange,'InitialMagnification','fit','XData',[1 size(im,2)], 'YData',[1 size(im,1)] );
     colorbar;    
+    axis equal tight
 end
