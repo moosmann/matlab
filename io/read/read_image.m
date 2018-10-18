@@ -1,14 +1,16 @@
-function [im, tif_info] = read_image(filename, filetype, roi, tif_info, shape, dtype)
+function [im, tif_info] = read_image(filename, filetype, roi, tif_info, shape, dtype, trafo)
 % Reads 'tif', 'img', 'dar', 'ref', and 'edf' images and all the files
 % MATLAB's imread function can read without additional arguments than file
 % format.
 %
 % filename: string. Absolute filename.
 % filetype: string. Suffix of image file format. Default: ''
+% trafo : string, default ''. string which will be evaluated on the read
+% image, e.g. 'rot90(im)'. Note that 'im' is the mandatory variable.
 %
-% Written by Julian Moosmann. Modified: 2017-06-12
+% Written by Julian Moosmann. Modified: 2018-10-16
 %
-% im = read_image(filename, filetype)
+% [im, tif_info] = read_image(filename, filetype, roi, tif_info, shape, dtype, trafo)
 
 %% Default arguments
 if nargin < 2
@@ -25,6 +27,9 @@ if nargin < 5
 end
 if nargin < 6
     dtype = '';
+end
+if nargin < 7
+    trafo = '';
 end
 
 %% TODO: KIT camera format is HARDCODED
@@ -155,3 +160,9 @@ switch lower( filetype )
     otherwise
         im = imread( filename, filetype )';
 end
+
+if ~isempty( trafo )
+    im = eval( trafo );
+end
+
+

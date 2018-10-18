@@ -52,6 +52,7 @@ eff_pixel_size = []; % in m. if empty: read from log file. effective pixel size 
 %%% PREPROCESSING %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 raw_roi = []; % if []: use full image; if [y0 y1]: vertical ROI, skips first raw_roi(1)-1 lines, reads until raw_roi(2). When raw_roi(2) < 0 reads until end - |raw_roi(2)|; if negative scalar: auto roi, selects ROI automatically.Not working for *.raw data where images are flipped.
 raw_bin = 2; % projection binning factor: integer
+im_trafo = ''; % string to be evaluated after reading data in the case the image is flipped/rotated/etc due to changes at the beamline, e.g. 'rot90(im)'
 bin_before_filtering(1) = 1; % Apply binning before filtering pixel. less effective, but much faster especially for KIT camera.
 excentric_rot_axis = 0; % off-centered rotation axis increasing FOV. -1: left, 0: centeerd, 1: right. influences tomo.rot_axis.corr_area1
 crop_at_rot_axis = 0; % for recos of scans with excentric rotation axis but WITHOUT projection stitching
@@ -430,7 +431,7 @@ if ~exist( h5log, 'file')
     % Image shape and ROI
     filename = sprintf('%s%s', scan_path, ref_names{1});
     if ~raw_data
-        [im_raw, tif_info] = read_image( filename );
+        [im_raw, tif_info] = read_image( filename, '', [], [], [], '', im_trafo );
         im_shape_raw = size( im_raw );        
     else
         switch lower( cam )
@@ -462,7 +463,7 @@ else
     end
     % Image shape
     filename = sprintf('%s%s', scan_path, ref_names{1});
-    [im_raw, tif_info] = read_image( filename, '', [], tif_info, im_shape_raw, dtype );    
+    [im_raw, tif_info] = read_image( filename, '', [], tif_info, im_shape_raw, dtype, im_trafo );    
     % images
     stimg_name.value = unique( h5read( h5log, '/entry/scan/data/image_file/value') );
     stimg_name.time = h5read( h5log,'/entry/scan/data/image_file/time');
@@ -538,16 +539,16 @@ elseif isscalar(raw_roi) && raw_roi(1) < 1
     while mean2( im_raw ) == 0
         mm = mm + 1;
         filename = sprintf('%s%s', scan_path, ref_names{mm});
-        im_raw = read_image( filename, '', [], tif_info, im_shape_raw, dtype );    
+        im_raw = read_image( filename, '', [], tif_info, im_shape_raw, dtype, im_trafo );    
     end
     % Read last non-zero flat
     mm = num_ref_found;
     filename = sprintf('%s%s', scan_path, ref_names{mm});
-    im_raw2 = read_image( filename, '', [], tif_info, im_shape_raw, dtype );
+    im_raw2 = read_image( filename, '', [], tif_info, im_shape_raw, dtype, im_trafo );
     while mean2( im_raw2 ) == 0
         mm = mm - 1;
         filename = sprintf('%s%s', scan_path, ref_names{mm});
-        im_raw2 = read_image( filename, '', [], tif_info, im_shape_raw, dtype );
+        im_raw2 = read_image( filename, '', [], tif_info, im_shape_raw, dtype, im_trafo );
     end
     % Compute crop position
     mm = median( (FilterPixel( im_raw, [0.1 0.1]) + FilterPixel( im_raw2, [0.1 0.1]) ) / 2, 1);    
@@ -594,7 +595,7 @@ elseif isscalar(raw_roi) && raw_roi(1) < 1
         drawnow
     end
 end
-im_roi = read_image( filename, '', raw_roi, tif_info, im_shape_raw, dtype );
+im_roi = read_image( filename, '', raw_roi, tif_info, im_shape_raw, dtype, im_trafo );
 im_shape_binned = floor( size( im_roi) / raw_bin );
 im_shape_binned1 = im_shape_binned(1);
 im_shape_binned2 = im_shape_binned(2);
@@ -660,7 +661,7 @@ elseif ~read_flatcor
     prnt( ' Allocated memory: %.2f MiB,', Bytes( darks, 2 ) )
     parfor nn = 1:num_dark
         filename = sprintf('%s%s', scan_path, dark_names{nn});
-        im = single( read_image( filename, '', raw_roi, tif_info, im_shape_raw, dtype) );
+        im = single( read_image( filename, '', raw_roi, tif_info, im_shape_raw, dtype, im_trafo) );
         % Remove large outliers. Assume Poisson distribtion at large lambda
         % is approximately a Gaussian distribution and set all value above
         % mean + 4 * std (99.994 of values lie within 4 std). Due to
@@ -711,9 +712,9 @@ elseif ~read_flatcor
     parfor nn = 1:num_ref_used
         filename = sprintf('%s%s', scan_path, ref_names_mat(nn,:));
         if bin_before_filtering
-            flat(:, :, nn) = FilterPixel( Binning( single( read_image( filename, '', raw_roi, tif_info, im_shape_raw, dtype ) ), raw_bin) / raw_bin^2, pixel_filter_threshold_flat);
+            flat(:, :, nn) = FilterPixel( Binning( single( read_image( filename, '', raw_roi, tif_info, im_shape_raw, dtype, im_trafo ) ), raw_bin) / raw_bin^2, pixel_filter_threshold_flat);
         else
-            flat(:, :, nn) = Binning( FilterPixel( read_image( filename, '', raw_roi, tif_info, im_shape_raw, dtype ), pixel_filter_threshold_flat), raw_bin) / raw_bin^2;
+            flat(:, :, nn) = Binning( FilterPixel( read_image( filename, '', raw_roi, tif_info, im_shape_raw, dtype, im_trafo ), pixel_filter_threshold_flat), raw_bin) / raw_bin^2;
         end        
         % Check for zeros
         num_zeros(nn) =  sum( sum( flat(:,:,nn) < 1 ) );
@@ -817,7 +818,7 @@ elseif ~read_flatcor
             h1 = figure('Name', 'data and flat-and-dark-field correction');
         end
         filename = sprintf('%s%s', scan_path, img_names_mat(1, :));
-        raw1 = Binning( FilterPixel( read_image( filename, '', raw_roi, tif_info, im_shape_raw, dtype ), pixel_filter_threshold_proj), raw_bin) / raw_bin^2;
+        raw1 = Binning( FilterPixel( read_image( filename, '', raw_roi, tif_info, im_shape_raw, dtype, im_trafo ), pixel_filter_threshold_proj), raw_bin) / raw_bin^2;
         subplot(2,3,3)
         imsc1( raw1 )        
         title(sprintf('raw proj #1'))
@@ -830,11 +831,11 @@ elseif ~read_flatcor
     % of 1st, middle, and last projection to speed up processing
     if pixel_filter_threshold_proj(1) < 1 || pixel_filter_threshold_proj(2) < 0.5        
         filename = sprintf('%s%s', scan_path, img_names_mat(num_proj_used, :));
-        [~, ht(3), dt(3)] = FilterPixel( read_image( filename, '', raw_roi, tif_info, im_shape_raw, dtype ), pixel_filter_threshold_proj);        
+        [~, ht(3), dt(3)] = FilterPixel( read_image( filename, '', raw_roi, tif_info, im_shape_raw, dtype, im_trafo ), pixel_filter_threshold_proj);        
         filename = sprintf('%s%s', scan_path, img_names_mat(1, :));
-        [~, ht(2), dt(2)] = FilterPixel( read_image( filename, '', raw_roi, tif_info, im_shape_raw, dtype ), pixel_filter_threshold_proj);        
+        [~, ht(2), dt(2)] = FilterPixel( read_image( filename, '', raw_roi, tif_info, im_shape_raw, dtype, im_trafo ), pixel_filter_threshold_proj);        
         filename = sprintf('%s%s', scan_path, img_names_mat(round(num_proj_used/2), :));
-        [~, ht(1), dt(1)] = FilterPixel( read_image( filename, '', raw_roi, tif_info, im_shape_raw, dtype ), pixel_filter_threshold_proj);        
+        [~, ht(1), dt(1)] = FilterPixel( read_image( filename, '', raw_roi, tif_info, im_shape_raw, dtype, im_trafo ), pixel_filter_threshold_proj);        
         HotThresh = median( ht );
         DarkThresh = median( dt );
     else
@@ -849,9 +850,9 @@ elseif ~read_flatcor
         % Read and filter raw projection
         filename = sprintf('%s%s', scan_path, img_names_mat(nn,:));
         if bin_before_filtering
-            im = FilterPixel( Binning( single( read_image( filename, '', raw_roi, tif_info, im_shape_raw, dtype ) ), raw_bin) / raw_bin^2, [HotThresh, DarkThresh]);
+            im = FilterPixel( Binning( single( read_image( filename, '', raw_roi, tif_info, im_shape_raw, dtype, im_trafo ) ), raw_bin) / raw_bin^2, [HotThresh, DarkThresh]);
         else
-            im = Binning( FilterPixel( read_image( filename, '', raw_roi, tif_info, im_shape_raw, dtype ), [HotThresh, DarkThresh]), raw_bin) / raw_bin^2;
+            im = Binning( FilterPixel( read_image( filename, '', raw_roi, tif_info, im_shape_raw, dtype, im_trafo ), [HotThresh, DarkThresh]), raw_bin) / raw_bin^2;
         end        
         % Check for zeros and reject images which are all zero
         num_zeros(nn) =  sum( sum( im < 1 ) );
@@ -970,6 +971,32 @@ elseif ~read_flatcor
     end
     
     prnt( '\n sinogram size = [%g, %g, %g]', size( proj ) )
+    
+    %%% Angles %%
+    if exist('cur', 'var') && isfield(cur, 'proj') && isfield( cur.proj, 'angle')
+        % for KIT cam this includes missing angles
+        angles = [cur.proj.angle] / 180 * pi;
+        if strcmpi(cam, 'kit')
+            % drop angles where projections are missing
+            angles = angles(1 + proj_nums);
+        else
+            angles = angles(proj_range);
+        end
+    elseif exist( h5log, 'file')        
+        angles = s_rot.value( ~boolean( stimg_key.value(par.n_dark+1:end) ) ) * pi / 180;        
+        angles = angles(proj_range);
+    else        
+        num_proj = par.num_proj;
+        switch lower( cam )
+            case 'ehd'
+                angles = tomo.rot_angle.full_range * (0:num_proj - 1) / (num_proj - 1); % EHD: ok
+            case 'kit'
+                angles = tomo.rot_angle.full_range * (0:num_proj - 1) / num_proj; % KIT: ok if par.projections exist
+        end
+    end
+    % drop angles where projections are empty
+    angles(~projs_to_use) = [];
+    
     if visual_output(1)
         if exist( 'h1' , 'var' )
             figure(h1)
@@ -998,10 +1025,8 @@ elseif ~read_flatcor
         colorbar
         axis equal tight
         
-        drawnow
-        
         figure('Name', 'sinogram');
-        nn = round( size( proj, 3) / 2);
+        nn = round( size( proj, 2) / 2);
         % Crop lateral shift
         sino = squeeze( proj(:,nn,:) );
         sino = CropShift( sino, offset_shift );
@@ -1009,36 +1034,12 @@ elseif ~read_flatcor
         [~,m] = sort( mod( angles, 2 * pi ) );
         sino = sino(:,m);
         imsc1( sino)
-        title(sprintf('sinogram: proj(:,%u,:), shift corrected, angles reordered', nn))
+        title(sprintf('sinogram: proj(:,%u,:) (shift corrected, angles reordered)', nn))
         colorbar
         axis equal tight
+        
         drawnow
     end
-    
-    %%% Angles %%
-    if exist('cur', 'var') && isfield(cur, 'proj') && isfield( cur.proj, 'angle')
-        % for KIT cam this includes missing angles
-        angles = [cur.proj.angle] / 180 * pi;
-        if strcmpi(cam, 'kit')
-            % drop angles where projections are missing
-            angles = angles(1 + proj_nums);
-        else
-            angles = angles(proj_range);
-        end
-    elseif exist( h5log, 'file')        
-        angles = s_rot.value( ~boolean( stimg_key.value(par.n_dark+1:end) ) ) * pi / 180;        
-        angles = angles(proj_range);
-    else        
-        num_proj = par.num_proj;
-        switch lower( cam )
-            case 'ehd'
-                angles = tomo.rot_angle.full_range * (0:num_proj - 1) / (num_proj - 1); % EHD: ok
-            case 'kit'
-                angles = tomo.rot_angle.full_range * (0:num_proj - 1) / num_proj; % KIT: ok if par.projections exist
-        end
-    end
-    % drop angles where projections are empty
-    angles(~projs_to_use) = [];
 
     %% Ring artifact filter    
     if ring_filter.apply && ring_filter.apply_before_stitching
@@ -1053,7 +1054,7 @@ elseif ~read_flatcor
         prnt( '\nSave flat-corrected projections.')
         CheckAndMakePath( flatcor_path )
 
-        if write.flatcor_shift_cropped
+        if isfield(write, 'flatcor_shift_cropped') && write.flatcor_shift_cropped
             
             % lateral shift corrected
             x0 = round( 1 + offset_shift' - min( offset_shift(:) ) );
@@ -1810,6 +1811,9 @@ if tomo.run
             write32bitTIFfromSingle( filename, rot90(im,1) );
             
             % Save volume
+            if ~isfield( write, 'reco_binning_factor')
+                write.reco_binning_factor = 2;
+            end
             if write.reco
                 reco_bin = write.reco_binning_factor; % alias for readablity
                 CheckAndMakePath( reco_path )

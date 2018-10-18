@@ -223,7 +223,7 @@ scan_path = [raw_path 'syn05_52L_PEEK_12w_dmm_cmos_recotest']; ADD
 
 scan_path = [raw_path 'syn06_52L_PEEK_12w_dmm_ccd_recotest']; ADD
 
-scan_path = [raw_path 'syn07_cor']; ADD
+scan_path = [raw_path 'syn07_cor']; ADDp05_reco_loop_synchroload2017oct_11003440_000.m
 
 scan_path = [raw_path 'syn08_cor']; ADD
 
