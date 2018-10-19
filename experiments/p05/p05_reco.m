@@ -22,7 +22,7 @@
 % Also cite the ASTRA Toolbox, see http://www.astra-toolbox.com/
 %
 % Written by Julian Moosmann. First version: 2016-09-28. Last modifcation:
-% 2018-08-31
+% 2018-10-18
 
 if ~exist( 'external_parameter' ,'var')
     clearvars
@@ -1137,9 +1137,9 @@ if tomo.run || tomo.run_interactive_mode
             [~, cm1] = ImageCorrelation( im1, im2, 0, 0, 0); % large if full angle is  2 * pi
             [~, cm2] = ImageCorrelation( im1, flipud(im2), 0, 0, 0); % large if full angle is pi
             if max( cm1(:) ) > max( cm2(:) )
-                tomo.rot_angle.full_range = 2 * pi;
+                tomo.rot_angle.full_range = 1 * pi;
             elseif max( cm1(:) ) < max( cm2(:) )
-                tomo.rot_angle.full_range = pi;
+                tomo.rot_angle.full_range = pi / 2;
             else
                 error('Determination of full angle of rotation from correlation of first and last projection not successful.')
             end
@@ -1635,14 +1635,18 @@ end
 if crop_at_rot_axis(1)
     % This is to avoid oversampling for scans with excentric rotation axis
     % and reconstructing WITHOUT stitching
-    switch excentric_rot_axis
-        case 1
-            proj( ceil(tomo.rot_axis.position) + 1:end, :, :) = [];
-        case -1
-            %%% CHECK !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-            proj( 1:floor(tomo.rot_axis.position)-1, :, :) = [];
+    if std( offset_shift ) > 0
+        
+    else
+        switch excentric_rot_axis
+            case 1
+                proj( ceil(tomo.rot_axis.position) + 1:end, :, :) = [];
+            case -1
+                %%% CHECK !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+                proj( 1:floor(tomo.rot_axis.position)-1, :, :) = [];
+        end
     end
-    if isempty( vol_shape )
+    if isempty( tomo.vol_shape )
         tomo.vol_shape = [raw_im_shape_binned1, raw_im_shape_binned1, raw_im_shape_binned2];
     end
 end
