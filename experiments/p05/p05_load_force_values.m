@@ -71,18 +71,22 @@ num_steps = numel( steps );
 wait_time = [];
 wait_time1 = [];
 tomo_time = [];
+tomo_time1 = [];
 wait_force = [];
 wait_adc = []; % leccay support for first scans
 tomo_force = [];
 wait_pusher = [];
+tomo_pusher = [];
 for nn = 1:num_steps
     ss = steps(nn);
-    fprintf( '\n %2u : %s.', nn, struct_scans(ss).name)
-    p = [raw_path filesep struct_scans(ss).name];
+    scan_name_nn = struct_scans(ss).name;
+    fprintf( '\n %2u : %s.', nn, scan_name_nn)
+    p = [raw_path filesep scan_name_nn];
     
     filename = sprintf( '%s/%stime_adc1_p05pusher_wait.dat',p, scan_name);
-    % Waiting
+    % Waiting %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     if exist( filename, 'file')
+        fprintf( 'time_adc1_p05pusher_wait.dat' )
         fw = read_dat( filename );
         wait_time1 = [wait_time1 fw(1,end-1)];
         wait_time = [wait_time fw(1,2:end-1)];
@@ -112,7 +116,7 @@ for nn = 1:num_steps
     end
     
     filename = sprintf( '%s/force.dat',p);
-    if exist( filename, 'file' )
+    if exist( filename, 'file' )        
         
         fw = read_dat( filename );
         wait_force = [wait_force fw(2:end-1)];
@@ -124,11 +128,47 @@ for nn = 1:num_steps
         filename = sprintf( '%s/pospusher.dat',p);
         fw = read_dat( filename );
         wait_pusher = [wait_pusher fw(2:end-1)];
+        
+        fprintf( ' force adc1 pusher dat' )
     end
     
-    % tomogram
+    % tomogram %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    filename = sprintf( '%s/%stime_adc1_p05pusher_tomo.dat',p, scan_name_nn);
+    if exist( filename, 'file')
+        fprintf( 'time_adc1_p05pusher_tomo.dat' )
+        fw = read_dat( filename );
+        tomo_time1 = [tomo_time1 fw(1,end-1)];
+        tomo_time = [tomo_time fw(1,2:end-1)];
+        tomo_force = [tomo_force adc2force * fw(2,2:end-1)];
+        tomo_pusher = [tomo_pusher fw(3,2:end-1)];
+        
+        % Write CVS file
+        csvfilename=[out_path filesep struct_scans(nn).name '_tomo.csv'];
+        cHeader = {'tomo_time' 'tomo_force' 'tomo_pusher'}; %dummy header
+        commaHeader = [cHeader;repmat({','},1,numel(cHeader))]; %insert commaas
+        commaHeader = commaHeader(:)';
+        textHeader = cell2mat(commaHeader); %cHeader in text with commas
+        
+        %write header to file
+        fid = fopen(csvfilename,'w');
+        fprintf(fid,'%s\n',textHeader);
+        fclose(fid);
+        
+        datvalues(:,1) = (tomo_time - tomo_time(1) ) / 60 / 60;
+        datvalues(:,2) = tomo_force;
+        datvalues(:,3) = tomo_pusher;
+        
+        %write data to end of file
+        dlmwrite(csvfilename,datvalues,'-append');
+        
+        clear datvalues ;
+    end
+    
+    
+    
     filename = sprintf( '%s/%s_nexus.h5', p, struct_scans(ss).name );
     if readhdf5 && exist( filename, 'file')
+        fprintf( ' nexus.h5' )
         %h5i = h5info( filename );
         t = double( h5read( filename, '/entry/hardware/adc1/Value/time') );
         v = double( h5read( filename, '/entry/hardware/adc1/Value/value') );
@@ -191,7 +231,7 @@ else
             legend( {'Tomogram'}, 'FontSize', font_size,'Location','northwest')
         end
     else
-        plot( wait_time - wait_time(1), wait_force, 'b.', tomo_time - wait_time(1), tomo_force, 'r.', 'LineWidth',12);
+        plot( wait_time - wait_time(1), wait_force, 'b.', tomo_time - tomo_time(1), tomo_force, 'r.', 'LineWidth',12);
         legend( {'Waiting', 'Tomogram'}, 'FontSize', font_size,'Location','northwest')
     end
     
