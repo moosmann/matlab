@@ -49,6 +49,7 @@ read_flatcor_path = ''; % subfolder of 'flat_corrected' containing projections
 energy = []; % in eV! if empty: read from log file
 sample_detector_distance = []; % in m. if empty: read from log file
 eff_pixel_size = []; % in m. if empty: read from log file. effective pixel size =  detector pixel size / magnification
+pix_scaling = 1;
 %%% PREPROCESSING %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 raw_roi = []; % if []: use full image; if [y0 y1]: vertical ROI, skips first raw_roi(1)-1 lines, reads until raw_roi(2). When raw_roi(2) < 0 reads until end - |raw_roi(2)|; if negative scalar: auto roi, selects ROI automatically.Not working for *.raw data where images are flipped.
 raw_bin = 2; % projection binning factor: integer
@@ -416,6 +417,10 @@ filename = sprintf( '%s/%s', str.folder, str.name);
 [par, cur, cam] = p05_log( filename );
 if isempty( eff_pixel_size )
     eff_pixel_size = par.eff_pixel_size;
+end
+% Scaling of pixel size if MTF is wrong. Important for lateral shift scans
+if exist( pix_scaling, 'var' ) && ~isempty( pix_scaling )
+    eff_pixel_size = pix_scaling * eff_pixel_size;
 end
 exposure_time = par.exposure_time;
 eff_pixel_size_binned = raw_bin * eff_pixel_size;
@@ -1633,21 +1638,82 @@ end
 
 %% Crop projections at rotation axis position %%
 if crop_at_rot_axis(1)
+    t = toc;
+    prnt( '\nCropping projections:')
     % This is to avoid oversampling for scans with excentric rotation axis
     % and reconstructing WITHOUT stitching
     if std( offset_shift ) > 0
         
-    else
-        switch excentric_rot_axis
-            case 1
-                proj( ceil(tomo.rot_axis.position) + 1:end, :, :) = [];
-            case -1
-                %%% CHECK !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-                proj( 1:floor(tomo.rot_axis.position)-1, :, :) = [];
+        
+        %%% To be tested %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+        if std( abs( offset_shift ) ) ~= 0
+            
+            % projection indices
+            pp = 1:size( proj, 3);
+            proj_ind_l = pp( offset_shift > 0 );
+            proj_ind_r = pp( offset_shift < 0 );
+            
+            % horizontal pixel indices
+            osl = offset_shift( offset_shift > 0 );
+            osr = offset_shift( offset_shift < 0 );
+            
+            %xl0 = round( 1 + osl' - min( osl(:) ) );
+            %xl1 = size(proj,1) - max( xl0 ) + xl0;
+            
+            xl0 = round( 1 + osl' - min( osl(:) ) );
+            xl1 = ceil( tomo.rot_axis.position ) - max( xl0 ) + xl0 + 1;
+            
+            %xr0 = round( 1 + osr' - min( osr(:) ));
+            %xr1 = size(proj,1) - max( xr0 ) + xr0;
+            
+            xr0 = round( 1 + osr' - min( osr(:) ) ) + floor( tomo.rot_axis.position ) + 1;
+            xr1 = size(proj,1) - max( xr0 ) + xr0 - 1 ;
+            
+            %for nn = 1:10,disp([xl1(nn) - xl0(nn),xr1(nn)-xr0(nn)]),end;
+            
+            if xl1 - xl0 ~= xr1 -xr0
+                error( 'Cropping indices not consistent.' )
+            end
+            
+            % Preallocation
+            %projc = zeros( [ xl1(1) - xl0(1) + 1, size( proj, 2), size( proj, 3 )], 'like', proj );
+            
+            % Crop
+            for nn = 1:numel( proj_ind_l )
+                pp = proj_ind_l(nn);
+                xx = xl0(nn):xl1(nn);
+                %1:floor(tomo.rot_axis.position)-1
+                projc(:,:,pp) = proj( xx, :, pp);
+                
+                %proj(xl1(nn):end,:,pp) = 1;
+            end
+            for nn = 1:numel( proj_ind_r )
+                pp = proj_ind_r(nn);
+                xx = xr0(nn):xr1(nn);
+                %ceil(tomo.rot_axis.position) + 1:
+                projc(:,:,pp) = proj( xx, :, pp);
+                
+                proj(1:xl0(nn),:,pp) = 1;
+            end
+            
+            proj = projc;
+            %clear proj;
+        else
+            
+            switch excentric_rot_axis
+                case 1
+                    proj( ceil(tomo.rot_axis.position) + 1:end, :, :) = [];
+                case -1
+                    %%% CHECK !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+                    proj( 1:floor(tomo.rot_axis.position)-1, :, :) = [];
+            end
         end
-    end
-    if isempty( tomo.vol_shape )
-        tomo.vol_shape = [raw_im_shape_binned1, raw_im_shape_binned1, raw_im_shape_binned2];
+        if isempty( tomo.vol_shape )
+            tomo.vol_shape = [raw_im_shape_binned1, raw_im_shape_binned1, raw_im_shape_binned2];
+            
+        end
+        prnt( ' done in %.1f (%.2f min)', toc-t, (toc-t)/60)
+        %%% Check above %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     end
 end
 
