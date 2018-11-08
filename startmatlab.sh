@@ -4,19 +4,17 @@
 export TZ='Europe/Berlin'
 
 # NVIDIA CUDA
-#CUDA_PATH=/usr/local/cuda-7.5
-CUDA_PATH=/usr/local/cuda-9.1
+export CUDA_PATH=/usr/local/cuda-9.1
 export PYTHONPATH=$CUDA_PATH/lib64/:$PYTHONPATH
 
+# MATLAB
+export MATLAB_VERSION=R2017b
+
 # ASTRA
-export PATH=/opt/matlab/R2017b/bin/:$PATH
-#export MATLAB_USER_PATH=/asap3/petra3/gpfs/common/p05/jm/matlab
-# ASTRA 1.8 local
-#ASTRA_PATH=/asap3/petra3/gpfs/common/p05/astra/1.8
-# ASTRA 1.9 local
-ASTRA_PATH=/asap3/petra3/gpfs/common/p05/astra/1.9
+export PATH=/opt/matlab/$MATLAB_VERSION/bin/:$PATH
+export ASTRA_PATH=/asap3/petra3/gpfs/common/p05/astra/1.9
 export LD_LIBRARY_PATH=$ASTRA_PATH/lib:$CUDA_PATH/lib64/:$LD_LIBRARY_PATH
-export MATLABPATH=$ASTRA_PATH/matlab/mex/:$ASTRA_PATH/matlab/tools/:$ASTRA_PATH/samples/matlab/:$MATLABPATH
+export MATLAB_PATH=$ASTRA_PATH/matlab/mex/:$ASTRA_PATH/matlab/tools/:$ASTRA_PATH/samples/matlab/:$MATLABPATH
 export PYTHONPATH=$ASTRA_PATH/python:$PYTHONPATH
 
 #export LD_LIBRARY_PATH=/usr/local/cuda/lib64/:$LD_LIBRARY_PATH
@@ -33,10 +31,4 @@ echo -e 'PYTHONPATH:' $PYTHONPATH
 echo -e 'MATLABPATH:' $MATLABPATH
 echo -e 'Starting MATLAB.\n'
 
-#
-# alias gitfetchandreset='git fetch origin master & git reset --hard origin/master'
-
-#matlab
-#matlab_R2016b
-matlab_R2017b
-#matlab_R2018a # no ASTRA support
+matlab_$MATLAB_VERSION

@@ -419,7 +419,7 @@ if isempty( eff_pixel_size )
     eff_pixel_size = par.eff_pixel_size;
 end
 % Scaling of pixel size if MTF is wrong. Important for lateral shift scans
-if exist( pix_scaling, 'var' ) && ~isempty( pix_scaling )
+if exist( 'pix_scaling', 'var' ) && ~isempty( pix_scaling )
     eff_pixel_size = pix_scaling * eff_pixel_size;
 end
 exposure_time = par.exposure_time;

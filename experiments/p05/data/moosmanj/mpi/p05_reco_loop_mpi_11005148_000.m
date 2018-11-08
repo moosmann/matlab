@@ -267,7 +267,6 @@ scan_path = [raw_path 'mpi05_rmh_ca_14_9_urp3_ee']; ADD('r')
 scan_path = [raw_path 'mpi05_rmh_ca_14_9_urp3_d']; ADD
 
 
-
 raw_bin = 4;
 proj_range = 1:6742;
 tomo.rot_axis.offset = 11.25 * 2 / raw_bin;
@@ -291,6 +290,27 @@ bin_before_filtering = 0;
 image_correlation.method = 'ssim-ml';
 tomo.rot_axis.offset = -12.4 * 2 / raw_bin;
 scan_path = [raw_path 'mpi11_e075_rmh_ca_14_9_urp3_a']; ADD
+
+%% Test 3D gpu with proj > 4096
+raw_roi = [1900 2100];
+raw_bin = 4;
+tomo.rot_axis.offset = -0.5 * 4 / raw_bin;
+proj_range = 1:1:6742;
+tomo.reco_mode = '3D';
+write.flatcor = 0;
+write.phase_map = 0;
+write.sino = 0; 
+write.phase_sino = 0;
+write.reco = 1; 
+write.float = 1;
+write.uint16 = 0;
+write.uint8 = 0;
+write.float_binned = 0;
+bin_before_filtering = 1;
+image_correlation.method = 'none';
+interactive_mode.rot_axis_pos = 0;
+write.path = '/gpfs/petra3/scratch/moosmanj';
+scan_path = [raw_path 'mpi04_rmh_ca_24_6_ulp3_e']; ADD
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

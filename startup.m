@@ -15,27 +15,27 @@ fprintf( '\nCUDA_PATH : %s', getenv( 'CUDA_PATH' ) );
 
 %% ASTRA
 % ASTRA 1.9 local
-path_to_astra = '/asap3/petra3/gpfs/common/p05/astra/1.9/matlab';
-% ASTRA 1.8 local
-%path_to_astra = '/asap3/petra3/gpfs/common/p05/astra/1.8/matlab';
+ASTRA_PATH = getenv( 'ASTRA_PATH' );
+fprintf( '\nASTRA_PATH : %s', ASTRA_PATH );
+astra_path = [ ASTRA_PATH '/matlab' ];
 if strcmp( hostname(1:8), 'max-hzgg')    
-    addpath( genpath( path_to_astra ) );
+    addpath( genpath( astra_path ) );
 elseif strcmp( hostname(1:8), 'max-p3ag')   
-    addpath( genpath( path_to_astra ) );
+    addpath( genpath( astra_path ) );
 elseif strcmp( hostname(1:8), 'max-nova')
-    addpath( genpath( path_to_astra ) );
+    addpath( genpath( astra_path ) );
 else    
-    addpath( genpath( path_to_astra ) );
+    addpath( genpath( astra_path ) );
 end
-fprintf( '\nASTRA path : %s', path_to_astra );
+fprintf( '\nAdd ASTRA path : %s', astra_path );
 
 %% ImageJ / Fiji
-%path_to_imagej = '/asap3/petra3/gpfs/common/p05/jm/imagej/ImageJ.app/scripts';
-%addpath( genpath( path_to_imagej ) );
-%fprintf( '\nImageJ path : %s', path_to_imagej );
 path_to_fiji = '/asap3/petra3/gpfs/common/p05/jm/fiji/Fiji.app/scripts';
 addpath( genpath( path_to_fiji ) );
 fprintf( '\nFiji path : %s', path_to_fiji );
+
+%% MATLAB path
+fprintf( '\nMATLAB_PATH : %s', getenv( 'MATLAB_PATH' ) );
 
 %% Set default color map to grayscale instead of jet
 set(groot, 'DefaultFigureColormap', gray)
