@@ -199,6 +199,7 @@ end
 
 wait_time = wait_time / 60 / 60;
 tomo_time = tomo_time / 3600 / 1e3;
+
 %% Save
 %filename = sprintf( '%s/%s_loadSequ_x%04u.gif', scan_path, scan_name, xx );
 %fprintf( '\n output file: %s', filename)
@@ -221,7 +222,6 @@ if isempty( wait_time ) && isempty( tomo_time )
     xlabel('projections', 'FontSize',font_size);
     
 else
-    
     if isempty( wait_time ) || isempty( tomo_time )
         if ~isempty( wait_time )
             plot( wait_time - wait_time(1), wait_force, 'b.', 'LineWidth',12);
@@ -231,7 +231,7 @@ else
             legend( {'Tomogram'}, 'FontSize', font_size,'Location','northwest')
         end
     else
-        plot( wait_time - wait_time(1), wait_force, 'b.', tomo_time - tomo_time(1), tomo_force, 'r.', 'LineWidth',12);
+        plot( wait_time - tomo_time(1), wait_force, 'b.', tomo_time - tomo_time(1), tomo_force, 'r.', 'LineWidth',12);
         legend( {'Waiting', 'Tomogram'}, 'FontSize', font_size,'Location','northwest')
     end
     

@@ -216,6 +216,12 @@ rot_axis_offset = 12.5;
 rot_axis_tilt = -0.0029;
 ADD
 
+% movement artefacts
+scan_path = [ raw_path 'mah_20_4L_top'];
+rot_axis_offset = 12.5;
+rot_axis_tilt = -0.0029;
+ADD
+
 do_phase_retrieval = 1;
 ADD('r')
 

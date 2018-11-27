@@ -32,6 +32,28 @@ p05_load_force_values( raw_path, scan_name, steps, out_path )
 scan_name = 'syn005_55R_Mg5Gd_12w_load';
 p05_load_force_values( raw_path, scan_name, steps, out_path )
 
+
+%% 2018 November LTP III
+raw_path = '/asap3/petra3/gpfs/p05/2018/data/11005553/raw';
+
+scan_name = 'syn004_24R_PEEK_8w';
+p05_load_force_values( raw_path, scan_name)
+
+scan_name = 'syn008_24R_PEEK_8w';
+p05_load_force_values( raw_path, scan_name)
+ 
+scan_name = 'syn013_105L_Mg5Gd_4w';
+p05_load_force_values( raw_path, scan_name,[],'',10 )
+
+scan_name = 'syn014_105R_Mg10Gd_4w';
+p05_load_force_values( raw_path, scan_name,[],'',10 )
+
+scan_name = 'syn018_86L_Mg10Gd_4w_afterdrilling_push';
+p05_load_force_values( raw_path, scan_name,[],'',10)
+
+scan_name = 'syn026_femur_55L';
+p05_load_force_values( raw_path, scan_name,[],'',10)
+
 %% 2017 May
 raw_path = '/asap3/petra3/gpfs/p05/2017/data/11003950/raw';
 scan_name = 'syn13_55L_Mg10Gd_12w_load';
