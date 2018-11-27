@@ -43,10 +43,10 @@ figure(1), imshow(squeeze(proj_data(:,20,:))',[])
 % Create a data object for the reconstruction
 rec_id = astra_mex_data3d('create', '-vol', vol_geom);
 
-cfg = astra_struct('SIRT3D_CUDA');
+%cfg = astra_struct('SIRT3D_CUDA');
 
 %% BP3D
-%cfg = astra_struct('BP3D_CUDA');
+cfg = astra_struct('BP3D_CUDA');
 fprintf( '\n%s', cfg.type )
 cfg.ReconstructionDataId = rec_id;
 cfg.ProjectionDataId = proj_id;

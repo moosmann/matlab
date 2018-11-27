@@ -23,4 +23,7 @@ t2=0.20745;
 m=(t2-t1)/(e2-e1);
 
 % Transmission at 40 keV
-t3 = t1 + m*(40000-e1);
+transmission = @(E) t1 + m*(E-e1);
+t30 = transmission(30000);
+t35 = transmission(35000);
+t40 = transmission(40000);

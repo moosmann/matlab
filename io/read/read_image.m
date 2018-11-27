@@ -111,7 +111,6 @@ switch lower( filetype )
             case 8 % Added 2018-10-24
                 switch numel( roi )
                     case 0
-                        %im = rot90( imread( filename, 'tif' ), 1);
                         im = rot90( imread( filename, 'tif' ), 0);
                     case 2
                         y0 = max( (tif_info.Width-roi(2)+1), 1 );
@@ -120,7 +119,17 @@ switch lower( filetype )
                         x1 = tif_info.Height;
                         im = rot90( imread( filename, 'tif', 'PixelRegion', {[x0 x1], [y0 y1]}), 0);
                 end
-                
+            case 4 % Added 2018-11-22
+                switch numel( roi )
+                    case 0
+                        im = rot90( imread( filename, 'tif' ), 1);
+                    case 2
+                        x0 = max( (tif_info.Height-roi(2)+1), 1 );
+                        x1 = min( (tif_info.Height-roi(1)+1), tif_info.Height);
+                        y0 = 1;
+                        y1 = tif_info.Width;
+                        im = rot90( imread( filename, 'tif', 'PixelRegion', {[x0 x1], [y0 y1]}), 1);
+                end
             otherwise
                 error( 'TIFF orientation %u not implemented!', tif_info.Orientation )
                 

@@ -12,7 +12,7 @@ export MATLAB_VERSION=R2017b
 
 # ASTRA
 export PATH=/opt/matlab/$MATLAB_VERSION/bin/:$PATH
-export ASTRA_PATH=/asap3/petra3/gpfs/common/p05/astra/1.9
+export ASTRA_PATH=/asap3/petra3/gpfs/common/p05/astra/astra
 export LD_LIBRARY_PATH=$ASTRA_PATH/lib:$CUDA_PATH/lib64/:$LD_LIBRARY_PATH
 export MATLAB_PATH=$ASTRA_PATH/matlab/mex/:$ASTRA_PATH/matlab/tools/:$ASTRA_PATH/samples/matlab/:$MATLABPATH
 export PYTHONPATH=$ASTRA_PATH/python:$PYTHONPATH
@@ -27,8 +27,9 @@ echo -e 'Set environment variables:'
 echo -e 'TZ:' $TZ
 echo -e 'PATH:' $PATH
 echo -e 'LD_LIBRARY_PATH:' $LD_LIBRARY_PATH
+echo -e 'ASTRA_PATH:' $ASTRA_PATH
 echo -e 'PYTHONPATH:' $PYTHONPATH
-echo -e 'MATLABPATH:' $MATLABPATH
+echo -e 'MATLAB_PATH:' $MATLAB_PATH
 echo -e 'Starting MATLAB.\n'
 
 matlab_$MATLAB_VERSION
