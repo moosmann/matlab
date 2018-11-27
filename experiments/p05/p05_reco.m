@@ -33,12 +33,14 @@ close all hidden % close all open windows
 %% PARAMETERS / SETTINGS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-fast_reco = 0; % !!! OVERWRITES SOME PARAMETERS SET BELOW !!!
+fast_reco = 1; % !!! OVERWRITES SOME PARAMETERS SET BELOW !!!
 stop_after_data_reading(1) = 0; % for data analysis, before flat field correlation 
 stop_after_proj_flat_correlation(1) = 0; % for data analysis, after flat field correlation
 
 %%% SCAN %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 scan_path = ...
+    '/asap3/petra3/gpfs/p05/2018/data/11005553/raw/syn34_59R_Mg5Gd_12w';
+    '/asap3/petra3/gpfs/p05/2018/data/11005553/raw/syn33_68R_Mg10Gd_12w';
     '/asap3/petra3/gpfs/p05/2018/data/11005553/raw/syn32_84R_Mg5Gd_4w_restart_pushed';
     '/asap3/petra3/gpfs/p05/2018/data/11005553/raw/syn029_84R_Mg5Gd_4w_restart_006';
     '/asap3/petra3/gpfs/p05/2018/data/11005553/raw/syn029_84R_Mg5Gd_4w_restart_004';
@@ -1713,7 +1715,7 @@ if crop_at_rot_axis(1)
             end
             
             % Preallocation
-            %projc = zeros( [ xl1(1) - xl0(1) + 1, size( proj, 2), size( proj, 3 )], 'like', proj );
+            projc = zeros( [ xl1(1) - xl0(1) + 1, size( proj, 2), size( proj, 3 )], 'like', proj );
             
             % Crop
             for nn = 1:numel( proj_ind_l )
@@ -1915,6 +1917,12 @@ if tomo.run
             nn = round( size( vol, 2 ) / 2);
             im = squeeze( vol(:,nn,:) );
             filename = sprintf( '%sreco_yMid.tif', reco_path );
+            write32bitTIFfromSingle( filename, rot90(im,1) );
+            
+            % Save ortho slices z
+            nn = round( size( vol, 3 ) / 2);
+            im = squeeze( vol(:,:,nn) );
+            filename = sprintf( '%sreco_zMid.tif', reco_path );
             write32bitTIFfromSingle( filename, rot90(im,1) );
             
             % Save volume
