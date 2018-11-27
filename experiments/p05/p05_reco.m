@@ -39,6 +39,41 @@ stop_after_proj_flat_correlation(1) = 0; % for data analysis, after flat field c
 
 %%% SCAN %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 scan_path = ...
+    '/asap3/petra3/gpfs/p05/2018/data/11005553/raw/syn32_84R_Mg5Gd_4w_restart_pushed';
+    '/asap3/petra3/gpfs/p05/2018/data/11005553/raw/syn029_84R_Mg5Gd_4w_restart_006';
+    '/asap3/petra3/gpfs/p05/2018/data/11005553/raw/syn029_84R_Mg5Gd_4w_restart_004';
+    '/asap3/petra3/gpfs/p05/2018/data/11005553/raw/syn029_84R_Mg5Gd_4w_000';
+    '/asap3/petra3/gpfs/p05/2018/data/11005553/raw/syn027_20R_PEEK_4w';
+    '/asap3/petra3/gpfs/p05/2018/data/11005553/raw/syn026_femur_55L_000';
+    '/asap3/petra3/gpfs/p05/2018/data/11005553/raw/test_kit_xrsh_soft_5';
+    '/asap3/petra3/gpfs/p05/2018/data/11005553/raw/syn023_13R_PEEK_4w';
+    '/asap3/petra3/gpfs/p05/2018/data/11005553/raw/syn018_86L_Mg10Gd_4w_afterdrilling_push_004';
+    '/asap3/petra3/gpfs/p05/2018/data/11005553/raw/syn019_86L_Mg10Gd_4w_afterpushing';
+    '/asap3/petra3/gpfs/p05/2018/data/11005553/raw/syn020_LongTerm_18003_bot';
+    '/asap3/petra3/gpfs/p05/2018/data/11005553/raw/syn018_86L_Mg10Gd_4w_afterdrilling_push_003';
+    '/asap3/petra3/gpfs/p05/2018/data/11005553/raw/syn018_86L_Mg10Gd_4w_afterdrilling_push_000';
+    '/asap3/petra3/gpfs/p05/2018/data/11005553/raw/syn018_86L_Mg10Gd_4w_afterdrilling_push_002';
+    '/asap3/petra3/gpfs/p05/2018/data/11005553/raw/syn018_86L_Mg10Gd_4w_afterdrilling_push_001';
+    '/asap3/petra3/gpfs/p05/2018/data/11005553/raw/syn017_86L_Mg10Gd_4w_afterdrilling';
+    '/asap3/petra3/gpfs/p05/2018/data/11005553/raw/syn015_86L_Mg10Gd_4w_beforedrilling';
+    '/asap3/petra3/gpfs/p05/2018/data/11005553/raw/syn014_105R_Mg10Gd_4w_002';
+    '/asap3/petra3/gpfs/p05/2018/data/11005553/raw/syn014_105R_Mg10Gd_4w_001';
+    '/asap3/petra3/gpfs/p05/2018/data/11005553/raw/syn014_105R_Mg10Gd_4w_008';
+    '/asap3/petra3/gpfs/p05/2018/data/11005553/raw/syn014_105R_Mg10Gd_4w_003';
+    '/asap3/petra3/gpfs/p05/2018/data/11005553/raw/syn014_105R_Mg10Gd_4w_000';
+    '/asap3/petra3/gpfs/p05/2018/data/11005553/raw/syn013_105L_Mg5Gd_4w_001';
+    '/asap3/petra3/gpfs/p05/2018/data/11005553/raw/syn013_105L_Mg5Gd_4w_009';
+    '/asap3/petra3/gpfs/p05/2018/data/11005553/raw/syn013_105L_Mg5Gd_4w_000';
+    '/asap3/petra3/gpfs/p05/2018/data/11005553/raw/syn013_105L_Mg5Gd_4w_007';
+    '/asap3/petra3/gpfs/p05/2018/data/11005553/raw/syn010_34L_PEEK_8w';
+    '/asap3/petra3/gpfs/p05/2018/data/11005553/raw/syn009_24R_PEEK_8w_crashed_relaxed_backto30N';
+    '/asap3/petra3/gpfs/p05/2018/data/11005553/raw/syn008_24R_PEEK_8w_47N';
+    '/asap3/petra3/gpfs/p05/2018/data/11005553/raw/syn005_94R_Mg5Gd_8w';
+    '/asap3/petra3/gpfs/p05/2018/data/11005553/raw/syn003_64R_Mg10Gd_12w_kit';
+    '/asap3/petra3/gpfs/p05/2018/data/11005553/raw/syn004_24R_PEEK_8w_006';
+    '/asap3/petra3/gpfs/p05/2018/data/11005553/raw/syn004_24R_PEEK_8w_000';
+    '/asap3/petra3/gpfs/p05/2018/data/11005553/raw/syn003_64R_Mg10Gd_12w_kit';   
+    '/asap3/petra3/gpfs/p05/2018/data/11005289/raw/mpimm_22_a';
     '/asap3/petra3/gpfs/p05/2018/data/11005476/raw/zfmk_075_LM38';
     '/asap3/petra3/gpfs/p05/2018/commissioning/c20180619_000_gummi/raw/test_flyshift_07';
     '/asap3/petra3/gpfs/p05/2018/data/11004284/raw/Li11_1stCha_fly';
@@ -52,7 +87,7 @@ eff_pixel_size = []; % in m. if empty: read from log file. effective pixel size 
 pix_scaling = 1;
 %%% PREPROCESSING %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 raw_roi = []; % if []: use full image; if [y0 y1]: vertical ROI, skips first raw_roi(1)-1 lines, reads until raw_roi(2). When raw_roi(2) < 0 reads until end - |raw_roi(2)|; if negative scalar: auto roi, selects ROI automatically.Not working for *.raw data where images are flipped.
-raw_bin = 2; % projection binning factor: integer
+raw_bin = 4; % projection binning factor: integer
 im_trafo = ''; % string to be evaluated after reading data in the case the image is flipped/rotated/etc due to changes at the beamline, e.g. 'rot90(im)'
 bin_before_filtering(1) = 1; % Apply binning before filtering pixel. less effective, but much faster especially for KIT camera.
 excentric_rot_axis = 0; % off-centered rotation axis increasing FOV. -1: left, 0: centeerd, 1: right. influences tomo.rot_axis.corr_area1
@@ -98,7 +133,7 @@ decimal_round_precision = 2; % precision when rounding pixel shifts
 %%% PHASE RETRIEVAL %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 phase_retrieval.apply = 0; % See 'PhaseFilter' for detailed description of parameters !
 phase_retrieval.apply_before = 0; % before stitching, interactive mode, etc. For phase-contrast data with an excentric rotation axis phase retrieval should be done afterwards. To find the rotataion axis position use this option in a first run, and then turn it of afterwards.
-phase_retrieval.post_binning_factor = 2; % Binning factor after phase retrieval, but before tomographic reconstruction
+phase_retrieval.post_binning_factor = 1; % Binning factor after phase retrieval, but before tomographic reconstruction
 phase_retrieval.method = 'tie';'qpcut'; %'qp' 'ctf' 'tie' 'qp2' 'qpcut'
 phase_retrieval.reg_par = 1.5; % regularization parameter. larger values tend to blurrier images. smaller values tend to original data.
 phase_retrieval.bin_filt = 0.15; % threshold for quasiparticle retrieval 'qp', 'qp2'
@@ -112,7 +147,7 @@ tomo.vol_size = []; %[-0.5 0.5 -0.5 0.5 -0.5 0.5];% 6-component vector [xmin xma
 tomo.vol_shape = []; %[1 1 1] shape (# voxels) of reconstruction volume. used for excentric rot axis pos. if empty, inferred from 'tomo.vol_size'. in absolute numbers of voxels or in relative number w.r.t. the default volume which is given by the detector width and height.
 tomo.rot_angle.full_range = []; % in radians: empty ([]), full angle of rotation, or array of angles. if empty full rotation angles is determined automatically to pi or 2 pi
 tomo.rot_angle.offset = pi; % global rotation of reconstructed volume
-tomo.rot_axis.offset = 3;%[];%-2.5;[];% if empty use automatic computation
+tomo.rot_axis.offset = []; % if empty use automatic computation
 tomo.rot_axis.offset_shift_range = []; %[]; % absolute lateral movement in pixels during fly-shift-scan, overwrite lateral shift read out from hdf5 log
 tomo.rot_axis.position = []; % if empty use automatic computation. EITHER OFFSET OR POSITION MUST BE EMPTY. YOU MUST NOT USE BOTH!
 tomo.rot_axis.tilt = 0; % in rad. camera tilt w.r.t rotation axis. if empty calculate from registration of projections at 0 and pi
@@ -134,7 +169,7 @@ tomo.sirt.MinConstraint = []; % If specified, all values below MinConstraint wil
 tomo.sirt.MaxConstraint = []; % If specified, all values above MaxConstraint will be set to MaxConstraint.
 %%% OUTPUT %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 write.path = '';'/gpfs/petra3/scratch/moosmanj';% absolute path were output data will be stored. !!overwrites the write.to_scratch flag. if empty uses the beamtime directory and either 'processed' or 'scratch_cc'
-write.to_scratch = 1; % write to 'scratch_cc' instead of 'processed'
+write.to_scratch = 0; % write to 'scratch_cc' instead of 'processed'
 write.parfolder = '';% parent folder to 'reco', 'sino', 'phase', and 'flat_corrected'
 write.subfolder.flatcor = ''; % subfolder in 'flat_corrected'
 write.subfolder.phase_map = ''; % subfolder in 'phase_map'
@@ -142,7 +177,7 @@ write.subfolder.sino = ''; % subfolder in 'sino'
 write.subfolder.reco = ''; % subfolder in 'reco'
 write.flatcor = 1; % save preprocessed flat corrected projections
 write.flatcor_shift_cropped = 1; % save lateral shift corrected projections, projections are not interpolated, but cropped to nearest integer pixel
-write.phase_map = 1; % save phase maps (if phase retrieval is not 0)
+write.phase_map = 0; % save phase maps (if phase retrieval is not 0)
 write.sino = 0; % save sinograms (after preprocessing & before FBP filtering and phase retrieval)
 write.phase_sino = 1; % save sinograms of phase maps
 write.reco = 1; % save reconstructed slices (if tomo.run=1)
@@ -210,7 +245,9 @@ if exist('fast_reco','var') && fast_reco(1)
     %tomo.reco_mode = 'slice';
     write.to_scratch = 1;
 end
-
+if ~phase_retrieval.apply
+    phase_retrieval.post_binning_factor = 0;
+end
 %% Preprocessing up to proj/flat correlation %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 tic
 if interactive_mode.rot_axis_tilt && strcmpi( tomo.reco_mode, 'slice' )
@@ -794,7 +831,7 @@ elseif ~read_flatcor
     
     % Show flat field
     if visual_output(1)
-        if exist( 'h1' , 'var' )
+        if exist( 'h1' , 'var' ) && isvalid( h1 )
             figure(h1)
         else
             h1 = figure('Name', 'data and flat-and-dark-field correction');
@@ -817,7 +854,7 @@ elseif ~read_flatcor
     
     % Display first raw image
     if visual_output(1)
-        if exist( 'h1' , 'var' )
+        if exist( 'h1' , 'var' ) && isvalid( h1 )
             figure(h1)
         else
             h1 = figure('Name', 'data and flat-and-dark-field correction');
@@ -892,7 +929,7 @@ elseif ~read_flatcor
 
             % Plot ring current
             if visual_output(1)
-                if exist( 'hrc', 'var' )
+                if exist( 'hrc', 'var' ) && isvalid( hrc )
                     figure(hrc)
                 else
                     hrc = figure('Name', 'Ring currents');
@@ -1003,7 +1040,7 @@ elseif ~read_flatcor
     angles(~projs_to_use) = [];
     
     if visual_output(1)
-        if exist( 'h1' , 'var' )
+        if exist( 'h1' , 'var' ) && isvalid( h1 )
             figure(h1)
         else
             h1 = figure('Name', 'data and flat-and-dark-field correction');
