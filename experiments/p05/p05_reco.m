@@ -39,6 +39,7 @@ stop_after_proj_flat_correlation(1) = 0; % for data analysis, after flat field c
 
 %%% SCAN %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 scan_path = ...
+    '/asap3/petra3/gpfs/p05/2018/data/11005553/raw/syn35_56L_Mg10Gd_12w';
     '/asap3/petra3/gpfs/p05/2018/data/11005553/raw/syn34_59R_Mg5Gd_12w';
     '/asap3/petra3/gpfs/p05/2018/data/11005553/raw/syn33_68R_Mg10Gd_12w';
     '/asap3/petra3/gpfs/p05/2018/data/11005553/raw/syn32_84R_Mg5Gd_4w_restart_pushed';
@@ -293,6 +294,15 @@ if ~strcmp(raw_folder, 'raw')
 end
 prnt( '%s', scan_name)
 prnt( '\n scan_path:%s', scan_path)
+
+% Wait until scan finishes
+str = dir( sprintf( '%s*scan.log', scan_path) );
+filename = sprintf( '%s/%s', str.folder, str.name);
+while exist(filename, 'file' ) && ~getfield( dir( filename ) ,'bytes')
+    fprintf( '\nWaiting for scan to finish.' )
+    pause(1);
+end
+
 % Save scan path to file
 filename = [userpath, filesep, 'experiments/p05/path_to_latest_scan'];
 fid = fopen( filename , 'w' );
