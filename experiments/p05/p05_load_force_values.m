@@ -164,8 +164,6 @@ for nn = 1:num_steps
         clear datvalues ;
     end
     
-    
-    
     filename = sprintf( '%s/%s_nexus.h5', p, struct_scans(ss).name );
     if readhdf5 && exist( filename, 'file')
         fprintf( ' nexus.h5' )

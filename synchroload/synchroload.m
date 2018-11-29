@@ -54,6 +54,13 @@ p05_load_force_values( raw_path, scan_name,[],'',10)
 scan_name = 'syn026_femur_55L';
 p05_load_force_values( raw_path, scan_name,[],'',10)
 
+    
+% stability test
+filename = '/asap3/petra3/gpfs/p05/2018/data/11005553/raw/test/easyform_15x2N_relax60min_nexus.h5';
+out_path = '';
+adc2force = ;
+p05_load_plot_from_hdf5( filename, out_path, adc2force );
+
 %% 2017 May
 raw_path = '/asap3/petra3/gpfs/p05/2017/data/11003950/raw';
 scan_name = 'syn13_55L_Mg10Gd_12w_load';
@@ -71,6 +78,8 @@ adc2force = 4.81879;
 scan_name = 'syn166_104R_Mg10Gd_4w';
 readhdf5 = 0;
 p05_load_force_values( raw_path, scan_name, steps, out_path, adc2force, readhdf5 )
+
+%% 2016 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Load sequence processing %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

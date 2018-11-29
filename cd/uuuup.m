@@ -1,4 +1,0 @@
-up
-up
-up
-up
