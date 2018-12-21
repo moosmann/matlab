@@ -1361,16 +1361,16 @@ if tomo.run || tomo.run_interactive_mode
                 if offset(nn) == tomo.rot_axis.offset
                     cprintf( 'Green', sprintf('\n%11u%11.3f', nn, offset(nn)))
                 else
-                    cprintf( 'Black', '\n%11u%11.2f', nn, offset(nn))
+                    cprintf( 'Black', '\n%11u%11.3f', nn, offset(nn))
                 end
                 
                 for mm = 1:numel(metrics_offset)
                     if min_pos(mm) == nn
-                        cprintf( 'Red', '%11.3g', metrics_offset(mm).val(nn) )
+                        cprintf( 'Red', '%11.2g', metrics_offset(mm).val(nn) )
                     elseif max_pos(mm) == nn
-                        cprintf( 'Blue', '%11.3g', metrics_offset(mm).val(nn) )
+                        cprintf( 'Blue', '%11.2g', metrics_offset(mm).val(nn) )
                     else
-                        cprintf( 'Black', '%11.3g', metrics_offset(mm).val(nn) )
+                        cprintf( 'Black', '%11.2g', metrics_offset(mm).val(nn) )
                     end
                 end
             end

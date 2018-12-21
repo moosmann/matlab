@@ -195,7 +195,7 @@ if register
         end
         xx = roi_cen(3,1);
         yy = roi_cen(3,2);
-        zz = round( roi_cen(1,2) + roi_cen(2,2) ) / 2 );
+        zz = round( ( roi_cen(1,2) + roi_cen(2,2) ) / 2 );
     else
         xx = round( size( vol_reg, 1) / 2);
         yy = round( size( vol_reg, 2) / 2);
@@ -208,7 +208,6 @@ else
     fprintf( '\n No registerion of slice ' )
     vol_reg = vol;
 end
-
 
 %% Save
 %nimplay(cat(3,im1(s:end,:),im2(1:end-s+1,:)))
