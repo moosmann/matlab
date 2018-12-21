@@ -1,7 +1,7 @@
 # matlab
 MATLAB scripts and functions
 
-Installation:
+Installation of reconstruction routine for P05 imaging beamline (IBL):
 
 1) Log-in to a GPU node on the Maxwell cluster
 
