@@ -1,4 +1,4 @@
-function p05_create_reco_loop( raw_path, scan_name_pattern, out_path, suffix_to_scrip_name)
+function p05_create_reco_loop( raw_path, scan_name_pattern, out_path, name)
 % Create template script to loop reconstruction over all data sets i.e.
 % folders found under 'raw_path' matching the 'scan_name_pattern'. The
 % created script will be opened immediately in the MATLAB editor for
@@ -8,19 +8,19 @@ function p05_create_reco_loop( raw_path, scan_name_pattern, out_path, suffix_to_
 % changed in the created templated file. See help within created template!!
 %
 % ARGUMTENTS:
-% raw_path : string. Default: use present working directory. path to scan
+% raw_path : string. Default or if empty: use present working directory, path to scan
 %   for data sets. 
 % scan_name_pattern : string. Default: ''. only add folders matching pattern,
 %   e.g. 'dataSetNamePrefix*'. Asterisk (*) is required to match pattern.
 % out_path : path where loop script will be saved. It's recommended to a
 %   use path within the MATLAB search path. Default:
 %   $MATLAB_SEARCH_PATH/experiments/p05/data/$USER/
-% suffix_to_scrip_name : str. Default: ''. String to append to filename of the script.
+% name : str. Default: ''. String to append to filename of the script.
 %   A 3-digit running index is used to avoid overwriting existing scripts.
 %   
 % Written by Julian Moosmann, 2017-10-10. Last version: 2018-07-22
 %
-% p05_create_reco_loop( raw_path, scan_name_pattern, suffix_to_scrip_name, out_path)
+% p05_create_reco_loop( raw_path, scan_name_pattern, name, out_path)
 
 % TODO: Option to overwrite existing file 
 % TODO: file location: add to search path
@@ -36,19 +36,23 @@ if nargin < 3
     out_path = '';
 end
 if nargin < 4
-    suffix_to_scrip_name = '';
+    name = '';
 end
 
 %% Main %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-if strcmp( raw_path, '.')
+if sum( strcmp( raw_path, {'.',''}) )
     raw_path = pwd;
 end
 
 %% directories
-[~, name]= fileparts( raw_path );
-%[raw_path_prefix, name]= fileparts( raw_path );
-if ~strcmp( name, 'raw' )
-    fprintf( '\n WARNING: Name of current directory (%s) is not ''raw''', name)
+[pathstr, raw_name]= fileparts( raw_path );
+[~, beamtimeid] = fileparts( pathstr );
+if isnan( str2double( beamtimeid ) )
+    beamtimeid = '';
+end
+if ~strcmp( raw_name, 'raw' )
+    fprintf( '\n WARNING: Name of current directory (%s) is not ''raw''', raw_name)
+    input( '\n If path is correct type ENTER to continue, otherwise abort.\n' );    
 end
 if isempty( out_path )    
     out_path = [userpath '/experiments/p05/data/' getenv('USER') filesep];
@@ -69,13 +73,11 @@ end
 %% Create new, non-existing filename
 
 func_name0 = 'p05_reco_loop_';
-%processed_path = [raw_path_prefix  filesep 'processed'];
-%parent_path = [processed_path filesep];
 parent_path = out_path;
-
-if ~isempty( suffix_to_scrip_name )
-    func_name0 = [func_name0 suffix_to_scrip_name ];
+if ~isempty( name )
+    func_name0 = [func_name0 name '_' ];
 end
+func_name0 = [ func_name0 beamtimeid ];
 nn = 0;
 func_name = sprintf( '%s_%03u', func_name0, nn);
 filename = sprintf( '%s%s.m', parent_path, func_name );
