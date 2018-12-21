@@ -259,6 +259,7 @@ scan_path = [raw_path 'syn38_73R_Mg10Gd_8w']; ADD
 
 scan_path = [raw_path 'syn39_75L_Mg5Gd_8w']; ADD
 
+% some large scale wavy artefacs
 scan_path = [raw_path 'syn40_69L_Mg10Gd_12w']; ADD
 
 scan_path = [raw_path 'syn41_63L_Mg5Gd_12w']; ADD

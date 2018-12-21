@@ -40,49 +40,6 @@ stop_after_proj_flat_correlation(1) = 0; % for data analysis, after flat field c
 %%% SCAN %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 scan_path = ...
     '/asap3/petra3/gpfs/p05/2017/data/11003440/raw/syn40_69L_Mg10Gd_12w';
-    '/asap3/petra3/gpfs/p05/2018/data/11005553/raw/syn35_56L_Mg10Gd_12w';
-    '/asap3/petra3/gpfs/p05/2018/data/11005553/raw/syn34_59R_Mg5Gd_12w';
-    '/asap3/petra3/gpfs/p05/2018/data/11005553/raw/syn33_68R_Mg10Gd_12w';
-    '/asap3/petra3/gpfs/p05/2018/data/11005553/raw/syn32_84R_Mg5Gd_4w_restart_pushed';
-    '/asap3/petra3/gpfs/p05/2018/data/11005553/raw/syn029_84R_Mg5Gd_4w_restart_006';
-    '/asap3/petra3/gpfs/p05/2018/data/11005553/raw/syn029_84R_Mg5Gd_4w_restart_004';
-    '/asap3/petra3/gpfs/p05/2018/data/11005553/raw/syn029_84R_Mg5Gd_4w_000';
-    '/asap3/petra3/gpfs/p05/2018/data/11005553/raw/syn027_20R_PEEK_4w';
-    '/asap3/petra3/gpfs/p05/2018/data/11005553/raw/syn026_femur_55L_000';
-    '/asap3/petra3/gpfs/p05/2018/data/11005553/raw/test_kit_xrsh_soft_5';
-    '/asap3/petra3/gpfs/p05/2018/data/11005553/raw/syn023_13R_PEEK_4w';
-    '/asap3/petra3/gpfs/p05/2018/data/11005553/raw/syn018_86L_Mg10Gd_4w_afterdrilling_push_004';
-    '/asap3/petra3/gpfs/p05/2018/data/11005553/raw/syn019_86L_Mg10Gd_4w_afterpushing';
-    '/asap3/petra3/gpfs/p05/2018/data/11005553/raw/syn020_LongTerm_18003_bot';
-    '/asap3/petra3/gpfs/p05/2018/data/11005553/raw/syn018_86L_Mg10Gd_4w_afterdrilling_push_003';
-    '/asap3/petra3/gpfs/p05/2018/data/11005553/raw/syn018_86L_Mg10Gd_4w_afterdrilling_push_000';
-    '/asap3/petra3/gpfs/p05/2018/data/11005553/raw/syn018_86L_Mg10Gd_4w_afterdrilling_push_002';
-    '/asap3/petra3/gpfs/p05/2018/data/11005553/raw/syn018_86L_Mg10Gd_4w_afterdrilling_push_001';
-    '/asap3/petra3/gpfs/p05/2018/data/11005553/raw/syn017_86L_Mg10Gd_4w_afterdrilling';
-    '/asap3/petra3/gpfs/p05/2018/data/11005553/raw/syn015_86L_Mg10Gd_4w_beforedrilling';
-    '/asap3/petra3/gpfs/p05/2018/data/11005553/raw/syn014_105R_Mg10Gd_4w_002';
-    '/asap3/petra3/gpfs/p05/2018/data/11005553/raw/syn014_105R_Mg10Gd_4w_001';
-    '/asap3/petra3/gpfs/p05/2018/data/11005553/raw/syn014_105R_Mg10Gd_4w_008';
-    '/asap3/petra3/gpfs/p05/2018/data/11005553/raw/syn014_105R_Mg10Gd_4w_003';
-    '/asap3/petra3/gpfs/p05/2018/data/11005553/raw/syn014_105R_Mg10Gd_4w_000';
-    '/asap3/petra3/gpfs/p05/2018/data/11005553/raw/syn013_105L_Mg5Gd_4w_001';
-    '/asap3/petra3/gpfs/p05/2018/data/11005553/raw/syn013_105L_Mg5Gd_4w_009';
-    '/asap3/petra3/gpfs/p05/2018/data/11005553/raw/syn013_105L_Mg5Gd_4w_000';
-    '/asap3/petra3/gpfs/p05/2018/data/11005553/raw/syn013_105L_Mg5Gd_4w_007';
-    '/asap3/petra3/gpfs/p05/2018/data/11005553/raw/syn010_34L_PEEK_8w';
-    '/asap3/petra3/gpfs/p05/2018/data/11005553/raw/syn009_24R_PEEK_8w_crashed_relaxed_backto30N';
-    '/asap3/petra3/gpfs/p05/2018/data/11005553/raw/syn008_24R_PEEK_8w_47N';
-    '/asap3/petra3/gpfs/p05/2018/data/11005553/raw/syn005_94R_Mg5Gd_8w';
-    '/asap3/petra3/gpfs/p05/2018/data/11005553/raw/syn003_64R_Mg10Gd_12w_kit';
-    '/asap3/petra3/gpfs/p05/2018/data/11005553/raw/syn004_24R_PEEK_8w_006';
-    '/asap3/petra3/gpfs/p05/2018/data/11005553/raw/syn004_24R_PEEK_8w_000';
-    '/asap3/petra3/gpfs/p05/2018/data/11005553/raw/syn003_64R_Mg10Gd_12w_kit';   
-    '/asap3/petra3/gpfs/p05/2018/data/11005289/raw/mpimm_22_a';
-    '/asap3/petra3/gpfs/p05/2018/data/11005476/raw/zfmk_075_LM38';
-    '/asap3/petra3/gpfs/p05/2018/commissioning/c20180619_000_gummi/raw/test_flyshift_07';
-    '/asap3/petra3/gpfs/p05/2018/data/11004284/raw/Li11_1stCha_fly';
-    '/asap3/petra3/gpfs/p05/2017/data/11004016/raw/syn002_6L_PEEK_4w_002';
-    '/asap3/petra3/gpfs/p05/2018/data/11004936/raw/syn007_56R_Mg5Gd_12w_009';
 read_flatcor = 0; % read flatfield-corrected images from disc, skips preprocessing
 read_flatcor_path = ''; % subfolder of 'flat_corrected' containing projections
 energy = []; % in eV! if empty: read from log file

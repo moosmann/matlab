@@ -6,6 +6,10 @@ edit p05_reco_loop_synchroload2017nov23_000
 edit p05_reco_loop_synchroload2018june
 %/asap3/petra3/gpfs/common/p05/jm/matlab/experiments/p05/data/moosmanj/p05_reco_loop_synchroload2018may_000.m
 edit p05_reco_loop_synchroload2018may_000
+
+edit p05_reco_loop_synchroload2017oct_11003440_001.m
+
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Load force value: create figure %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 steps = [];
@@ -54,7 +58,6 @@ p05_load_force_values( raw_path, scan_name,[],'',10)
 scan_name = 'syn026_femur_55L';
 p05_load_force_values( raw_path, scan_name,[],'',10)
 
-    
 % stability test
 filename = '/asap3/petra3/gpfs/p05/2018/data/11005553/raw/test/easyform_15x2N_relax60min_nexus.h5';
 out_path = '';
@@ -105,6 +108,17 @@ steps = [];
 register = 1;
 outlier_thresh = 0.01;
 [vol, vol_reg] = p05_load_sequ(proc_path, scan, reco_subfolder, regdir, steps, outlier_thresh, register);
+
+proc_path = '/asap3/petra3/gpfs/p05/2018/data/11005553/processed';
+reco_subfolder = 'reco/float_rawBin3';
+scan = 'syn018_86L_Mg10Gd_4w_afterdrilling_push';
+regdir = 'x';
+steps = [];
+register = 1;
+outlier_thresh = 0.01;
+[vol, vol_reg] = p05_load_sequ(proc_path, scan, reco_subfolder, regdir, steps, outlier_thresh, register);
+
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% DVC %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -160,6 +174,13 @@ out_path = '/asap3/petra3/gpfs/p05/2017/data/11003288/processed/syn166_104R_Mg10
 out_name = 'div';
 steps_to_process = [];
 write_divergence_vector_binaries_to_HxUniformScalarField( input_folder, folder_pattern, filename_pattern, shape, dtype, machinefmt, out_path, out_name, steps_to_process )
+
+%% Dose %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+dose_synchroload
+
+%% Segmenation %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+synchroload_resample_data_for_segmentation
 
 
 %% END %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
