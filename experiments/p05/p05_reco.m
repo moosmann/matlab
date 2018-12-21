@@ -33,12 +33,13 @@ close all hidden % close all open windows
 %% PARAMETERS / SETTINGS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-fast_reco = 1; % !!! OVERWRITES SOME PARAMETERS SET BELOW !!!
+fast_reco = 0; % !!! OVERWRITES SOME PARAMETERS SET BELOW !!!
 stop_after_data_reading(1) = 0; % for data analysis, before flat field correlation 
 stop_after_proj_flat_correlation(1) = 0; % for data analysis, after flat field correlation
 
 %%% SCAN %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 scan_path = ...
+    '/asap3/petra3/gpfs/p05/2017/data/11003440/raw/syn40_69L_Mg10Gd_12w';
     '/asap3/petra3/gpfs/p05/2018/data/11005553/raw/syn35_56L_Mg10Gd_12w';
     '/asap3/petra3/gpfs/p05/2018/data/11005553/raw/syn34_59R_Mg5Gd_12w';
     '/asap3/petra3/gpfs/p05/2018/data/11005553/raw/syn33_68R_Mg10Gd_12w';
@@ -90,9 +91,9 @@ eff_pixel_size = []; % in m. if empty: read from log file. effective pixel size 
 pix_scaling = 1;
 %%% PREPROCESSING %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 raw_roi = []; % if []: use full image; if [y0 y1]: vertical ROI, skips first raw_roi(1)-1 lines, reads until raw_roi(2). When raw_roi(2) < 0 reads until end - |raw_roi(2)|; if negative scalar: auto roi, selects ROI automatically.Not working for *.raw data where images are flipped.
-raw_bin = 4; % projection binning factor: integer
+raw_bin = 2; % projection binning factor: integer
 im_trafo = ''; % string to be evaluated after reading data in the case the image is flipped/rotated/etc due to changes at the beamline, e.g. 'rot90(im)'
-bin_before_filtering(1) = 1; % Apply binning before filtering pixel. less effective, but much faster especially for KIT camera.
+bin_before_filtering(1) = 0; % Apply binning before filtering pixel. less effective, but much faster especially for KIT camera.
 excentric_rot_axis = 0; % off-centered rotation axis increasing FOV. -1: left, 0: centeerd, 1: right. influences tomo.rot_axis.corr_area1
 crop_at_rot_axis = 0; % for recos of scans with excentric rotation axis but WITHOUT projection stitching
 stitch_projections = 0; % for 2 pi scans: stitch projection at rotation axis position. Recommended with phase retrieval to reduce artefacts. Standard absorption contrast data should work well without stitching. Subpixel stitching not supported (non-integer rotation axis position is rounded, less/no binning before reconstruction can be used to improve precision).
@@ -348,7 +349,7 @@ else
     write.sino_phase_path = [write.path, filesep, 'sino_phase', filesep, write.subfolder.sino, filesep];
 end
 PrintVerbose(verbose & write.sino, '\n sino_path: %s', sino_path)
-PrintVerbose(verbose & write.phase_sino, '\n sino_phase_path: %s', write.sino_phase_path)
+PrintVerbose(verbose & phase_retrieval.apply & write.phase_sino, '\n sino_phase_path: %s', write.sino_phase_path)
 
 % Reco path
 if isempty( write.subfolder.reco )
@@ -618,6 +619,8 @@ elseif isscalar(raw_roi) && raw_roi(1) < 1
         pr = p;
         [~,pl] = min(abs(mm(1:p-dp) - roi_thresh));        
     end
+    pl = max( round( pl, -2), 1 );
+    pr = min( round( pr, -2), im_shape_raw(2) );
     raw_roi = [pl pr];
     if visual_output(1)
         figure('Name', 'Auto ROI: raw image and cropping region');
@@ -1108,7 +1111,7 @@ elseif ~read_flatcor
         prnt( '\nSave flat-corrected projections.')
         CheckAndMakePath( flatcor_path )
 
-        if isfield(write, 'flatcor_shift_cropped') && write.flatcor_shift_cropped
+        if numel(offset_shift) > 1 && isfield(write, 'flatcor_shift_cropped') && write.flatcor_shift_cropped
             
             % lateral shift corrected
             x0 = round( 1 + offset_shift' - min( offset_shift(:) ) );
@@ -1356,7 +1359,7 @@ if tomo.run || tomo.run_interactive_mode
             fprintf( '%11s', 'image no.', 'offset', metrics_offset.name)
             for nn = 1:numel(offset)
                 if offset(nn) == tomo.rot_axis.offset
-                    cprintf( 'Green', sprintf('\n%11u%11.2f', nn, offset(nn)))
+                    cprintf( 'Green', sprintf('\n%11u%11.3f', nn, offset(nn)))
                 else
                     cprintf( 'Black', '\n%11u%11.2f', nn, offset(nn))
                 end
