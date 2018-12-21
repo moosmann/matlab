@@ -1,4 +1,4 @@
-function out = Dose(fluxDensity_ph_per_s_mm2,energy_keV,absorptionLength_mm,scanTime_s,objectLength_mm,objectDensity_g_per_ccm,containerLength_mm)
+function out = dose_in_vivo(fluxDensity_ph_per_s_mm2,energy_keV,absorptionLength_mm,scanTime_s,objectLength_mm,objectDensity_g_per_ccm,containerLength_mm)
 
 if nargin < 1
     % 2-BM-B flux @ 30keV DMM: Henke: 8.0e13 ph/s/mrad^2/0.1%BW 
