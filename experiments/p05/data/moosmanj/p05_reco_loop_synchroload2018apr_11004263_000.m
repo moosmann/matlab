@@ -225,22 +225,32 @@ scan_path = [raw_path 'syn005_90L_Mg10Gd_4w_a']; ADD
 tomo.rot_axis.offset = 0.75 / 2 * raw_bin; 
 scan_path = [raw_path 'syn005_90L_Mg10Gd_4w_b']; ADD
 
+% Still to do
 scan_path = [raw_path 'syn006_101BR_Mg10Gd_4w_a']; ADD
 scan_path = [raw_path 'syn006_101BR_Mg10Gd_4w_b']; ADD
 
+tomo.rot_axis.offset = -0.125 / 2 * raw_bin; 
 scan_path = [raw_path 'syn007_76L_Mg5Gd_8w_a']; ADD
+tomo.rot_axis.offset = -0.125 / 2 * raw_bin; 
 scan_path = [raw_path 'syn007_76L_Mg5Gd_8w_b']; ADD
 
+tomo.rot_axis.offset = 0.125 / 2 * raw_bin; 
 scan_path = [raw_path 'syn008_93R_Mg5Gd_8w_a']; ADD
+tomo.rot_axis.offset = 0.25 / 2 * raw_bin; 
 scan_path = [raw_path 'syn008_93R_Mg5Gd_8w_b']; ADD
 
+tomo.rot_axis.offset = 0.75 / 2 * raw_bin;
 scan_path = [raw_path 'syn009_64L_Mg5Gd_12w_a']; ADD
+tomo.rot_axis.offset = 0.85 / 2 * raw_bin; 
 scan_path = [raw_path 'syn009_64L_Mg5Gd_12w_b']; ADD
 
+% To do
 scan_path = [raw_path 'syn010_78R_Mg10Gd_8w_a']; ADD
 scan_path = [raw_path 'syn010_78R_Mg10Gd_8w_b']; ADD
 
+tomo.rot_axis.offset = 0.65 / 2 * raw_bin;
 scan_path = [raw_path 'syn011_90R_Mg5Gd_4w_a']; ADD
+tomo.rot_axis.offset = 0.65 / 2 * raw_bin;
 scan_path = [raw_path 'syn011_90R_Mg5Gd_4w_b']; ADD
 
 scan_path = [raw_path 'syn012_93L_Mg10Gd_8w_a']; ADD
