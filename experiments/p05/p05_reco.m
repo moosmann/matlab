@@ -22,7 +22,7 @@
 % Also cite the ASTRA Toolbox, see http://www.astra-toolbox.com/
 %
 % Written by Julian Moosmann. First version: 2016-09-28. Last modifcation:
-% 2018-10-18
+% 2019-01-28
 
 if ~exist( 'external_parameter' ,'var')
     clearvars
@@ -30,6 +30,7 @@ end
 close all hidden % close all open windows
 %dbstop if error
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% PARAMETERS / SETTINGS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -47,7 +48,7 @@ sample_detector_distance = []; % in m. if empty: read from log file
 eff_pixel_size = []; % in m. if empty: read from log file. effective pixel size =  detector pixel size / magnification
 pix_scaling = 1;
 %%% PREPROCESSING %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-raw_roi = []; % vertical & horizontal (optional) ROI; supports relative, absolute, negative, and mixed indexing
+raw_roi = []; % vertical & horizontal (optional) ROI; supports absolute, relative, negative, and mixed indexing.
 % []: use full image; 
 % [y0 y1]: vertical ROI, skips first raw_roi(1)-1 lines, reads until raw_roi(2); if raw_roi(2) < 0 reads until end - |raw_roi(2)|; relative indexing similar.
 % [y0 y1 x0 x1]: vertical + horzontal ROI, each ROI as above
@@ -179,6 +180,7 @@ tomo.astra_gpu_index = []; % GPU Device index to use, Matlab notation: index sta
 %%% EXPERIMENTAL OR NOT YET IMPLEMENTED %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 write.uint8_segmented = 0; % experimental: threshold segmentation for histograms with 2 distinct peaks: __/\_/\__
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%% END OF PARAMETERS / SETTINGS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -201,7 +203,7 @@ end
 
 % overwrite parameters for fast reconstruction
 if exist('fast_reco','var') && fast_reco(1)
-    raw_roi = [1000 -1000]; 
+    raw_roi = [0.4 0.6]; 
     raw_bin = 4; 
     bin_before_filtering(1) = 1;
     proj_range = 3;
@@ -542,7 +544,6 @@ else
     tomo.rot_angle.full_range = pi; % FIX/CHECK?
 end
 
-
 if ~isempty( raw_roi ) % else AUTO ROI
     if numel( raw_roi ) > 1
         
@@ -657,8 +658,6 @@ if ~isempty( raw_roi ) % else AUTO ROI
         end
     end
 end
-
-
 
 im_roi = read_image( filename, '', raw_roi, tif_info, im_shape_raw, dtype, im_trafo );
 im_shape_binned = floor( size( im_roi) / raw_bin );
@@ -2171,11 +2170,21 @@ if write.reco
                     fprintf(fid, 'ring_filter.jm.median_width : %s\n', sprintf( '%u ', ring_filter.jm.median_width) );
             end
         end
-        % FBP
-        fprintf(fid, 'tomo.fbp_filter.type : %s\n', tomo.fbp_filter.type);
-        fprintf(fid, 'tomo.fbp_filter.freq_cutoff : %f\n', tomo.fbp_filter.freq_cutoff);
-        fprintf(fid, 'tomo.fbp_filter.padding : %u\n', tomo.fbp_filter.padding);
-        fprintf(fid, 'tomo.fbp_filter.padding_method : %s\n', tomo.fbp_filter.padding_method);
+        % Tomo
+        fprintf(fid, 'tomo.algorithm : %s\n', tomo.algorithm );
+        switch tomo.algorithm
+            case 'fbp' %'fbp-astra'}
+                fprintf(fid, 'tomo.fbp_filter.type : %s\n', tomo.fbp_filter.type);
+                fprintf(fid, 'tomo.fbp_filter.freq_cutoff : %f\n', tomo.fbp_filter.freq_cutoff);
+                fprintf(fid, 'tomo.fbp_filter.padding : %u\n', tomo.fbp_filter.padding);
+                fprintf(fid, 'tomo.fbp_filter.padding_method : %s\n', tomo.fbp_filter.padding_method);
+            case 'sirt'
+                fprintf(fid, 'tomo.iterations : %u\n',  tomo.iterations );
+                fprintf(fid, 'tomo.sirt.MinConstraint : %f\n',  tomo.sirt.MinConstraint);
+                fprintf(fid, 'tomo.sirt.MaxConstraint : %f\n',  tomo.sirt.MaxConstraint);
+            case 'cgls';'sart';'em';
+                fprintf(fid, 'tomo.iterations : %u\n',  tomo.iterations );
+        end
         fprintf(fid, 'tomo.butterworth_filter.apply : %u\n', tomo.butterworth_filter.apply);
         fprintf(fid, 'tomo.butterworth_filter.order : %u\n', tomo.butterworth_filter.order);
         fprintf(fid, 'tomo.butterworth_filter.frequ_cutoff : %f\n', tomo.butterworth_filter.frequ_cutoff);
