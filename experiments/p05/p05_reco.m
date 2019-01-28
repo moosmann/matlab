@@ -47,7 +47,11 @@ sample_detector_distance = []; % in m. if empty: read from log file
 eff_pixel_size = []; % in m. if empty: read from log file. effective pixel size =  detector pixel size / magnification
 pix_scaling = 1;
 %%% PREPROCESSING %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-raw_roi = []; % if []: use full image; if [y0 y1]: vertical ROI, skips first raw_roi(1)-1 lines, reads until raw_roi(2). When raw_roi(2) < 0 reads until end - |raw_roi(2)|; if negative scalar: auto roi, selects ROI automatically.Not working for *.raw data where images are flipped.
+raw_roi = []; % vertical & horizontal (optional) ROI; supports relative, absolute, negative, and mixed indexing
+% []: use full image; 
+% [y0 y1]: vertical ROI, skips first raw_roi(1)-1 lines, reads until raw_roi(2); if raw_roi(2) < 0 reads until end - |raw_roi(2)|; relative indexing similar.
+% [y0 y1 x0 x1]: vertical + horzontal ROI, each ROI as above
+% if negative scalar [y]: auto roi, selects vertical ROI automatically for DCM. Not working for *.raw data where images are flipped and DMM data.
 raw_bin = 2; % projection binning factor: integer
 im_trafo = ''; % string to be evaluated after reading data in the case the image is flipped/rotated/etc due to changes at the beamline, e.g. 'rot90(im)'
 bin_before_filtering(1) = 0; % Apply binning before filtering pixel. less effective, but much faster especially for KIT camera.
@@ -537,78 +541,125 @@ else
     end           
     tomo.rot_angle.full_range = pi; % FIX/CHECK?
 end
-if ~isempty( raw_roi ) && ~isscalar( raw_roi ) && raw_roi(2) < 1
-    raw_roi(2) = im_shape_raw(2) + raw_roi(2);
-elseif isscalar(raw_roi) && raw_roi(1) < 1
-    % Make roi_fac dependent on dark field
-    if raw_roi(1) == -1
-        roi_fac = 2;
-    elseif raw_roi(1) < -1        
-        roi_fac = abs( raw_roi );
-    end
-    % Read first non-zero flat
-    mm = 1;
-    while mean2( im_raw ) == 0
-        mm = mm + 1;
-        filename = sprintf('%s%s', scan_path, ref_names{mm});
-        im_raw = read_image( filename, '', [], tif_info, im_shape_raw, dtype, im_trafo );    
-    end
-    % Read last non-zero flat
-    mm = num_ref_found;
-    filename = sprintf('%s%s', scan_path, ref_names{mm});
-    im_raw2 = read_image( filename, '', [], tif_info, im_shape_raw, dtype, im_trafo );
-    while mean2( im_raw2 ) == 0
-        mm = mm - 1;
-        filename = sprintf('%s%s', scan_path, ref_names{mm});
-        im_raw2 = read_image( filename, '', [], tif_info, im_shape_raw, dtype, im_trafo );
-    end
-    % Compute crop position
-    mm = median( (FilterPixel( im_raw, [0.1 0.1]) + FilterPixel( im_raw2, [0.1 0.1]) ) / 2, 1);    
-    roi_thresh = roi_fac * double( min(mm) );
-    [~,p] = min(abs(mm - roi_thresh));
-    %%% IMPROVE STABILITY !!!
-    dp = 200;
-    if p < im_shape_raw(1)/2
-        pl = p;
-        [~,pr] = min(abs(mm(p+dp:end) - roi_thresh));
-        pr = p + dp + pr;
+
+
+if ~isempty( raw_roi ) % else AUTO ROI
+    if numel( raw_roi ) > 1
+        
+           % relative indexing
+        for nn = 1:numel( raw_roi )
+            x = raw_roi(nn);
+            
+            if x >= -1 && x <= 1
+                switch nn
+                    case 1
+                        if x < 1
+                            x = round( ( im_shape_raw(2) - 1) * x + 1 );
+                        end
+                    case 2
+                        if x < 0
+                            x = 1 + x;
+                        end
+                        x = round( ( im_shape_raw(2) - 1) * x + 1 );
+                    case 3
+                        if x < 1
+                            x = round( ( im_shape_raw(1) - 1) * x + 1 );
+                        end
+                    case 4
+                        if x < 0
+                            x = 1 + x;
+                        end
+                        x = round( ( im_shape_raw(1) - 1) * x + 1 );
+                end
+            end
+            raw_roi(nn) = x;
+        end
+        
+        if raw_roi(2) <= 0 % negative index counting from the end
+            raw_roi(2) = im_shape_raw(2) + raw_roi(2);
+        end
+        
+        if numel( raw_roi ) == 4
+            if raw_roi(4) <= 0 % negative index counting from the end
+                raw_roi(4) = im_shape_raw(1) + raw_roi(4);
+            end
+        end
     else
-        pr = p;
-        [~,pl] = min(abs(mm(1:p-dp) - roi_thresh));        
-    end
-    pl = max( round( pl, -2), 1 );
-    pr = min( round( pr, -2), im_shape_raw(2) );
-    raw_roi = [pl pr];
-    if visual_output(1)
-        figure('Name', 'Auto ROI: raw image and cropping region');
-        
-        subplot(1,2,1)
-        im = (single(im_raw) + single(im_raw2) ) / 2;
-        pll = max( 1, pl - 20 );
-        prr = min( im_shape_raw(2), pr + 20);
-        im(:,[pll:pl, pr:prr] ) = max( im(:) );        
-        %imsc1( im );
-        imsc(im);
-        title(sprintf('raw flat field: first + last'))        
-        axis equal tight
-        xticks('auto'),yticks('auto')
-        camroll(90)
-        
-        subplot(1,2,2)
-        plot( [mm'  roi_thresh*(ones(numel(mm),1))])
-        camroll(90)
-        title(sprintf('horizontal projection and cut level'))
-        axis tight
-        ax = gca;
-        ax.YAxisLocation = 'right';
-        ax.XDir = 'reverse';
-        ax.YDir = 'normal';
-        text(raw_roi(1), 2 * roi_thresh,sprintf('raw roi(1)=%u', raw_roi(1)))
-        text(raw_roi(2), 2 * roi_thresh,sprintf('raw roi(2)=%u', raw_roi(2)))
-        
-        drawnow
+        if raw_roi(1) < 1 % indicate AUTO ROI
+            % Make roi_fac dependent on dark field
+            if raw_roi(1) == -1
+                roi_fac = 2;
+            elseif raw_roi(1) < -1
+                roi_fac = abs( raw_roi );
+            end
+            % Read first non-zero flat
+            mm = 1;
+            while mean2( im_raw ) == 0
+                mm = mm + 1;
+                filename = sprintf('%s%s', scan_path, ref_names{mm});
+                im_raw = read_image( filename, '', [], tif_info, im_shape_raw, dtype, im_trafo );
+            end
+            % Read last non-zero flat
+            mm = num_ref_found;
+            filename = sprintf('%s%s', scan_path, ref_names{mm});
+            im_raw2 = read_image( filename, '', [], tif_info, im_shape_raw, dtype, im_trafo );
+            while mean2( im_raw2 ) == 0
+                mm = mm - 1;
+                filename = sprintf('%s%s', scan_path, ref_names{mm});
+                im_raw2 = read_image( filename, '', [], tif_info, im_shape_raw, dtype, im_trafo );
+            end
+            % Compute crop position
+            mm = median( (FilterPixel( im_raw, [0.1 0.1]) + FilterPixel( im_raw2, [0.1 0.1]) ) / 2, 1);
+            roi_thresh = roi_fac * double( min(mm) );
+            [~,p] = min(abs(mm - roi_thresh));
+            %%% IMPROVE STABILITY !!!
+            dp = 200;
+            if p < im_shape_raw(1)/2
+                pl = p;
+                [~,pr] = min(abs(mm(p+dp:end) - roi_thresh));
+                pr = p + dp + pr;
+            else
+                pr = p;
+                [~,pl] = min(abs(mm(1:p-dp) - roi_thresh));
+            end
+            pl = max( round( pl, -2), 1 );
+            pr = min( round( pr, -2), im_shape_raw(2) );
+            raw_roi = [pl pr];
+            if visual_output(1)
+                figure('Name', 'Auto ROI: raw image and cropping region');
+                
+                subplot(1,2,1)
+                im = (single(im_raw) + single(im_raw2) ) / 2;
+                pll = max( 1, pl - 20 );
+                prr = min( im_shape_raw(2), pr + 20);
+                im(:,[pll:pl, pr:prr] ) = max( im(:) );
+                %imsc1( im );
+                imsc(im);
+                title(sprintf('raw flat field: first + last'))
+                axis equal tight
+                xticks('auto'),yticks('auto')
+                camroll(90)
+                
+                subplot(1,2,2)
+                plot( [mm'  roi_thresh*(ones(numel(mm),1))])
+                camroll(90)
+                title(sprintf('horizontal projection and cut level'))
+                axis tight
+                ax = gca;
+                ax.YAxisLocation = 'right';
+                ax.XDir = 'reverse';
+                ax.YDir = 'normal';
+                text(raw_roi(1), 2 * roi_thresh,sprintf('raw roi(1)=%u', raw_roi(1)))
+                text(raw_roi(2), 2 * roi_thresh,sprintf('raw roi(2)=%u', raw_roi(2)))
+                
+                drawnow
+            end
+        end
     end
 end
+
+
+
 im_roi = read_image( filename, '', raw_roi, tif_info, im_shape_raw, dtype, im_trafo );
 im_shape_binned = floor( size( im_roi) / raw_bin );
 im_shape_binned1 = im_shape_binned(1);
