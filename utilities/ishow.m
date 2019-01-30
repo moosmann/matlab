@@ -4,7 +4,7 @@ function ishow(im,varargin)
 % the figure to show (ischar), the slice (isnumeric & numel==1) to show if 'im' is a 3D
 % stack, or the ROI (isnumeric & numel==2) in the sense im(roi,roi) or im(roi,roi,slice)
 %
-%Written by Julian Moosmann, last version 2013-10-24
+%Written by Julian Moosmann, last version 2019-01-30
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Default arguments
@@ -34,7 +34,11 @@ for nn = 1:numel(varargin)
 end
 imroislice = @(im) im(roi,roi,slice);
 imslice = @(im) im(:,:,slice);
-rot = @(im) rot90( im, size(im,1) > size(im,2) );
+rotate_im = size(im,1) > size(im,2) ;
+rot = @(im) rot90( im, rotate_im );
+if rotate_im
+    fprintf( 'Image is rotated to fit to the screen!' )
+end
 %% MAIN %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 if roi(1) > 0
     im = rot( imroislice( squeeze( im ) ) );

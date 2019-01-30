@@ -34,12 +34,13 @@ close all hidden % close all open windows
 %% PARAMETERS / SETTINGS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-fast_reco = 0; % !!! OVERWRITES SOME PARAMETERS SET BELOW !!!
+fast_reco = 1; % !!! OVERWRITES SOME PARAMETERS SET BELOW !!!
 stop_after_data_reading(1) = 0; % for data analysis, before flat field correlation 
 stop_after_proj_flat_correlation(1) = 0; % for data analysis, after flat field correlation
 
 %%% SCAN %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 scan_path = ...
+    '/asap3/petra3/gpfs/p05/2018/data/11005490/raw/0003_sample_02';
     '/asap3/petra3/gpfs/p05/2017/data/11003440/raw/syn40_69L_Mg10Gd_12w';
 read_flatcor = 0; % read flatfield-corrected images from disc, skips preprocessing
 read_flatcor_path = ''; % subfolder of 'flat_corrected' containing projections
@@ -48,7 +49,7 @@ sample_detector_distance = []; % in m. if empty: read from log file
 eff_pixel_size = []; % in m. if empty: read from log file. effective pixel size =  detector pixel size / magnification
 pix_scaling = 1;
 %%% PREPROCESSING %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-raw_roi = []; % vertical & horizontal (optional) ROI; supports absolute, relative, negative, and mixed indexing.
+raw_roi = []; % vertical and/or horizontal ROI; (1,1) coordinate = top left pixel; supports absolute, relative, negative, and mixed indexing.
 % []: use full image; 
 % [y0 y1]: vertical ROI, skips first raw_roi(1)-1 lines, reads until raw_roi(2); if raw_roi(2) < 0 reads until end - |raw_roi(2)|; relative indexing similar.
 % [y0 y1 x0 x1]: vertical + horzontal ROI, each ROI as above
@@ -203,7 +204,7 @@ end
 
 % overwrite parameters for fast reconstruction
 if exist('fast_reco','var') && fast_reco(1)
-    raw_roi = [0.4 0.6]; 
+    raw_roi = [0 1 0 0.7];%[0.4 0.6]; 
     raw_bin = 4; 
     bin_before_filtering(1) = 1;
     proj_range = 3;
@@ -555,22 +556,22 @@ if ~isempty( raw_roi ) % else AUTO ROI
                 switch nn
                     case 1
                         if x < 1
-                            x = round( ( im_shape_raw(2) - 1) * x + 1 );
+                            x = round( ( im_shape_raw(2) - 1) * x + 1, -1 ) + 1;
                         end
                     case 2
                         if x < 0
                             x = 1 + x;
                         end
-                        x = round( ( im_shape_raw(2) - 1) * x + 1 );
+                        x = round( ( im_shape_raw(2) - 1) * x + 1, -1 );
                     case 3
                         if x < 1
-                            x = round( ( im_shape_raw(1) - 1) * x + 1 );
+                            x = round( ( im_shape_raw(1) - 1) * x + 1, -1 ) + 1;
                         end
                     case 4
                         if x < 0
                             x = 1 + x;
                         end
-                        x = round( ( im_shape_raw(1) - 1) * x + 1 );
+                        x = round( ( im_shape_raw(1) - 1) * x + 1, -1 );
                 end
             end
             raw_roi(nn) = x;
@@ -666,10 +667,10 @@ im_shape_binned2 = im_shape_binned(2);
 prnt( '\n energy : %.1f keV', energy / 1e3 )
 prnt( '\n distance sample dector : %.1f mm', sample_detector_distance * 1000 )
 prnt( '\n effective pixel size unbinned : %.2f micron',  eff_pixel_size * 1e6)
-prnt( '\n raw image shape : %u x %u = %u pixels', im_shape_raw, prod( im_shape_raw ))
-prnt( '\n raw image shape roi : %u x %u = %u pixels', size( im_roi ), numel( im_roi ) )
+prnt( '\n raw image shape : %u x %u = %.1g pixels', im_shape_raw, prod( im_shape_raw ))
+prnt( '\n raw image shape roi : %u x %u = %.1g pixels', size( im_roi ), numel( im_roi ) )
 numel_im_roi_binned = prod( im_shape_binned );
-prnt( '\n raw image shape roi binned : %u x %u = %u pixels', im_shape_binned, numel_im_roi_binned)
+prnt( '\n raw image shape roi binned : %u x %u = %.1g pixels', im_shape_binned, numel_im_roi_binned)
 prnt( '\n raw binning factor : %u', raw_bin)
 prnt( '\n raw binning before pixel filtering : %u', bin_before_filtering)
 

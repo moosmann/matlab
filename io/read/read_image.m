@@ -1,6 +1,6 @@
 function [im, tif_info] = read_image(filename, filetype, roi, tif_info, shape, dtype, trafo)
-% Reads 'tif', 'img', 'dar', 'ref', and 'edf' images and all the files
-% MATLAB's imread function can read without additional arguments than file
+% Read 'tif', 'img', 'dar', 'ref', and 'edf' images and all formats that
+% are MATLAB's imread function can read without additional arguments than file 
 % format.
 %
 % filename: string. Absolute filename.
@@ -33,7 +33,6 @@ if nargin < 7
 end
 
 %% TODO: CHECK CASES !
-%% TODO: KIT camera format is HARDCODED
 %% TODO: roi support for edf and tiff files
 %% TODO: check flip/rotation/transponation for raw data
 
@@ -52,61 +51,81 @@ switch lower( filetype )
             tif_info = imfinfo( filename );
         end
         switch tif_info.Orientation
+            
             case 1
-                switch numel( roi )
-                    case 0
-                        im = rot90( imread( filename, 'tif' ), 2);
-                    case 2
-                        y0 = max( (tif_info.Height-roi(2)+1), 1 );
-                        y1 = min( (tif_info.Height-roi(1)+1), tif_info.Height);
-                        im = rot90( imread( filename, 'tif', 'PixelRegion', {[1 tif_info.Width], [y0 y1]} ), 2);
+                x0 = 1;
+                x1 = tif_info.Width;
+                y0 = 1;
+                y1 = tif_info.Height;
+                if numel( roi ) > 1
+                    y0 = max( (tif_info.Height-roi(2)+1), 1 );
+                    y1 = min( (tif_info.Height-roi(1)+1), tif_info.Height);
                 end
+                %% Implement horizontal ROI
+                if numel( roi ) > 3
+                    error( 'Horizontal ROI not yet implemented for TIFF orientation case 4' )
+                end
+                im = rot90( imread( filename, 'tif', 'PixelRegion', {[x0 x1 ], [y0 y1]} ), 2);
+                
             case 3
+                %% Check vert/hor ROI
+%                 x0 = 1;
+%                 x1 = tif_info.Width;
+%                 y0 = 1;
+%                 y1 = tif_info.Height;
                 switch numel( roi )
                     case 0
                         im = flipud( read_tif(filename, tif_info) );
                     case 2
                         im = flipud( read_tif(filename, tif_info, roi ) );
                 end
-            case 4 % Added 2018-11-22
-                switch numel( roi )
-                    case 0
-                        im = rot90( imread( filename, 'tif' ), 1);
-                    case 2
-                        %x0 = max( (tif_info.Height-roi(2)+1), 1 );
-                        %x1 = min( (tif_info.Height-roi(1)+1), tif_info.Height);
-                        x0 = roi(1); % Changed 2019-01-28, FW
-                        x1 = roi(2); % Changed 2019-01-28, FW
-                        y0 = 1;
-                        y1 = tif_info.Width;
-                        im = rot90( imread( filename, 'tif', 'PixelRegion', {[x0 x1], [y0 y1]} ), 1);
+                
+            case 4 % Added 2018-11-22, modified 2019-01-30
+                %% Check left/right orientation
+                x0 = 1;
+                x1 = tif_info.Height;
+                y0 = 1;
+                y1 = tif_info.Width;
+                if numel( roi ) > 1
+                    x0 = max( (tif_info.Height-roi(2)+1), 1 );
+                    x1 = min( (tif_info.Height-roi(1)+1), tif_info.Height);
                 end
+                if numel( roi ) > 3
+                    y0 = max( (tif_info.Width-roi(4)+1), 1 );
+                    y1 = min( (tif_info.Width-roi(3)+1), tif_info.Width);
+                end
+                im = rot90( imread( filename, 'tif', 'PixelRegion', {[x0 x1], [y0 y1]} ), 1);
+                
             case 6
-                switch numel( roi )
-                    case 0
-                        im = rot90( imread( filename, 'tif' ), 2);
-                    case 2
-                        y0 = max( (tif_info.Height-roi(2)+1), 1 );
-                        y1 = min( (tif_info.Height-roi(1)+1), tif_info.Height);
-                        im = rot90( imread( filename, 'tif', 'PixelRegion', {[1 tif_info.Width], [y0 y1]}), 2);
-                    case 4
-                        x0 = max( (tif_info.Width-roi(4)+1), 1 );
-                        x1 = min( (tif_info.Width-roi(3)+1), tif_info.Width);
-                        y0 = max( (tif_info.Height-roi(2)+1), 1 );
-                        y1 = min( (tif_info.Height-roi(1)+1), tif_info.Height);
-                        im = rot90( imread( filename, 'tif', 'PixelRegion', {[x0 x1], [y0 y1]} ), 2);
+                x0 = 1;
+                x1 = tif_info.Width;
+                y0 = 1;
+                y1 = tif_info.Height;
+                if numel( roi ) > 1
+                    y0 = max( (tif_info.Height-roi(2)+1), 1 );
+                    y1 = min( (tif_info.Height-roi(1)+1), tif_info.Height);
                 end
+                if numel( roi ) > 3
+                    x0 = max( (tif_info.Width-roi(4)+1), 1 );
+                    x1 = min( (tif_info.Width-roi(3)+1), tif_info.Width);
+                end
+                im = rot90( imread( filename, 'tif', 'PixelRegion', {[x0 x1], [y0 y1]} ), 2);
+                
             case 8 % Added 2018-10-24
-                switch numel( roi )
-                    case 0
-                        im = rot90( imread( filename, 'tif' ), 0);
-                    case 2
-                        y0 = max( (tif_info.Width-roi(2)+1), 1 );
-                        y1 = min( (tif_info.Width-roi(1)+1), tif_info.Width);
-                        x0 = 1;
-                        x1 = tif_info.Height;
-                        im = rot90( imread( filename, 'tif', 'PixelRegion', {[x0 x1], [y0 y1]} ), 0);
+                x0 = 1;
+                x1 = tif_info.Height;
+                y0 = 1;
+                y1 = tif_info.Width;
+                if numel( roi ) > 1
+                    y0 = max( (tif_info.Width-roi(2)+1), 1 );
+                    y1 = min( (tif_info.Width-roi(1)+1), tif_info.Width);
                 end
+                %% Implement horizontal ROI
+                if numel( roi ) > 3
+                    error( 'Horizontal ROI not yet implemented for TIFF orientation case 4' )
+                end
+                im = rot90( imread( filename, 'tif', 'PixelRegion', {[x0 x1], [y0 y1]} ), 0);
+                
             otherwise
                 error( 'TIFF orientation %u not implemented!', tif_info.Orientation )
         end
@@ -131,8 +150,7 @@ switch lower( filetype )
             case 2
                 switch tif_info.Orientation
                     case 1
-                        % 2018-04-28, FLI writes tif without orientation
-                        % flag
+                        % 2018-04-28, FLI writes tif without orientation flag
                         im = rot90( fliplr( read_tif( filename, tif_info, [(tif_info.Height-roi(2)+1) (tif_info.Height-roi(1)+1)]  ) ) ,-1);
                     case 3
                         im = flipud( read_tif( filename, tif_info, [(tif_info.Height-roi(2)+1) (tif_info.Height-roi(1)+1)] ) );
