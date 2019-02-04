@@ -15,6 +15,7 @@ edit p05_reco_loop_synchroload2017oct_11003440_001.m
 steps = [];
 out_path = '';'/gpfs/petra3/scratch/moosmanj/nextcloud';
 
+%% 2017 11004016
 raw_path = '/asap3/petra3/gpfs/p05/2017/data/11004016/raw';
 %scan_name = 'syn002_6L_PEEK_4w';
 %scan_name = 'syn003_92L_Mg10Gd_4w';
@@ -28,6 +29,7 @@ raw_path = '/asap3/petra3/gpfs/p05/2017/data/11004016/raw';
 scan_name = 'syn011_14R_PEEK_4w';
 %scan_name = 'syn012_79L_Mg5Gd_8w';
 
+%% 2017 11004936
 raw_path = '/asap3/petra3/gpfs/p05/2018/data/11004936/raw';
 
 scan_name = 'syn007_56R_Mg5Gd_12w';
@@ -36,8 +38,11 @@ p05_load_force_values( raw_path, scan_name, steps, out_path )
 scan_name = 'syn005_55R_Mg5Gd_12w_load';
 p05_load_force_values( raw_path, scan_name, steps, out_path )
 
+%% 2018 April/May 11004263
+% None
 
-%% 2018 November LTP III
+
+%% 2018 November LTP III 11005553
 raw_path = '/asap3/petra3/gpfs/p05/2018/data/11005553/raw';
 
 scan_name = 'syn004_24R_PEEK_8w';
@@ -61,7 +66,7 @@ p05_load_force_values( raw_path, scan_name,[],'',10)
 % stability test
 filename = '/asap3/petra3/gpfs/p05/2018/data/11005553/raw/test/easyform_15x2N_relax60min_nexus.h5';
 out_path = '';
-adc2force = ;
+adc2force = 0;
 p05_load_plot_from_hdf5( filename, out_path, adc2force );
 
 %% 2017 May
