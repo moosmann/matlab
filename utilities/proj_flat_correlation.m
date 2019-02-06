@@ -22,7 +22,6 @@ switch correlation_method
         flat_roi = [];
         
     otherwise
-        
         num_proj_used = size( proj, 3);
         num_ref_used = size( flat, 3);
         
@@ -111,7 +110,7 @@ switch correlation_method
                     c_cross_entropyx(pp,ff) = sum( p2 .* log2( p1 ) - p1 .* log2( p2 ) );
                     
                 elseif sum(strcmpi( correlation_method, {'cov', 'corr', 'ssim','all'}))
-                    % Inputs
+                    % input
                     p_mean = mean2( p );
                     p_std = std2( p );
                     f_mean = mean2( f );
@@ -124,9 +123,7 @@ switch correlation_method
                     % corr : cross correlation
                     c_corr(pp,ff) = - cov_pf ./ ( p_std * f_std );
                     
-                    
                     % ssim : structural similarity index (SSIM)
-                    
                     % Dynamic range of camera
                     %                     switch lower( cam )
                     %                         case 'kit'
@@ -146,7 +143,6 @@ switch correlation_method
                     c_l(pp,ff) = ( 2 * p_mean * f_mean + c1 ) / ( p_mean^2 + f_mean^2 + c1 );
                     c_c(pp,ff) = ( 2 * p_std * f_std + c2 ) / ( p_std^2 + f_std^2 + c2 );
                     c_s(pp,ff) = ( cov_pf + c3) / ( p_std * f_std + c3 );
-                    
                     c_ssim(pp,ff) = - c_l(pp,ff) * c_c(pp,ff) * c_s(pp,ff);
                     
                 elseif sum(strcmpi( correlation_method, {'ssim-ml','all'}))
@@ -278,20 +274,19 @@ switch correlation_method
                     title(sprintf('correlation method: %s', correlation_method))
                     xlabel( 'flat field index' )
                     ylabel( 'measure' )
-                    
             end
             drawnow
         end
         
-        
         %% Flat- and dark-field correction %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         PrintVerbose(verbose, '\nFlat- and dark-field correction.')
         t = toc;
+        % Reduce number of workers because of memory overhead
         [mem_free, ~, mem_total] = free_memory;
-        num_worker =  max( floor( 0.8 * min( mem_free/1024^3, mem_total / 1024^3 - GB(proj) - GB(flat) ) / ceil( GB(flat) ) ) - 1, 1 );
+        num_worker =  max( floor( 0.5 * min( mem_free/1024^3, mem_total / 1024^3 - GB(proj) - GB(flat) ) / ceil( GB(flat) ) ) - 1, 1 );
         if num_worker < poolsize
             fprintf( '\n Change pool size %u -> %u for flat field correction. (Each worker requires a full copy of flat fields).', poolsize, num_worker)
-            OpenParpool( num_worker, 0, [beamtime_path filesep 'scratch_cc'], 1)
+            OpenParpool( num_worker, 0, [beamtime_path filesep 'scratch_cc'], 1);
         end
         
         switch correlation_method
@@ -329,11 +324,9 @@ switch correlation_method
                 % Save correlation matrix
                 CheckAndMakePath( flatcor_path )
                 save( sprintf( '%s/corr_all.mat', flatcor_path), 'corr' )
-                
                 fprintf( 'All available measures calulated. NO FLAT FIELD CORRECTION DONE.')
                 
             otherwise
-                
                 [corr_mat_val, corr_mat_pos] = sort( normat( corr_mat ), 2);
                 corr.mat = corr_mat;
                 corr.mat_val = corr_mat_val;
@@ -350,12 +343,12 @@ switch correlation_method
                      f = squeeze( mean( flat(:, :, flat_ind(nn,:)), 3) );
                     proj(:, :, nn) = proj(:, :, nn) ./ f;
                 end
-                
         end
         
+        % Switch back to old poolsize
         if num_worker < poolsize
             fprintf( '\n Switch back to old pool size %u -> %u.', num_workers, poolsize )
-            OpenParpool( poolsize, 0, [beamtime_path filesep 'scratch_cc'])
+            OpenParpool( poolsize, 0, [beamtime_path filesep 'scratch_cc']);
         end
         
         PrintVerbose(verbose, ' Time elapsed: %.1f s (%.2f min)', toc - t, ( toc - t ) / 60 )

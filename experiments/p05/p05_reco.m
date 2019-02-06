@@ -22,7 +22,7 @@
 % Also cite the ASTRA Toolbox, see http://www.astra-toolbox.com/
 %
 % Written by Julian Moosmann. First version: 2016-09-28. Last modifcation:
-% 2019-01-28
+% 2019-02-06
 
 if ~exist( 'external_parameter' ,'var')
     clearvars
@@ -41,14 +41,14 @@ stop_after_proj_flat_correlation(1) = 0; % for data analysis, after flat field c
 %%% SCAN %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 scan_path = ...
     '/asap3/petra3/gpfs/p05/2018/data/11005338/raw/ehh_011_02';
-'/asap3/petra3/gpfs/p05/2018/data/11005490/raw/0003_sample_02';
-'/asap3/petra3/gpfs/p05/2017/data/11003440/raw/syn40_69L_Mg10Gd_12w';
+    '/asap3/petra3/gpfs/p05/2018/data/11005490/raw/0003_sample_02';
+    '/asap3/petra3/gpfs/p05/2017/data/11003440/raw/syn40_69L_Mg10Gd_12w';
 read_flatcor = 0; % read flatfield-corrected images from disc, skips preprocessing
 read_flatcor_path = ''; % subfolder of 'flat_corrected' containing projections
 energy = []; % in eV! if empty: read from log file
 sample_detector_distance = []; % in m. if empty: read from log file
 eff_pixel_size = []; % in m. if empty: read from log file. effective pixel size =  detector pixel size / magnification
-pix_scaling = 1;
+pix_scaling = 1; % to account for beam divergence if pixel size was determined (via MTF) at single distance only
 %%% PREPROCESSING %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 raw_roi = []; % vertical and/or horizontal ROI; (1,1) coordinate = top left pixel; supports absolute, relative, negative, and mixed indexing.
 % []: use full image;
@@ -207,13 +207,13 @@ end
 % overwrite parameters for fast reconstruction
 if exist('fast_reco','var') && fast_reco(1)
     raw_roi = [0 1 0 0.7];%[0.4 0.6];
-    raw_bin = 4;
     bin_before_filtering(1) = 1;
     proj_range = 3;
     ref_range = 10;
     image_correlation.method = 'none';
     %tomo.reco_mode = 'slice';
     write.to_scratch = 1;
+    pixel_filter_radius  = [3 3];
 end
 if ~phase_retrieval.apply
     phase_retrieval.post_binning_factor = 0;
@@ -442,7 +442,6 @@ if exist( 'pix_scaling', 'var' ) && ~isempty( pix_scaling )
     eff_pixel_size = pix_scaling * eff_pixel_size;
 end
 exposure_time = par.exposure_time;
-eff_pixel_size_binned = raw_bin * eff_pixel_size;
 if isempty( energy )
     if isfield( par, 'energy')
         energy = par.energy;
@@ -466,6 +465,10 @@ if ~exist( h5log, 'file')
                 im_shape_raw = [5120 3840];
                 dtype = 'uint16';
         end
+        if exist('fast_reco','var') && fast_reco(1)
+            raw_bin = min( floor( max( im_shape_raw ) / 700 ), 4 );
+        end
+        eff_pixel_size_binned = raw_bin * eff_pixel_size;
         im_raw = read_raw( filename, im_shape_raw, dtype );
     end
 else
@@ -473,7 +476,7 @@ else
     h5i = h5info( h5log );
     % energy, exposure time, image shape
     switch lower( cam )
-        %%% CHECK h5 entry of camera1 / camera2 !!!!!!!!!!!!!!!!!!!!!!!!
+        %%% CHECK h5 entry of camera1 / camera2 !!
         case 'ehd'
             energy = double(h5read( h5log, '/entry/hardware/camera1/calibration/energy') );
             exposure_time = double(h5read( h5log, '/entry/hardware/camera1/calibration/exptime') );
@@ -485,6 +488,10 @@ else
             im_shape_raw = [5120 3840];
             dtype = 'uint16';
     end
+    if exist('fast_reco','var') && fast_reco(1)
+        raw_bin = min( floor( max( im_shape_raw ) / 700 ), 4 );
+    end
+    eff_pixel_size_binned = raw_bin * eff_pixel_size;
     % Image shape
     filename = sprintf('%s%s', scan_path, ref_names{1});
     [im_raw, tif_info] = read_image( filename, '', [], tif_info, im_shape_raw, dtype, im_trafo );
@@ -639,7 +646,6 @@ if ~isempty( raw_roi ) % else AUTO ROI
                 pll = max( 1, pl - 20 );
                 prr = min( im_shape_raw(2), pr + 20);
                 im(:,[pll:pl, pr:prr] ) = max( im(:) );
-                %imsc1( im );
                 imsc(im);
                 title(sprintf('raw flat field: first + last'))
                 axis equal tight
@@ -1126,7 +1132,6 @@ elseif ~read_flatcor
         CheckAndMakePath( flatcor_path )
         
         if numel(offset_shift) > 1 && isfield(write, 'flatcor_shift_cropped') && write.flatcor_shift_cropped
-            
             % lateral shift corrected
             x0 = round( 1 + offset_shift' - min( offset_shift(:) ) );
             x1 = size( proj, 1) - max( x0 ) + x0;
@@ -1526,8 +1531,6 @@ if tomo.run || tomo.run_interactive_mode
                             tomo.rot_axis.position = im_shape_binned1 / 2 + tomo.rot_axis.offset;
                             
                             % Compare projection at 0 pi and projection at 1 pi corrected for rotation axis tilt
-                            %                             im1c = RotAxisSymmetricCropping( proj(:,tomo.rot_axis.corr_area2,ind1), tomo.rot_axis.position, 1);
-                            %                             im2c = flipud(RotAxisSymmetricCropping( proj(:,tomo.rot_axis.corr_area2,ind2) , tomo.rot_axis.position, 1));
                             corr_offset = ( offset_shift(ind1) + offset_shift(ind2) ) / 2;
                             im1c = RotAxisSymmetricCropping( proj(:,tomo.rot_axis.corr_area2,ind1), tomo.rot_axis.position + corr_offset, 1);
                             im2c = flipud(RotAxisSymmetricCropping( proj(:,tomo.rot_axis.corr_area2,ind2) , tomo.rot_axis.position + corr_offset, 1));
