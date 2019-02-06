@@ -1,14 +1,14 @@
-function [proj, corr, proj_roi, flat_roi] = proj_flat_correlation( proj, flat, correlation_method, flat_corr_area1, flat_corr_area2, raw_im_shape_binned, corr_shift_max_pixelshift, corr_num_flats, decimal_round_precision, flatcor_path, verbose, visualOutput)
+function [proj, corr, proj_roi, flat_roi] = proj_flat_correlation( proj, flat, correlation_method, flat_corr_area1, flat_corr_area2, raw_im_shape_binned, corr_shift_max_pixelshift, corr_num_flats, decimal_round_precision, flatcor_path, verbose, visualOutput, poolsize, beamtime_path)
 % Correlate all projection with all flat-field to find the best matching
 % pairs for the flat-field correction using method of choice.
 %
 % correlation_method :
 %   'shift' : cross correlation equals convolution of complex conjugate of
 %   p(-x) i.e. rot180(p) and f(x), (p^*)(-x) ** f(x)
-%
+% ... to be completed ...
 %
 % Written by Julian Moosmann. First version: 2017-08-23. Last modifcation:
-% 2017-09-14
+% 2019-02-05
 
 %% Projection / flat-field correlcation
 switch correlation_method
@@ -287,13 +287,19 @@ switch correlation_method
         %% Flat- and dark-field correction %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         PrintVerbose(verbose, '\nFlat- and dark-field correction.')
         t = toc;
+        [mem_free, ~, mem_total] = free_memory;
+        num_worker =  max( floor( 0.8 * min( mem_free/1024^3, mem_total / 1024^3 - GB(proj) - GB(flat) ) / ceil( GB(flat) ) ) - 1, 1 );
+        if num_worker < poolsize
+            fprintf( '\n Change pool size %u -> %u for flat field correction. (Each worker requires a full copy of flat fields).', poolsize, num_worker)
+            OpenParpool( num_worker, 0, [beamtime_path filesep 'scratch_cc'], 1)
+        end
+        
         switch correlation_method
             case 'shift'
                 % best match
                 if corr_shift_max_pixelshift == 0
                     [~, pos] = min( abs( corr_mat ), [], 2 );
                     parfor nn = 1:num_proj_used
-                        %proj(:, :, nn) = proj(:, :, nn) ./ flat(:, :, pos(nn));
                         f = flat(:, :, pos(nn));
                         proj(:, :, nn) = proj(:, :, nn) ./ f;
                     end
@@ -340,10 +346,17 @@ switch correlation_method
                 
                 % Flat field correction
                 flat_ind = corr_mat_pos(:,1:corr_num_flats);
-                parfor nn = 1:num_proj_used
-                    proj(:, :, nn) = proj(:, :, nn) ./ squeeze( mean( flat(:, :, flat_ind(nn,:)), 3) );
+                 parfor nn = 1:num_proj_used
+                     f = squeeze( mean( flat(:, :, flat_ind(nn,:)), 3) );
+                    proj(:, :, nn) = proj(:, :, nn) ./ f;
                 end
                 
         end
+        
+        if num_worker < poolsize
+            fprintf( '\n Switch back to old pool size %u -> %u.', num_workers, poolsize )
+            OpenParpool( poolsize, 0, [beamtime_path filesep 'scratch_cc'])
+        end
+        
         PrintVerbose(verbose, ' Time elapsed: %.1f s (%.2f min)', toc - t, ( toc - t ) / 60 )
 end

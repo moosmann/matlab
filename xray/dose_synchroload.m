@@ -1,33 +1,45 @@
-function out = dose_synchroload(fluxDensity_ph_per_s_mm2,energy_keV,absorptionLength_mm,scanTime_s,objectLength_mm,objectDensity_g_per_ccm,containerLength_mm)
-% One gray is the absorption of one joule of energy, in the form of ionizing radiation, per kilogram of matter.
+%function out = dose_synchroload(fluxDensity_ph_per_s_mm2,energy.value,absorptionLength.value,scanTime.value,objectLength.value,objectDensity_g_per_ccm,containerLength.value)
+% One gray is the absorption of one joule of energy, in the form of
+% ionizing radiation, per kilogram of matter.
 %
-%   1\ \mathrm {Gy} =1\ {\frac {\mathrm {J} }{\mathrm {kg} ))=1\ {\frac {\mathrm {m} ^{2)){\mathrm {s} ^{2))}
+%   1 Gy = 1 J / kg = m^2 / s^2
 
-if nargin < 1
-    % 2-BM-B flux @ 30keV DMM: Henke: 8.0e13 ph/s/mrad^2/0.1%BW 
-    % flux density = 8e13*10 ph/s/1%BW / (35m)^2 /mrad^2
-    % = 6.54e11 ph/s/1%BW/mm^2 ~ 10^12 ph/s/mm^2
-    fluxDensity_ph_per_s_mm2 = 10^12; % photons / s / mm ^2
-end
-if nargin < 2
-    energy_keV = 30 ; % keV
-end
-if nargin < 3
-    % for water: l_att = 1 / (4*pi*beta/lambda) = 3.10 cm at 30 keV
-    absorptionLength_mm = 30.9;
-end
-if nargin < 4
-    scanTime_s = 20 ; % s
-end
-if nargin < 5
-    objectLength_mm = 1.0 ; % mm
-end
-if nargin < 6 
-    objectDensity_g_per_ccm  = 0.997 ; % g / cm^3 = 1000 kg / m^3
-end
-if nargin < 7
-    containerLength_mm = 12 ; % mm
-end
+%% ID 19 flux: undulator U13, 193 mA ring current, pink beam ca 4% bandwith 26.2 keV peak energy, flux 166e-12 ph / mm^2 / s
+flux.id19.source = 'undulator U13';
+flux.id19.spectrum = 'pink';
+flux.id19.energy.value = 26.3;
+flux.id19.energy.unit = 'keV';
+flux.id19.bandwidth = 0.04;
+flux.id19.ring_current.value = 193;
+flux.id19.ring_current.unit = 'mA';
+flux.id19.flux.value = 166e-12;
+flux.id19.flux.unit = 'photons / mm^2 / s';
+
+
+% 2-BM-B flux @ 30keV DMM: Henke: 8.0e13 ph/s/mrad^2/0.1%BW
+% flux density = 8e13*10 ph/s/1%BW / (35m)^2 /mrad^2
+% = 6.54e11 ph/s/1%BW/mm^2 ~ 10^12 ph/s/mm^2
+fluxDensity_ph_per_s_mm2 = 10^12; % photons / s / mm ^2
+
+energy.value = 30 ;
+energy.unit = 'keV' ;
+
+% for water: l_att = 1 / (4*pi*beta/lambda) = 3.10 cm at 30 keV
+absorptionLength.value = 30.9;
+absorptionLength.unit = 30.9;
+
+scanTime.value = 20 ;
+scanTime.unit = 's' ;
+
+objectLength.value = 1.0 ;
+objectLength.unit = 'mm';
+
+objectDensity_g_per_ccm  = 0.997 ; % g / cm^3 = 1000 kg / m^3
+objectDensity.unit  = 'g / cm^3';
+objectDensity.unitequiv = '1000 kg / m^3' ;
+
+containerLength.value = 12 ; % mm
+containerLength.unit = 'mm';
 
 %% P05 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -46,27 +58,23 @@ GC.thickness = 0.004; % m
 % max flux ON SAMPLE
 flux_14400eV = 7e13; % photons / s
 
-% spot size ON SAMPLE 
+% spot size ON SAMPLE
 flux_area_14400eV = 6.000 * 3.0; % mm^2
-
 flux_density_14400eV = flux_14400eV / flux_area_14400eV;
-
 flux_30000eV_1x1mm2 = 525542981736 / 3; % photons / s
-
 flux_density_30000eV = flux_30000eV_1x1mm2;
-
 flux = flux_density_30000eV / 0.9; % Correct for 90 mA instead of 100 mA
 
 %% Materials
 
 % sample environment
 PEEK.density = 1320; % kg / m^3
-PEEK.formula = 'C19H12O3'; 
+PEEK.formula = 'C19H12O3';
 
 transmission.PEEK = 0.85; %extrapolated guess from 30
 
 % average bone+PEEK
-transmission.data.bone_PEEK = 0.61; 
+transmission.data.bone_PEEK = 0.61;
 
 % Bone
 % formulas: https://physics.nist.gov/PhysRefData/XrayMassCoef/chap2.html
@@ -101,13 +109,13 @@ dose = transmission.PEEK * absorption * flux * (t*1000)^2 * exposure * energy * 
 fprintf( '\ndose : %g\b kGy', dose / 1000 )
 
 % Attenuation
-out.containerTransmission = exp( - (containerLength_mm -objectLength_mm)/2 / absorptionLength_mm) ;
-out.objectAbsorption = 1-exp( - objectLength_mm/ absorptionLength_mm) ;
+out.containerTransmission = exp( - (containerLength.value -objectLength.value)/2 / absorptionLength.value) ;
+out.objectAbsorption = 1-exp( - objectLength.value/ absorptionLength.value) ;
 % Number of photons
-out.absorbedPhotons = out.containerTransmission * out.objectAbsorption * fluxDensity_ph_per_s_mm2 * scanTime_s  * (objectLength_mm)^2;
+out.absorbedPhotons = out.containerTransmission * out.objectAbsorption * fluxDensity_ph_per_s_mm2 * scanTime.value  * (objectLength.value)^2;
 % Cubic mass of object
-out.cubeMass_g = objectLength_mm^3 * objectDensity_g_per_ccm / 1000 ;
+out.cubeMass_g = objectLength.value^3 * objectDensity_g_per_ccm / 1000 ;
 % Dose
-out.dose_Gy = out.absorbedPhotons * energy_keV*10^3 * eV_to_J ...
+out.dose_Gy = out.absorbedPhotons * energy.value*10^3 * eV_to_J ...
     / ( out.cubeMass_g / 1000 );
 
