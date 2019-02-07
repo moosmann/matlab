@@ -175,17 +175,17 @@ switch correlation_method
                 corr_mat = c_cov;
             case 'corr'
                 corr_mat = c_corr;
-            case 'all'                
+            case 'all'
                 corr.shift1 = c_shift_1;
                 corr.shift2 = c_shift_2;
                 corr.diff1_l1 = c_diff1_l1;
                 corr.diff1_l2 = c_diff1_l2;
                 corr.diff2_l1 = c_diff2_l1;
                 corr.diff2_l2 = c_diff2_l2;
-                corr.std = c_std;            
+                corr.std = c_std;
                 corr.entropy = c_ent;
                 corr.cross_entropy12 = c_cross_entropy12;
-                corr.cross_entropy21 = c_cross_entropy21;            
+                corr.cross_entropy21 = c_cross_entropy21;
                 corr.cross_entropyx = c_cross_entropyx;
                 corr.ssim = c_ssim;
                 corr.ssim_ml = c_ssim_ml;
@@ -234,7 +234,7 @@ switch correlation_method
                     axis  tight
                     title(sprintf('minimal absolute horizontal shift (unused)'))
                     
-                case {'cov', 'corr', 'ssim'}                    
+                case {'cov', 'corr', 'ssim'}
                     m = 2; n = 1;
                     subplot(m,n,1);
                     f = @(x) normat(x(1,:))';
@@ -252,8 +252,8 @@ switch correlation_method
                     axis tight
                     title(sprintf('SSIM and components: projection #1'))
                     
-                case 'all'                    
-                    %% TODO                    
+                case 'all'
+                    %% TODO
                     %                     m = 2; n = 1;
                     %                     subplot(m,n,1);
                     %                     %f = @(x) normat( min( x, [], 2));
@@ -281,40 +281,76 @@ switch correlation_method
         %% Flat- and dark-field correction %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         PrintVerbose(verbose, '\nFlat- and dark-field correction.')
         t = toc;
-        % Reduce number of workers because of memory overhead
+        
         [mem_free, ~, mem_total] = free_memory;
-        num_worker =  max( floor( 0.5 * min( mem_free/1024^3, mem_total / 1024^3 - GB(proj) - GB(flat) ) / ceil( GB(flat) ) ) - 1, 1 );
-        if num_worker < poolsize
-            fprintf( '\n Change pool size %u -> %u for flat field correction. (Each worker requires a full copy of flat fields).', poolsize, num_worker)
-            OpenParpool( num_worker, 0, [beamtime_path filesep 'scratch_cc'], 1);
+        mem_req_tot = Bytes( proj ) + Bytes(flat) * (poolsize + 1);
+        mem_req_par = Bytes(flat) * poolsize;
+        
+        if mem_req_tot < 0.75 * mem_total && mem_req_par < mem_free
+            pflag = 1;
+        else
+            pflag = 0;
         end
+        
+        % Reduce number of workers because of memory overhead
+        
+        %         num_worker =  max( floor( 0.5 * min( mem_free/1024^3, mem_total / 1024^3 - GB(proj) - GB(flat) ) / ceil( GB(flat) ) ) - 1, 1 );
+        %         if num_worker < poolsize
+        %             fprintf( '\n Change pool size %u -> %u for flat field correction. (Each worker requires a full copy of flat fields).', poolsize, num_worker)
+        %             OpenParpool( num_worker, 0, [beamtime_path filesep 'scratch_cc'], 1);
+        %         end
         
         switch correlation_method
             case 'shift'
                 % best match
                 if corr_shift_max_pixelshift == 0
                     [~, pos] = min( abs( corr_mat ), [], 2 );
-                    parfor nn = 1:num_proj_used
-                        f = flat(:, :, pos(nn));
-                        proj(:, :, nn) = proj(:, :, nn) ./ f;
+                    
+                    if pflag
+                        parfor nn = 1:num_proj_used
+                            f = flat(:, :, pos(nn));
+                            proj(:, :, nn) = proj(:, :, nn) ./ f;
+                        end
+                    else
+                        for nn = 1:num_proj_used
+                            f = flat(:, :, pos(nn));
+                            proj(:, :, nn) = proj(:, :, nn) ./ f;
+                        end
                     end
                     
                     % use all flats which are shifted less pixels than corr_shift_max_pixelshift
                 elseif corr_shift_max_pixelshift > 0
                     nflats = zeros(1, num_proj_used);
-                    parfor nn = 1:num_proj_used
-                        vec = 1:num_ref_used;
-                        flat_ind = vec( abs( c_shift_2(nn, :) ) < corr_shift_max_pixelshift );
-                        if numel( flat_ind ) > corr_num_flats
-                            flat_ind( corr_num_flats + 1:end ) = [];
+                    if pflag
+                        parfor nn = 1:num_proj_used
+                            vec = 1:num_ref_used;
+                            flat_ind = vec( abs( c_shift_2(nn, :) ) < corr_shift_max_pixelshift );
+                            if numel( flat_ind ) > corr_num_flats
+                                flat_ind( corr_num_flats + 1:end ) = [];
+                            end
+                            if isempty( flat_ind )
+                                [~, flat_ind] = min( abs( c_shift_2(nn, :) ) );
+                            end
+                            nflats(nn) = numel(flat_ind);
+                            f = squeeze( mean( flat(:, :, flat_ind), 3) );
+                            proj(:, :, nn) = proj(:, :, nn) ./ f;
                         end
-                        if isempty( flat_ind )
-                            [~, flat_ind] = min( abs( c_shift_2(nn, :) ) );
+                    else
+                        for nn = 1:num_proj_used
+                            vec = 1:num_ref_used;
+                            flat_ind = vec( abs( c_shift_2(nn, :) ) < corr_shift_max_pixelshift );
+                            if numel( flat_ind ) > corr_num_flats
+                                flat_ind( corr_num_flats + 1:end ) = [];
+                            end
+                            if isempty( flat_ind )
+                                [~, flat_ind] = min( abs( c_shift_2(nn, :) ) );
+                            end
+                            nflats(nn) = numel(flat_ind);
+                            f = squeeze( mean( flat(:, :, flat_ind), 3) );
+                            proj(:, :, nn) = proj(:, :, nn) ./ f;
                         end
-                        nflats(nn) = numel(flat_ind);
-                        f = squeeze( mean( flat(:, :, flat_ind), 3) );
-                        proj(:, :, nn) = proj(:, :, nn) ./ f;
                     end
+                    
                     PrintVerbose(verbose, '\n number of flats used per projection: [mean, min, max] = [%g, %g, %g]', mean( nflats ), min( nflats ), max( nflats) )
                 else
                     error('Value of maximum shift (%g) is not >= 0', corr_shift_max_pixelshift)
@@ -339,17 +375,25 @@ switch correlation_method
                 
                 % Flat field correction
                 flat_ind = corr_mat_pos(:,1:corr_num_flats);
-                 parfor nn = 1:num_proj_used
-                     f = squeeze( mean( flat(:, :, flat_ind(nn,:)), 3) );
-                    proj(:, :, nn) = proj(:, :, nn) ./ f;
+                if pflag
+                    parfor nn = 1:num_proj_used
+                        f = squeeze( mean( flat(:, :, flat_ind(nn,:)), 3) );
+                        proj(:, :, nn) = proj(:, :, nn) ./ f;
+                    end
+                else
+                    for nn = 1:num_proj_used
+                        f = squeeze( mean( flat(:, :, flat_ind(nn,:)), 3) );
+                        proj(:, :, nn) = proj(:, :, nn) ./ f;
+                    end
                 end
+                
+                %         % Switch back to old poolsize
+                %         if num_worker < poolsize
+                %             fprintf( '\n Switch back to old pool size %u -> %u.', num_worker, poolsize )
+                %             OpenParpool( poolsize, 0, [beamtime_path filesep 'scratch_cc']);
+                %         end
+                
+                PrintVerbose(verbose, ' Time elapsed: %.1f s (%.2f min)', toc - t, ( toc - t ) / 60 )
         end
-        
-        % Switch back to old poolsize
-        if num_worker < poolsize
-            fprintf( '\n Switch back to old pool size %u -> %u.', num_workers, poolsize )
-            OpenParpool( poolsize, 0, [beamtime_path filesep 'scratch_cc']);
-        end
-        
-        PrintVerbose(verbose, ' Time elapsed: %.1f s (%.2f min)', toc - t, ( toc - t ) / 60 )
 end
+
