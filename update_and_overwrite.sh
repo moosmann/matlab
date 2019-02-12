@@ -18,3 +18,5 @@ if [ $ans = n -o $ans = N -o $ans = no -o $ans = No -o $ans = NO ]
 then
 echo "Not updating."
 fi
+
+echo "To remove local files: git clean -f (use option -n to see which without removing files)"
