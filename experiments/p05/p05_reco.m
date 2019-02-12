@@ -22,7 +22,7 @@
 % Also cite the ASTRA Toolbox, see http://www.astra-toolbox.com/
 %
 % Written by Julian Moosmann. First version: 2016-09-28. Last modifcation:
-% 2019-02-06
+% 2019-02-12
 
 if ~exist( 'external_parameter' ,'var')
     clearvars
@@ -40,6 +40,7 @@ stop_after_proj_flat_correlation(1) = 0; % for data analysis, after flat field c
 
 %%% SCAN %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 scan_path = ...
+    '/asap3/petra3/gpfs/p05/2018/data/11005338/raw/ehh_004_00';
     '/asap3/petra3/gpfs/p05/2018/data/11005338/raw/ehh_011_02';
     '/asap3/petra3/gpfs/p05/2018/data/11005490/raw/0003_sample_02';
     '/asap3/petra3/gpfs/p05/2017/data/11003440/raw/syn40_69L_Mg10Gd_12w';
@@ -55,7 +56,7 @@ raw_roi = []; % vertical and/or horizontal ROI; (1,1) coordinate = top left pixe
 % [y0 y1]: vertical ROI, skips first raw_roi(1)-1 lines, reads until raw_roi(2); if raw_roi(2) < 0 reads until end - |raw_roi(2)|; relative indexing similar.
 % [y0 y1 x0 x1]: vertical + horzontal ROI, each ROI as above
 % if negative scalar [y]: auto roi, selects vertical ROI automatically for DCM. Not working for *.raw data where images are flipped and DMM data.
-raw_bin = 1; % projection binning factor: integer
+raw_bin = 2; % projection binning factor: integer
 im_trafo = ''; % string to be evaluated after reading data in the case the image is flipped/rotated/etc due to changes at the beamline, e.g. 'rot90(im)'
 bin_before_filtering(1) = 1; % Apply binning before filtering pixel. less effective, but much faster especially for KIT camera.
 excentric_rot_axis = 0; % off-centered rotation axis increasing FOV. -1: left, 0: centeerd, 1: right. influences tomo.rot_axis.corr_area1
@@ -70,9 +71,9 @@ ref_range = []; % range of flat fields to be used (from all found), if empty or 
 pixel_filter_threshold_dark = [0.01 0.005]; % Dark fields: threshold parameter for hot/dark pixel filter, for details see 'FilterPixel'
 pixel_filter_threshold_flat = [0.01 0.005]; % Flat fields: threshold parameter for hot/dark pixel filter, for details see 'FilterPixel'
 pixel_filter_threshold_proj = [0.01 0.005]; % Raw projection: threshold parameter for hot/dark pixel filter, for details see 'FilterPixel'
-pixel_filter_radius = [4 4]; % Default: [3 3]. Increase only if blobs of zeros or other artefacts are expected. Can increase processing time heavily.
+pixel_filter_radius = []; % Default: [3 3]. Increase only if blobs of zeros or other artefacts are expected. Can increase processing time heavily.
 ring_current_normalization = 1; % normalize flat fields and projections by ring current
-image_correlation.method = 'ssim-ml';'entropy';'diff';'shift';'ssim';'std';'cov';'corr';'cross-entropy12';'cross-entropy21';'cross-entropyx';
+image_correlation.method = 'none';'ssim-ml';'entropy';'diff';'shift';'ssim';'std';'cov';'corr';'cross-entropy12';'cross-entropy21';'cross-entropyx';
 % Correlation of projections and flat fields. Essential for DCM data. Even
 % though less efficient for DMM data, it usually improves reconstruction quality.
 % Available methods ('ssim-ml'/'entropy' usually work best):
@@ -137,18 +138,18 @@ tomo.iterations = 40; % for 'sirt' or 'cgls'.
 tomo.sirt.MinConstraint = []; % If specified, all values below MinConstraint will be set to MinConstraint. This can be used to enforce non-negative reconstructions, for example.
 tomo.sirt.MaxConstraint = []; % If specified, all values above MaxConstraint will be set to MaxConstraint.
 %%% OUTPUT %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-write.path = '/gpfs/petra3/scratch/moosmanj'; % absolute path were output data will be stored. !!overwrites the write.to_scratch flag. if empty uses the beamtime directory and either 'processed' or 'scratch_cc'
+write.path = ''; %'/gpfs/petra3/scratch/moosmanj'; % absolute path were output data will be stored. !!overwrites the write.to_scratch flag. if empty uses the beamtime directory and either 'processed' or 'scratch_cc'
 write.to_scratch = 0; % write to 'scratch_cc' instead of 'processed'
 write.parfolder = '';% parent folder to 'reco', 'sino', 'phase', and 'flat_corrected'
 write.subfolder.flatcor = ''; % subfolder in 'flat_corrected'
 write.subfolder.phase_map = ''; % subfolder in 'phase_map'
 write.subfolder.sino = ''; % subfolder in 'sino'
 write.subfolder.reco = ''; % subfolder in 'reco'
-write.flatcor = 1; % save preprocessed flat corrected projections
-write.flatcor_shift_cropped = 1; % save lateral shift corrected projections, projections are not interpolated, but cropped to nearest integer pixel
+write.flatcor = 0; % save preprocessed flat corrected projections
+write.flatcor_shift_cropped = 0; % save lateral shift corrected projections, projections are not interpolated, but cropped to nearest integer pixel
 write.phase_map = 0; % save phase maps (if phase retrieval is not 0)
 write.sino = 0; % save sinograms (after preprocessing & before FBP filtering and phase retrieval)
-write.phase_sino = 1; % save sinograms of phase maps
+write.phase_sino = 0; % save sinograms of phase maps
 write.reco = 1; % save reconstructed slices (if tomo.run=1)
 write.float = 1; % single precision (32-bit float) tiff
 write.uint16 = 0; % save 16bit unsigned integer tiff using 'write.compression.method'
@@ -206,14 +207,14 @@ end
 
 % overwrite parameters for fast reconstruction
 if exist('fast_reco','var') && fast_reco(1)
-    raw_roi = [0 1 0 0.7];%[0.4 0.6];
+    raw_roi = [0.3 0.7];
     bin_before_filtering(1) = 1;
     proj_range = 3;
     ref_range = 10;
     image_correlation.method = 'none';
-    %tomo.reco_mode = 'slice';
     write.to_scratch = 1;
     pixel_filter_radius  = [3 3];
+    cprintf( 'Red', '\nATTENTION: fast reco mode is turned on!\n\n' )
 end
 if ~phase_retrieval.apply
     phase_retrieval.post_binning_factor = 0;
@@ -329,7 +330,7 @@ end
 
 % Memory
 prnt( '\n hostname : %s', getenv( 'HOSTNAME' ) );
-[mem_free, mem_avail, mem_total] = free_memory;
+[mem_free, mem_avail, mem_total] = free_memory; 
 prnt( '\n system memory: free, available, total : %.3g GiB, %.3g GiB, %.3g GiB', mem_free/1024^3, mem_avail/1024^3, mem_total/1024^3)
 if isempty( tomo.astra_gpu_index )
     tomo.astra_gpu_index = 1:gpuDeviceCount;
@@ -1591,7 +1592,7 @@ if tomo.run || tomo.run_interactive_mode
         end
         
         tomo.rot_axis.position = im_shape_binned1 / 2 + tomo.rot_axis.offset;
-        fprintf( '\nEND OF INTERACTIVE MODE' )
+        fprintf( '\nEND OF INTERACTIVE MODE\n' )
         
         tint = toc - tint;
     end
@@ -1816,10 +1817,17 @@ end
 %% Tomographic reco %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 if tomo.run
     prnt( '\nTomographic reconstruction:')
-    vol = zeros( tomo.vol_shape, 'single' );
     prnt( '\n method : %s', tomo.algorithm )
     prnt( '\n volume shape : [%g, %g, %g]', tomo.vol_shape )
-    prnt( '\n volume memory allocated : %.2f GiB', Bytes( vol, 3 ) )
+    vol_mem = prod( tomo.vol_shape ) * 4;
+    prnt( '\n volume memory : %.2f GiB', vol_mem / 1024^3 )
+    
+    % Change 'reco_mode' to 'slice' if low on memory
+    [mem_free, mem_avail, mem_total] = free_memory;
+    if vol_mem < 0.8 * mem_avail
+        tomo.reco_mode = 'slice';
+        fprintf( '\nSwitch to slice-wise reco (tomo.reco_mode = ''%s'') due to limited memory ( avail : %.1f GiB, vol : %.1f GiB) .', tomo.reco_mode, mem_avail / 1024^3, vol_mem / 1024^3 )
+    end
     
     if stitch_projections(1)
         rot_axis_offset_reco = 0;
@@ -1880,6 +1888,9 @@ if tomo.run
     % Backprojection
     switch lower( tomo.reco_mode )
         case '3d'
+            vol = zeros( tomo.vol_shape, 'single' );
+            prnt( '\n volume memory allocated for ''3D'' mode: %.2f GiB', Bytes( vol, 3 ) )
+    
             prnt( '\n Backproject:')
             t2 = toc;
             %%% Move parameters to appropiate position or replace globally !!!!!!!!!!!!!!!!!!

@@ -50,7 +50,10 @@ if exist( 'interactive_mode', 'var' ) && isfield( interactive_mode, 'phase_retri
     vol_shape = assign_from_struct( tomo, 'vol_shape', [] );
     vol_size = assign_from_struct( tomo, 'vol_size', [] );
     butterworth_filtering = assign_from_struct( tomo.butterworth_filter, 'apply', 0 );
-    tomo.rot_axis.offset = tomo.rot_axis.offset + tomo.offset_shift + eps;
+    if isempty( tomo.rot_axis.offset )
+        cprintf( 'Blue', '\n\n Interactive phase retrieval mode requires rotation axis position:' )
+        tomo.rot_axis.offset = input( ' ' );
+    end
     [num_pix, num_row, num_proj] = size( proj );
        
     %  Size, shape
@@ -68,6 +71,7 @@ if exist( 'interactive_mode', 'var' ) && isfield( interactive_mode, 'phase_retri
         vol_size(6) = 0.5;
     end
     tomo.vol_size = vol_size;
+    tomo.rot_axis.offset = tomo.rot_axis.offset + tomo.offset_shift + eps;
     
     if strcmpi( tomo.algorithm, 'fbp' )
         % Ramp filter
@@ -351,11 +355,11 @@ PrintVerbose( verbose, '\n reco_phase_path : %s', write.reco_phase_path)
 
 %% Retrieval
 parfor nn = 1:size(proj, 3)
-    % combined GPU and parfor usage requires memory management
     im = padarray( proj(:,:,nn), padding * im_shape, 'symmetric', 'post' );
-    %im = padarray( gpuArray( proj(:,:,nn) ), raw_im_shape_binned, 'post', 'symmetric' );
     im = -real( ifft2( phase_filter .* fft2( im ) ) );
     proj(:,:,nn) = im(1:im_shape(1), 1:im_shape(2));
+    % combined GPU and parfor usage requires memory management
+    %im = padarray( gpuArray( proj(:,:,nn) ), raw_im_shape_binned, 'post', 'symmetric' );
     %proj(:,:,nn) = gather( im(1:raw_im_shape_binned1, 1:raw_im_shape_binned2) );
 end
 pause(0.01)
