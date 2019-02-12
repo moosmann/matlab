@@ -22,4 +22,4 @@ then
 echo "Not updating."
 fi
 
-echo "\nTo remove local files: git clean -f (use option -n to see which without removing files)"
+echo -e "\nTo remove local files: git clean -f (use option -n to see which without removing files)"
