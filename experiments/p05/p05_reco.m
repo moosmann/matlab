@@ -34,7 +34,7 @@ close all hidden % close all open windows
 %% PARAMETERS / SETTINGS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-fast_reco = 0; % !!! OVERWRITES SOME PARAMETERS SET BELOW !!!
+fast_reco = 1; % !!! OVERWRITES SOME PARAMETERS SET BELOW !!!
 stop_after_data_reading(1) = 0; % for data analysis, before flat field correlation
 stop_after_proj_flat_correlation(1) = 0; % for data analysis, after flat field correlation
 
@@ -102,7 +102,7 @@ strong_abs_thresh = 1; % if 1: does nothing, if < 1: flat-corrected values below
 decimal_round_precision = 2; % precision when rounding pixel shifts
 %%% PHASE RETRIEVAL %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 phase_retrieval.apply = 1; % See 'PhaseFilter' for detailed description of parameters !
-phase_retrieval.apply_before = 0; % before stitching, interactive mode, etc. For phase-contrast data with an excentric rotation axis phase retrieval should be done afterwards. To find the rotataion axis position use this option in a first run, and then turn it of afterwards.
+phase_retrieval.apply_before = 1; % before stitching, interactive mode, etc. For phase-contrast data with an excentric rotation axis phase retrieval should be done afterwards. To find the rotataion axis position use this option in a first run, and then turn it of afterwards.
 phase_retrieval.post_binning_factor = 1; % Binning factor after phase retrieval, but before tomographic reconstruction
 phase_retrieval.method = 'tie';'qpcut'; %'qp' 'ctf' 'tie' 'qp2' 'qpcut'
 phase_retrieval.reg_par = 1.5; % regularization parameter. larger values tend to blurrier images. smaller values tend to original data.
@@ -1824,7 +1824,7 @@ if tomo.run
     
     % Change 'reco_mode' to 'slice' if low on memory
     [mem_free, mem_avail, mem_total] = free_memory;
-    if vol_mem < 0.8 * mem_avail
+    if vol_mem > 0.8 * mem_avail
         tomo.reco_mode = 'slice';
         fprintf( '\nSwitch to slice-wise reco (tomo.reco_mode = ''%s'') due to limited memory ( avail : %.1f GiB, vol : %.1f GiB) .', tomo.reco_mode, mem_avail / 1024^3, vol_mem / 1024^3 )
     end
@@ -2073,6 +2073,12 @@ if tomo.run
                         drawnow
                         pause( 0.1 )
                     end
+                end
+                
+                % Save ortho slices z
+                if nn == round( tomo.vol_shape / 2 )
+                    filename = sprintf( '%sreco_zMid.tif', reco_path );
+                    write32bitTIFfromSingle( filename, rot90(vol,1) );
                 end
                 
                 % Save

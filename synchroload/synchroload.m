@@ -9,6 +9,12 @@ edit p05_reco_loop_synchroload2018may_000
 
 edit p05_reco_loop_synchroload2017oct_11003440_001.m
 
+edit p05_reco_loop_synchroload2017nov_11004016
+
+edit p05_reco_loop_synchroload2017nov_11004016
+
+edit p05_reco_loop_synchroload2018nov_11005553_000.m
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Load force value: create figure %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -123,6 +129,14 @@ register = 1;
 outlier_thresh = 0.01;
 [vol, vol_reg] = p05_load_sequ(proc_path, scan, reco_subfolder, regdir, steps, outlier_thresh, register);
 
+proc_path = '/asap3/petra3/gpfs/p05/2018/data/11005553/processed';
+reco_subfolder = 'reco/float_rawBin3_phaseBin2';
+scan = 'syn014_105R_Mg10Gd_4w';
+regdir = 'x';
+steps = [];
+register = 1;
+outlier_thresh = 0.01;
+[vol, vol_reg] = p05_load_sequ(proc_path, scan, reco_subfolder, regdir, steps, outlier_thresh, register);
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
