@@ -1882,7 +1882,7 @@ if tomo.run
                 proj( end, :, :) = 0.5 * proj( end, :, :) ;
             case -1
                 proj( 1, :, :) = 0.5 * proj( 1, :, :) ;
-        end
+        end 
     end
     
     % Backprojection
