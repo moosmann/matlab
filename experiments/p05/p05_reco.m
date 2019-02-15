@@ -1824,6 +1824,7 @@ if tomo.run
     
     % Change 'reco_mode' to 'slice' if low on memory
     [mem_free, mem_avail, mem_total] = free_memory;
+    prnt( '\n system memory: free, available, total : %.3g GiB, %.3g GiB, %.3g GiB', mem_free/1024^3, mem_avail/1024^3, mem_total/1024^3)
     if vol_mem > 0.8 * mem_avail
         tomo.reco_mode = 'slice';
         fprintf( '\nSwitch to slice-wise reco (tomo.reco_mode = ''%s'') due to limited memory ( avail : %.1f GiB, vol : %.1f GiB) .', tomo.reco_mode, mem_avail / 1024^3, vol_mem / 1024^3 )
@@ -1952,19 +1953,19 @@ if tomo.run
             nn = round( size( vol, 1 ) / 2);
             im = squeeze( vol(nn,:,:) );
             filename = sprintf( '%sreco_xMid.tif', reco_path );
-            write32bitTIFfromSingle( filename, rot90(im,1) );
+            write32bitTIFfromSingle( filename, rot90(im,-1) );
             
             % Save ortho slices y
             nn = round( size( vol, 2 ) / 2);
             im = squeeze( vol(:,nn,:) );
             filename = sprintf( '%sreco_yMid.tif', reco_path );
-            write32bitTIFfromSingle( filename, rot90(im,1) );
+            write32bitTIFfromSingle( filename, rot90(im,-1) );
             
             % Save ortho slices z
             nn = round( size( vol, 3 ) / 2);
             im = squeeze( vol(:,:,nn) );
             filename = sprintf( '%sreco_zMid.tif', reco_path );
-            write32bitTIFfromSingle( filename, rot90(im,1) );
+            write32bitTIFfromSingle( filename, rot90(im,0) );
             
             % Save volume
             if ~isfield( write, 'reco_binning_factor')
@@ -2078,7 +2079,7 @@ if tomo.run
                 % Save ortho slices z
                 if nn == round( tomo.vol_shape / 2 )
                     filename = sprintf( '%sreco_zMid.tif', reco_path );
-                    write32bitTIFfromSingle( filename, rot90(vol,1) );
+                    write32bitTIFfromSingle( filename, rot90(vol,0) );
                 end
                 
                 % Save

@@ -60,16 +60,13 @@ saveas(fig, sprintf( '%s/%s_2.png', outpath, name), 'png')
 print(fig, sprintf( '%s/%s_2.pdf', outpath, name), '-dpdf')
 
 if 0
-set(gcf, 'PaperUnits', 'normalized');
-set(gcf, 'PaperPosition',[0 0 1 1] );
-set(gcf, 'PaperPositionMode', 'auto');
-
-
-% Save figure
-saveas(gcf, sprintf( '%s/%s.png', outpath, name), 'png')
-
-saveas(gcf, sprintf( '%s/%s.jpg', outpath, name), 'jpeg')
-saveas(gcf, sprintf( '%s/%s.eps', outpath, name), 'epsc')
-saveas(gcf, sprintf( '%s/%s.svg', outpath, name), 'svg')
-saveas(gcf, sprintf( '%s/%s.pdf', outpath, name), 'pdf')
+    set(gcf, 'PaperUnits', 'normalized');
+    set(gcf, 'PaperPosition',[0 0 1 1] );
+    set(gcf, 'PaperPositionMode', 'auto');
+    % Save figure
+    saveas(gcf, sprintf( '%s/%s.png', outpath, name), 'png')
+    saveas(gcf, sprintf( '%s/%s.jpg', outpath, name), 'jpeg')
+    saveas(gcf, sprintf( '%s/%s.eps', outpath, name), 'epsc')
+    saveas(gcf, sprintf( '%s/%s.svg', outpath, name), 'svg')
+    saveas(gcf, sprintf( '%s/%s.pdf', outpath, name), 'pdf')
 end

@@ -117,9 +117,7 @@ for nn = 1:numel( steps )
     p = [proc_path filesep struct_scans(nn).name reco_sub];
     struct_slices = dir( [p filesep '*.tif']);
     num_slices = numel( struct_slices );
-    fprintf('\n %u', nn)
-    %parfor mm = 1:num_slices
-    for mm = 1:num_slices
+    parfor mm = 1:num_slices
         impath = [p filesep struct_slices(mm).name];
         vol(:,:,mm,nn) = conv8bit( imread( impath ) );
     end

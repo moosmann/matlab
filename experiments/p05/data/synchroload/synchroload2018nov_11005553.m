@@ -213,6 +213,7 @@ raw_path = '/asap3/petra3/gpfs/p05/2018/data/11005553/raw/';
 scan_path = [raw_path 'syn002_64R_Mg10Gd_12w']; ADD
 scan_path = [raw_path 'syn003_64R_Mg10Gd_12w_kit']; ADD
 
+%% Load, CCD
 raw_roi = 2;
 scan_path = [raw_path 'syn004_24R_PEEK_8w_000_radio']; ADD
 % strong movement
@@ -223,10 +224,16 @@ scan_path = [raw_path 'syn004_24R_PEEK_8w_000']; ADD
 % small local movement artefacts
 tomo.rot_axis.offset = 0.1 * 2 / raw_bin;
 scan_path = [raw_path 'syn004_24R_PEEK_8w_001']; ADD
+tomo.rot_axis.offset = 0.1 * 2 / raw_bin;
 scan_path = [raw_path 'syn004_24R_PEEK_8w_002']; ADD
+tomo.rot_axis.offset = 0.0 * 2 / raw_bin;
 scan_path = [raw_path 'syn004_24R_PEEK_8w_003']; ADD
+tomo.rot_axis.offset = 0.1 * 2 / raw_bin;
 scan_path = [raw_path 'syn004_24R_PEEK_8w_004']; ADD
+tomo.rot_axis.offset = 0.0 * 2 / raw_bin;
 scan_path = [raw_path 'syn004_24R_PEEK_8w_005']; ADD
+
+
 scan_path = [raw_path 'syn004_24R_PEEK_8w_006']; ADD
 
 scan_path = [raw_path 'syn005_94R_Mg5Gd_8w']; ADD
@@ -237,9 +244,12 @@ scan_path = [raw_path 'syn009_24R_PEEK_8w_crashed_relaxed_backto30N']; ADD
 
 scan_path = [raw_path 'syn010_34L_PEEK_8w']; ADD
 
-scan_path = [raw_path 'syn011_105L_Mg5Gd_4w_000']; ADD
+%% Load, CCD
 scan_path = [raw_path 'syn011_105L_Mg5Gd_4w_000_radio']; ADD
+scan_path = [raw_path 'syn011_105L_Mg5Gd_4w_000']; ADD
 scan_path = [raw_path 'syn012_105L_Mg5Gd_4w_000']; ADD
+interactive_mode.rot_axis_pos = 0;
+tomo.rot_axis.offset = -7 * 2 / raw_bin;
 scan_path = [raw_path 'syn013_105L_Mg5Gd_4w_000']; ADD
 scan_path = [raw_path 'syn013_105L_Mg5Gd_4w_001']; ADD
 scan_path = [raw_path 'syn013_105L_Mg5Gd_4w_002']; ADD
