@@ -1,22 +1,32 @@
-% Synchroload project related files and scripts
+% Synchroload project related scripts
 
 %% Reco loop scripts %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-edit p05_reco_loop_synchroload2017nov23_000
-%/asap3/petra3/gpfs/common/p05/jm/matlab/experiments/p05/data/moosmanj/p05_reco_loop_synchroload2018june.m
-edit p05_reco_loop_synchroload2018june
-%/asap3/petra3/gpfs/common/p05/jm/matlab/experiments/p05/data/moosmanj/p05_reco_loop_synchroload2018may_000.m
-edit p05_reco_loop_synchroload2018may_000
+edit synchroload2016nov_11001978.m
+edit synchroload2016sept_check.m
+edit synchroload2016sept.m
+edit synchroload2017may_11003950.m
+edit synchroload2017nov13_11004016.m
+edit synchroload2017nov23_11003288.m
+edit synchroload2017nov23_11003288_oldDoubleCheck.m
+edit synchroload2017oct_11003440_1.m
+edit synchroload2017oct_11003440.m
+edit synchroload2018apr_11004263.m
+edit synchroload2018may_11004936.m
+edit synchroload2018nov_11005553.m
 
-edit p05_reco_loop_synchroload2017oct_11003440_001.m
-
-edit p05_reco_loop_synchroload2017nov_11004016
-
-edit p05_reco_loop_synchroload2017nov_11004016
-
-edit p05_reco_loop_synchroload2018nov_11005553_000.m
+%% Other scripts
+edit synchroload_figureMeetingApr2017.m
+edit synchroload_radiography.m
+edit synchroload_renorm_slices.m
+edit synchroload_resample_data_for_segmentation.m
+edit synchroload_sequ_force.m
+edit synchroload_sequ.m
+edit synchroload_syn13.m
+edit synchroload_syn166.m
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Load force value: create figure %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 steps = [];
 out_path = '';'/gpfs/petra3/scratch/moosmanj/nextcloud';
 
