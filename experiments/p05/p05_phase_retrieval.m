@@ -101,7 +101,7 @@ if exist( 'interactive_mode', 'var' ) && isfield( interactive_mode, 'phase_retri
     first_round = 1;
     slice_old = 0;
     reg_par = reg_par_def_range;
-    slab_size = 100;
+    slab_size = 50;
     while ~isscalar( reg_par ) || first_round
         
         % Print parameters
@@ -296,6 +296,12 @@ if exist( 'interactive_mode', 'var' ) && isfield( interactive_mode, 'phase_retri
                             slice = input( sprintf( '\n\nENTER ABSOLUTE [1,%u] OR RELATIVE [0,1] SLICE NUMBER : ', size(proj,2)) );
                             if slice <= 1 && slice >= 0
                                 slice = round( (num_row - 1) * slice + 1 );
+                            end
+                            if slice - slab_size / 2 < 1
+                                slice = slice + abs( slice - slab_size );
+                            end
+                            if slice + slab_size/2 > size(slab,3)
+                                slice = slice - abs( slice + slab_size - size(slab,3) ); 
                             end
                             fprintf( ' \n new slice : %u', slice );
                         case 'edp'

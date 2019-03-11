@@ -48,12 +48,12 @@ close all;
 %a = gpuArray(1); 
 %clear a;
 % Fix above bug for multi GPU system
-for gpu_device_count = 1:gpuDeviceCount
-    gpu = gpuDevice(gpu_device_count);
-    a = gpuArray(1);
-    fprintf( '\nGPU device index %u : %s', gpu_device_count, gpu.Name )
-    clear gpu a
-end
+% for gpu_device_count = 1:gpuDeviceCount
+%     gpu = gpuDevice(gpu_device_count);
+%     a = gpuArray(1);
+%     fprintf( '\nGPU device index %u : %s', gpu_device_count, gpu.Name )
+%     clear gpu a
+% end
 
 % Fix error: “dlopen: cannot load any more object with static TLS”
 %ones(10) * ones(10);
