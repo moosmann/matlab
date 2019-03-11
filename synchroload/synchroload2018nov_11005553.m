@@ -1,4 +1,4 @@
-function p05_reco_loop_synchroload2018nov_11005553_000( SUBSETS, RUN_RECO, PRINT_PARAMETERS)
+function synchroload2018nov_11005553( SUBSETS, RUN_RECO, PRINT_PARAMETERS)
 % Template function to loop over data sets given in the 'PARAMETER / DATA
 % SETS' section below. The 'DEFAULT PARAMETERS' section defines the default
 % paramters. To add a data / parameter to the loop, define your
@@ -248,7 +248,6 @@ scan_path = [raw_path 'syn010_34L_PEEK_8w']; ADD
 scan_path = [raw_path 'syn011_105L_Mg5Gd_4w_000_radio']; ADD
 scan_path = [raw_path 'syn011_105L_Mg5Gd_4w_000']; ADD
 scan_path = [raw_path 'syn012_105L_Mg5Gd_4w_000']; ADD
-interactive_mode.rot_axis_pos = 0;
 tomo.rot_axis.offset = -7 * 2 / raw_bin;
 scan_path = [raw_path 'syn013_105L_Mg5Gd_4w_000']; ADD
 scan_path = [raw_path 'syn013_105L_Mg5Gd_4w_001']; ADD
@@ -261,15 +260,27 @@ scan_path = [raw_path 'syn013_105L_Mg5Gd_4w_007']; ADD
 scan_path = [raw_path 'syn013_105L_Mg5Gd_4w_008']; ADD
 scan_path = [raw_path 'syn013_105L_Mg5Gd_4w_009']; ADD
 
+interactive_mode.rot_axis_pos = 1;
+tomo.rot_axis.offset = 1 * 2 / raw_bin;
 scan_path = [raw_path 'syn014_105R_Mg10Gd_4w_000']; ADD
+tomo.rot_axis.offset = -1.1 * 2 / raw_bin;
 scan_path = [raw_path 'syn014_105R_Mg10Gd_4w_001']; ADD
+tomo.rot_axis.offset = 0.2 * 2 / raw_bin;
 scan_path = [raw_path 'syn014_105R_Mg10Gd_4w_002']; ADD
+tomo.rot_axis.offset = 0.1 * 2 / raw_bin;
 scan_path = [raw_path 'syn014_105R_Mg10Gd_4w_003']; ADD
+tomo.rot_axis.offset = 0.1 * 2 / raw_bin;
 scan_path = [raw_path 'syn014_105R_Mg10Gd_4w_004']; ADD
+tomo.rot_axis.offset = 0.1 * 2 / raw_bin;
 scan_path = [raw_path 'syn014_105R_Mg10Gd_4w_005']; ADD
+tomo.rot_axis.offset = 0.0 * 2 / raw_bin;
 scan_path = [raw_path 'syn014_105R_Mg10Gd_4w_006']; ADD
+tomo.rot_axis.offset = 0.2 * 2 / raw_bin;
 scan_path = [raw_path 'syn014_105R_Mg10Gd_4w_007']; ADD
+tomo.rot_axis.offset = 0.6 * 2 / raw_bin;
 scan_path = [raw_path 'syn014_105R_Mg10Gd_4w_008']; ADD
+% small locally varying movement artefacts
+tomo.rot_axis.offset = 0.6 * 2 / raw_bin;
 scan_path = [raw_path 'syn014_105R_Mg10Gd_4w_009']; ADD
 
 % good quality
@@ -285,11 +296,9 @@ raw_bin = 3;
 tomo.rot_axis.offset = 0.05 * 2 / raw_bin;
 scan_path = [raw_path 'syn017_86L_Mg10Gd_4w_afterdrilling']; ADD
 
-
-interactive_mode.rot_axis_pos = 0;
 % strong movement artefacts
 tomo.rot_axis.offset = -0.95 * 2 / raw_bin; % metal pin
-%tomo.rot_axis.offset = 1.25 * 2 / raw_bin; % sampel hodler bottom
+%tomo.rot_axis.offset = 1.25 * 2 / raw_bin; % sample holder bottom
 scan_path = [raw_path 'syn018_86L_Mg10Gd_4w_afterdrilling_push_000']; ADD
 % movement artefacts
 scan_path = [raw_path 'syn018_86L_Mg10Gd_4w_afterdrilling_push_001']; ADD
@@ -321,6 +330,8 @@ scan_path = [raw_path 'syn022_LongTerm_18008_top']; ADD
 
 scan_path = [raw_path 'syn023_13R_PEEK_4w']; ADD
 
+interactive_mode.rot_axis_pos = 1;
+% 0-180: 0.75
 scan_path = [raw_path 'syn026_femur_55L_000']; ADD
 scan_path = [raw_path 'syn026_femur_55L_001']; ADD
 
@@ -336,34 +347,26 @@ scan_path = [raw_path 'syn029_84R_Mg5Gd_4w_003']; ADD
 scan_path = [raw_path 'syn029_84R_Mg5Gd_4w_restart_004']; ADD
 scan_path = [raw_path 'syn029_84R_Mg5Gd_4w_restart_005']; ADD
 scan_path = [raw_path 'syn029_84R_Mg5Gd_4w_restart_006']; ADD
+scan_path = [raw_path 'syn030_84R_Mg5Gd_4w_restart_pushed']; ADD
+scan_path = [raw_path 'syn032_84R_Mg5Gd_4w_restart_pushed']; ADD
+
+scan_path = [raw_path 'syn033_68R_Mg10Gd_12w']; ADD
+
+scan_path = [raw_path 'syn034_59R_Mg5Gd_12w']; ADD
+
+scan_path = [raw_path 'syn035_56L_Mg10Gd_12w']; ADD
 
 scan_path = [raw_path 'syn036_LongTerm_18007_bottom']; ADD
-
 scan_path = [raw_path 'syn036_LongTerm_18007_middle']; ADD
-
 scan_path = [raw_path 'syn036_LongTerm_18007_top']; ADD
 
 scan_path = [raw_path 'syn037_LongTerm_18006_bottom']; ADD
-
 scan_path = [raw_path 'syn037_LongTerm_18006_middle']; ADD
-
 scan_path = [raw_path 'syn037_LongTerm_18006_top']; ADD
 
 scan_path = [raw_path 'syn038_LongTerm_18002_bottom']; ADD
-
 scan_path = [raw_path 'syn038_LongTerm_18002_middle']; ADD
-
 scan_path = [raw_path 'syn038_LongTerm_18002_top']; ADD
-
-scan_path = [raw_path 'syn30_84R_Mg5Gd_4w_restart_pushed']; ADD
-
-scan_path = [raw_path 'syn32_84R_Mg5Gd_4w_restart_pushed']; ADD
-
-scan_path = [raw_path 'syn33_68R_Mg10Gd_12w']; ADD
-
-scan_path = [raw_path 'syn34_59R_Mg5Gd_12w']; ADD
-
-scan_path = [raw_path 'syn35_56L_Mg10Gd_12w']; ADD
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

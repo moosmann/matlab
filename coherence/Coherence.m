@@ -4,19 +4,21 @@ if nargin < 1
     E_keV = 30;
 end
 if nargin < 2
-    SourceSample_m =  145;
+    %SourceSample_m =  145;
+    SourceSample_m = 82.7000;
 end
 if nargin < 3
-    SourceSize_micron = sigma_to_FWHM(90);
+    SourceSize_micron = sigma_to_FWHM(89.4); % PETRA III horizontal
 end
 if nargin < 4
-    SampleDetector_m = 2;
+    SampleDetector_m = 0.235;
 end
 if nargin < 5
    Bandwidth = 10^-4;
 end
 if nargin < 6
-    PixelSize_micron = 1.6 ; % micron
+    %PixelSize_micron = 1.6 ; % micron
+    PixelSize_micron = 0.6 ; % micron, CMOS 5x
 end
 
 %% Beamline parameters
@@ -55,6 +57,7 @@ end
 
 %% all outpus in micron
 
+ca
 
 %% Constants
 %h_J_s      = 6.62606896e-34;  % J * s
@@ -107,15 +110,34 @@ out.distance.interferenceByAutocorrelation = lambda * z / 2 / (PixelSize) * 1e6;
 fprintf('\nCohrence lengths in microns: \n\n')
 disp(out.coherence)
 
-fprintf('Angular frequency in seconds: \n\n')
-disp(out.omega)
+fprintf('\n angular frequency: %g +/- %g s', out.omega.zero, out.omega.delta)
 
-fprintf('Geometric blur in micron: \n\n')
-disp(out.blur)
+fprintf( '\n energy: %g keV', E_keV )
+fprintf( '\n propagation distance: %g m', SampleDetector_m )
+fprintf( '\n effective pixel size: %g micron', PixelSize_micron )
 
-fprintf('Geometric blur induced frequency cut-off (pixel size / geomtric blur): \n\n')
-disp(out.frequency)
+fprintf('\n geometric blur: %g micron', out.blur.geometric)
+fprintf('\n geom. blur / pixelsize: %g micron', out.blur.geometric / PixelSize_micron)
 
-fprintf('Distance between sample points that interfere due to autocorrelation in micron: \n\n')
-disp(out.distance)
+fprintf('\n frequency cut-off by geometric blur (pixel size / geomtric blur):\n  %g', out.frequency.blurOverPixel)
 
+fprintf('\n distance between sample points that interfere due to autocorrelation in micron:\n  %g micron', out.distance.interferenceByAutocorrelation)
+
+%% Plot
+zRange = 0:0.005:2;
+b = bg(R,zRange,s);
+[~, zmaxind] = min( abs( b - PixelSize_micron ) );
+zmax = zRange(zmaxind);
+
+
+figure( 'Name', 'geometric blur vs propagation distance')
+plot( zRange, [b; repmat( PixelSize_micron, numel( zRange))] )
+xlabel( 'propagation distance / mi' )
+ylabel( 'spatial resolution / micron' )
+legend( 'geometric blur', 'effective pixelsize' )
+axis tight
+
+fprintf( ' \n distance where blur equals eff pixel size: %g m', zmax )
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+fprintf( '\n' )

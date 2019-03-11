@@ -3,7 +3,7 @@
 % ionizing radiation, per kilogram of matter.
 %
 %   1 Gy = 1 J / kg = m^2 / s^2
-
+clear all
 %% ID 19 flux: undulator U13, 193 mA ring current, pink beam ca 4% bandwith 26.2 keV peak energy, flux 166e-12 ph / mm^2 / s
 flux.id19.source = 'undulator U13';
 flux.id19.spectrum = 'pink';
@@ -100,7 +100,8 @@ absorption = 1 - transmission_bone_35000eV;
 exposure = 1200 * 0.15; % s
 exposure = 3000 * 0.1; % s
 
-energy = 34000; %eV
+energy.value = 34000;
+energy.unit = 'eV';
 eV_to_J = 1.602176565e-19 ;
 
 %% Dose

@@ -1,6 +1,18 @@
 % P05 paramter
 clear all
 
+%% Source PETRA III
+
+% distance source sample
+p.coherence.dist_source_dcm = 50.9; % m
+p.coherence.dist_source_sample = 82.7; % m
+
+% coherence length
+p.coherence.sigma_h = 38e-6; % m
+p.coherence.sigma_v = 6e-6; % m
+p.coherence.FWHM_h = sigma_to_FWHM( p.coherence.sigma_h );
+p.coherence.FWHM_v = sigma_to_FWHM( p.coherence.sigma_v );
+
 %% Optics
 p.opt.magn = [5 10 20 40];
 p.opt.producer = 'Jena Optik';
@@ -54,3 +66,9 @@ fprintf( '\nCMOS camera:\n' )
 disp( p.cmos )
 
 disp( p.stage.rotation )
+
+fprintf( '\nCoherence properties:' )
+fprintf( '\n distance source sample: %g', p.coherence.dist_source_sample )
+fprintf( '\n FWHM: [%g %g] micron', p.coherence.FWHM_h * 1e6, p.coherence.FWHM_v * 1e6)
+
+fprintf( '\n' )

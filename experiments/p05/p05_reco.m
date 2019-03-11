@@ -34,12 +34,13 @@ close all hidden % close all open windows
 %% PARAMETERS / SETTINGS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-fast_reco = 1; % !!! OVERWRITES SOME PARAMETERS SET BELOW !!!
+fast_reco = 0; % !!! OVERWRITES SOME PARAMETERS SET BELOW !!!
 stop_after_data_reading(1) = 0; % for data analysis, before flat field correlation
 stop_after_proj_flat_correlation(1) = 0; % for data analysis, after flat field correlation
 
 %%% SCAN %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 scan_path = ...
+    '/asap3/petra3/gpfs/p05/2018/data/11005553/raw/syn026_femur_55L_000';
     '/asap3/petra3/gpfs/p05/2018/data/11005338/raw/ehh_004_00';
     '/asap3/petra3/gpfs/p05/2018/data/11005338/raw/ehh_011_02';
     '/asap3/petra3/gpfs/p05/2018/data/11005490/raw/0003_sample_02';
@@ -56,7 +57,7 @@ raw_roi = []; % vertical and/or horizontal ROI; (1,1) coordinate = top left pixe
 % [y0 y1]: vertical ROI, skips first raw_roi(1)-1 lines, reads until raw_roi(2); if raw_roi(2) < 0 reads until end - |raw_roi(2)|; relative indexing similar.
 % [y0 y1 x0 x1]: vertical + horzontal ROI, each ROI as above
 % if negative scalar [y]: auto roi, selects vertical ROI automatically for DCM. Not working for *.raw data where images are flipped and DMM data.
-raw_bin = 2; % projection binning factor: integer
+raw_bin = 4; % projection binning factor: integer
 im_trafo = ''; % string to be evaluated after reading data in the case the image is flipped/rotated/etc due to changes at the beamline, e.g. 'rot90(im)'
 bin_before_filtering(1) = 1; % Apply binning before filtering pixel. less effective, but much faster especially for KIT camera.
 excentric_rot_axis = 0; % off-centered rotation axis increasing FOV. -1: left, 0: centeerd, 1: right. influences tomo.rot_axis.corr_area1
@@ -66,8 +67,8 @@ stitch_method = 'sine'; 'step';'linear'; %  ! CHECK correlation area !
 % 'step' : no interpolation, use step function
 % 'linear' : linear interpolation of overlap region
 % 'sine' : sinusoidal interpolation of overlap region
-proj_range = []; % range of projections to be used (from all found, if empty or 1: all, if scalar: stride, if range: start:incr:end
-ref_range = []; % range of flat fields to be used (from all found), if empty or 1: all. if scalar: stride, if range: start:incr:end
+proj_range = 1:750;[]; % range of projections to be used (from all found, if empty or 1: all, if scalar: stride, if range: start:incr:end
+ref_range = [10]; % range of flat fields to be used (from all found), if empty or 1: all. if scalar: stride, if range: start:incr:end
 pixel_filter_threshold_dark = [0.01 0.005]; % Dark fields: threshold parameter for hot/dark pixel filter, for details see 'FilterPixel'
 pixel_filter_threshold_flat = [0.01 0.005]; % Flat fields: threshold parameter for hot/dark pixel filter, for details see 'FilterPixel'
 pixel_filter_threshold_proj = [0.01 0.005]; % Raw projection: threshold parameter for hot/dark pixel filter, for details see 'FilterPixel'
@@ -101,7 +102,7 @@ ring_filter.jm.median_width = 11; % multiple widths are applied consecutively, e
 strong_abs_thresh = 1; % if 1: does nothing, if < 1: flat-corrected values below threshold are set to one. Try with algebratic reco techniques.
 decimal_round_precision = 2; % precision when rounding pixel shifts
 %%% PHASE RETRIEVAL %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-phase_retrieval.apply = 1; % See 'PhaseFilter' for detailed description of parameters !
+phase_retrieval.apply = 0; % See 'PhaseFilter' for detailed description of parameters !
 phase_retrieval.apply_before = 1; % before stitching, interactive mode, etc. For phase-contrast data with an excentric rotation axis phase retrieval should be done afterwards. To find the rotataion axis position use this option in a first run, and then turn it of afterwards.
 phase_retrieval.post_binning_factor = 1; % Binning factor after phase retrieval, but before tomographic reconstruction
 phase_retrieval.method = 'tie';'qpcut'; %'qp' 'ctf' 'tie' 'qp2' 'qpcut'
@@ -139,7 +140,7 @@ tomo.sirt.MinConstraint = []; % If specified, all values below MinConstraint wil
 tomo.sirt.MaxConstraint = []; % If specified, all values above MaxConstraint will be set to MaxConstraint.
 %%% OUTPUT %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 write.path = ''; %'/gpfs/petra3/scratch/moosmanj'; % absolute path were output data will be stored. !!overwrites the write.to_scratch flag. if empty uses the beamtime directory and either 'processed' or 'scratch_cc'
-write.to_scratch = 0; % write to 'scratch_cc' instead of 'processed'
+write.to_scratch = 1; % write to 'scratch_cc' instead of 'processed'
 write.parfolder = '';% parent folder to 'reco', 'sino', 'phase', and 'flat_corrected'
 write.subfolder.flatcor = ''; % subfolder in 'flat_corrected'
 write.subfolder.phase_map = ''; % subfolder in 'phase_map'
@@ -174,7 +175,7 @@ interactive_mode.rot_axis_pos = 1; % reconstruct slices with dif+ferent rotation
 interactive_mode.rot_axis_tilt = 0; % reconstruct slices with different offset AND tilts of the rotation axis
 interactive_mode.lamino = 0; % find laminography tilt instead camera rotation
 interactive_mode.fixed_other_tilt = 0; % fixed other tilt
-interactive_mode.slice_number = 0.5; % default slice number. if in [0,1): relative, if in (1, N]: absolute
+interactive_mode.slice_number = 0.25; % default slice number. if in [0,1): relative, if in (1, N]: absolute
 interactive_mode.phase_retrieval = 1; % Interactive retrieval to determine regularization parameter
 %%% HARDWARE / SOFTWARE %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 use_cluster = 0; % if available: on MAXWELL nodes disp/nova/wga/wgs cluster computation can be used. Recommended only for large data sets since parpool creation and data transfer implies a lot of overhead.
@@ -425,8 +426,9 @@ prnt( '\n number of projections used : %g', num_proj_used)
 prnt( '\n projection range used : first:stride:last =  %g:%g:%g', proj_range(1), proj_range(2) - proj_range(1), proj_range(end))
 
 %%% Read log files %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% new hdf5 log from statussever
-h5log = sprintf('%s%s_nexus.h5', scan_path, scan_name);
+% hdf5 log from statussever
+h5log = dir( sprintf('%s*_nexus.h5', scan_path) );
+h5log = [h5log.folder filesep h5log.name];
 im_shape_raw = [];
 dtype = '';
 tif_info = [];
@@ -511,10 +513,13 @@ else
     s_stage_x.time = double( h5read( h5log, '/entry/scan/data/s_stage_x/time') );
     s_stage_x.value = h5read( h5log, '/entry/scan/data/s_stage_x/value');
     % Read out lateral rotation axis shift form log file
-    offset_shift = s_stage_x.value( ~boolean( stimg_key.value(par.n_dark+1:end) ) ) * 1e-3 / eff_pixel_size_binned;
+    offset_shift_micron = s_stage_x.value( ~boolean( stimg_key.value(par.n_dark+1:end) ) );
+    offset_shift_unbinned = offset_shift_micron * 1e-3 / eff_pixel_size;
+    offset_shift = offset_shift_unbinned / raw_bin;
     offset_shift = offset_shift - mean( offset_shift );
+    offset_shift_micron = offset_shift_micron(proj_range);
     offset_shift = offset_shift(proj_range);
-    % Overwrite lateral shift if offset shift range is not empty
+    % Overwrite lateral shift if offset shift is provided as parameter
     if isequal( std( offset_shift ), 0 ) && ~isempty( tomo.rot_axis.offset_shift_range )
         offset_shift = tomo.rot_axis.offset_shift_range / raw_bin * (0:num_proj_used) / num_proj_used;
         offset_shift = offset_shift - mean( offset_shift );
@@ -1109,10 +1114,10 @@ elseif ~read_flatcor
         sino = squeeze( proj(:,nn,:) );
         sino = CropShift( sino, offset_shift );
         % Reorder angles to [0,2pi]
-        [~,m] = sort( mod( angles, 2 * pi ) );
+        [~,m] = sort( angles );
         sino = sino(:,m);
         imsc1( sino)
-        title(sprintf('sinogram: proj(:,%u,:) (shift corrected, angles reordered)', nn))
+        title(sprintf('sinogram: proj(:,%u,:) (shift corrected, sorted angles)', nn))
         colorbar
         axis equal tight
         
@@ -1647,49 +1652,55 @@ end
 if stitch_projections(1)
     t = toc;
     prnt( '\nStitch projections:')
-    if tomo.rot_angle.full_range < 1.9 * pi
-        error( 'full angle of rotation smaller than 2 pi: %g pi', tomo.rot_angle.full_range/pi)
-    end
-    % number of unstitched projections
-    num_proj = size( proj, 3);
-    % last projection within [0,pi)
-    [~, num_proj_sti] = min( abs(angles - pi));
-    % number of stitched projections
-    num_proj_sti = num_proj_sti - 1;
-    % index range of projections to be stitched
-    xl = 1:round(tomo.rot_axis.position);
-    xr = 1:xl(end)-1;
-    im_shape_sti1 = numel( xl ) + numel( xr );
-    % Preallocation
-    proj_sti = zeros( im_shape_sti1 , im_shape_binned2, num_proj_sti, 'single');
-    for nn = 1:num_proj_sti
-        nn2 = mod(num_proj_sti + nn - 1, num_proj) + 1;
-        im = zeros( im_shape_sti1, im_shape_binned2);
-        switch lower( stitch_method )
-            case 'step'
-                im = cat(1, proj(xl,:,nn), flipud( proj(xr,:,nn2) ) );
-            case {'linear', 'sine'}
-                % overlap region
-                overlap = round(2 * tomo.rot_axis.position) - im_shape_binned1 : im_shape_binned1;
-                % overlap ramp
-                x = (0:1/(numel(overlap)-1):1);
-                % 1D weight
-                w = ones(im_shape_binned1, 1);
+    switch std( offset_shift_micron ) == 0
+        case 0
+            if tomo.rot_angle.full_range < 1.9 * pi
+                error( 'full angle of rotation smaller than 2 pi: %g pi', tomo.rot_angle.full_range/pi)
+            end
+            % number of unstitched projections
+            num_proj = size( proj, 3);
+            % last projection within [0,pi)
+            [~, num_proj_sti] = min( abs(angles - pi));
+            % number of stitched projections
+            num_proj_sti = num_proj_sti - 1;
+            % index range of projections to be stitched
+            xl = 1:round(tomo.rot_axis.position);
+            xr = 1:xl(end)-1;
+            im_shape_sti1 = numel( xl ) + numel( xr );
+            % Preallocation
+            proj_sti = zeros( im_shape_sti1 , im_shape_binned2, num_proj_sti, 'single');
+            for nn = 1:num_proj_sti
+                nn2 = mod(num_proj_sti + nn - 1, num_proj) + 1;
+                im = zeros( im_shape_sti1, im_shape_binned2);
                 switch lower( stitch_method )
-                    case 'linear'
-                        w(overlap) = 1 - x;
-                    case 'sine'
-                        w(overlap) = 0.5 * cos(pi*x) + 0.5;
+                    case 'step'
+                        im = cat(1, proj(xl,:,nn), flipud( proj(xr,:,nn2) ) );
+                    case {'linear', 'sine'}
+                        % overlap region
+                        overlap = round(2 * tomo.rot_axis.position) - im_shape_binned1 : im_shape_binned1;
+                        % overlap ramp
+                        x = (0:1/(numel(overlap)-1):1);
+                        % 1D weight
+                        w = ones(im_shape_binned1, 1);
+                        switch lower( stitch_method )
+                            case 'linear'
+                                w(overlap) = 1 - x;
+                            case 'sine'
+                                w(overlap) = 0.5 * cos(pi*x) + 0.5;
+                        end
+                        % weighted projections
+                        iml = bsxfun(@times, proj(:,:,nn), w);
+                        imr = flipud( bsxfun(@times, proj(:,:,nn2), w ) );
+                        % stitched projection
+                        im(1:im_shape_binned1,:) = iml;
+                        im(end - im_shape_binned1 + 1:end,:) = im(end - im_shape_binned1 + 1:end,:) + imr;
                 end
-                % weighted projections
-                iml = bsxfun(@times, proj(:,:,nn), w);
-                imr = flipud( bsxfun(@times, proj(:,:,nn2), w ) );
-                % stitched projection
-                im(1:im_shape_binned1,:) = iml;
-                im(end - im_shape_binned1 + 1:end,:) = im(end - im_shape_binned1 + 1:end,:) + imr;
-        end
-        proj_sti(:,:,nn) = im;
+                proj_sti(:,:,nn) = im;
+            end
+        case 1
+            fprintf('\n')
     end
+    
     pause(0.01)
     proj = proj_sti;
     clear proj_sti;
@@ -1710,10 +1721,9 @@ end
 if crop_at_rot_axis(1)
     t = toc;
     prnt( '\nCropping projections:')
-    % This is to avoid oversampling for scans with excentric rotation axis
-    % and reconstructing WITHOUT stitching
+    % Crop projections to avoid oversampling for scans with excentric rotation axis
+    % and reconstruct WITHOUT stitching
     if std( offset_shift ) > 0
-        
         
         %%% To be tested %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         if std( abs( offset_shift ) ) ~= 0
@@ -1894,11 +1904,11 @@ if tomo.run
     
             prnt( '\n Backproject:')
             t2 = toc;
-            %%% Move parameters to appropiate position or replace globally !!!!!!!!!!!!!!!!!!
+            %%% Move to appropriate position or replace globally !!!!!!!!!!
             tomo.tilt_camera = ~interactive_mode.lamino * tomo.rot_axis.tilt;
             tomo.tilt_lamino = interactive_mode.lamino * tomo.rot_axis.tilt;
             tomo.angles = tomo.rot_angle.offset + angles_reco;
-            %%%%%%%%% Change offset_shit additon %%%%%%%%% !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+            %%%%%%%%% Change offset_shit addition %%%%%%%%% !!!!!!!!!!!!!!!
             tomo.rot_axis.offset = rot_axis_offset_reco + offset_shift;
             vol = astra_parallel3D( tomo, permute(proj, [1 3 2]) );
             pause(0.01)
@@ -1919,26 +1929,28 @@ if tomo.run
                 
                 figure('Name', 'Volume cut y');
                 nn = round( size( vol, 2 ) / 2);
-                im = squeeze( vol(:,nn,:) );
+                im = rot90( squeeze( vol(:,nn,:) ), -2);
                 if size( im , 1) < size( im , 2)
                     imsc( im )
+                    title( sprintf( 'vol y = %u', nn ) )
                 else
                     imsc( im' )
+                    title( sprintf( 'vol y = %u, rotated', nn ) )
                 end
                 axis equal tight
-                title( sprintf( 'vol y = %u', nn ) )
                 colorbar
                 
                 figure('Name', 'Volume cut x');
                 nn = round( size( vol, 1 ) / 2);
-                im = squeeze( vol(nn,:,:) );
+                im = flipud( squeeze( vol(nn,:,:) ) );
                 if size( im , 1) < size( im , 2)
                     imsc( im )
+                    title( sprintf( 'vol x = %u', nn ) )
                 else
                     imsc( im' )
+                    title( sprintf( 'vol x = %u rotated', nn ) )
                 end
                 axis equal tight
-                title( sprintf( 'vol x = %u', nn ) )
                 colorbar
                 
                 drawnow
@@ -2022,8 +2034,7 @@ if tomo.run
                     save( sprintf( '%ssegmentation_info.m', save_path), 'out', '-mat', '-v7.3')
                 end
                 
-            end
-            prnt( ' done in %.1f s (%.2f min)', toc-t, (toc-t)/60 )
+            end            
             
         case {'slice', '2d'}
             %% Slicewise backprojection %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -2090,9 +2101,9 @@ if tomo.run
                 end
                 
             end
-            prnt( ' done in %.2f min.', (toc - t2) / 60)
             
     end
+    prnt( ' done in %.1f s (%.2f min)', toc-t, (toc-t)/60 )
 end
 
 %% Write reco log file %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

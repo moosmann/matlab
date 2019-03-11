@@ -1,4 +1,4 @@
-function [offset, metric] = FindRotAxis( sino, shift, sample_to_detector_width )
+function [offset, metric] = FindRotAxis( sino, shift, sampleWidth_to_detectorWidth )
 % Determine the center of rotation via Fourier analysis of projection data.
 %See articles:
 %
@@ -13,7 +13,7 @@ if nargin < 2
     shift = 0;
 end
 if nargin < 3
-    sample_to_detector_width = 1;
+    sampleWidth_to_detectorWidth = 1;
 end
 if nargin < 4
     more_figs = 1;
@@ -24,16 +24,16 @@ end
 sino = CropShift( sino, shift );
 [s1, s2] = size( sino );
 % Offset search range
-offset_range = (1:round( s1 / 10 ):s1) - floor( s1 / 2 ) ;
+offset_range = (1:round( 1.5 * s1 / 10 ):s1) - floor( s1 / 2 ) ;
+
 % Triangular mask
-%% Fourier coordinates
-% 1D
+% Fourier coordinates 1D
 precision = 'double';
 xi  = FrequencyVector(2*s2,precision,1);
 eta = FrequencyVector(2*s1,precision,1);
-% 2D
-[xi, eta]   = meshgrid(xi,eta);
-mask = eta - abs( sample_to_detector_width * xi ) < 0;
+% Fourier coordinates 2D
+[xi, eta]  = meshgrid(xi,eta);
+mask = eta - abs( sampleWidth_to_detectorWidth * xi ) < 0;
 mask = mask & flipud( mask );
 sum_mask = sum( mask(:) );
 % Loop over offset range
@@ -69,7 +69,6 @@ for nn = 1:numel( offset_range )
         imsc( fftshift( log(1+abs(tmp) ) ) )
         title('mask .* FT sino')
         axis tight equal
-        
         drawnow;pause(1);
     end
     metric(nn) = norm( tmp, 1 ) / sum_mask;
@@ -82,7 +81,7 @@ offset = min( metric(:) );
 offset_range_mean = mean( offset_range );
 offset_range_min = min( offset_range );
 offset_range_max = max( offset_range );
-x = ( offset_range - offset_range_mean )/ ( offset_range_max - offset_range_min);
+x = ( offset_range - offset_range_mean ) / ( offset_range_max - offset_range_min);
 y = metric;
 fitType = 'poly2';
 fitobject = fit( x', y', fitType);

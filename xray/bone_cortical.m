@@ -1,5 +1,5 @@
 % formulas: https://physics.nist.gov/PhysRefData/XrayMassCoef/chap2.html
-% values:
+% values: https://physics.nist.gov/PhysRefData/XrayMassCoef/ComTab/bone.html
 % constants: https://physics.nist.gov/PhysRefData/XrayMassCoef/tab2.html
 
 % Energy / MeV
