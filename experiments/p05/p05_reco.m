@@ -34,13 +34,20 @@ close all hidden % close all open windows
 %% PARAMETERS / SETTINGS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-fast_reco = 0; % !!! OVERWRITES SOME PARAMETERS SET BELOW !!!
+fast_reco = 1; % !!! OVERWRITES SOME PARAMETERS SET BELOW !!!
 stop_after_data_reading(1) = 0; % for data analysis, before flat field correlation
 stop_after_proj_flat_correlation(1) = 0; % for data analysis, after flat field correlation
 
 %%% SCAN %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-scan_path = ...
-    '/asap3/petra3/gpfs/p05/2019/data/11006040/raw/005_human_test_02';
+scan_path = ... 
+      '/asap3/petra3/gpfs/p05/2019/data/11006040/raw/020_human_H2';
+     '/asap3/petra3/gpfs/p05/2019/data/11006040/raw/016_human_H1_2400_h1';
+    '/asap3/petra3/gpfs/p05/2019/data/11006040/raw/018_human_H1_2400_1m';
+    '/asap3/petra3/gpfs/p05/2019/data/11006040/raw/007_human_o1_2400_h1';
+    '/asap3/petra3/gpfs/p05/2019/data/11006040/raw/017_human_H1_2400_h2';
+    '/asap3/petra3/gpfs/p05/2019/data/11006040/raw/015_human_H1_2400';
+    '/asap3/petra3/gpfs/p05/2019/data/11006040/raw/014_human_o4_2400_h2';
+        %'/asap3/petra3/gpfs/p05/2019/data/11006040/raw/005_human_test_02';
     '/asap3/petra3/gpfs/p05/2019/data/11006040/raw/006_human_O1';
     '/asap3/petra3/gpfs/p05/2019/data/11006040/raw/003_human_test_01';
     '/asap3/petra3/gpfs/p05/2019/data/11006040/raw/002_human_test_01';
@@ -109,9 +116,9 @@ decimal_round_precision = 2; % precision when rounding pixel shifts
 phase_retrieval.apply = 1; % See 'PhaseFilter' for detailed description of parameters !
 phase_retrieval.apply_before = 0; % before stitching, interactive mode, etc. For phase-contrast data with an excentric rotation axis phase retrieval should be done afterwards. To find the rotataion axis position use this option in a first run, and then turn it of afterwards.
 phase_retrieval.post_binning_factor = 1; % Binning factor after phase retrieval, but before tomographic reconstruction
-phase_retrieval.method = 'qp';'tie';'qpcut'; %'qp' 'ctf' 'tie' 'qp2' 'qpcut'
+phase_retrieval.method = 'tie';'qp';'qpcut'; %'qp' 'ctf' 'tie' 'qp2' 'qpcut'
 phase_retrieval.reg_par = 1.5; % regularization parameter. larger values tend to blurrier images. smaller values tend to original data.
-phase_retrieval.bin_filt = 0.15; % threshold for quasiparticle retrieval 'qp', 'qp2'
+phase_retrieval.bin_filt = 0.1; % threshold for quasiparticle retrieval 'qp', 'qp2'
 phase_retrieval.cutoff_frequ = 2 * pi; % in radian. frequency cutoff in Fourier space for 'qpcut' phase retrieval
 phase_retrieval.padding = 1; % padding of intensities before phase retrieval, 0: no padding
 %%% TOMOGRAPHY %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -122,7 +129,7 @@ tomo.vol_size = []; %[-0.5 0.5 -0.5 0.5 -0.5 0.5];% 6-component vector [xmin xma
 tomo.vol_shape = []; %[1 1 1] shape (# voxels) of reconstruction volume. used for excentric rot axis pos. if empty, inferred from 'tomo.vol_size'. in absolute numbers of voxels or in relative number w.r.t. the default volume which is given by the detector width and height.
 tomo.rot_angle.full_range = []; % in radians: empty ([]), full angle of rotation, or array of angles. if empty full rotation angles is determined automatically to pi or 2 pi
 tomo.rot_angle.offset = pi; % global rotation of reconstructed volume
-tomo.rot_axis.offset = 76; []; % if empty use automatic computation
+tomo.rot_axis.offset = []; % if empty use automatic computation
 tomo.rot_axis.offset_shift_range = []; %[]; % absolute lateral movement in pixels during fly-shift-scan, overwrite lateral shift read out from hdf5 log
 tomo.rot_axis.position = []; % if empty use automatic computation. EITHER OFFSET OR POSITION MUST BE EMPTY. YOU MUST NOT USE BOTH!
 tomo.rot_axis.tilt = 0; % in rad. camera tilt w.r.t rotation axis. if empty calculate from registration of projections at 0 and pi
@@ -175,12 +182,12 @@ write.compression.parameter = [0.02 0.02]; % compression-method specific paramet
 %%% INTERACTION %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 verbose = 1; % print information to standard output
 visual_output = 1; % show images and plots during reconstruction
-interactive_mode.rot_axis_pos = 0; % reconstruct slices with dif+ferent rotation axis offsets
+interactive_mode.rot_axis_pos = 1; % reconstruct slices with dif+ferent rotation axis offsets
 interactive_mode.rot_axis_tilt = 0; % reconstruct slices with different offset AND tilts of the rotation axis
 interactive_mode.lamino = 0; % find laminography tilt instead camera rotation
 interactive_mode.fixed_other_tilt = 0; % fixed other tilt
 interactive_mode.slice_number = 0.5; % default slice number. if in [0,1): relative, if in (1, N]: absolute
-interactive_mode.phase_retrieval = 0; % Interactive retrieval to determine regularization parameter
+interactive_mode.phase_retrieval = 1; % Interactive retrieval to determine regularization parameter
 %%% HARDWARE / SOFTWARE %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 use_cluster = 0; % if available: on MAXWELL nodes disp/nova/wga/wgs cluster computation can be used. Recommended only for large data sets since parpool creation and data transfer implies a lot of overhead.
 poolsize = 0.80; % number of workers used in a local parallel pool. if 0: use current config. if >= 1: absolute number. if 0 < poolsize < 1: relative amount of all cores to be used. if SLURM scheduling is available, a default number of workers is used.
@@ -2263,7 +2270,12 @@ end
 PrintVerbose(verbose && interactive_mode.rot_axis_pos, '\nTime elapsed in interactive rotation axis centering mode: %g s (%.2f min)', tint, tint / 60 );
 PrintVerbose(verbose && interactive_mode.phase_retrieval, '\nTime elapsed in interactive phase retrieval mode: %g s (%.2f min)', tint_phase, tint_phase / 60 );
 prnt( '\nTime elapsed for computation: %g s (%.2f min)', toc - tint -tint_phase, (toc - tint - tint_phase) / 60 );
-prnt( '\nFINISHED: %s\n\n', scan_name)
+prnt( '\nFINISHED: %s\n', scan_name)
+% overwrite parameters for fast reconstruction
+if exist('fast_reco','var') && fast_reco(1)
+    cprintf( 'Red', '\nCAUTION: reco using fast mode was turned on!\n' )
+end
+prnt( '\n')
 % END %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 dbclear if error
