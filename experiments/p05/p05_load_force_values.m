@@ -73,10 +73,13 @@ wait_time1 = [];
 tomo_time = [];
 tomo_time1 = [];
 wait_force = [];
-wait_adc = []; % leccay support for first scans
+wait_adc = []; % legacy support for first scans
 tomo_force = [];
 wait_pusher = [];
 tomo_pusher = [];
+setforce_time = [];
+setforce_force = [];
+
 for nn = 1:num_steps
     ss = steps(nn);
     scan_name_nn = struct_scans(ss).name;
@@ -193,9 +196,46 @@ for nn = 1:num_steps
         
         clear datvalues ;
     end
+    
+    %% Set force and relaxation time
+    s2 = dir( [p '_*'] );
+    if numel(s2)
+        p2 = [s2.folder filesep s2.name];
+        filename = sprintf( '%s/%s_nexus.h5', p2, s2.name );
+        
+        if readhdf5 && exist( filename, 'file')
+            fprintf( ' nexus.h5' )
+            %h5i = h5info( filename );
+            t = double( h5read( filename, '/entry/hardware/adc1/Value/time') );
+            v = double( h5read( filename, '/entry/hardware/adc1/Value/value') );
+            setforce_time = [setforce_time t(2:end-1)'];
+            setforce_force = [setforce_force adc2force * v(2:end-1)'];
+            
+            % Write CSV file
+            csvfilename=[out_path filesep struct_scans(nn).name '_tomo.csv'];
+            cHeader = {'wait_time' 'wait_force'}; %dummy header
+            commaHeader = [cHeader;repmat({','},1,numel(cHeader))]; %insert commaas
+            commaHeader = commaHeader(:)';
+            textHeader = cell2mat(commaHeader); %cHeader in text with commas
+            
+            %write header to file
+            fid = fopen(csvfilename,'w');
+            fprintf(fid,'%s\n',textHeader);
+            fclose(fid);
+            
+            datvalues(:,1)=(tomo_time-tomo_time(1)) / 3600 / 1e3;
+            datvalues(:,2)=tomo_force;
+            
+            %write data to end of file
+            dlmwrite(csvfilename,datvalues,'-append');
+            
+            clear datvalues ;
+        end
+    end
 end
 
 wait_time = wait_time / 60 / 60;
+setforce_time = setforce_time / 3600 / 1e3;
 tomo_time = tomo_time / 3600 / 1e3;
 
 %% Save
@@ -212,32 +252,36 @@ fig = figure( 'Name', name );
 axes1 = axes('Parent',fig,'FontSize',font_size,'XMinorTick','off');
 %hold(axes1,'on');
 
-if isempty( wait_time ) && isempty( tomo_time )
+if ~isempty( setforce_force )
     
-    plot( wait_force, 'b.', 'LineWidth',12);
-    legend( {'Waiting'}, 'FontSize', font_size,'Location','northwest')
-     
-    xlabel('projections', 'FontSize',font_size);
-    
+    plot( tomo_time - tomo_time(1), tomo_force, 'r.', setforce_time - tomo_time(1), setforce_force, 'b.', 'LineWidth',12);
+    legend( {'Tomogram', 'Set force / Waiting'}, 'FontSize', font_size,'Location','northwest')
 else
-    if isempty( wait_time ) || isempty( tomo_time )
-        if ~isempty( wait_time )
-            plot( wait_time - wait_time(1), wait_force, 'b.', 'LineWidth',12);
-            legend( {'Waiting'}, 'FontSize', font_size,'Location','northwest')
-        else
-            plot( tomo_time - tomo_time(1), tomo_force, 'r.', 'LineWidth',12);
-            legend( {'Tomogram'}, 'FontSize', font_size,'Location','northwest')
-        end
+    if isempty( wait_time ) && isempty( tomo_time )
+        
+        plot( wait_force, 'b.', 'LineWidth',12);
+        legend( {'Waiting'}, 'FontSize', font_size,'Location','northwest')
+        
+        xlabel('projections', 'FontSize',font_size);
+        
     else
-        plot( wait_time - tomo_time(1), wait_force, 'b.', tomo_time - tomo_time(1), tomo_force, 'r.', 'LineWidth',12);
-        legend( {'Waiting', 'Tomogram'}, 'FontSize', font_size,'Location','northwest')
+        if isempty( wait_time ) || isempty( tomo_time )
+            if ~isempty( wait_time )
+                plot( wait_time - wait_time(1), wait_force, 'b.', 'LineWidth',12);
+                legend( {'Waiting'}, 'FontSize', font_size,'Location','northwest')
+            else
+                plot( tomo_time - tomo_time(1), tomo_force, 'r.', 'LineWidth',12);
+                legend( {'Tomogram'}, 'FontSize', font_size,'Location','northwest')
+            end
+        else
+            plot( wait_time - tomo_time(1), wait_force, 'b.', tomo_time - tomo_time(1), tomo_force, 'r.', 'LineWidth',12);
+            legend( {'Waiting', 'Tomogram'}, 'FontSize', font_size,'Location','northwest')
+        end
+        
+        % Create xlabel
+        xlabel('waiting / h', 'FontSize',font_size);
     end
-    
-    % Create xlabel
-    xlabel('waiting / h', 'FontSize',font_size);
-    
 end
-
 % Create ylabel
 ylabel('Force / N', 'FontSize',font_size);
 
