@@ -34,13 +34,36 @@ close all hidden % close all open windows
 %% PARAMETERS / SETTINGS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-fast_reco = 1; % !!! OVERWRITES SOME PARAMETERS SET BELOW !!!
+fast_reco = 0; % !!! OVERWRITES SOME PARAMETERS SET BELOW !!!
 stop_after_data_reading(1) = 0; % for data analysis, before flat field correlation
 stop_after_proj_flat_correlation(1) = 0; % for data analysis, after flat field correlation
 
 %%% SCAN %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-scan_path = ... 
-      '/asap3/petra3/gpfs/p05/2019/data/11006040/raw/020_human_H2';
+scan_path = ...
+    '/asap3/petra3/gpfs/p05/2019/data/11006387/raw/ucl_pate_10_a';
+    '/asap3/petra3/gpfs/p05/2019/data/11006387/raw/ucl_pate_09_a';
+    '/asap3/petra3/gpfs/p05/2019/data/11006040/raw/078_chondrofiller_Z_EV28_2m180_dist1000';
+    '/asap3/petra3/gpfs/p05/2019/data/11006040/raw/053_human_OA2_h1';
+    '/asap3/petra3/gpfs/p05/2019/data/11006040/raw/044_chondofiller_Estim_m_Zellen_Osmi';
+    '/asap3/petra3/gpfs/p05/2019/data/11006040/raw/049_equine_E1_h3';
+    '/asap3/petra3/gpfs/p05/2019/data/11006040/raw/031_equine_E2_2400_h5/';
+    '/asap3/petra3/gpfs/p05/2019/data/11006040/raw/046_chondofiller_Osmi_h2';
+    '/asap3/petra3/gpfs/p05/2019/data/11006040/raw/047_equine_E1_h1';
+    '/asap3/petra3/gpfs/p05/2019/data/11006040/raw/031_equine_E2_2400_h5';
+    '/asap3/petra3/gpfs/p05/2019/data/11006040/raw/040_equine_E3_h2';
+    '/asap3/petra3/gpfs/p05/2019/data/11006040/raw/046_chondofiller_Osmi';
+    '/asap3/petra3/gpfs/p05/2019/data/11006040/raw/030_equine_E2_2400_h4/';
+    '/asap3/petra3/gpfs/p05/2019/data/11006040/raw/043_equine_E3_h5';
+    '/asap3/petra3/gpfs/p05/2019/data/11006040/raw/042_equine_E3_h4';
+    '/asap3/petra3/gpfs/p05/2019/data/11006040/raw/041_equine_E3_h2';
+    '/asap3/petra3/gpfs/p05/2019/data/11006040/raw/039_equine_E3_h1';
+    '/asap3/petra3/gpfs/p05/2019/data/11006040/raw/038_chondrofiller_mit_Zellen_Osmi';
+    '/asap3/petra3/gpfs/p05/2019/data/11006040/raw/037_human_h2_2400_h2';
+    '/asap3/petra3/gpfs/p05/2019/data/11006040/raw/026_equine_E2_2400_fast';
+    %'/asap3/petra3/gpfs/p05/2019/data/11006040/raw/025_equine_E2_2400_h1';
+    '/asap3/petra3/gpfs/p05/2019/data/11006040/raw/022_Setup_Chon_W_Cell';
+    '/asap3/petra3/gpfs/p05/2019/data/11006040/raw/021_human_H2';
+    '/asap3/petra3/gpfs/p05/2019/data/11006040/raw/021_equine_E2_2400_h1';
      '/asap3/petra3/gpfs/p05/2019/data/11006040/raw/016_human_H1_2400_h1';
     '/asap3/petra3/gpfs/p05/2019/data/11006040/raw/018_human_H1_2400_1m';
     '/asap3/petra3/gpfs/p05/2019/data/11006040/raw/007_human_o1_2400_h1';
@@ -63,7 +86,7 @@ sample_detector_distance = []; % in m. if empty: read from log file
 eff_pixel_size = []; % in m. if empty: read from log file. effective pixel size =  detector pixel size / magnification
 pix_scaling = 1; % to account for beam divergence if pixel size was determined (via MTF) at single distance only
 %%% PREPROCESSING %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-raw_roi = -5; % vertical and/or horizontal ROI; (1,1) coordinate = top left pixel; supports absolute, relative, negative, and mixed indexing.
+raw_roi = [1 500]; % vertical and/or horizontal ROI; (1,1) coordinate = top left pixel; supports absolute, relative, negative, and mixed indexing.
 % []: use full image;
 % [y0 y1]: vertical ROI, skips first raw_roi(1)-1 lines, reads until raw_roi(2); if raw_roi(2) < 0 reads until end - |raw_roi(2)|; relative indexing similar.
 % [y0 y1 x0 x1]: vertical + horzontal ROI, each ROI as above
@@ -125,7 +148,7 @@ phase_retrieval.padding = 1; % padding of intensities before phase retrieval, 0:
 tomo.run = 1; % run tomographic reconstruction
 tomo.run_interactive_mode = 1; % if tomo.run = 0, intendet to determine rot axis positions without processing the full tomogram;
 tomo.reco_mode = '3D'; 'slice'; % slice-wise or full 3D backprojection. 'slice': volume must be centered at origin & no support of rotation axis tilt, reco binning, save compressed
-tomo.vol_size = []; %[-0.5 0.5 -0.5 0.5 -0.5 0.5];% 6-component vector [xmin xmax ymin ymax zmin zmax], for excentric rot axis pos / extended FoV;. if empty, volume is centerd within tomo.vol_shape. unit voxel size is assumed. if smaller than 10 values are interpreted as relative size w.r.t. the detector size. Take care bout minus signs! Note that if empty vol_size is dependent on the rotation axis position.
+tomo.vol_size = [-1 1 -1 1 -0.5 0.5];% 6-component vector [xmin xmax ymin ymax zmin zmax], for excentric rot axis pos / extended FoV;. if empty, volume is centerd within tomo.vol_shape. unit voxel size is assumed. if smaller than 10 values are interpreted as relative size w.r.t. the detector size. Take care bout minus signs! Note that if empty vol_size is dependent on the rotation axis position.
 tomo.vol_shape = []; %[1 1 1] shape (# voxels) of reconstruction volume. used for excentric rot axis pos. if empty, inferred from 'tomo.vol_size'. in absolute numbers of voxels or in relative number w.r.t. the default volume which is given by the detector width and height.
 tomo.rot_angle.full_range = []; % in radians: empty ([]), full angle of rotation, or array of angles. if empty full rotation angles is determined automatically to pi or 2 pi
 tomo.rot_angle.offset = pi; % global rotation of reconstructed volume
@@ -157,7 +180,7 @@ write.subfolder.flatcor = ''; % subfolder in 'flat_corrected'
 write.subfolder.phase_map = ''; % subfolder in 'phase_map'
 write.subfolder.sino = ''; % subfolder in 'sino'
 write.subfolder.reco = ''; % subfolder in 'reco'
-write.flatcor = 0; % save preprocessed flat corrected projections
+write.flatcor = 1; % save preprocessed flat corrected projections
 write.flatcor_shift_cropped = 1; % save lateral shift corrected projections, projections are not interpolated, but cropped to nearest integer pixel
 write.phase_map = 0; % save phase maps (if phase retrieval is not 0)
 write.sino = 0; % save sinograms (after preprocessing & before FBP filtering and phase retrieval)
@@ -494,21 +517,27 @@ else
         case 'ehd'
             energy = double(h5read( h5log, '/entry/hardware/camera1/calibration/energy') );
             exposure_time = double(h5read( h5log, '/entry/hardware/camera1/calibration/exptime') );
-            im_shape_raw = [3056 3056];
+            %im_shape_raw = [3056 3056];
             dtype = 'uint16';
         case 'kit'
             energy = double(h5read( h5log, '/entry/hardware/camera2/calibration/energy') );
             exposure_time = double(h5read( h5log, '/entry/hardware/camera2/calibration/exptime') );
-            im_shape_raw = [5120 3840];
+            %im_shape_raw = [5120 3840];
             dtype = 'uint16';
     end
-    if exist('fast_reco','var') && fast_reco(1)
-        raw_bin = min( floor( max( im_shape_raw ) / 700 ), 4 );
-    end
+    
     eff_pixel_size_binned = raw_bin * eff_pixel_size;
     % Image shape
     filename = sprintf('%s%s', scan_path, ref_names{1});
-    [im_raw, tif_info] = read_image( filename, '', [], tif_info, im_shape_raw, dtype, im_trafo );
+    
+    %% mod: breask raw data support
+    %[im_raw, tif_info] = read_image( filename, '', [], tif_info, im_shape_raw, dtype, im_trafo );
+    [im_raw, tif_info] = read_image( filename, '', [], tif_info, [], dtype, im_trafo );    
+    im_shape_raw = size( im_raw );
+    
+    if exist('fast_reco','var') && fast_reco(1)
+        raw_bin = min( floor( max( im_shape_raw ) / 700 ), 4 );
+    end
     % images
     stimg_name.value = unique( h5read( h5log, '/entry/scan/data/image_file/value') );
     stimg_name.time = h5read( h5log,'/entry/scan/data/image_file/time');

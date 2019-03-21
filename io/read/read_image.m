@@ -54,19 +54,19 @@ switch lower( filetype )
             
             case 1
                 x0 = 1;
-                x1 = tif_info.Width;
+                x1 = tif_info.Height;
                 y0 = 1;
-                y1 = tif_info.Height;
+                y1 = tif_info.Width;
                 if numel( roi ) > 1
-                    y0 = max( (tif_info.Height-roi(2)+1), 1 );
-                    y1 = min( (tif_info.Height-roi(1)+1), tif_info.Height);
+                    y0 = max( (tif_info.Width-roi(2)+1), 1 );
+                    y1 = min( (tif_info.Width-roi(1)+1), tif_info.Width);
                 end
                 %% Implement horizontal ROI
                 if numel( roi ) > 3
                     error( 'Horizontal ROI not yet implemented for TIFF orientation case 4' )
                 end
                 im = rot90( imread( filename, 'tif', 'PixelRegion', {[x0 x1 ], [y0 y1]} ), 2);
-                
+                                
             case 3
                 %% Check vert/hor ROI
 %                 x0 = 1;
