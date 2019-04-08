@@ -5,6 +5,8 @@
 %% Interactive/feedback loop for phase retrievalInteractive/feedback loop for iterative methods
 %% TODO: WHY EPS for rao in astra_parallel3d!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 %% TODO: save reco loop script under current user directory
+% TOOD: log git commit version
+% TODO: 
 % TODO: help on FBP filters
 % TODO: update log file paameters
 % TODO: check missing proj mod for stitching etc

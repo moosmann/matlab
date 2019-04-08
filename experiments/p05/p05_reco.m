@@ -40,44 +40,7 @@ stop_after_proj_flat_correlation(1) = 0; % for data analysis, after flat field c
 
 %%% SCAN %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 scan_path = ...
-    '/asap3/petra3/gpfs/p05/2019/data/11006387/raw/ucl_pate_10_a';
-    '/asap3/petra3/gpfs/p05/2019/data/11006387/raw/ucl_pate_09_a';
-    '/asap3/petra3/gpfs/p05/2019/data/11006040/raw/078_chondrofiller_Z_EV28_2m180_dist1000';
-    '/asap3/petra3/gpfs/p05/2019/data/11006040/raw/053_human_OA2_h1';
-    '/asap3/petra3/gpfs/p05/2019/data/11006040/raw/044_chondofiller_Estim_m_Zellen_Osmi';
-    '/asap3/petra3/gpfs/p05/2019/data/11006040/raw/049_equine_E1_h3';
-    '/asap3/petra3/gpfs/p05/2019/data/11006040/raw/031_equine_E2_2400_h5/';
-    '/asap3/petra3/gpfs/p05/2019/data/11006040/raw/046_chondofiller_Osmi_h2';
-    '/asap3/petra3/gpfs/p05/2019/data/11006040/raw/047_equine_E1_h1';
-    '/asap3/petra3/gpfs/p05/2019/data/11006040/raw/031_equine_E2_2400_h5';
-    '/asap3/petra3/gpfs/p05/2019/data/11006040/raw/040_equine_E3_h2';
-    '/asap3/petra3/gpfs/p05/2019/data/11006040/raw/046_chondofiller_Osmi';
-    '/asap3/petra3/gpfs/p05/2019/data/11006040/raw/030_equine_E2_2400_h4/';
-    '/asap3/petra3/gpfs/p05/2019/data/11006040/raw/043_equine_E3_h5';
-    '/asap3/petra3/gpfs/p05/2019/data/11006040/raw/042_equine_E3_h4';
-    '/asap3/petra3/gpfs/p05/2019/data/11006040/raw/041_equine_E3_h2';
-    '/asap3/petra3/gpfs/p05/2019/data/11006040/raw/039_equine_E3_h1';
-    '/asap3/petra3/gpfs/p05/2019/data/11006040/raw/038_chondrofiller_mit_Zellen_Osmi';
-    '/asap3/petra3/gpfs/p05/2019/data/11006040/raw/037_human_h2_2400_h2';
-    '/asap3/petra3/gpfs/p05/2019/data/11006040/raw/026_equine_E2_2400_fast';
-    %'/asap3/petra3/gpfs/p05/2019/data/11006040/raw/025_equine_E2_2400_h1';
-    '/asap3/petra3/gpfs/p05/2019/data/11006040/raw/022_Setup_Chon_W_Cell';
-    '/asap3/petra3/gpfs/p05/2019/data/11006040/raw/021_human_H2';
-    '/asap3/petra3/gpfs/p05/2019/data/11006040/raw/021_equine_E2_2400_h1';
-     '/asap3/petra3/gpfs/p05/2019/data/11006040/raw/016_human_H1_2400_h1';
-    '/asap3/petra3/gpfs/p05/2019/data/11006040/raw/018_human_H1_2400_1m';
-    '/asap3/petra3/gpfs/p05/2019/data/11006040/raw/007_human_o1_2400_h1';
-    '/asap3/petra3/gpfs/p05/2019/data/11006040/raw/017_human_H1_2400_h2';
-    '/asap3/petra3/gpfs/p05/2019/data/11006040/raw/015_human_H1_2400';
-    '/asap3/petra3/gpfs/p05/2019/data/11006040/raw/014_human_o4_2400_h2';
-        %'/asap3/petra3/gpfs/p05/2019/data/11006040/raw/005_human_test_02';
-    '/asap3/petra3/gpfs/p05/2019/data/11006040/raw/006_human_O1';
-    '/asap3/petra3/gpfs/p05/2019/data/11006040/raw/003_human_test_01';
-    '/asap3/petra3/gpfs/p05/2019/data/11006040/raw/002_human_test_01';
     '/asap3/petra3/gpfs/p05/2018/data/11005553/raw/syn026_femur_55L_000';
-    '/asap3/petra3/gpfs/p05/2018/data/11005338/raw/ehh_004_00';
-    '/asap3/petra3/gpfs/p05/2018/data/11005338/raw/ehh_011_02';
-    '/asap3/petra3/gpfs/p05/2018/data/11005490/raw/0003_sample_02';
     '/asap3/petra3/gpfs/p05/2017/data/11003440/raw/syn40_69L_Mg10Gd_12w';
 read_flatcor = 0; % read flatfield-corrected images from disc, skips preprocessing
 read_flatcor_path = ''; % subfolder of 'flat_corrected' containing projections
@@ -86,14 +49,14 @@ sample_detector_distance = []; % in m. if empty: read from log file
 eff_pixel_size = []; % in m. if empty: read from log file. effective pixel size =  detector pixel size / magnification
 pix_scaling = 1; % to account for beam divergence if pixel size was determined (via MTF) at single distance only
 %%% PREPROCESSING %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-raw_roi = [1 500]; % vertical and/or horizontal ROI; (1,1) coordinate = top left pixel; supports absolute, relative, negative, and mixed indexing.
+raw_roi = -1; % vertical and/or horizontal ROI; (1,1) coordinate = top left pixel; supports absolute, relative, negative, and mixed indexing.
 % []: use full image;
 % [y0 y1]: vertical ROI, skips first raw_roi(1)-1 lines, reads until raw_roi(2); if raw_roi(2) < 0 reads until end - |raw_roi(2)|; relative indexing similar.
 % [y0 y1 x0 x1]: vertical + horzontal ROI, each ROI as above
 % if negative scalar [y]: auto roi, selects vertical ROI automatically for DCM. Not working for *.raw data where images are flipped and DMM data.
-raw_bin = 2; % projection binning factor: integer
+raw_bin = 4; % projection binning factor: integer
 im_trafo = ''; % string to be evaluated after reading data in the case the image is flipped/rotated/etc due to changes at the beamline, e.g. 'rot90(im)'
-bin_before_filtering(1) = 1; % Apply binning before filtering pixel. less effective, but much faster especially for KIT camera.
+bin_before_filtering(1) = 0; % Apply binning before filtering pixel. less effective, but much faster especially for KIT camera.
 excentric_rot_axis = 0; % off-centered rotation axis increasing FOV. -1: left, 0: centeerd, 1: right. influences tomo.rot_axis.corr_area1
 crop_at_rot_axis = 0; % for recos of scans with excentric rotation axis but WITHOUT projection stitching
 stitch_projections = 0; % for 2 pi scans: stitch projection at rotation axis position. Recommended with phase retrieval to reduce artefacts. Standard absorption contrast data should work well without stitching. Subpixel stitching not supported (non-integer rotation axis position is rounded, less/no binning before reconstruction can be used to improve precision).
@@ -174,7 +137,7 @@ tomo.sirt.MinConstraint = []; % If specified, all values below MinConstraint wil
 tomo.sirt.MaxConstraint = []; % If specified, all values above MaxConstraint will be set to MaxConstraint.
 %%% OUTPUT %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 write.path = ''; %'/gpfs/petra3/scratch/moosmanj'; % absolute path were output data will be stored. !!overwrites the write.to_scratch flag. if empty uses the beamtime directory and either 'processed' or 'scratch_cc'
-write.to_scratch = 1; % write to 'scratch_cc' instead of 'processed'
+write.to_scratch = 0; % write to 'scratch_cc' instead of 'processed'
 write.parfolder = '';% parent folder to 'reco', 'sino', 'phase', and 'flat_corrected'
 write.subfolder.flatcor = ''; % subfolder in 'flat_corrected'
 write.subfolder.phase_map = ''; % subfolder in 'phase_map'
@@ -183,7 +146,8 @@ write.subfolder.reco = ''; % subfolder in 'reco'
 write.flatcor = 1; % save preprocessed flat corrected projections
 write.flatcor_shift_cropped = 1; % save lateral shift corrected projections, projections are not interpolated, but cropped to nearest integer pixel
 write.phase_map = 0; % save phase maps (if phase retrieval is not 0)
-write.sino = 0; % save sinograms (after preprocessing & before FBP filtering and phase retrieval)
+write.sino = 1; % save sinograms (after preprocessing & before FBP filtering and phase retrieval)
+write.sino_shift_cropped = 1; % save cropped sinos without lateral shift
 write.phase_sino = 0; % save sinograms of phase maps
 write.reco = 1; % save reconstructed slices (if tomo.run=1)
 write.float = 1; % single precision (32-bit float) tiff
@@ -213,7 +177,7 @@ interactive_mode.slice_number = 0.5; % default slice number. if in [0,1): relati
 interactive_mode.phase_retrieval = 1; % Interactive retrieval to determine regularization parameter
 %%% HARDWARE / SOFTWARE %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 use_cluster = 0; % if available: on MAXWELL nodes disp/nova/wga/wgs cluster computation can be used. Recommended only for large data sets since parpool creation and data transfer implies a lot of overhead.
-poolsize = 0.80; % number of workers used in a local parallel pool. if 0: use current config. if >= 1: absolute number. if 0 < poolsize < 1: relative amount of all cores to be used. if SLURM scheduling is available, a default number of workers is used.
+poolsize = 0.70; % number of workers used in a local parallel pool. if 0: use current config. if >= 1: absolute number. if 0 < poolsize < 1: relative amount of all cores to be used. if SLURM scheduling is available, a default number of workers is used.
 tomo.astra_link_data = 1; % ASTRA data objects become references to Matlab arrays. Reduces memory issues.
 tomo.astra_gpu_index = []; % GPU Device index to use, Matlab notation: index starts from 1. default: [], uses all
 %%% EXPERIMENTAL OR NOT YET IMPLEMENTED %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -647,7 +611,7 @@ if ~isempty( raw_roi ) % else AUTO ROI
         if raw_roi(1) < 1 % indicate AUTO ROI
             % Make roi_fac dependent on dark field
             if raw_roi(1) == -1
-                roi_fac = 2;
+                roi_fac = 4;
             elseif raw_roi(1) < -1
                 roi_fac = abs( raw_roi );
             end
@@ -667,23 +631,31 @@ if ~isempty( raw_roi ) % else AUTO ROI
                 filename = sprintf('%s%s', scan_path, ref_names{mm});
                 im_raw2 = read_image( filename, '', [], tif_info, im_shape_raw, dtype, im_trafo );
             end
-            % Compute crop position
-            mm = median( (FilterPixel( im_raw, [0.1 0.1]) + FilterPixel( im_raw2, [0.1 0.1]) ) / 2, 1);
-            roi_thresh = roi_fac * double( min(mm) );
-            [~,p] = min(abs(mm - roi_thresh));
-            %%% IMPROVE STABILITY !!!
-            dp = 200;
-            if p < im_shape_raw(1)/2
-                pl = p;
-                [~,pr] = min(abs(mm(p+dp:end) - roi_thresh));
-                pr = p + dp + pr;
-            else
-                pr = p;
-                [~,pl] = min(abs(mm(1:p-dp) - roi_thresh));
+            % Read non-zero dark
+            mm = 1;
+            im_raw_dark = 0;
+            while mean2( im_raw_dark ) == 0
+                mm = mm + 1;
+                filename = sprintf('%s%s', scan_path, dark_names{mm});
+                im_raw_dark = read_image( filename, '', [], tif_info, im_shape_raw, dtype, im_trafo );
             end
-            pl = max( round( pl, -2), 1 );
-            pr = min( round( pr, -2), im_shape_raw(2) );
-            raw_roi = [pl pr];
+            % Threshold
+            im_raw_line = median( im_raw / 2 + im_raw2 / 2, 1);
+            roi_thresh = double( min( im_raw_line ) + roi_fac * median( im_raw_dark(:) ) );
+            % Crop indices
+            pl = 1;
+            while im_raw_line(pl) < roi_thresh && pl < im_shape_raw(2) / 2 - 100
+                pl = pl + 1;
+            end
+            pl = 10 * ceil( pl / 10 );
+            pr = im_shape_raw(2);
+            while im_raw_line(pr) < roi_thresh && pr > im_shape_raw(2) / 2 + 100
+                pr = pr - 1;
+            end
+            pl = 10 * floor( pl / 10 );
+            raw_roi = double( [pl pr] );
+            prnt( '\n vertical auto roi : [%u %u]', raw_roi )
+
             if visual_output(1)
                 figure('Name', 'Auto ROI: raw image and cropping region');
                 
@@ -699,7 +671,7 @@ if ~isempty( raw_roi ) % else AUTO ROI
                 camroll(90)
                 
                 subplot(1,2,2)
-                plot( [mm'  roi_thresh*(ones(numel(mm),1))])
+                plot( [im_raw_line' repmat( roi_thresh, [numel(im_raw_line) 1]) ] )
                 camroll(90)
                 title(sprintf('horizontal projection and cut level'))
                 axis tight
@@ -707,8 +679,8 @@ if ~isempty( raw_roi ) % else AUTO ROI
                 ax.YAxisLocation = 'right';
                 ax.XDir = 'reverse';
                 ax.YDir = 'normal';
-                text(raw_roi(1), 2 * roi_thresh,sprintf('raw roi(1)=%u', raw_roi(1)))
-                text(raw_roi(2), 2 * roi_thresh,sprintf('raw roi(2)=%u', raw_roi(2)))
+                text( raw_roi(1), roi_thresh + 80, sprintf('raw roi(1)=%u', raw_roi(1) ) )
+                text( raw_roi(2), roi_thresh + 80, sprintf('raw roi(2)=%u', raw_roi(2) ) )
                 
                 drawnow
             end
@@ -1188,7 +1160,6 @@ elseif ~read_flatcor
                 im = rot90( im(x0(nn):x1(nn), :) ), offset_shift;
                 write32bitTIFfromSingle(filename, im );
             end
-            
         else
             % with lateral shift
             parfor nn = 1:size( proj, 3 )
@@ -1843,10 +1814,20 @@ if write.sino
     t = toc;
     prnt( '\nSave sinogram:')
     CheckAndMakePath(sino_path)
-    % Save slices
-    parfor nn = 1:im_shape_binned2
-        filename = sprintf( '%ssino_%06u.tif', sino_path, nn);
-        write32bitTIFfromSingle( filename, squeeze( proj( :, nn, :) )' )
+    % Save cropped sinos withou lateral shift
+    if numel(offset_shift) > 1 && isfield(write, 'sino_shift_cropped') && write.sino_shift_cropped
+        parfor nn = 1:im_shape_binned2
+            filename = sprintf( '%ssino_%06u.tif', sino_path, nn);
+            sino = squeeze( proj( :, nn, :) )';
+            sinoc = CropShift( sino, offset_shift );
+            write32bitTIFfromSingle( filename, sinoc )
+        end
+    else
+        % Savce sino with lateral shift
+        parfor nn = 1:im_shape_binned2
+            filename = sprintf( '%ssino_%06u.tif', sino_path, nn);
+            write32bitTIFfromSingle( filename, squeeze( proj( :, nn, :) )' )
+        end
     end
     pause(0.01)
     prnt( ' done in %.1f s (%.2f min)', toc-t, (toc-t)/60)
