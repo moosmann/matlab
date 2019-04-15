@@ -23,6 +23,9 @@ export PYTHONPATH=$ASTRA_PATH/python:$PYTHONPATH
 #export LD_LIBRARY_PATH=/home/moosmanj/gcc/gcc/lib64/:$LD_LIBRARY_PATH
 #export PATH=/home/moosmanj/gcc/gcc/bin:$PATH
 
+# Git
+export GIT_COMMIT_ID=$(git rev-parse HEAD)
+
 echo -e 'Set environment variables:'
 echo -e 'TZ:' $TZ
 echo -e 'PATH:' $PATH
@@ -30,6 +33,7 @@ echo -e 'LD_LIBRARY_PATH:' $LD_LIBRARY_PATH
 echo -e 'ASTRA_PATH:' $ASTRA_PATH
 echo -e 'PYTHONPATH:' $PYTHONPATH
 echo -e 'MATLAB_PATH:' $MATLAB_PATH
+echo -e 'GIT_COMMIT_ID:' $GIT_COMMIT_ID
 echo -e 'Starting MATLAB.\n'
 
 matlab_$MATLAB_VERSION

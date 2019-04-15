@@ -37,6 +37,9 @@ fprintf( '\nFiji path : %s', path_to_fiji );
 %% MATLAB path
 fprintf( '\nMATLAB_PATH : %s', getenv( 'MATLAB_PATH' ) );
 
+%% Git repository version
+fprintf( '\nGit commit ID : %s', git_commit_id );
+
 %% Set default color map to grayscale instead of jet
 set(groot, 'DefaultFigureColormap', gray)
 close all;
