@@ -1,4 +1,4 @@
-function stack = read_images_to_stack(InputPath,StepSize_or_VecOfImagesToRead,FilenamePattern, raw_im_shape)
+function stack = read_images_to_stack(InputPath,StepSize_or_VecOfImagesToRead,FilenamePattern, raw_im_shape, parloop, verbose)
 % Read images (default: tif) into 3D stack.
 %
 % Written by Julian Moosmann, first version: 2010. long ago, last version:
@@ -17,6 +17,12 @@ end
 if nargin < 4
     raw_im_shape = 'kit';
 end
+if nargin < 5
+    parloop = 0;
+end
+if nargin < 6
+    verbose = 1;
+end
 
 %% MAIN %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 tic
@@ -29,6 +35,10 @@ end
 CheckTrailingSlash(InputPath);
 files = FilenameCell(sprintf('%s%s',InputPath,FilenamePattern));
 NumFiles = numel(files);
+if verbose
+    fprintf('Found %u files matching string pattern ''%s'' in directory ''%s''\n',NumFiles,FilenamePattern,InputPath);
+end
+    
 
 %% Read images into stack
 if numel(StepSize_or_VecOfImagesToRead) == 1
@@ -63,5 +73,6 @@ switch lower(FilenamePattern(end-2:end))
 end
 
 %% Print info
-fprintf('Found %u files matching string pattern ''%s'' in directory ''%s''\n',NumFiles,FilenamePattern,InputPath);
-fprintf('Read %u into stack of dimension [%u %u %u] in %g s = %.2g min \n',NumFilesToRead,size(stack),toc,toc/60);
+if verbose
+    fprintf('Read %u images into volume [%u %u %u] in %g s = %.2g min \n',NumFilesToRead,size(stack),toc,toc/60);
+end

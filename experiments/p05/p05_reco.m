@@ -40,6 +40,7 @@ stop_after_proj_flat_correlation(1) = 0; % for data analysis, after flat field c
 
 %%% SCAN %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 scan_path = ...
+    '/asap3/petra3/gpfs/p05/2019/data/11007559/processed/smf_01_sample_1';
     '/asap3/petra3/gpfs/p05/2018/data/11005553/raw/syn026_femur_55L_000';
     '/asap3/petra3/gpfs/p05/2017/data/11003440/raw/syn40_69L_Mg10Gd_12w';
 read_flatcor = 0; % read flatfield-corrected images from disc, skips preprocessing
@@ -49,14 +50,15 @@ sample_detector_distance = []; % in m. if empty: read from log file
 eff_pixel_size = []; % in m. if empty: read from log file. effective pixel size =  detector pixel size / magnification
 pix_scaling = 1; % to account for beam divergence if pixel size was determined (via MTF) at single distance only
 %%% PREPROCESSING %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-raw_roi = -1; % vertical and/or horizontal ROI; (1,1) coordinate = top left pixel; supports absolute, relative, negative, and mixed indexing.
+raw_roi = -8; % vertical and/or horizontal ROI; (1,1) coordinate = top left pixel; supports absolute, relative, negative, and mixed indexing.
 % []: use full image;
 % [y0 y1]: vertical ROI, skips first raw_roi(1)-1 lines, reads until raw_roi(2); if raw_roi(2) < 0 reads until end - |raw_roi(2)|; relative indexing similar.
 % [y0 y1 x0 x1]: vertical + horzontal ROI, each ROI as above
-% if negative scalar [y]: auto roi, selects vertical ROI automatically for DCM. Not working for *.raw data where images are flipped and DMM data.
+% if -1: auto roi, selects vertical ROI automatically. Use only for DCM. Not working for *.raw data where images are flipped and DMM data. 
+% if < -1: Threshold is set as min(proj(:,:,[1 end])) + abs(raw_roi)*median(dark(:)). raw_roi=-1 defaults to min(proj(:,:,[1 end])) + 4*median(dark(:))
 raw_bin = 4; % projection binning factor: integer
 im_trafo = ''; % string to be evaluated after reading data in the case the image is flipped/rotated/etc due to changes at the beamline, e.g. 'rot90(im)'
-bin_before_filtering(1) = 0; % Apply binning before filtering pixel. less effective, but much faster especially for KIT camera.
+bin_before_filtering(1) = 1; % Apply binning before filtering pixel. less effective, but much faster especially for KIT camera.
 excentric_rot_axis = 0; % off-centered rotation axis increasing FOV. -1: left, 0: centeerd, 1: right. influences tomo.rot_axis.corr_area1
 crop_at_rot_axis = 0; % for recos of scans with excentric rotation axis but WITHOUT projection stitching
 stitch_projections = 0; % for 2 pi scans: stitch projection at rotation axis position. Recommended with phase retrieval to reduce artefacts. Standard absorption contrast data should work well without stitching. Subpixel stitching not supported (non-integer rotation axis position is rounded, less/no binning before reconstruction can be used to improve precision).
@@ -100,7 +102,7 @@ strong_abs_thresh = 1; % if 1: does nothing, if < 1: flat-corrected values below
 decimal_round_precision = 2; % precision when rounding pixel shifts
 %%% PHASE RETRIEVAL %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 phase_retrieval.apply = 1; % See 'PhaseFilter' for detailed description of parameters !
-phase_retrieval.apply_before = 0; % before stitching, interactive mode, etc. For phase-contrast data with an excentric rotation axis phase retrieval should be done afterwards. To find the rotataion axis position use this option in a first run, and then turn it of afterwards.
+phase_retrieval.apply_before = 1; % before stitching, interactive mode, etc. For phase-contrast data with an excentric rotation axis phase retrieval should be done afterwards. To find the rotataion axis position use this option in a first run, and then turn it of afterwards.
 phase_retrieval.post_binning_factor = 1; % Binning factor after phase retrieval, but before tomographic reconstruction
 phase_retrieval.method = 'tie';'qp';'qpcut'; %'qp' 'ctf' 'tie' 'qp2' 'qpcut'
 phase_retrieval.reg_par = 1.5; % regularization parameter. larger values tend to blurrier images. smaller values tend to original data.
@@ -219,6 +221,7 @@ if ~phase_retrieval.apply
     phase_retrieval.post_binning_factor = 0;
 end
 %% Preprocessing up to proj/flat correlation %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+deleteFiles = 1;
 tic
 if ~exist( 'pixel_filter_radius', 'var') || isempty( pixel_filter_radius )
     pixel_filter_radius = [3 3];
@@ -233,7 +236,8 @@ end
 imsc1 = @(im) imsc( rot90( im ) );
 prnt = @(varargin) PrintVerbose( verbose, varargin{:});
 prnt( 'Start reconstruction of ')
-warning( 'off', 'MATLAB:imagesci:rtifc:missingPhotometricTag');
+warning( 'off', 'MATLAB:imagesci:rtifc:missingPhotometricTag' );
+warning( 'off', 'MATLAB:hg:AutoSoftwareOpenGL' );
 NameCellToMat = @(name_cell) reshape(cell2mat(name_cell), [numel(name_cell{1}), numel(name_cell)])';
 astra_clear % if reco was aborted, ASTRA memory is not cleared
 if ~isempty( tomo.rot_axis.offset ) && ~isempty( tomo.rot_axis.position )
@@ -652,9 +656,9 @@ if ~isempty( raw_roi ) % else AUTO ROI
             while im_raw_line(pr) < roi_thresh && pr > im_shape_raw(2) / 2 + 100
                 pr = pr - 1;
             end
-            pl = 10 * floor( pl / 10 );
+            pr = 10 * floor( pr / 10 );
             raw_roi = double( [pl pr] );
-            prnt( '\n vertical auto roi : [%u %u]', raw_roi )
+            prnt( '\n vertical auto roi : [%u %u], roi threshold factor : %g', raw_roi, roi_fac )
 
             if visual_output(1)
                 figure('Name', 'Auto ROI: raw image and cropping region');
@@ -673,7 +677,7 @@ if ~isempty( raw_roi ) % else AUTO ROI
                 subplot(1,2,2)
                 plot( [im_raw_line' repmat( roi_thresh, [numel(im_raw_line) 1]) ] )
                 camroll(90)
-                title(sprintf('horizontal projection and cut level'))
+                title(sprintf('horizontal projection and cut level\nthreshold factor: %g', roi_fac ))
                 axis tight
                 ax = gca;
                 ax.YAxisLocation = 'right';
@@ -1148,7 +1152,7 @@ elseif ~read_flatcor
     if write.flatcor
         t = toc;
         prnt( '\nSave flat-corrected projections.')
-        CheckAndMakePath( flatcor_path )
+        CheckAndMakePath( flatcor_path, deleteFiles )
         
         if numel(offset_shift) > 1 && isfield(write, 'flatcor_shift_cropped') && write.flatcor_shift_cropped
             % lateral shift corrected
@@ -1813,7 +1817,7 @@ end
 if write.sino
     t = toc;
     prnt( '\nSave sinogram:')
-    CheckAndMakePath(sino_path)
+    CheckAndMakePath(sino_path, deleteFiles)
     % Save cropped sinos withou lateral shift
     if numel(offset_shift) > 1 && isfield(write, 'sino_shift_cropped') && write.sino_shift_cropped
         parfor nn = 1:im_shape_binned2
@@ -1981,7 +1985,7 @@ if tomo.run
             if phase_retrieval.apply
                 reco_path = write.reco_phase_path;
             end
-            CheckAndMakePath( reco_path )
+            CheckAndMakePath( reco_path, 0 )
             
             % Save ortho slices x
             nn = round( size( vol, 1 ) / 2);
@@ -2007,7 +2011,7 @@ if tomo.run
             end
             if write.reco
                 reco_bin = write.reco_binning_factor; % alias for readablity
-                CheckAndMakePath( reco_path )
+                CheckAndMakePath( reco_path, 0 )
                 
                 % Save reco path to file
                 filename = [userpath, filesep, 'experiments/p05/path_to_latest_reco'];
@@ -2016,7 +2020,7 @@ if tomo.run
                 fclose( fid );
                 
                 % Single precision: 32-bit float tiff
-                write_volume( write.float, vol, 'float', reco_path, raw_bin, phase_bin, 1, 0, verbose);
+                write_volume( write.float, vol, 'float', reco_path, raw_bin, phase_bin, 1, 0, verbose, '', deleteFiles);
                 
                 % Compression of dynamic range
                 if write.uint8 || write.uint8_binned || write.uint16 || write.uint16_binned
@@ -2027,10 +2031,10 @@ if tomo.run
                 end
                 
                 % 16-bit tiff
-                write_volume( write.uint16, (vol - tlow)/(thigh - tlow), 'uint16', reco_path, raw_bin, phase_bin, 1, 0, verbose);
+                write_volume( write.uint16, (vol - tlow)/(thigh - tlow), 'uint16', reco_path, raw_bin, phase_bin, 1, 0, verbose, '', deleteFiles);
                 
                 % 8-bit tiff
-                write_volume( write.uint8, (vol - tlow)/(thigh - tlow), 'uint8', reco_path, raw_bin, phase_bin, 1, 0, verbose);
+                write_volume( write.uint8, (vol - tlow)/(thigh - tlow), 'uint8', reco_path, raw_bin, phase_bin, 1, 0, verbose, '', deleteFiles);
                 
                 % Bin data
                 if write.float_binned || write.uint16_binned || write.uint8_binned || write.uint8_segmented
@@ -2041,18 +2045,18 @@ if tomo.run
                 end
                 
                 % Binned single precision: 32-bit float tiff
-                write_volume( write.float_binned, vol, 'float', reco_path, raw_bin, phase_bin, reco_bin, 0, verbose);
+                write_volume( write.float_binned, vol, 'float', reco_path, raw_bin, phase_bin, reco_bin, 0, verbose, '', deleteFiles);
                 
                 % 16-bit tiff binned
-                write_volume( write.uint16_binned, (vol - tlow)/(thigh - tlow), 'uint16', reco_path, raw_bin, phase_bin, reco_bin, 0, verbose);
+                write_volume( write.uint16_binned, (vol - tlow)/(thigh - tlow), 'uint16', reco_path, raw_bin, phase_bin, reco_bin, 0, verbose, '', deleteFiles);
                 
                 % 8-bit tiff binned
-                write_volume( write.uint8_binned, (vol - tlow)/(thigh - tlow), 'uint8', reco_path, raw_bin, phase_bin, reco_bin, 0, verbose);
+                write_volume( write.uint8_binned, (vol - tlow)/(thigh - tlow), 'uint8', reco_path, raw_bin, phase_bin, reco_bin, 0, verbose, '', deleteFiles);
                 
                 % segmentation
                 if write.uint8_segmented
                     [vol, out] = segment_volume(vol, 2^10, visual_output, verbose);
-                    save_path = write_volume( 1, vol/255, 'uint8', reco_path, raw_bin, phase_bin, reco_bin, 0, verbose, '_segmented');
+                    save_path = write_volume( 1, vol/255, 'uint8', reco_path, raw_bin, phase_bin, reco_bin, 0, verbose, '_segmented', deleteFiles);
                     save( sprintf( '%ssegmentation_info.m', save_path), 'out', '-mat', '-v7.3')
                 end
                 
@@ -2069,7 +2073,7 @@ if tomo.run
             
             if write.reco
                 reco_bin = write.reco_binning_factor; % alias for readablity
-                CheckAndMakePath( reco_path )
+                CheckAndMakePath( reco_path, 0 )
                 % Save reco path to file
                 filename = [userpath, filesep, 'experiments/p05/path_to_latest_reco'];
                 fid = fopen( filename , 'w' );
@@ -2119,7 +2123,7 @@ if tomo.run
                 %%% ADD other format options!!!!!!!!!!!!!!!!!!!!!!!!!
                 if write.reco
                     % Single precision: 32-bit float tiff
-                    write_volume( write.float, vol, 'float', reco_path, raw_bin, phase_bin, 1, ind(nn) - 1, 0);
+                    write_volume( write.float, vol, 'float', reco_path, raw_bin, phase_bin, 1, ind(nn) - 1, 0, '', deleteFiles);
                 end
                 
             end
@@ -2144,6 +2148,7 @@ if write.reco
     fprintf(fid, 'reco_path : %s\n', reco_path);
     fprintf(fid, 'MATLAB notation, index of first element: 1, range: first:stride:last\n');
     fprintf(fid, 'MATLAB version : %s\n', version);
+    fprintf(fid, 'Git commit ID : %s\n', git_commit_id);
     fprintf(fid, 'platform : %s\n', computer);
     fprintf(fid, 'camera : %s\n', cam);
     fprintf(fid, 'exposure_time : %f\n', exposure_time);

@@ -1,4 +1,4 @@
-function save_path = write_volume( tag, vol, output_type, reco_path, raw_bin, phase_bin, reco_bin, counter_offset, verbose, suffix )
+function save_path = write_volume( tag, vol, output_type, reco_path, raw_bin, phase_bin, reco_bin, counter_offset, verbose, suffix, deleteFiles )
 
 %% Default arguments %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 if nargin < 8
@@ -9,6 +9,9 @@ if nargin < 9
 end
 if nargin < 10
     suffix = '';
+end
+if nargin < 11
+    deleteFiles = 0;
 end
 
 %% Main %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -29,7 +32,7 @@ else
     PrintVerbose(verbose, ':')
     save_path = [save_path suffix];
     CheckTrailingSlash( save_path )
-    CheckAndMakePath( save_path )
+    CheckAndMakePath( save_path, deleteFiles )
         
     switch output_type
         
