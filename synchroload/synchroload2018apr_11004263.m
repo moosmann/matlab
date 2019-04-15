@@ -1,4 +1,4 @@
-function p05_reco_loop_synchroload2018apr_11004263_000( SUBSETS, RUN_RECO, PRINT_PARAMETERS)
+function synchroload2018apr_11004263( SUBSETS, RUN_RECO, PRINT_PARAMETERS)
 % Template function to loop over data sets given in the 'PARAMETER / DATA
 % SETS' section below. The 'DEFAULT PARAMETERS' section defines the default
 % paramters. To add a data / parameter to the loop, define your
@@ -156,7 +156,7 @@ tomo.iterations = 40; % for 'sirt' or 'cgls'.
 tomo.sirt.MinConstraint = []; % If specified, all values below MinConstraint will be set to MinConstraint. This can be used to enforce non-negative reconstructions, for example.
 tomo.sirt.MaxConstraint = []; % If specified, all values above MaxConstraint will be set to MaxConstraint.
 %%% OUTPUT %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-write.path = '';'/gpfs/petra3/scratch/moosmanj';% absolute path were output data will be stored. !!overwrites the write.to_scratch flag. if empty uses the beamtime directory and either 'processed' or 'scratch_cc'
+write.path = '';% absolute path were output data will be stored. !!overwrites the write.to_scratch flag. if empty uses the beamtime directory and either 'processed' or 'scratch_cc'
 write.to_scratch = 0; % write to 'scratch_cc' instead of 'processed'
 write.parfolder = '';% parent folder to 'reco', 'sino', 'phase', and 'flat_corrected'
 write.subfolder.flatcor = ''; % subfolder in 'flat_corrected'
@@ -171,7 +171,7 @@ write.phase_sino = 1; % save sinograms of phase maps
 write.reco = 1; % save reconstructed slices (if tomo.run=1)
 write.float = 1; % single precision (32-bit float) tiff
 write.uint16 = 0; % save 16bit unsigned integer tiff using 'write.compression.method'
-write.uint8 = 1; % save binned 8bit unsigned integer tiff using 'write.compression.method'
+write.uint8 = 0; % save binned 8bit unsigned integer tiff using 'write.compression.method'
 % Optionally save binned reconstructions, only works in '3D' reco_mode
 write.float_binned = 0; % save binned single precision (32-bit float) tiff
 write.uint16_binned = 0; % save binned 16bit unsigned integer tiff using 'write.compression.method'
@@ -188,7 +188,7 @@ write.compression.parameter = [0.02 0.02]; % compression-method specific paramet
 %%% INTERACTION %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 verbose = 1; % print information to standard output
 visual_output = 1; % show images and plots during reconstruction
-interactive_mode.rot_axis_pos = 1; % reconstruct slices with dif+ferent rotation axis offsets
+interactive_mode.rot_axis_pos = 0; % reconstruct slices with dif+ferent rotation axis offsets
 interactive_mode.rot_axis_tilt = 0; % reconstruct slices with different offset AND tilts of the rotation axis
 interactive_mode.lamino = 0; % find laminography tilt instead camera rotation
 interactive_mode.fixed_other_tilt = 0; % fixed other tilt
@@ -225,8 +225,9 @@ scan_path = [raw_path 'syn005_90L_Mg10Gd_4w_a']; ADD
 tomo.rot_axis.offset = 0.75 / 2 * raw_bin; 
 scan_path = [raw_path 'syn005_90L_Mg10Gd_4w_b']; ADD
 
-% Still to do
+tomo.rot_axis.offset = 0.25 / 2 * raw_bin;
 scan_path = [raw_path 'syn006_101BR_Mg10Gd_4w_a']; ADD
+tomo.rot_axis.offset = 0.3 / 2 * raw_bin;
 scan_path = [raw_path 'syn006_101BR_Mg10Gd_4w_b']; ADD
 
 tomo.rot_axis.offset = -0.125 / 2 * raw_bin; 
@@ -244,8 +245,9 @@ scan_path = [raw_path 'syn009_64L_Mg5Gd_12w_a']; ADD
 tomo.rot_axis.offset = 0.85 / 2 * raw_bin; 
 scan_path = [raw_path 'syn009_64L_Mg5Gd_12w_b']; ADD
 
-% To do
+tomo.rot_axis.offset = -0.15 / 2 * raw_bin;
 scan_path = [raw_path 'syn010_78R_Mg10Gd_8w_a']; ADD
+interactive_mode.rot_axis_pos = 1;
 scan_path = [raw_path 'syn010_78R_Mg10Gd_8w_b']; ADD
 
 tomo.rot_axis.offset = 0.65 / 2 * raw_bin;

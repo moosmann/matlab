@@ -1,4 +1,4 @@
-function p05_reco_loop_synchroload2016sept( SUBSETS, RUN_RECO, PRINT_PARAMETERS)
+function synchroload2016sept( SUBSETS, RUN_RECO, PRINT_PARAMETERS)
 if nargin < 1
     SUBSETS = [];
 end

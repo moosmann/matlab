@@ -3,7 +3,7 @@
 %% Reco loop scripts %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 edit synchroload2016nov_11001978.m
 edit synchroload2016sept_check.m
-edit synchroload2016sept.m
+edit synchroload2016sept.m % c20160920_000_diana c20160913_000_synload
 edit synchroload2017may_11003950.m
 edit synchroload2017nov13_11004016.m
 edit synchroload2017nov23_11003288.m
