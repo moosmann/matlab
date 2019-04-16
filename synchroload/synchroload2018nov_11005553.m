@@ -176,7 +176,7 @@ write.uint8 = 1; % save binned 8bit unsigned integer tiff using 'write.compressi
 % Optionally save binned reconstructions, only works in '3D' reco_mode
 write.float_binned = 1; % save binned single precision (32-bit float) tiff
 write.uint16_binned = 0; % save binned 16bit unsigned integer tiff using 'write.compression.method'
-write.uint8_binned = 1; % save binned 8bit unsigned integer tiff using 'wwrite.compression.method'
+write.uint8_binned = 0; % save binned 8bit unsigned integer tiff using 'wwrite.compression.method'
 write.reco_binning_factor = 2; % IF BINNED VOLUMES ARE SAVED: binning factor of reconstructed volume
 write.compression.method =  'outlier';'threshold';'histo';'full'; 'std'; % method to compression dynamic range into [0, 1]
 write.compression.parameter = [0.02 0.02]; % compression-method specific parameter
@@ -331,6 +331,7 @@ scan_path = [raw_path 'syn022_LongTerm_18008_top']; ADD
 
 scan_path = [raw_path 'syn023_13R_PEEK_4w']; ADD
 
+%% To do
 interactive_mode.rot_axis_pos = 1;
 % 0-180: 0.75
 scan_path = [raw_path 'syn026_femur_55L_000']; ADD
@@ -340,6 +341,7 @@ scan_path = [raw_path 'syn027_20R_PEEK_4w']; ADD
 
 scan_path = [raw_path 'syn028_60L_Mg10Gd_12w']; ADD
 
+% Load
 scan_path = [raw_path 'syn029_84R_Mg5Gd_4w_000']; ADD
 scan_path = [raw_path 'syn029_84R_Mg5Gd_4w_001']; ADD
 scan_path = [raw_path 'syn029_84R_Mg5Gd_4w_002']; ADD
@@ -351,6 +353,9 @@ scan_path = [raw_path 'syn029_84R_Mg5Gd_4w_restart_006']; ADD
 scan_path = [raw_path 'syn030_84R_Mg5Gd_4w_restart_pushed']; ADD
 scan_path = [raw_path 'syn032_84R_Mg5Gd_4w_restart_pushed']; ADD
 
+% Good quality
+raw_bin = 3; % CMOS
+tomo.rot_axis.offset = 2.65 * 3 / raw_bin;
 scan_path = [raw_path 'syn033_68R_Mg10Gd_12w']; ADD
 
 scan_path = [raw_path 'syn034_59R_Mg5Gd_12w']; ADD

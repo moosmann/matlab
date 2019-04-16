@@ -34,12 +34,13 @@ close all hidden % close all open windows
 %% PARAMETERS / SETTINGS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-fast_reco = 0; % !!! OVERWRITES SOME PARAMETERS SET BELOW !!!
+fast_reco = 1; % !!! OVERWRITES SOME PARAMETERS SET BELOW !!!
 stop_after_data_reading(1) = 0; % for data analysis, before flat field correlation
 stop_after_proj_flat_correlation(1) = 0; % for data analysis, after flat field correlation
 
 %%% SCAN %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 scan_path = ...
+    '/asap3/petra3/gpfs/p05/2018/data/11005553/raw/syn033_68R_Mg10Gd_12w';
     '/asap3/petra3/gpfs/p05/2019/data/11007559/processed/smf_01_sample_1';
     '/asap3/petra3/gpfs/p05/2018/data/11005553/raw/syn026_femur_55L_000';
     '/asap3/petra3/gpfs/p05/2017/data/11003440/raw/syn40_69L_Mg10Gd_12w';
@@ -101,7 +102,7 @@ ring_filter.jm.median_width = 11; % multiple widths are applied consecutively, e
 strong_abs_thresh = 1; % if 1: does nothing, if < 1: flat-corrected values below threshold are set to one. Try with algebratic reco techniques.
 decimal_round_precision = 2; % precision when rounding pixel shifts
 %%% PHASE RETRIEVAL %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-phase_retrieval.apply = 1; % See 'PhaseFilter' for detailed description of parameters !
+phase_retrieval.apply = 0; % See 'PhaseFilter' for detailed description of parameters !
 phase_retrieval.apply_before = 1; % before stitching, interactive mode, etc. For phase-contrast data with an excentric rotation axis phase retrieval should be done afterwards. To find the rotataion axis position use this option in a first run, and then turn it of afterwards.
 phase_retrieval.post_binning_factor = 1; % Binning factor after phase retrieval, but before tomographic reconstruction
 phase_retrieval.method = 'tie';'qp';'qpcut'; %'qp' 'ctf' 'tie' 'qp2' 'qpcut'
@@ -1129,12 +1130,10 @@ elseif ~read_flatcor
         nn = round( size( proj, 2) / 2);
         % Crop lateral shift
         sino = squeeze( proj(:,nn,:) );
-        sino = CropShift( sino, offset_shift );
-        % Reorder angles to [0,2pi]
         [~,m] = sort( angles );
-        sino = sino(:,m);
-        imsc1( sino)
-        title(sprintf('sinogram: proj(:,%u,:) (shift corrected, sorted angles)', nn))
+        sinoc = CropShift( sino(:,m), offset_shift );
+        imsc1( sinoc )
+        title(sprintf('sinogram: proj(:,%u,:) (shift corrected)', nn))
         colorbar
         axis equal tight
         
@@ -1253,8 +1252,8 @@ if tomo.run || tomo.run_interactive_mode
     % ROI
     im1 = proj( tomo.rot_axis.corr_area1, tomo.rot_axis.corr_area2, ind1);
     im2 = flipud( proj( tomo.rot_axis.corr_area1, tomo.rot_axis.corr_area2, ind2) );
-    prnt( '\n correlated images : [filename index, projection index, angle / pi] = [%g, %g, %g] and [%g, %g, %g]', ...
-        proj_nums(ind1), ind1, val1 / pi, proj_nums(ind2), ind2, (val2 + pi) / pi )
+%     prnt( '\n correlated images : [filename index, projection index, angle / pi] = [%g, %g, %g] and [%g, %g, %g]', ...
+%         proj_nums(ind1), ind1, val1 / pi, proj_nums(ind2), ind2, (val2 + pi) / pi )
     if tomo.rot_axis.corr_gradient(1)
         l = 2;
         [g11, g12] = gradient(im1);
@@ -1267,13 +1266,13 @@ if tomo.run || tomo.run_interactive_mode
     % relative shift
     rot_corr_shift_x = round( out.shift1, decimal_round_precision) + tomo.rot_axis.corr_area1(1) + (tomo.rot_axis.corr_area1(end) - im_shape_binned1) - 1;
     rot_corr_shift_y = round( out.shift2, decimal_round_precision) + tomo.rot_axis.corr_area2(1) + (tomo.rot_axis.corr_area1(end) - im_shape_binned1) - 1;
-    prnt( '\n relative shift: %g, %g', rot_corr_shift_x, rot_corr_shift_y)
+    %prnt( '\n relative shift: %g, %g', rot_corr_shift_x, rot_corr_shift_y)
     rot_axis_offset_calc = rot_corr_shift_x / 2;
     if numel( offset_shift ) > 1
         rot_axis_offset_calc = offset_shift(ind1) - offset_shift(ind2);
     end
     rot_axis_pos_calc = im_shape_binned1 / 2 + rot_axis_offset_calc;
-    prnt( '\n calculated rotation axis offset: %.2f', rot_axis_offset_calc)
+    %prnt( '\n calculated rotation axis offset: %.2f', rot_axis_offset_calc)
     % use calculated offset if both offset and position are empty
     if isempty( tomo.rot_axis.offset ) && isempty( tomo.rot_axis.position )
         tomo.rot_axis.offset = rot_axis_offset_calc;
@@ -1296,7 +1295,7 @@ if tomo.run || tomo.run_interactive_mode
         [optimizer, metric] = imregconfig('monomodal');
         tform_calc = imregtform(im2c, im1c, 'rigid', optimizer, metric);
         rot_axis_tilt_calc = asin( tform_calc.T(1,2) ) / 2;
-        prnt( '\n calculated tilt of rotation axis : %g rad = %g deg', rot_axis_tilt_calc, rot_axis_tilt_calc * 180 / pi)
+        %prnt( '\n calculated tilt of rotation axis : %g rad = %g deg', rot_axis_tilt_calc, rot_axis_tilt_calc * 180 / pi)
     else
         rot_axis_tilt_calc = [];
     end
@@ -1822,12 +1821,12 @@ if write.sino
     if numel(offset_shift) > 1 && isfield(write, 'sino_shift_cropped') && write.sino_shift_cropped
         parfor nn = 1:im_shape_binned2
             filename = sprintf( '%ssino_%06u.tif', sino_path, nn);
-            sino = squeeze( proj( :, nn, :) )';
+            sino = squeeze( proj( :, nn, :) );
             sinoc = CropShift( sino, offset_shift );
-            write32bitTIFfromSingle( filename, sinoc )
+            write32bitTIFfromSingle( filename, rot90( sinoc, 1 ) )
         end
     else
-        % Savce sino with lateral shift
+        % Save sino with lateral shift
         parfor nn = 1:im_shape_binned2
             filename = sprintf( '%ssino_%06u.tif', sino_path, nn);
             write32bitTIFfromSingle( filename, squeeze( proj( :, nn, :) )' )
@@ -2133,6 +2132,7 @@ if tomo.run
 end
 
 %% Write reco log file %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+save( sprintf( '%sangles.mat', reco_path), 'angles_reco' );
 if write.reco
     logfile_path = reco_path;
 else

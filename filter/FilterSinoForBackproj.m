@@ -28,7 +28,7 @@ if nargin < 3
     filt_type = 'Ram-Lak';
 end
 if nargin < 4
-    pad_method = 0;
+    pad_method = 'symmetric';
 end
 if nargin < 5
     filt_len = 'twice';
