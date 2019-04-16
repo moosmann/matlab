@@ -167,6 +167,7 @@ write.flatcor = 1; % save preprocessed flat corrected projections
 write.flatcor_shift_cropped = 1; % save lateral shift corrected projections, projections are not interpolated, but cropped to nearest integer pixel
 write.phase_map = 0; % save phase maps (if phase retrieval is not 0)
 write.sino = 1; % save sinograms (after preprocessing & before FBP filtering and phase retrieval)
+write.sino_shift_cropped = 1; % save cropped sinos without lateral shift
 write.phase_sino = 0; % save sinograms of phase maps
 write.reco = 1; % save reconstructed slices (if tomo.run=1)
 write.float = 1; % single precision (32-bit float) tiff
