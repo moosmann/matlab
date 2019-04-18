@@ -41,11 +41,13 @@ stop_after_proj_flat_correlation(1) = 0; % for data analysis, after flat field c
 %%% SCAN %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 scan_path = ...
     '/asap3/petra3/gpfs/p05/2018/data/11005553/raw/syn033_68R_Mg10Gd_12w';
-    '/asap3/petra3/gpfs/p05/2019/data/11007559/processed/smf_01_sample_1';
-    '/asap3/petra3/gpfs/p05/2018/data/11005553/raw/syn026_femur_55L_000';
-    '/asap3/petra3/gpfs/p05/2017/data/11003440/raw/syn40_69L_Mg10Gd_12w';
-read_flatcor = 0; % read flatfield-corrected images from disc, skips preprocessing
+'/asap3/petra3/gpfs/p05/2019/data/11007559/processed/smf_01_sample_1';
+'/asap3/petra3/gpfs/p05/2018/data/11005553/raw/syn026_femur_55L_000';
+'/asap3/petra3/gpfs/p05/2017/data/11003440/raw/syn40_69L_Mg10Gd_12w';
+read_flatcor = 0; % read preprocessed flatfield-corrected projections. CHECK if negative log has to be taken!
 read_flatcor_path = ''; % subfolder of 'flat_corrected' containing projections
+read_sino = 0; % read preprocessed sinograms. CHECK if negative log has to be taken!
+read_sino_path = '/asap3/petra3/gpfs/p05/2019/data/11007559/processed/smf_01_sample_1/trans04'; % absolute path
 energy = []; % in eV! if empty: read from log file
 sample_detector_distance = []; % in m. if empty: read from log file
 eff_pixel_size = []; % in m. if empty: read from log file. effective pixel size =  detector pixel size / magnification
@@ -55,7 +57,7 @@ raw_roi = -8; % vertical and/or horizontal ROI; (1,1) coordinate = top left pixe
 % []: use full image;
 % [y0 y1]: vertical ROI, skips first raw_roi(1)-1 lines, reads until raw_roi(2); if raw_roi(2) < 0 reads until end - |raw_roi(2)|; relative indexing similar.
 % [y0 y1 x0 x1]: vertical + horzontal ROI, each ROI as above
-% if -1: auto roi, selects vertical ROI automatically. Use only for DCM. Not working for *.raw data where images are flipped and DMM data. 
+% if -1: auto roi, selects vertical ROI automatically. Use only for DCM. Not working for *.raw data where images are flipped and DMM data.
 % if < -1: Threshold is set as min(proj(:,:,[1 end])) + abs(raw_roi)*median(dark(:)). raw_roi=-1 defaults to min(proj(:,:,[1 end])) + 4*median(dark(:))
 raw_bin = 4; % projection binning factor: integer
 im_trafo = ''; % string to be evaluated after reading data in the case the image is flipped/rotated/etc due to changes at the beamline, e.g. 'rot90(im)'
@@ -172,7 +174,7 @@ write.compression.parameter = [0.02 0.02]; % compression-method specific paramet
 %%% INTERACTION %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 verbose = 1; % print information to standard output
 visual_output = 1; % show images and plots during reconstruction
-interactive_mode.rot_axis_pos = 1; % reconstruct slices with dif+ferent rotation axis offsets
+interactive_mode.rot_axis_pos = 0; % reconstruct slices with dif+ferent rotation axis offsets
 interactive_mode.rot_axis_tilt = 0; % reconstruct slices with different offset AND tilts of the rotation axis
 interactive_mode.lamino = 0; % find laminography tilt instead camera rotation
 interactive_mode.fixed_other_tilt = 0; % fixed other tilt
@@ -189,6 +191,9 @@ write.uint8_segmented = 0; % experimental: threshold segmentation for histograms
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%% END OF PARAMETERS / SETTINGS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+tic
+deleteFiles = 1;
 
 %%% Reco loop: parameters set by external call from 'p05_reco_loop' %%%%%%%
 if exist( 'external_parameter' ,'var')
@@ -221,26 +226,18 @@ end
 if ~phase_retrieval.apply
     phase_retrieval.post_binning_factor = 0;
 end
-%% Preprocessing up to proj/flat correlation %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-deleteFiles = 1;
-tic
+
+% Parameter checks
 if ~exist( 'pixel_filter_radius', 'var') || isempty( pixel_filter_radius )
     pixel_filter_radius = [3 3];
 end
 if interactive_mode.rot_axis_tilt && strcmpi( tomo.reco_mode, 'slice' )
     error( 'Slicewise reconstruction and reconstruction with tilted rotation axis are not compatible!' )
 end
-% set (relative) vol_shape from vol_size if vol_shape is empty, but vol_size is given
+% infer (relative) vol_shape from vol_size if vol_shape is empty, but vol_size is given
 if ~isempty( tomo.vol_size ) && isempty( tomo.vol_shape )
     tomo.vol_shape = tomo.vol_size(2:2:end) - tomo.vol_size(1:2:end);
 end
-imsc1 = @(im) imsc( rot90( im ) );
-prnt = @(varargin) PrintVerbose( verbose, varargin{:});
-prnt( 'Start reconstruction of ')
-warning( 'off', 'MATLAB:imagesci:rtifc:missingPhotometricTag' );
-warning( 'off', 'MATLAB:hg:AutoSoftwareOpenGL' );
-NameCellToMat = @(name_cell) reshape(cell2mat(name_cell), [numel(name_cell{1}), numel(name_cell)])';
-astra_clear % if reco was aborted, ASTRA memory is not cleared
 if ~isempty( tomo.rot_axis.offset ) && ~isempty( tomo.rot_axis.position )
     error('tomo.rot_axis.offset (%f) and tomo.rot_axis.position (%f) cannot be used simultaneously. One must be empty.', tomo.rot_axis.offset, tomo.rot_axis.position)
 end
@@ -248,6 +245,30 @@ if abs(excentric_rot_axis)
     if crop_at_rot_axis(1) && stitch_projections(1)
         error( 'Do not use ''stitch projections'' in combination with ''crop_at_rot_axis''. Cropping at rot axis only makes sense without stitching in order to avoid oversampling artefacts within the overlap region.' )
     end
+end
+astra_clear % if reco was aborted, ASTRA memory is not cleared
+
+% Utility functions
+imsc1 = @(im) imsc( rot90( im ) );
+prnt = @(varargin) PrintVerbose( verbose, varargin{:});
+NameCellToMat = @(name_cell) reshape(cell2mat(name_cell), [numel(name_cell{1}), numel(name_cell)])';
+
+% Disable annoying warnings
+warning( 'off', 'MATLAB:imagesci:rtifc:missingPhotometricTag' );
+warning( 'off', 'MATLAB:hg:AutoSoftwareOpenGL' );
+
+prnt( 'Start reconstruction of ')
+
+% Memory
+prnt( '\n hostname : %s', getenv( 'HOSTNAME' ) );
+[mem_free, mem_avail, mem_total] = free_memory;
+prnt( '\n system memory: free, available, total : %.3g GiB, %.3g GiB, %.3g GiB', mem_free/1024^3, mem_avail/1024^3, mem_total/1024^3)
+if isempty( tomo.astra_gpu_index )
+    tomo.astra_gpu_index = 1:gpuDeviceCount;
+end
+for nn = tomo.astra_gpu_index
+    gpu = parallel.gpu.GPUDevice.getDevice( nn );
+    prnt( '\n gpu %u memory : available, total, percent = %.3g GiB, %.3g GiB, %.2f%%', nn, gpu.AvailableMemory/1024^3, gpu.TotalMemory/1024^3, 100*gpu.AvailableMemory/gpu.TotalMemory)
 end
 
 %%%% Folders: input %%%
@@ -330,18 +351,6 @@ if isempty( write.subfolder.reco )
     reco_path = [write.path, filesep, 'reco', filesep];
 else
     reco_path = [write.path, filesep, 'reco', filesep, write.subfolder.reco, filesep];
-end
-
-% Memory
-prnt( '\n hostname : %s', getenv( 'HOSTNAME' ) );
-[mem_free, mem_avail, mem_total] = free_memory; 
-prnt( '\n system memory: free, available, total : %.3g GiB, %.3g GiB, %.3g GiB', mem_free/1024^3, mem_avail/1024^3, mem_total/1024^3)
-if isempty( tomo.astra_gpu_index )
-    tomo.astra_gpu_index = 1:gpuDeviceCount;
-end
-for nn = tomo.astra_gpu_index
-    gpu = parallel.gpu.GPUDevice.getDevice( nn );
-    prnt( '\n gpu %u memory : available, total, percent = %.3g GiB, %.3g GiB, %.2f%%', nn, gpu.AvailableMemory/1024^3, gpu.TotalMemory/1024^3, 100*gpu.AvailableMemory/gpu.TotalMemory)
 end
 
 %%% File names %%%
@@ -428,7 +437,7 @@ prnt( '\n number of projections found : %g', num_proj_found)
 prnt( '\n number of projections used : %g', num_proj_used)
 prnt( '\n projection range used : first:stride:last =  %g:%g:%g', proj_range(1), proj_range(2) - proj_range(1), proj_range(end))
 
-%%% Read log files %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% Read log files %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % hdf5 log from statussever
 h5log = dir( sprintf('%s*_nexus.h5', scan_path) );
 h5log = [h5log.folder filesep h5log.name];
@@ -499,9 +508,9 @@ else
     % Image shape
     filename = sprintf('%s%s', scan_path, ref_names{1});
     
-    %% mod: breask raw data support
+    %% mod: breaks raw data support
     %[im_raw, tif_info] = read_image( filename, '', [], tif_info, im_shape_raw, dtype, im_trafo );
-    [im_raw, tif_info] = read_image( filename, '', [], tif_info, [], dtype, im_trafo );    
+    [im_raw, tif_info] = read_image( filename, '', [], tif_info, [], dtype, im_trafo );
     im_shape_raw = size( im_raw );
     
     if exist('fast_reco','var') && fast_reco(1)
@@ -660,7 +669,7 @@ if ~isempty( raw_roi ) % else AUTO ROI
             pr = 10 * floor( pr / 10 );
             raw_roi = double( [pl pr] );
             prnt( '\n vertical auto roi : [%u %u], roi threshold factor : %g', raw_roi, roi_fac )
-
+            
             if visual_output(1)
                 figure('Name', 'Auto ROI: raw image and cropping region');
                 
@@ -713,46 +722,11 @@ t = toc;
 [poolobj, poolsize] = OpenParpool(poolsize, use_cluster, [beamtime_path filesep 'scratch_cc']);
 PrintVerbose( verbose && (poolsize > 1), '\nParpool opened on %s using %u workers. ', poolobj.Cluster.Profile, poolobj.Cluster.NumWorkers)
 PrintVerbose( verbose && (poolsize > 1), ' done in %.1f s (%.2f min)', toc - t, ( toc - t ) / 60 );
-cdscandir = cd( scan_path );
+%cdscandir = cd( scan_path );
 
-%%% Read flat corrected projection %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-if read_flatcor(1)
-    t = toc;
-    if isempty( read_flatcor_path )
-        read_flatcor_path = flatcor_path;
-    end
-    % File names
-    data_struct = dir( [read_flatcor_path filesep 'proj*.*'] );
-    if isempty( data_struct )
-        fprintf('\n No flat corrected projections found! Switch to standard pre-processing.')
-        read_flatcor = 0;
-    else
-        proj_names = {data_struct.name};
-        num_proj_read = numel(proj_names);
-        if num_proj_used > num_proj_read
-            fprintf('\n Less projections available (%g) than demanded (%g)! Switch to standard pre-processing.', num_proj_read, num_proj_used )
-            read_flatcor = 0;
-        end
-    end
-    prnt( '\n Read flat corrected projections.')
-    if num_proj_read ~= num_proj_used
-        fprintf('\n WARNING: Number of flat corrected projections read (%g) differs from number of projections to be processed (%g)!\n', num_proj_read, num_proj_used)
-    end
+if ~read_flatcor && ~read_sino
+    %% Read projections and start preprocessing %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     
-    % Preallocation
-    proj = zeros( im_shape_binned(1), im_shape_binned(2), num_proj_read, 'single');
-    prnt( ' Allocated bytes: %.2f GiB.', Bytes( proj, 3 ) )
-    proj_names_mat = NameCellToMat( proj_names );
-    
-    % Read flat corrected projections
-    parfor nn = 1:num_proj_read
-        filename = sprintf('%s%s', flatcor_path, proj_names_mat(nn, :));
-        proj(:, :, nn) = fliplr( read_image( filename ) );
-    end
-    prnt( ' done in %.1f s (%.2f min)', toc - t, ( toc - t ) / 60 )
-    
-    %%% Read and preprocess raw data %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-elseif ~read_flatcor
     %%% Dark field %%
     t = toc;
     prnt( '\nProcessing dark fields.')
@@ -1172,6 +1146,52 @@ elseif ~read_flatcor
         end
         prnt( ' done in %.1f (%.2f min)', toc-t, (toc-t)/60)
     end
+    
+else
+    %% Read flat corrected projections or sino %%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    t = toc;
+    
+    if read_flatcor
+        
+        if isempty( read_flatcor_path )
+            read_flatcor_path = flatcor_path;
+        end
+        % File names
+        data_struct = dir( [read_flatcor_path filesep 'proj*.*'] );
+        if isempty( data_struct )
+            fprintf('\n No flat corrected projections found! Switch to standard pre-processing.')
+            read_flatcor = 0;
+        else
+            proj_names = {data_struct.name};
+            num_proj_read = numel(proj_names);
+            if num_proj_used > num_proj_read
+                fprintf('\n Less projections available (%g) than demanded (%g)! Switch to standard pre-processing.', num_proj_read, num_proj_used )
+                read_flatcor = 0;
+            end
+        end
+        prnt( '\n Read flat corrected projections.')
+        if num_proj_read ~= num_proj_used
+            fprintf('\n WARNING: Number of flat corrected projections read (%g) differs from number of projections to be processed (%g)!\n', num_proj_read, num_proj_used)
+        end
+        
+        % Preallocation
+        proj = zeros( im_shape_binned(1), im_shape_binned(2), num_proj_read, 'single');
+        prnt( ' Allocated bytes: %.2f GiB.', Bytes( proj, 3 ) )
+        proj_names_mat = NameCellToMat( proj_names );
+        
+        % Read flat corrected projections
+        parfor nn = 1:num_proj_read
+            filename = sprintf('%s%s', flatcor_path, proj_names_mat(nn, :));
+            proj(:, :, nn) = fliplr( read_image( filename ) );
+        end
+        
+    end
+    if read_sino
+        prnt( '\n Read flat corrected projections.')
+    end
+    
+    prnt( ' done in %.1f s (%.2f min)', toc - t, ( toc - t ) / 60 )
+    
 end
 
 tomo.angles = tomo.rot_angle.offset + angles;
@@ -1252,8 +1272,8 @@ if tomo.run || tomo.run_interactive_mode
     % ROI
     im1 = proj( tomo.rot_axis.corr_area1, tomo.rot_axis.corr_area2, ind1);
     im2 = flipud( proj( tomo.rot_axis.corr_area1, tomo.rot_axis.corr_area2, ind2) );
-%     prnt( '\n correlated images : [filename index, projection index, angle / pi] = [%g, %g, %g] and [%g, %g, %g]', ...
-%         proj_nums(ind1), ind1, val1 / pi, proj_nums(ind2), ind2, (val2 + pi) / pi )
+    %     prnt( '\n correlated images : [filename index, projection index, angle / pi] = [%g, %g, %g] and [%g, %g, %g]', ...
+    %         proj_nums(ind1), ind1, val1 / pi, proj_nums(ind2), ind2, (val2 + pi) / pi )
     if tomo.rot_axis.corr_gradient(1)
         l = 2;
         [g11, g12] = gradient(im1);
@@ -1918,7 +1938,7 @@ if tomo.run
                 proj( end, :, :) = 0.5 * proj( end, :, :) ;
             case -1
                 proj( 1, :, :) = 0.5 * proj( 1, :, :) ;
-        end 
+        end
     end
     
     % Backprojection
@@ -1926,7 +1946,7 @@ if tomo.run
         case '3d'
             vol = zeros( tomo.vol_shape, 'single' );
             prnt( '\n volume memory allocated for ''3D'' mode: %.2f GiB', Bytes( vol, 3 ) )
-    
+            
             prnt( '\n Backproject:')
             t2 = toc;
             %%% Move to appropriate position or replace globally !!!!!!!!!!
@@ -2059,7 +2079,7 @@ if tomo.run
                     save( sprintf( '%ssegmentation_info.m', save_path), 'out', '-mat', '-v7.3')
                 end
                 
-            end            
+            end
             
         case {'slice', '2d'}
             %% Slicewise backprojection %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -2288,7 +2308,7 @@ prnt( '\nTime elapsed for computation: %g s (%.2f min)', toc - tint -tint_phase,
 prnt( '\nFINISHED: %s\n', scan_name)
 % overwrite parameters for fast reconstruction
 if exist('fast_reco','var') && fast_reco(1)
-    cprintf( 'Red', '\nCAUTION: reco using fast mode was turned on!\n' )
+    cprintf( 'Red', '\nATTENTION: fast reco mode was turned on!\n' )
 end
 prnt( '\n')
 % END %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
