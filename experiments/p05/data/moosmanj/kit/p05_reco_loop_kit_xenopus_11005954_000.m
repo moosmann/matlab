@@ -67,9 +67,6 @@ stop_after_data_reading(1) = 0; % for data analysis, before flat field correlati
 stop_after_proj_flat_correlation(1) = 0; % for data analysis, after flat field correlation
 
 %%% SCAN %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-scan_path = ...
-'/asap3/petra3/gpfs/p05/2018/data/11005553/raw/syn026_femur_55L_000';
-'/asap3/petra3/gpfs/p05/2017/data/11003440/raw/syn40_69L_Mg10Gd_12w';
 read_flatcor = 0; % read flatfield-corrected images from disc, skips preprocessing
 read_flatcor_path = ''; % subfolder of 'flat_corrected' containing projections
 energy = []; % in eV! if empty: read from log file
@@ -197,12 +194,12 @@ write.compression.parameter = [0.02 0.02]; % compression-method specific paramet
 %%% INTERACTION %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 verbose = 1; % print information to standard output
 visual_output = 1; % show images and plots during reconstruction
-interactive_mode.rot_axis_pos = 1; % reconstruct slices with dif+ferent rotation axis offsets
+interactive_mode.rot_axis_pos = 0; % reconstruct slices with dif+ferent rotation axis offsets
 interactive_mode.rot_axis_tilt = 0; % reconstruct slices with different offset AND tilts of the rotation axis
 interactive_mode.lamino = 0; % find laminography tilt instead camera rotation
 interactive_mode.fixed_other_tilt = 0; % fixed other tilt
 interactive_mode.slice_number = 0.5; % default slice number. if in [0,1): relative, if in (1, N]: absolute
-interactive_mode.phase_retrieval = 1; % Interactive retrieval to determine regularization parameter
+interactive_mode.phase_retrieval = 0; % Interactive retrieval to determine regularization parameter
 %%% HARDWARE / SOFTWARE %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 use_cluster = 0; % if available: on MAXWELL nodes disp/nova/wga/wgs cluster computation can be used. Recommended only for large data sets since parpool creation and data transfer implies a lot of overhead.
 poolsize = 0.70; % number of workers used in a local parallel pool. if 0: use current config. if >= 1: absolute number. if 0 < poolsize < 1: relative amount of all cores to be used. if SLURM scheduling is available, a default number of workers is used.
@@ -403,13 +400,28 @@ scan_path = [raw_path 'RUN3_E_7']; ADD
 scan_path = [raw_path 'RUN3_E_8']; ADD
 
 
+interactive_mode.rot_axis_pos = 0; 
+interactive_mode.phase_retrieval = 0;
+phase_retrieval.reg_par = 1.6;
+tomo.rot_axis.offset = -3.5 / 2 * raw_bin; 
 scan_path = [raw_path 'RUN3_F']; ADD
-
 scan_path = [raw_path 'RUN3_G']; ADD
-
 scan_path = [raw_path 'RUN3_H']; ADD
-
 scan_path = [raw_path 'RUN3_I']; ADD
+
+
+ring_filter.apply = 1;
+ring_filter.method = 'wavelet-fft';
+ring_filter.waveletfft.dec_levels = 2:5;
+ring_filter.waveletfft.wname = 'db25';'db30'; 
+ring_filter.waveletfft.sigma = 2.4;
+write.parfolder = '_2to5_db25_s2p4';
+scan_path = [raw_path 'RUN3_I']; ADD('r')
+
+ring_filter.apply = 0;
+image_correlation.method = 'entropy';'diff';'shift';'ssim';'std';'cov';'corr';'cross-entropy12';'cross-entropy21';'cross-entropyx';
+write.parfolder = 'correlation_entropy';
+scan_path = [raw_path 'RUN3_I']; ADD('r')
 
 
 scan_path = [raw_path 'RUN3_J']; ADD

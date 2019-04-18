@@ -172,7 +172,7 @@ write.phase_sino = 0; % save sinograms of phase maps
 write.reco = 1; % save reconstructed slices (if tomo.run=1)
 write.float = 1; % single precision (32-bit float) tiff
 write.uint16 = 0; % save 16bit unsigned integer tiff using 'write.compression.method'
-write.uint8 = 1; % save binned 8bit unsigned integer tiff using 'write.compression.method'
+write.uint8 = 0; % save binned 8bit unsigned integer tiff using 'write.compression.method'
 % Optionally save binned reconstructions, only works in '3D' reco_mode
 write.float_binned = 1; % save binned single precision (32-bit float) tiff
 write.uint16_binned = 0; % save binned 16bit unsigned integer tiff using 'write.compression.method'
@@ -337,8 +337,12 @@ interactive_mode.rot_axis_pos = 1;
 scan_path = [raw_path 'syn026_femur_55L_000']; ADD
 scan_path = [raw_path 'syn026_femur_55L_001']; ADD
 
+% good, some small local movement
+tomo.rot_axis.offset = 1.2 * 3 / raw_bin;
 scan_path = [raw_path 'syn027_20R_PEEK_4w']; ADD
 
+% quite some movment in on half of the sample
+tomo.rot_axis.offset = 1.5 * 3 / raw_bin;
 scan_path = [raw_path 'syn028_60L_Mg10Gd_12w']; ADD
 
 % Load

@@ -216,43 +216,43 @@ scan_path = [raw_path 'syn003_70L_Mg5Gd_12w_test_fli']; ADD
 
 % No ring current normalization due to false names in hdf5 file
 raw_roi = -1;
-tomo.rot_axis.offset = 1.5 / 2 * raw_bin; 
+tomo.rot_axis.offset = 1.5 * 2 /  raw_bin; 
 scan_path = [raw_path 'syn004_96R_Mg5Gd_8w_a']; ADD
 scan_path = [raw_path 'syn004_96R_Mg5Gd_8w_b']; ADD
 
-tomo.rot_axis.offset = 0.5 / 2 * raw_bin; 
+tomo.rot_axis.offset = 0.5 * 2 /  raw_bin; 
 scan_path = [raw_path 'syn005_90L_Mg10Gd_4w_a']; ADD
-tomo.rot_axis.offset = 0.75 / 2 * raw_bin; 
+tomo.rot_axis.offset = 0.75 * 2 /  raw_bin; 
 scan_path = [raw_path 'syn005_90L_Mg10Gd_4w_b']; ADD
 
-tomo.rot_axis.offset = 0.25 / 2 * raw_bin;
+tomo.rot_axis.offset = 0.25 * 2 /  raw_bin;
 scan_path = [raw_path 'syn006_101BR_Mg10Gd_4w_a']; ADD
-tomo.rot_axis.offset = 0.3 / 2 * raw_bin;
+tomo.rot_axis.offset = 0.3 * 2 /  raw_bin;
 scan_path = [raw_path 'syn006_101BR_Mg10Gd_4w_b']; ADD
 
-tomo.rot_axis.offset = -0.125 / 2 * raw_bin; 
+tomo.rot_axis.offset = -0.125 * 2 /  raw_bin; 
 scan_path = [raw_path 'syn007_76L_Mg5Gd_8w_a']; ADD
-tomo.rot_axis.offset = -0.125 / 2 * raw_bin; 
+tomo.rot_axis.offset = -0.125 * 2 /  raw_bin; 
 scan_path = [raw_path 'syn007_76L_Mg5Gd_8w_b']; ADD
 
-tomo.rot_axis.offset = 0.125 / 2 * raw_bin; 
+tomo.rot_axis.offset = 0.125 * 2 /  raw_bin; 
 scan_path = [raw_path 'syn008_93R_Mg5Gd_8w_a']; ADD
-tomo.rot_axis.offset = 0.25 / 2 * raw_bin; 
+tomo.rot_axis.offset = 0.25 * 2 /  raw_bin; 
 scan_path = [raw_path 'syn008_93R_Mg5Gd_8w_b']; ADD
 
-tomo.rot_axis.offset = 0.75 / 2 * raw_bin;
+tomo.rot_axis.offset = 0.75 * 2 /  raw_bin;
 scan_path = [raw_path 'syn009_64L_Mg5Gd_12w_a']; ADD
-tomo.rot_axis.offset = 0.85 / 2 * raw_bin; 
+tomo.rot_axis.offset = 0.85 * 2 /  raw_bin; 
 scan_path = [raw_path 'syn009_64L_Mg5Gd_12w_b']; ADD
 
-tomo.rot_axis.offset = -0.15 / 2 * raw_bin;
+tomo.rot_axis.offset = -0.15 * 2 /  raw_bin;
 scan_path = [raw_path 'syn010_78R_Mg10Gd_8w_a']; ADD
 interactive_mode.rot_axis_pos = 1;
 scan_path = [raw_path 'syn010_78R_Mg10Gd_8w_b']; ADD
 
-tomo.rot_axis.offset = 0.65 / 2 * raw_bin;
+tomo.rot_axis.offset = 0.65 * 2 /  raw_bin;
 scan_path = [raw_path 'syn011_90R_Mg5Gd_4w_a']; ADD
-tomo.rot_axis.offset = 0.65 / 2 * raw_bin;
+tomo.rot_axis.offset = 0.65 * 2 /  raw_bin;
 scan_path = [raw_path 'syn011_90R_Mg5Gd_4w_b']; ADD
 
 scan_path = [raw_path 'syn012_93L_Mg10Gd_8w_a']; ADD
@@ -313,19 +313,19 @@ scan_path = [raw_path 'syn035_77L_Mg5Gd_8w_b']; ADD
 
 interactive_mode.rot_axis_pos = 0;
 raw_bin = 4; 
-tomo.rot_axis.offset = 1.0 / 4 * raw_bin; 
+tomo.rot_axis.offset = 1.0 * 4 /  raw_bin; 
 scan_path = [raw_path 'syn036_cor_mg5gd410s_mg10gd401s_pmg1p_30_a']; ADD
 scan_path = [raw_path 'syn036_cor_mg5gd410s_mg10gd401s_pmg1p_30_b']; ADD
 scan_path = [raw_path 'syn036_cor_mg5gd410s_mg10gd401s_pmg1p_30_c']; ADD
 
-tomo.rot_axis.offset = -0.4 / 4 * raw_bin; 
+tomo.rot_axis.offset = -0.4 * 4 /  raw_bin; 
 scan_path = [raw_path 'syn037_cor_mg5gd414s_mg10gd405s_pmg2p_30_a']; ADD
 scan_path = [raw_path 'syn037_cor_mg5gd414s_mg10gd405s_pmg2p_30_b']; ADD
-% tomo.rot_axis.offset = -0.5 / 4 * raw_bin; visually rather 0.5, measure
+% tomo.rot_axis.offset = -0.5 * 4 /  raw_bin; visually rather 0.5, measure
 % peaks about -0.25
 scan_path = [raw_path 'syn037_cor_mg5gd414s_mg10gd405s_pmg2p_30_c']; ADD
 
-tomo.rot_axis.offset = -0.55 / 4 * raw_bin; 
+tomo.rot_axis.offset = -0.55 * 4 /  raw_bin; 
 scan_path = [raw_path 'syn038_cor_mg5gd430s_mg10gd413s_pmg9p_30_a']; ADD
 scan_path = [raw_path 'syn038_cor_mg5gd430s_mg10gd413s_pmg9p_30_b']; ADD
 scan_path = [raw_path 'syn038_cor_mg5gd430s_mg10gd413s_pmg9p_30_c']; ADD
@@ -335,7 +335,7 @@ scan_path = [raw_path 'syn039_cor_mg5gd432s_mg10gd418s_pmg10p_30_a']; ADD
 scan_path = [raw_path 'syn039_cor_mg5gd432s_mg10gd418s_pmg10p_30_b']; ADD
 scan_path = [raw_path 'syn039_cor_mg5gd432s_mg10gd418s_pmg10p_30_c']; ADD
 
-tomo.rot_axis.offset = -1.1 / 4 * raw_bin; 
+tomo.rot_axis.offset = -1.1 * 4 /  raw_bin; 
 scan_path = [raw_path 'syn040_cor_mg5gd413s_mg10gd409s_mg5gd3p_30_a']; ADD
 scan_path = [raw_path 'syn040_cor_mg5gd413s_mg10gd409s_mg5gd3p_30_b']; ADD
 scan_path = [raw_path 'syn040_cor_mg5gd413s_mg10gd409s_mg5gd3p_30_c']; ADD
