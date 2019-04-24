@@ -216,7 +216,7 @@ SET_DEFAULT
 %% PARAMETER / DATA SETS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 raw_path = '/asap3/petra3/gpfs/p05/2019/data/11005954/raw/';
-
+---
 scan_path = [raw_path 'RUN1_A']; ADD
 
 scan_path = [raw_path 'RUN1_A2']; ADD

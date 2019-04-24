@@ -1,7 +1,7 @@
 %ca
 %clear all
 
-read_scans = 0;
+read_scans = 1;
 
 %% Beamtimes
 beamtime = { ...
@@ -24,7 +24,7 @@ overviewpath = [parpath 'overview'];
 
 if read_scans
     
-    scans =[];
+    scans = [];
     n_cpd = 0;
     n_load = 0;
     n_other = 0;
@@ -140,12 +140,12 @@ if read_scans
     %% Save parameter struct
     filename = [ parpath 'scan_paramter_struct.m'];
     save( filename, 'scans' );
-    
-    fprintf( '\nRead scans finished.\n' )
+    fprintf( '\nFinished reading scans.\n' )
 end
 
 %% Stitch and resample %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 process.tags = {'c'};
+process.subtag = 'stitch';
 resample_and_stitch = 1;
 if resample_and_stitch
     fprintf( '\n\nResampling and stitching' )
@@ -174,10 +174,16 @@ if resample_and_stitch
         
         %% Loop over scans
         for mm = 1:numel( ss )
-            
             s = ss(mm);
-            
             fprintf( '\n %s', s.unique_name )
+            
+            % Find scans to stitch
+            expr = '_a|_b';
+            t = regexp( s.unique_name(end-2:end), expr, 'once');
+            
+            
+            
+            
             
             
             
