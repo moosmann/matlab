@@ -11,7 +11,7 @@
 clear all
 aclear
 % BP3D_CUDA
-astra_mex('set_gpu_index', [0 1 2 3]);
+astra_mex('set_gpu_index', [0 1]);
 
 vol_shape = [128 129 130]; sino_shape = [190 4097 200];
 %vol_shape = [2047 2047 79]; sino_shape = [1280 6742 50];

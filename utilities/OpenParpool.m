@@ -10,13 +10,22 @@ function [poolobj, poolsize] = OpenParpool(poolsize, use_cluster, tmp_folder, en
 %
 % [poolobj, poolsize] = OpenParpool(poolsize)
 
+if nargin < 2
+    use_cluster = 0;
+end
+if nargin < 3
+    tmp_folder = '';
+end
 if nargin < 4
     enforce_poolsize = 0;
 end
 
+%% Main %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 cluster_poolsize = 250; % max 256
 
-%% Main %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+if isempty( tmp_folder )
+    tmp_folder = '/gpfs/petra3/scratch/moosmanj/';
+end
 
 if poolsize < 1 && poolsize > 0
     poolsize = max( floor( poolsize * feature('numCores') ), 1 );

@@ -96,3 +96,4 @@ end
 % Parameters: #rows, #columns, vectors
 proj_geom = astra_create_proj_geom('cone_vec', 32, 64, vectors);
 
+disp( 'end' )

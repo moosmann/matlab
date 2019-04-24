@@ -447,7 +447,9 @@ if ~read_flatcor && ~read_sino
     %% Read log files %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     % hdf5 log from statussever
     h5log = dir( sprintf('%s*_nexus.h5', scan_path) );
-    h5log = [h5log.folder filesep h5log.name];
+    if numel( h5log ) == 1
+        h5log = [h5log.folder filesep h5log.name];
+    end
     im_shape_raw = [];
     dtype = '';
     tif_info = [];
@@ -1191,7 +1193,8 @@ else
                 end
             end
         end
-        
+        tomo.angles = tomo.rot_angle.offset + angles;
+
         % Read sinogram
         parfor nn = 1:im_shape_binned2
             filename = sprintf('%s%s', sino_path, sino_names_mat(nn, :));
@@ -1259,7 +1262,7 @@ else
     prnt( ' done in %.1f s (%.2f min)', toc - t, ( toc - t ) / 60 )
 end
 
-%% Phase retrieval %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% Phase retrieval before interactive mode %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 phase_bin = phase_retrieval.post_binning_factor; % alias for readablity
 tint_phase = 0;
 if phase_retrieval.apply
@@ -1891,7 +1894,7 @@ if tomo.run
     end
     tomo.angles = tomo.rot_angle.offset + angles;
     
-    % Filter sinogram
+    % Filter sinlogram
     if strcmpi( tomo.algorithm, 'fbp' )
         %%% Provide butterworth filtering also for iterative reconstruction !!!!
         prnt( '\n Filter sino:' )

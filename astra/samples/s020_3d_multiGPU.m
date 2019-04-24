@@ -16,14 +16,16 @@ astra_mex('set_gpu_index', [0 1]);
 % Optionally, you can also restrict the amount of GPU memory ASTRA will use.
 % The line commented below sets this to 1GB.
 %astra_mex('set_gpu_index', [0 1], 'memory', 1024*1024*1024);
-
-vol_geom = astra_create_vol_geom(100, 100, 100);
+x = 1000;
+y = x;
+z = x;
+vol_geom = astra_create_vol_geom(x, y, z);
 
 angles = linspace2(0, pi, 4*1024 + 1);
 proj_geom = astra_create_proj_geom('parallel3d', 1.0, 1.0, 100, 100, angles);
 
 % Create a simple hollow cube phantom
-cube = zeros(100,100,100);
+cube = zeros(x, y, z);
 %cube(129:896,129:896,129:896) = 1;
 %cube(257:768,257:768,257:768) = 0;
 
