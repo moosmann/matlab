@@ -29,10 +29,10 @@ else
 end
 fprintf( '\nAdd ASTRA path : %s', astra_path );
 
-%% ImageJ / Fiji
-path_to_fiji = '/asap3/petra3/gpfs/common/p05/jm/fiji/Fiji.app/scripts';
-addpath( genpath( path_to_fiji ) );
-fprintf( '\nFiji path : %s', path_to_fiji );
+%% ImageJ / Fiji, currently not working well
+%path_to_fiji = '/asap3/petra3/gpfs/common/p05/jm/fiji/Fiji.app/scripts';
+%addpath( genpath( path_to_fiji ) );
+%fprintf( '\nFiji path : %s', path_to_fiji );
 
 %% MATLAB path
 fprintf( '\nMATLAB_PATH : %s', getenv( 'MATLAB_PATH' ) );

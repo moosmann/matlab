@@ -41,16 +41,13 @@ stop_after_proj_flat_correlation(1) = 0; % for data analysis, after flat field c
 %%% SCAN %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 scan_path = ...
     '/asap3/petra3/gpfs/p05/2019/data/11007559/processed/smf_01_sample_1/';
-'/asap3/petra3/gpfs/p05/2018/data/11005553/raw/syn033_68R_Mg10Gd_12w';
-'/asap3/petra3/gpfs/p05/2018/data/11005553/raw/syn026_femur_55L_000';
-'/asap3/petra3/gpfs/p05/2017/data/11003440/raw/syn40_69L_Mg10Gd_12w';
 read_flatcor = 0; % read preprocessed flatfield-corrected projections. CHECK if negative log has to be taken!
 read_flatcor_path = ''; % subfolder of 'flat_corrected' containing projections
-read_sino = 1; % read preprocessed sinograms. CHECK if negative log has to be taken!
-read_sino_folder = 'trans04'; % subfolder to scan path
-energy = 18000;%[]; % in eV! if empty: read from log file
-sample_detector_distance = 0.6;%[]; % in m. if empty: read from log file
-eff_pixel_size = 1.2765104e-6;%[]; % in m. if empty: read from log file. effective pixel size =  detector pixel size / magnification
+read_sino = 0; % read preprocessed sinograms. CHECK if negative log has to be taken!
+read_sino_folder = ''; % subfolder to scan path
+energy = []; % in eV! if empty: read from log file
+sample_detector_distance = []; % in m. if empty: read from log file
+eff_pixel_size = []; % in m. if empty: read from log file. effective pixel size =  detector pixel size / magnification
 pix_scaling = 1; % to account for beam divergence if pixel size was determined (via MTF) at single distance only
 %%% PREPROCESSING %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 raw_roi = -8; % vertical and/or horizontal ROI; (1,1) coordinate = top left pixel; supports absolute, relative, negative, and mixed indexing.
@@ -223,11 +220,11 @@ if exist('fast_reco','var') && fast_reco(1)
     pixel_filter_radius  = [3 3];
     cprintf( 'Red', '\nATTENTION: fast reco mode is turned on!\n\n' )
 end
+
+% Parameter checks
 if ~phase_retrieval.apply
     phase_retrieval.post_binning_factor = 0;
 end
-
-% Parameter checks
 if ~exist( 'pixel_filter_radius', 'var') || isempty( pixel_filter_radius )
     pixel_filter_radius = [3 3];
 end
@@ -1149,7 +1146,7 @@ if ~read_flatcor && ~read_sino
 else
     t = toc;
     %% Read sinogram %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    if read_sino
+    if read_sino(1)
         
         % Sino path
         if ~isempty( read_sino_folder )

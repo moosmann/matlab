@@ -212,17 +212,29 @@ scan_path = [raw_path 'syn13_55L_Mg10Gd_12w_load_19'];ADD
 scan_path = [raw_path 'syn13_55L_Mg10Gd_12w_load_21'];ADD('r')
 
 %% Tomography CPD straw 2
-raw_roi = -8;
+raw_roi = -1;
+tomo.rot_axis.offset = -1.1 * 2 / raw_bin;
 scan_path = [raw_path 'syn22_77L_Mg5Gd_8w_a'];ADD
+tomo.rot_axis.offset = -0.8 * 2 / raw_bin;
 scan_path = [raw_path 'syn22_77L_Mg5Gd_8w_b'];ADD
+
 scan_path = [raw_path 'syn22_80L_Mg5Gd_8w_a'];ADD
 scan_path = [raw_path 'syn22_80L_Mg5Gd_8w_b'];ADD
+
+tomo.rot_axis.offset = -1.375 * 2 / raw_bin;
 scan_path = [raw_path 'syn22_87L_Mg5Gd_4w_a'];ADD
+tomo.rot_axis.offset = -1.375 * 2 / raw_bin;
 scan_path = [raw_path 'syn22_87L_Mg5Gd_4w_b'];ADD
+
+tomo.rot_axis.offset = -1.5 * 2 / raw_bin;
 scan_path = [raw_path 'syn22_88R_Mg5Gd_4w_a'];ADD
+tomo.rot_axis.offset = -1.5 * 2 / raw_bin;
 scan_path = [raw_path 'syn22_88R_Mg5Gd_4w_b'];ADD
+
+tomo.rot_axis.offset = -1.5 * 2 / raw_bin;
 scan_path = [raw_path 'syn22_99L_Mg5Gd_4w_a'];ADD
-scan_path = [raw_path 'syn22_99L_Mg5Gd_4w_b'];ADD('r')
+tomo.rot_axis.offset = -1.5 * 2 / raw_bin;
+scan_path = [raw_path 'syn22_99L_Mg5Gd_4w_b'];ADD
 
 % CPD straw II:top
 scan_path = [raw_path 'syn23_28R_PEEK_8w_a'];ADD

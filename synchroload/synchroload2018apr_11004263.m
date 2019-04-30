@@ -65,10 +65,10 @@ end
 fast_reco = 0; % !!! OVERWRITES SOME PARAMETERS SET BELOW !!!
 stop_after_data_reading(1) = 0; % for data analysis, before flat field correlation 
 stop_after_proj_flat_correlation(1) = 0; % for data analysis, after flat field correlation
-
 %%% SCAN %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 read_flatcor = 0; % read flatfield-corrected images from disc, skips preprocessing
 read_flatcor_path = ''; % subfolder of 'flat_corrected' containing projections
+read_sino = 0; % read preprocessed sinograms. CHECK if negative log has to be taken!
 energy = []; % in eV! if empty: read from log file
 sample_detector_distance = []; % in m. if empty: read from log file
 eff_pixel_size = []; % in m. if empty: read from log file. effective pixel size =  detector pixel size / magnification
@@ -210,8 +210,10 @@ SET_DEFAULT
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 raw_path = '/asap3/petra3/gpfs/p05/2018/data/11004263/raw/';
 
-scan_path = [raw_path 'syn001_70L_Mg5Gd_12w_test_fli']; ADD
-scan_path = [raw_path 'syn002_70L_Mg5Gd_12w_test_fli']; ADD
+tomo.vol_size = [-0.5 0.5 -0.5 0.5 -0.5 0.5];
+
+% scan_path = [raw_path 'syn001_70L_Mg5Gd_12w_test_fli']; ADD
+% scan_path = [raw_path 'syn002_70L_Mg5Gd_12w_test_fli']; ADD
 scan_path = [raw_path 'syn003_70L_Mg5Gd_12w_test_fli']; ADD
 
 % No ring current normalization due to false names in hdf5 file
@@ -247,7 +249,7 @@ scan_path = [raw_path 'syn009_64L_Mg5Gd_12w_b']; ADD
 
 tomo.rot_axis.offset = -0.15 * 2 /  raw_bin;
 scan_path = [raw_path 'syn010_78R_Mg10Gd_8w_a']; ADD
-interactive_mode.rot_axis_pos = 1;
+tomo.rot_axis.offset = -0.05 * 2 /  raw_bin;
 scan_path = [raw_path 'syn010_78R_Mg10Gd_8w_b']; ADD
 
 tomo.rot_axis.offset = 0.65 * 2 /  raw_bin;
@@ -255,63 +257,101 @@ scan_path = [raw_path 'syn011_90R_Mg5Gd_4w_a']; ADD
 tomo.rot_axis.offset = 0.65 * 2 /  raw_bin;
 scan_path = [raw_path 'syn011_90R_Mg5Gd_4w_b']; ADD
 
+tomo.rot_axis.offset = 0.1 * 2 /  raw_bin; % Check taken from recolog
 scan_path = [raw_path 'syn012_93L_Mg10Gd_8w_a']; ADD
+tomo.rot_axis.offset = 0.2 * 2 /  raw_bin; % Check taken from recolog
 scan_path = [raw_path 'syn012_93L_Mg10Gd_8w_b']; ADD
 
+tomo.rot_axis.offset = -0.7 * 2 /  raw_bin; % Check taken from recolog
 scan_path = [raw_path 'syn013_45R_PEEK_12w_a']; ADD
 scan_path = [raw_path 'syn013_45R_PEEK_12w_b']; ADD
 
+tomo.rot_axis.offset = -1.1 * 2 /  raw_bin; % Check taken from recolog
 scan_path = [raw_path 'syn014_85R_Mg5Gd_4w_a']; ADD
 scan_path = [raw_path 'syn014_85R_Mg5Gd_4w_b']; ADD
 
+% Medium quality, probably movement
+tomo.rot_axis.offset = -1.0 * 2 /  raw_bin; 
 scan_path = [raw_path 'syn015_97L_Mg5Gd_4w_a']; ADD
+tomo.rot_axis.offset = -1.3 * 2 /  raw_bin; 
 scan_path = [raw_path 'syn015_97L_Mg5Gd_4w_b']; ADD
 
+tomo.rot_axis.offset = 0.2 * 2 /  raw_bin; % Check taken from recolog
 scan_path = [raw_path 'syn016_26R_PEEK_8w_a']; ADD
 scan_path = [raw_path 'syn016_26R_PEEK_8w_b']; ADD
 
+tomo.rot_axis.offset = 0.25 * 2 /  raw_bin; % Check taken from recolog
 scan_path = [raw_path 'syn017_41R_PEEK_12w_a']; ADD
 scan_path = [raw_path 'syn017_41R_PEEK_12w_b']; ADD
 
+tomo.rot_axis.offset = -0.3 * 2 /  raw_bin; % Check taken from recolog
 scan_path = [raw_path 'syn018_35L_PEEK_8w_a']; ADD
+tomo.rot_axis.offset = -0.8 * 2 /  raw_bin; % Check taken from recolog
 scan_path = [raw_path 'syn018_35L_PEEK_8w_b']; ADD
+%% TODO
 scan_path = [raw_path 'syn018_35L_PEEK_8w_c']; ADD
 
+% Very good quality
+tomo.rot_axis.offset = 0.15 * 2 /  raw_bin; % Check taken from recolog
 scan_path = [raw_path 'syn019_77R_Mg10Gd_8w_a']; ADD
+tomo.rot_axis.offset = 0.15 * 2 /  raw_bin; % Check taken from recolog
 scan_path = [raw_path 'syn019_77R_Mg10Gd_8w_b']; ADD
 
+tomo.rot_axis.offset = -0.2 * 2 /  raw_bin; % Check taken from recolog
 scan_path = [raw_path 'syn020_61L_PEEK_12w_a']; ADD
 scan_path = [raw_path 'syn020_61L_PEEK_12w_b']; ADD
 
+% good quality
+tomo.rot_axis.offset = -1.2 * 2 /  raw_bin;
 scan_path = [raw_path 'syn021_70R_Mg10Gd_12w_a']; ADD
+tomo.rot_axis.offset = -1.2 * 2 /  raw_bin;
 scan_path = [raw_path 'syn021_70R_Mg10Gd_12w_b']; ADD
 
+tomo.rot_axis.offset = -1.6 * 2 /  raw_bin; % Check taken from recolog
 scan_path = [raw_path 'syn022_91R_Mg5Gd_4w_a']; ADD
+tomo.rot_axis.offset = -1.6 * 2 /  raw_bin; % Check taken from recolog
 scan_path = [raw_path 'syn022_91R_Mg5Gd_4w_b']; ADD
 
+% average quality
+tomo.rot_axis.offset = -1.9 * 2 /  raw_bin;
 scan_path = [raw_path 'syn023_72L_Mg5Gd_12w_a']; ADD
+tomo.rot_axis.offset = -2.1 * 2 /  raw_bin;
 scan_path = [raw_path 'syn023_72L_Mg5Gd_12w_b']; ADD
 
-scan_path = [raw_path 'syn024_72L_Mg5Gd_12w_kit']; ADD
-scan_path = [raw_path 'syn025_72L_Mg5Gd_12w_kit']; ADD
-scan_path = [raw_path 'syn026_72L_Mg5Gd_12w_kit']; ADD
-scan_path = [raw_path 'syn027_72L_Mg5Gd_12w_kit']; ADD
-scan_path = [raw_path 'syn028_72L_Mg5Gd_12w_kit']; ADD
-scan_path = [raw_path 'syn029_72L_Mg5Gd_12w_kit']; ADD
-scan_path = [raw_path 'syn030_72L_Mg5Gd_12w_kit_noshake']; ADD
-scan_path = [raw_path 'syn031_72L_Mg5Gd_12w_kit_noshake_reallyNoShake']; ADD
+%% CMOS
+raw_bin = 3;
+% scan_path = [raw_path 'syn024_72L_Mg5Gd_12w_kit']; ADD
+% scan_path = [raw_path 'syn025_72L_Mg5Gd_12w_kit']; ADD
+% scan_path = [raw_path 'syn026_72L_Mg5Gd_12w_kit']; ADD
+% scan_path = [raw_path 'syn027_72L_Mg5Gd_12w_kit']; ADD
+% scan_path = [raw_path 'syn028_72L_Mg5Gd_12w_kit']; ADD
+% scan_path = [raw_path 'syn029_72L_Mg5Gd_12w_kit']; ADD
+% scan_path = [raw_path 'syn030_72L_Mg5Gd_12w_kit_noshake']; ADD
+% scan_path = [raw_path 'syn031_72L_Mg5Gd_12w_kit_noshake_reallyNoShake']; ADD
 scan_path = [raw_path 'syn032_72L_Mg5Gd_12w_kit']; ADD
 
+%% Check
+% Not working. offset shift problems, probably due to missing images
+tomo.rot_axis.offset = 0.7 * 3 /  raw_bin;
 scan_path = [raw_path 'syn033_70L_Mg5Gd_12w_a']; ADD
+% Good
+tomo.rot_axis.offset = 0.7 * 3 /  raw_bin;
 scan_path = [raw_path 'syn033_70L_Mg5Gd_12w_b']; ADD
 
+% Good quality
+tomo.rot_axis.offset = -0.3 * 3 /  raw_bin;
 scan_path = [raw_path 'syn034_74L_Mg5Gd_8w_a']; ADD
+tomo.rot_axis.offset = -0.4 * 3 /  raw_bin;
 scan_path = [raw_path 'syn034_74L_Mg5Gd_8w_b']; ADD
 
+% Good quality, local movement
+tomo.rot_axis.offset = - 1.3 * 3 /  raw_bin;
 scan_path = [raw_path 'syn035_77L_Mg5Gd_8w_a']; ADD
+tomo.rot_axis.offset = - 1.3 * 3 /  raw_bin;
 scan_path = [raw_path 'syn035_77L_Mg5Gd_8w_b']; ADD
 
-interactive_mode.rot_axis_pos = 0;
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%interactive_mode.rot_axis_pos = 0;
 raw_bin = 4; 
 tomo.rot_axis.offset = 1.0 * 4 /  raw_bin; 
 scan_path = [raw_path 'syn036_cor_mg5gd410s_mg10gd401s_pmg1p_30_a']; ADD
@@ -340,7 +380,7 @@ scan_path = [raw_path 'syn040_cor_mg5gd413s_mg10gd409s_mg5gd3p_30_a']; ADD
 scan_path = [raw_path 'syn040_cor_mg5gd413s_mg10gd409s_mg5gd3p_30_b']; ADD
 scan_path = [raw_path 'syn040_cor_mg5gd413s_mg10gd409s_mg5gd3p_30_c']; ADD
 
-scan_path = [raw_path 'syn041_cor_mg5gd416s_mg10gd410s_mg5gd7p_30_a']; ADD
+% scan_path = [raw_path 'syn041_cor_mg5gd416s_mg10gd410s_mg5gd7p_30_a']; ADD
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

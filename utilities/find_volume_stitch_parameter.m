@@ -10,7 +10,8 @@ function s = find_volume_stitch_parameter( scan_path, reco_subfolder, crop )
 
 if nargin < 1
     %scan_path = '/asap3/petra3/gpfs/p05/2017/data/11003950/processed/syn22_77L_Mg5Gd_8w';% upward
-    scan_path = '/asap3/petra3/gpfs/p05/2018/data/11004263/processed/syn004_96R_Mg5Gd_8w'; % downward
+    %scan_path = '/asap3/petra3/gpfs/p05/2018/data/11004263/processed/syn004_96R_Mg5Gd_8w'; % downward
+    scan_path = '/asap3/petra3/gpfs/p05/2018/data/11004263/processed/syn018_35L_PEEK_8w'; % three level
 end
 if nargin < 2
     reco_subfolder = 'float_rawBin2';
@@ -21,7 +22,7 @@ end
 
 ca;
 %% Read parameters and data %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
+fprintf( '\nscan_path: %s', scan_path )
 % Scans to stitch
 scan_struct = dir( [scan_path '*' ] );
 num_scans = numel( scan_struct );
@@ -36,7 +37,7 @@ for nn = 1:num_scans
     full_path = [scan_struct(nn).folder filesep name];
     s(nn).full_path = full_path;
     
-    %% Reco log
+    % Reco log
     reco_log = [full_path '/reco/reco.log' ];
     if ~exist( reco_log, 'file' )
         fprintf( '\nReco log not found!\n' )
@@ -48,7 +49,7 @@ for nn = 1:num_scans
     fclose( fid );
     s(nn).reco_log = reco_log;
     
-    %% Projection shape
+    % Projection shape
     for ll = 1:numel( c )
         t = regexp( c{ll}, 'im_shape_raw' );
         if t
@@ -59,7 +60,7 @@ for nn = 1:num_scans
     end
     s(nn).im_shape_raw = im_shape_raw;
     
-    %% Binning factor
+    % Binning factor
     for ll = 1:numel( c )
         t = regexp( c{ll}, 'raw_binning_factor' );
         if t
@@ -70,7 +71,7 @@ for nn = 1:num_scans
     end
     s(nn).bin = bin;
     
-    %% ROI
+    % ROI
     for ll = 1:numel( c )
         t = regexp( c{ll}, 'raw_roi' );
         if t
@@ -81,7 +82,7 @@ for nn = 1:num_scans
     end
     s(nn).raw_roi = raw_roi;
     
-    %% Effective pixelsize
+    % Effective pixelsize
     for ll = 1:numel( c )
         t = regexp( c{ll}, 'effective_pixel_size' );
         if t
@@ -93,7 +94,7 @@ for nn = 1:num_scans
     s(nn).effective_pixel_size = effective_pixel_size;
     s(nn).effective_pixel_size_binned = effective_pixel_size * double( bin );
     
-    %% Scan log
+    % Scan log
     scan_log = [regexprep( full_path, 'processed', 'raw' ) filesep name 'scan.log'];
     if ~exist( scan_log, 'file' )
         fprintf( '\nScan log not found!\n' )
@@ -105,7 +106,7 @@ for nn = 1:num_scans
     fclose( fid );
     s(nn).scan_log = scan_log;
     
-    %% s_stage_z
+    % s_stage_z
     for ll = 1:numel( cell_of_lines )
         t = regexp( cell_of_lines{ll}, 's_stage_z' );
         if t
@@ -116,7 +117,7 @@ for nn = 1:num_scans
     end
     s(nn).s_stage_z = s_stage_z;
     
-    %% Print parameters
+    % Print parameters
     fprintf( '\n%s:', name )
     fprintf( '\n  raw_shape: %u %u', im_shape_raw )
     fprintf( '\n  raw_roi: %u %u', raw_roi )
@@ -124,12 +125,12 @@ for nn = 1:num_scans
     fprintf( '\n  s_stage_z: %f', s_stage_z )
     fprintf( '\n  effective pixelsizse: %f', effective_pixel_size )
     
-    %% Read volume
+    % Read volume
     vol_path = [full_path '/reco/' reco_subfolder];
     im_struct = dir( [ vol_path filesep '*.tif' ] );
     im = imread( [vol_path filesep im_struct(1).name] );
     vol = zeros( [size(im) numel( im_struct )], 'single' );
-    fprintf( '\n  Reading projections' )
+    fprintf( '\n  Reading projections:' )
     num_slices = numel( im_struct );
     % Invert or
     filename_cell = {im_struct(end:-1:1).name};
@@ -138,7 +139,7 @@ for nn = 1:num_scans
         vol(:,:,kk) = imread( filename, 'tif' );
     end
     s(nn).vol = vol;
-    
+    fprintf( '\n size: %u %u %u', size( vol ) )
 end
 
 %% Scan order: z-axis pointing downwards !! %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -440,9 +441,9 @@ end
 if  crop
     fprintf( '\n Crop volumes ' )
     for nn = 1:num_scans
-        % vol
+        % volumes
         s(nn).vol = s(nn).vol(:,:,s(nn).zstitch_pos1:s(nn).zstitch_pos2);
-        % z
+        % z values
         s(nn).zval_stitch = s(nn).zval(s(nn).zstitch_pos1:s(nn).zstitch_pos2);
     end
 end

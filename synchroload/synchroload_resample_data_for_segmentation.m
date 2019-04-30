@@ -43,10 +43,10 @@ for nn = length( beamtime ):-1:1
         scan_name = scan_struct(mm).name;
         
         % Exclude load tomograms and others using regular expressions
-        expr = '_\d\d\d|load|test|push|drill' ;
+        expr = '_\d\d\d$|load|test|push|drill' ;
         t = regexp( scan_name, expr );
         scan_path = [ scan_struct(mm).folder filesep scan_name ];
-        if isempty( t ) && isdir( scan_path )
+        if isempty( t ) && isfolder( scan_path )
             
             % Store all scans in a cell array
             ss = ss + 1;
