@@ -20,7 +20,7 @@ function [vol_shape, vol_size] = volshape_volsize( proj, vol_shape, vol_size, ro
 
 %% Default arguments %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 if nargin < 4
-    rot_axis_offset = 0;
+    rot_axis_offset = [];
 end
 if nargin < 5
     verbose = 0;
@@ -33,6 +33,10 @@ end
 
 if ~isempty( vol_size ) && isempty( vol_shape )
     vol_shape = vol_size(2:2:end) - vol_size(1:2:end);
+end
+
+if isempty( rot_axis_offset )
+    rot_axis_offset = 0;
 end
 
 %% Shape

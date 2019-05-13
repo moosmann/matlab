@@ -1,5 +1,5 @@
 function vol = stitch_volumes( scan_path, reco_subfolder )
-% Stich reconstructed volumes using log file information. Note: algorithm
+% Stitch reconstructed volumes using log file information. Note: algorithm
 % is not memory efficient. At least twice the memory of the volumes to be
 % stitched is required.
 %
@@ -8,6 +8,8 @@ function vol = stitch_volumes( scan_path, reco_subfolder )
 %   E.g. 'float_rawBin2'
 %
 % Written by J. Moosmann
+%
+% vol = stitch_volumes( scan_path, reco_subfolder )
 
 %% Default arguments %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 if nargin < 1

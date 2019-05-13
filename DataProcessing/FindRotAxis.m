@@ -1,6 +1,6 @@
 function [offset, metric] = FindRotAxis( sino, shift, sampleWidth_to_detectorWidth )
 % Determine the center of rotation via Fourier analysis of projection data.
-%See articles:
+% See articles:
 %
 % Written by J.Moosmann,2018-08-05. Last version: 2018-08-05
 

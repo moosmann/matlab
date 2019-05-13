@@ -14,6 +14,8 @@ edit synchroload2018apr_11004263.m
 edit synchroload2018may_11004936.m
 edit synchroload2018nov_11005553.m
 
+edit synchroload2019may_11005842
+
 %% Other scripts
 edit synchroload_figureMeetingApr2017.m
 edit synchroload_radiography.m
@@ -23,6 +25,8 @@ edit synchroload_sequ_force.m
 edit synchroload_sequ.m
 edit synchroload_syn13.m
 edit synchroload_syn166.m
+edit stitch_volumes
+edit find_volume_stitch_parameter
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Load force value: create figure %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

@@ -3,7 +3,7 @@ X-Ray Mass Attenuation Coefficients
     Table 2. Material constants and composition assumed in the present evaluations for compounds and mixtures. The compositions of various human tissues was taken from ICRU Report 44 (1989). Values are given for the mean ratio of atomic number-to-mass Z/A, the mean excitation energy I, and the density ρ. Some density values are only nominal. 
 
 Material 	  	<Z/A> 	  	I 	  	Density 	  	Composition
-(eV) 	(g/cm3) 	(Z: fraction
+                (eV) 	(g/cm3) 	(Z: fraction
 by weight)
 A-150 Tissue-Equivalent Plastic 	  	0.54903 	  	65.1 	  	1.127E+00 	  	1: 0.101330
 6: 0.775498

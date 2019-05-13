@@ -21,8 +21,7 @@
 % (2014)
 % Also cite the ASTRA Toolbox, see http://www.astra-toolbox.com/
 %
-% Written by Julian Moosmann. First version: 2016-09-28. Last modifcation:
-% 2019-03-11
+% Written by Julian Moosmann.
 
 if ~exist( 'external_parameter' ,'var')
     clearvars
@@ -34,13 +33,13 @@ close all hidden % close all open windows
 %% PARAMETERS / SETTINGS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-fast_reco = 1; % !!! OVERWRITES SOME PARAMETERS SET BELOW !!!
+fast_reco = 0; % !!! OVERWRITES SOME PARAMETERS SET BELOW !!!
 stop_after_data_reading(1) = 0; % for data analysis, before flat field correlation
 stop_after_proj_flat_correlation(1) = 0; % for data analysis, after flat field correlation
 
 %%% SCAN %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 scan_path = ...
-    '/asap3/petra3/gpfs/p05/2019/data/11007559/processed/smf_01_sample_1/';
+    '/asap3/petra3/gpfs/p05/2019/data/11005842/raw/syn028_18004_44L_bottom';
 read_flatcor = 0; % read preprocessed flatfield-corrected projections. CHECK if negative log has to be taken!
 read_flatcor_path = ''; % subfolder of 'flat_corrected' containing projections
 read_sino = 0; % read preprocessed sinograms. CHECK if negative log has to be taken!
@@ -50,15 +49,15 @@ sample_detector_distance = []; % in m. if empty: read from log file
 eff_pixel_size = []; % in m. if empty: read from log file. effective pixel size =  detector pixel size / magnification
 pix_scaling = 1; % to account for beam divergence if pixel size was determined (via MTF) at single distance only
 %%% PREPROCESSING %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-raw_roi = -8; % vertical and/or horizontal ROI; (1,1) coordinate = top left pixel; supports absolute, relative, negative, and mixed indexing.
+raw_roi = []; % vertical and/or horizontal ROI; (1,1) coordinate = top left pixel; supports absolute, relative, negative, and mixed indexing.
 % []: use full image;
 % [y0 y1]: vertical ROI, skips first raw_roi(1)-1 lines, reads until raw_roi(2); if raw_roi(2) < 0 reads until end - |raw_roi(2)|; relative indexing similar.
 % [y0 y1 x0 x1]: vertical + horzontal ROI, each ROI as above
 % if -1: auto roi, selects vertical ROI automatically. Use only for DCM. Not working for *.raw data where images are flipped and DMM data.
 % if < -1: Threshold is set as min(proj(:,:,[1 end])) + abs(raw_roi)*median(dark(:)). raw_roi=-1 defaults to min(proj(:,:,[1 end])) + 4*median(dark(:))
-raw_bin = 4; % projection binning factor: integer
+raw_bin = 3; % projection binning factor: integer
 im_trafo = ''; % string to be evaluated after reading data in the case the image is flipped/rotated/etc due to changes at the beamline, e.g. 'rot90(im)'
-bin_before_filtering(1) = 1; % Apply binning before filtering pixel. less effective, but much faster especially for KIT camera.
+bin_before_filtering(1) = 0; % Apply binning before filtering pixel. less effective, but much faster especially for KIT camera.
 excentric_rot_axis = 0; % off-centered rotation axis increasing FOV. -1: left, 0: centeerd, 1: right. influences tomo.rot_axis.corr_area1
 crop_at_rot_axis = 0; % for recos of scans with excentric rotation axis but WITHOUT projection stitching
 stitch_projections = 0; % for 2 pi scans: stitch projection at rotation axis position. Recommended with phase retrieval to reduce artefacts. Standard absorption contrast data should work well without stitching. Subpixel stitching not supported (non-integer rotation axis position is rounded, less/no binning before reconstruction can be used to improve precision).
@@ -101,7 +100,7 @@ ring_filter.jm.median_width = 11; % multiple widths are applied consecutively, e
 strong_abs_thresh = 1; % if 1: does nothing, if < 1: flat-corrected values below threshold are set to one. Try with algebratic reco techniques.
 decimal_round_precision = 2; % precision when rounding pixel shifts
 %%% PHASE RETRIEVAL %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-phase_retrieval.apply = 1; % See 'PhaseFilter' for detailed description of parameters !
+phase_retrieval.apply = 0; % See 'PhaseFilter' for detailed description of parameters !
 phase_retrieval.apply_before = 1; % before stitching, interactive mode, etc. For phase-contrast data with an excentric rotation axis phase retrieval should be done afterwards. To find the rotataion axis position use this option in a first run, and then turn it of afterwards.
 phase_retrieval.post_binning_factor = 1; % Binning factor after phase retrieval, but before tomographic reconstruction
 phase_retrieval.method = 'tie';'qp';'qpcut'; %'qp' 'ctf' 'tie' 'qp2' 'qpcut'
@@ -117,7 +116,7 @@ tomo.vol_size = [];%[-1 1 -1 1 -0.5 0.5];% 6-component vector [xmin xmax ymin ym
 tomo.vol_shape = []; %[1 1 1] shape (# voxels) of reconstruction volume. used for excentric rot axis pos. if empty, inferred from 'tomo.vol_size'. in absolute numbers of voxels or in relative number w.r.t. the default volume which is given by the detector width and height.
 tomo.rot_angle.full_range = 2*pi; % in radians. if []: full angle of rotation including additional increment, or array of angles. if empty full rotation angles is determined automatically to pi or 2 pi
 tomo.rot_angle.offset = pi; % global rotation of reconstructed volume
-tomo.rot_axis.offset = 0.7;%[]; % if empty use automatic computation
+tomo.rot_axis.offset = 0; % if empty use automatic computation
 tomo.rot_axis.offset_shift_range = []; %[]; % absolute lateral movement in pixels during fly-shift-scan, overwrite lateral shift read out from hdf5 log
 tomo.rot_axis.position = []; % if empty use automatic computation. EITHER OFFSET OR POSITION MUST BE EMPTY. YOU MUST NOT USE BOTH!
 tomo.rot_axis.tilt = 0; % in rad. camera tilt w.r.t rotation axis. if empty calculate from registration of projections at 0 and pi
@@ -168,7 +167,7 @@ write.compression.parameter = [0.02 0.02]; % compression-method specific paramet
 %%% INTERACTION %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 verbose = 1; % print information to standard output
 visual_output = 1; % show images and plots during reconstruction
-interactive_mode.rot_axis_pos = 0; % reconstruct slices with dif+ferent rotation axis offsets
+interactive_mode.rot_axis_pos = 1; % reconstruct slices with dif+ferent rotation axis offsets
 interactive_mode.rot_axis_tilt = 0; % reconstruct slices with different offset AND tilts of the rotation axis
 interactive_mode.lamino = 0; % find laminography tilt instead camera rotation
 interactive_mode.fixed_other_tilt = 0; % fixed other tilt
@@ -760,7 +759,7 @@ if ~read_flatcor && ~read_sino
     dark_med_max = max( dark(:) );
     prnt( ' done in %.1f s', toc-t)
     if visual_output(1)
-        h1 = figure('Name', 'data and flat-and-dark-field correction');
+        h1 = figure('Name', 'data and flat-and-dark-field correction', 'WindowState', 'maximized');
         subplot(2,3,1)
         imsc1( dark );
         title(sprintf('median dark field'))
@@ -863,7 +862,7 @@ if ~read_flatcor && ~read_sino
         if exist( 'h1' , 'var' ) && isvalid( h1 )
             figure(h1)
         else
-            h1 = figure('Name', 'data and flat-and-dark-field correction');
+            h1 = figure('Name', 'data and flat-and-dark-field correction', 'WindowState', 'maximized');
         end
         subplot(2,3,2)
         imsc1( flat(:,:,1) )
@@ -886,7 +885,7 @@ if ~read_flatcor && ~read_sino
         if exist( 'h1' , 'var' ) && isvalid( h1 )
             figure(h1)
         else
-            h1 = figure('Name', 'data and flat-and-dark-field correction');
+            h1 = figure('Name', 'data and flat-and-dark-field correction', 'WindowState', 'maximized');
         end
         filename = sprintf('%s%s', scan_path, img_names_mat(1, :));
         raw1 = Binning( FilterPixel( read_image( filename, '', raw_roi, tif_info, im_shape_raw, dtype, im_trafo ), pixel_filter_threshold_proj, 0, pixel_filter_radius), raw_bin) / raw_bin^2;
@@ -1952,14 +1951,14 @@ if tomo.run
             % Show orthogonal vol cuts
             if visual_output(1)
                 
-                figure('Name', 'Volume cut z');
+                figure('Name', 'Volume cut z', 'WindowState', 'maximized');
                 nn = round( size( vol, 3 ) / 2);
                 imsc( squeeze( vol(:,:,nn) ) )
                 axis equal tight
                 title( sprintf( 'vol z = %u', nn ) )
                 colorbar
                 
-                figure('Name', 'Volume cut y');
+                figure('Name', 'Volume cut y', 'WindowState', 'maximized');
                 nn = round( size( vol, 2 ) / 2);
                 im = rot90( squeeze( vol(:,nn,:) ), -2);
                 if size( im , 1) < size( im , 2)
@@ -1972,7 +1971,7 @@ if tomo.run
                 axis equal tight
                 colorbar
                 
-                figure('Name', 'Volume cut x');
+                figure('Name', 'Volume cut x', 'WindowState', 'maximized');
                 nn = round( size( vol, 1 ) / 2);
                 im = flipud( squeeze( vol(nn,:,:) ) );
                 if size( im , 1) < size( im , 2)
@@ -2108,7 +2107,7 @@ if tomo.run
                 % Show orthogonal vol cuts
                 if visual_output(1)
                     if sum( ind(nn) == indshow )
-                        figure('Name', sprintf( 'Volume slice'));
+                        figure('Name', 'Volume slice', 'WindowState', 'maximized');
                         imsc( vol )
                         axis equal tight
                         title( sprintf( 'vol z = %u', ind(nn) ) )
