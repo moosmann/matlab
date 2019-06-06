@@ -8,7 +8,7 @@ export CUDA_PATH=/usr/local/cuda-9.1
 export PYTHONPATH=$CUDA_PATH/lib64/:$PYTHONPATH
 
 # MATLAB
-export MATLAB_VERSION=R2017b
+export MATLAB_VERSION=R2018a
 
 # ASTRA
 export PATH=/opt/matlab/$MATLAB_VERSION/bin/:$PATH

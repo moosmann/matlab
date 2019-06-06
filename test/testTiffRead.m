@@ -1,4 +1,5 @@
 clear all
+warning( 'off', 'MATLAB:imagesci:rtifc:missingPhotometricTag' );
 
 raw_path = '/asap3/petra3/gpfs/p05/2017/data/11002839/raw/ehh_2017_019_f/';
 %raw_path = '/home/moosmanj/testTiff/';
@@ -20,7 +21,7 @@ proj = zeros( height, width, num_proj, 'uint16');
 
 meth = 'jm';
 %meth = 'ri';
-meth = 'ml';
+%meth = 'ml';
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 tic;
@@ -29,13 +30,13 @@ for nn = 1:num_proj
     switch meth
         case 'jm'
             TifLink = Tiff( filename, 'r');
-            TifLink.setTag('Photometric', 1);
+            %TifLink.setTag('Photometric', 1);
             proj(:,:,nn) = TifLink.read();
             TifLink.close();            
         case 'ml'
             proj(:,:,nn) = imread( filename, 'tif', 'Info', tinfo );
         case 'ri'
-            proj(:,:,nn) = read_image( filename, 'tif' )';
+            proj(:,:,nn) = read_image( filename, 'tif' );
     end
 end
 t = toc;

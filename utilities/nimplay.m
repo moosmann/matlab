@@ -72,5 +72,6 @@ if isempty( figure_name )
     figure_name = sprintf( 'volume shape: %u x %u x %u', size(vol) );
 end
 set(h.Parent, 'name', figure_name)
+set(h.Parent, 'WindowState', 'maximized' )
 drawnow
 pause(0.01)

@@ -15,7 +15,7 @@ else
     if deleteFiles
         % Safety check
         
-        expr = '11001978|c20160920_000_diana|c20160913_000_synload|11003950|11004016|11003288|11003440|11004263|11004936|11005553';
+        expr = '';
         if ~isempty( beamtimeID_regexp )
             expr = [expr '|' beamtimeID_regexp];
         end

@@ -1,4 +1,4 @@
-function save_path = write_volume( tag, vol, output_type, reco_path, raw_bin, phase_bin, reco_bin, counter_offset, verbose, suffix, deleteFiles )
+function save_path = write_volume( tag, vol, output_type, reco_path, raw_bin, phase_bin, reco_bin, counter_offset, verbose, suffix, deleteFiles, beamtimeID_regexp )
 
 %% Default arguments %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 if nargin < 8
@@ -12,6 +12,9 @@ if nargin < 10
 end
 if nargin < 11
     deleteFiles = 0;
+end
+if nargin < 12
+    beamtimeID_regexp = '';
 end
 
 %% Main %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -32,7 +35,7 @@ else
     PrintVerbose(verbose, ':')
     save_path = [save_path suffix];
     CheckTrailingSlash( save_path )
-    CheckAndMakePath( save_path, deleteFiles )
+    CheckAndMakePath( save_path, deleteFiles, beamtimeID_regexp )
         
     switch output_type
         

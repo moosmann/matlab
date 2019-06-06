@@ -1,1 +1,0 @@
-fileparts( mfilename( 'fullpath' ) )

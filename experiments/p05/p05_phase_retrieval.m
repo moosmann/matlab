@@ -155,7 +155,7 @@ if exist( 'interactive_mode', 'var' ) && isfield( interactive_mode, 'phase_retri
                 reco_metric(nn).val = zeros( numel(reg_par), 1);
             end
             
-            %% Reconstruction loop overregularization parameter
+            %% Reconstruction loop over regularization parameter
             pha = zeros( [vol_shape(1), vol_shape(2), numel( reg_par )], 'single' );
             for nn = 1:numel( reg_par )
                 
