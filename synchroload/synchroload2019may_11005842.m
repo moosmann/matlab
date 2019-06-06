@@ -163,6 +163,8 @@ tomo.sirt.MaxConstraint = []; % If specified, all values above MaxConstraint wil
 %%% OUTPUT %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 write.path = ''; %'/gpfs/petra3/scratch/moosmanj'; % absolute path were output data will be stored. !!overwrites the write.to_scratch flag. if empty uses the beamtime directory and either 'processed' or 'scratch_cc'
 write.to_scratch = 0; % write to 'scratch_cc' instead of 'processed'
+write.deleteFiles = 1;
+write.beamtimeID = '11005842'; 
 write.parfolder = '';% parent folder to 'reco', 'sino', 'phase', and 'flat_corrected'
 write.subfolder.flatcor = ''; % subfolder in 'flat_corrected'
 write.subfolder.phase_map = ''; % subfolder in 'phase_map'
@@ -319,14 +321,19 @@ scan_path = [raw_path 'syn033_18006_40l_top']; ADD
 tomo.rot_axis.offset = -649.5 * 3  / raw_bin;
 scan_path = [raw_path 'syn034_18011_36l_bottom']; ADD
 
+tomo.rot_axis.offset = -649.3 * 3  / raw_bin;
 scan_path = [raw_path 'syn034_18011_36l_middle']; ADD
 
+tomo.rot_axis.offset = -649.9 * 3  / raw_bin;
 scan_path = [raw_path 'syn034_18011_36l_top']; ADD
 
+tomo.rot_axis.offset = -649.3 * 3  / raw_bin;
 scan_path = [raw_path 'syn035_18012_36r_bottom']; ADD
 
+tomo.rot_axis.offset = -649.3 * 1  / raw_bin;
 scan_path = [raw_path 'syn035_18012_36r_middle']; ADD
 
+tomo.rot_axis.offset = -649.4 * 1  / raw_bin;
 scan_path = [raw_path 'syn035_18012_36r_top']; ADD
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

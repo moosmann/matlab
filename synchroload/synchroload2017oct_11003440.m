@@ -1,4 +1,4 @@
-function p05_reco_loop_synchroload2017oct_11003440_000( SUBSETS, RUN_RECO, PRINT_PARAMETERS)
+function synchroload2017oct_11003440( SUBSETS, RUN_RECO, PRINT_PARAMETERS)
 %% OLD VERSION BEFORE SORTING OUT EMPTY/ABORTED SCANS
 
 % Template function to loop over data sets given in the 'PARAMETER / DATA
@@ -66,24 +66,6 @@ end
 
 %% OLD VERSION BEFORE SORTING OUT EMPTY/ABORTED SCANS
 
-scan_path = ...
-'/asap3/petra3/gpfs/p05/2017/data/11003288/raw/syn134_28R_PEEK_8w';
-'/asap3/petra3/gpfs/p05/2017/data/11002839/raw/ehh_2017_013_f';
-'/asap3/petra3/gpfs/p05/2017/commissioning/c20171218_000_synchro/raw/syn175_cor_Mg5Gd428s_Mg10Gd408s_Mg5Gd8p_30';
-'/asap3/petra3/gpfs/p05/2017/commissioning/c20171218_000_synchro/raw/syn174_cor_Mg5Gd416s_Mg10Gd410s_Mg5Gd7p_30';
-'/asap3/petra3/gpfs/p05/2017/commissioning/c20171218_000_synchro/raw/syn173_cor_Mg5Gd413s_Mg10Gd409s_Mg5Gd3p_30';
-'/asap3/petra3/gpfs/p05/2017/commissioning/c20171218_000_synchro/raw/syn171_cor_Mg5Gd430s_Mg10Gd413s_pmg9p_30';    
-'/asap3/petra3/gpfs/p05/2017/commissioning/c20171218_000_synchro/raw/syn170_cor_Mg5Gd414s_Mg10Gd405s_pmg2p_30';
-'/asap3/petra3/gpfs/p05/2017/commissioning/c20171218_000_synchro/raw/syn168_cor_Mg5Gd410s_Mg10Gd401s_pmg1p_30';
-'/asap3/petra3/gpfs/p05/2017/data/11003527/raw/szeb_86'; % 2 x stitching
-'/asap3/petra3/gpfs/p05/2017/data/11003288/raw/syn151_58L_Mg_12_000';
-'/asap3/petra3/gpfs/p05/2017/data/11003288/raw/syn156_berit'; % 2 x stitching
-'/asap3/petra3/gpfs/p05/2017/data/11003527/raw/szeb_78';
-'/asap3/petra3/gpfs/p05/2017/data/11003288/raw/syn166_104R_Mg10Gd_4w_001';
-'/asap3/petra3/gpfs/p05/2017/commissioning/c20171115_000_kit_test/raw/fast_test17';
-'/asap3/petra3/gpfs/p05/2017/data/11003773/raw/syn132_cor_mg5gd434s_mg10gd408s_12';
-'/asap3/petra3/gpfs/p05/2017/data/11003288/raw/syn165_58L_Mg10Gd_12w_000'; %reconstruction is crap
-'/asap3/petra3/gpfs/p05/2017/data/11003288/raw/syn166_104R_Mg10Gd_4w_000'; %reconstruction is crap
 read_flatcor = 0; % read flatfield-corrected images from disc, skips preprocessing
 read_flatcor_path = ''; % subfolder of 'flat_corrected' containing projections
 % PREPROCESSING %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

@@ -1,4 +1,4 @@
-function p05_reco_loop_synchroload2018may_000( SUBSETS, RUN_RECO, PRINT_PARAMETERS)
+function synchroload2018may_11004936( SUBSETS, RUN_RECO, PRINT_PARAMETERS)
 % Template function to loop over data sets given in the 'PARAMETER / DATA
 % SETS' section below. The 'DEFAULT PARAMETERS' section defines the default
 % paramters. To add a data / parameter to the loop, define your
@@ -152,6 +152,8 @@ tomo.sirt.MaxConstraint = []; % If specified, all values above MaxConstraint wil
 %%% OUTPUT %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 write.path = '';
 write.to_scratch = 0; % write to 'scratch_cc' instead of 'processed'
+write.deleteFiles = 0; % delete files already existing in output folders. Useful if number or names of files differ when reprocessing.
+write.beamtimeID = '11004936';
 write.parfolder = '';% parent folder to 'reco', 'sino', 'phase', and 'flat_corrected'
 write.subfolder.flatcor = ''; % subfolder in 'flat_corrected'
 write.subfolder.phase_map = ''; % subfolder in 'phase_map'
