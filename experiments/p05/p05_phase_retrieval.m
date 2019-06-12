@@ -278,7 +278,7 @@ if exist( 'interactive_mode', 'var' ) && isfield( interactive_mode, 'phase_retri
             % Play
             nimplay( pha, 1, [], 'PHASE RETRIEVAL: sequence of reconstructed slices using different phase retrieval parameters')
             
-        else
+       else
             first_round = 0;
         end
         
@@ -335,6 +335,11 @@ if exist( 'interactive_mode', 'var' ) && isfield( interactive_mode, 'phase_retri
     phase_retrieval.eff_pixel_size_binned = edp(3);
     
     tint = toc - tint;
+    
+    % Save sequence
+    % Renormalize: subtract minimum, then divide by maximum-minimum.
+    filename = sprintf( '%sphase_retrieval__reg_par_sequence.gif', write.fig_path );
+    write_gif( pha, filename )
     fprintf( '\nEND OF INTERACTIVE MODE' )  
 end
 

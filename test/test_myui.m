@@ -31,5 +31,5 @@ set(f,'ButtonDownFcn','test_rotaxoff(f,h,txt_pos)')
 % is not stepping anymore
 
 
-%addlistener(h.DataSource.Controls,'CurrentFrame','PostSet',@(src,evnt)disp('Color changed'))
-listener(h.DataSource.Controls,'CurrentFrame','PostSet',@(src,evnt)disp('Color changed'))
+addlistener(h.DataSource.Controls,'CurrentFrame','PostSet',@(src,evnt)disp('Color changed'))
+%listener(h.DataSource.Controls,'CurrentFrame','PostSet',@(src,evnt)disp('Color changed'))

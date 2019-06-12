@@ -6,8 +6,8 @@
 %
 % HOW TO RUN THE SCRIPT:
 % - Editor windows: press 'F5' when focus is in the Editor window
-% - Editor tab: click 'Run' in the
-% - Command Window: type 'p05_reco' and Enter
+% - Editor tab: click 'Run' in the toolstrip
+% - Command Window: type 'p05_reco' and hit Enter
 %
 % HOW TO AUTOMATICALLY LOOP OVER RECONSTRUCTIONS:
 % To loop over different data or parameters sets see
@@ -74,7 +74,7 @@ pixel_filter_threshold_flat = [0.01 0.005]; % Flat fields: threshold parameter f
 pixel_filter_threshold_proj = [0.01 0.005]; % Raw projection: threshold parameter for hot/dark pixel filter, for details see 'FilterPixel'
 pixel_filter_radius = []; % Default: [3 3]. Increase only if blobs of zeros or other artefacts are expected. Can increase processing time heavily.
 ring_current_normalization = 1; % normalize flat fields and projections by ring current
-image_correlation.method = 'none';'ssim-ml';'entropy';'entropy';'none';'diff';'shift';'ssim';'std';'cov';'corr';'cross-entropy12';'cross-entropy21';'cross-entropyx';
+image_correlation.method = 'none';'ssim-ml';'entropy';'none';'diff';'shift';'ssim';'std';'cov';'corr';'cross-entropy12';'cross-entropy21';'cross-entropyx';
 % Correlation of projections and flat fields. Essential for DCM data. Even
 % though less efficient for DMM data, it usually improves reconstruction quality.
 % Available methods ('ssim-ml'/'entropy' usually work best):
@@ -251,6 +251,9 @@ end
 if ~isfield( write, 'beamtimeID' )
     write.beamtimeID = '';
 end
+if ~isfield( tomo, 'reco_mode' )
+    tomo.reco_mode = '3D';
+end
 
 astra_clear % if reco was aborted, ASTRA memory is not cleared
 
@@ -330,6 +333,10 @@ if isempty( write.subfolder.reco )
 else
     reco_path = [write.path, filesep, 'reco', filesep, write.subfolder.reco, filesep];
 end
+
+% Figure path
+write.fig_path = [write.path, filesep, 'figures', filesep];
+fig_path = write.fig_path;
 
 if ~read_flatcor && ~read_sino
     
@@ -557,11 +564,13 @@ if ~read_flatcor && ~read_sino
             offset_shift = offset_shift - mean( offset_shift );
         end
         if visual_output(1) && numel( offset_shift ) > 2 && abs( std( offset_shift ) ) > 0
-            figure('Name', 'Rotation axis offset shift');
+            f = figure('Name', 'rotation axis offset shift', 'WindowState', 'maximized');
             plot( offset_shift, '.')
             title(sprintf('Rotation axis offset shift (zero mean)') )
             axis equal tight
             drawnow
+            CheckAndMakePath( fig_path )
+            saveas( f, sprintf( '%s%s.png', fig_path, regexprep( f.Name, '\ |:', '_') ) );
         end
         % ring current
         X = double( petra.time(2:end) ); % first value is zero
@@ -683,7 +692,7 @@ if ~read_flatcor && ~read_sino
                 prnt( '\n vertical auto roi : [%u %u], roi threshold factor : %g', raw_roi, roi_fac )
                 
                 if visual_output(1)
-                    figure('Name', 'Auto ROI: raw image and cropping region');
+                    f = figure('Name', 'auto ROI: raw image and cropping region', 'WindowState', 'maximized');
                     
                     subplot(1,2,1)
                     im = (single(im_raw) + single(im_raw2) ) / 2;
@@ -709,6 +718,9 @@ if ~read_flatcor && ~read_sino
                     text( raw_roi(2), roi_thresh + 80, sprintf('raw roi(2)=%u', raw_roi(2) ) )
                     
                     drawnow
+                    
+                    saveas( f, sprintf( '%s%s.png', fig_path, regexprep( f.Name, '\ |:', '_') ) );
+
                 end
             end
         end
@@ -821,7 +833,7 @@ if ~read_flatcor && ~read_sino
             scale_factor = 100 ./ shiftdim( ref_rc(refs_to_use), -1 );
             flat = bsxfun( @times, flat, scale_factor );
             if visual_output(1)
-                hrc = figure('Name', 'Ring currents');
+                hrc = figure('Name', 'ring currents', 'WindowState', 'maximized');
                 subplot(1,1,1);
                 plot( ref_rc(:), '.' )
                 axis tight
@@ -969,7 +981,7 @@ if ~read_flatcor && ~read_sino
                 if exist( 'hrc', 'var' ) && isvalid( hrc )
                     figure(hrc)
                 else
-                    hrc = figure('Name', 'Ring currents');
+                    hrc = figure('Name', 'ring currents', 'WindowState', 'maximized');
                 end
                 subplot(1,1,1);
                 plot( ref_nums, ref_rc(:), '.',proj_nums, proj_rc(:), '.' )
@@ -977,6 +989,7 @@ if ~read_flatcor && ~read_sino
                 title(sprintf('ring currents'))
                 legend( sprintf( 'flats, mean: %.2f mA', ref_rcm), sprintf( 'projs, mean: %.2f mA', proj_rcm) )
                 drawnow
+                saveas( hrc, sprintf( '%s%s.png', fig_path, regexprep( hrc.Name, '\ |:', '_') ) );
             end
         else
             fprintf('\n WARNING: projections not normalized by ring current. Names read from directory and log-file are inconsistent.\n')
@@ -1080,7 +1093,7 @@ if ~read_flatcor && ~read_sino
         if exist( 'h1' , 'var' ) && isvalid( h1 )
             figure(h1)
         else
-            h1 = figure('Name', 'data and flat-and-dark-field correction');
+            h1 = figure('Name', 'data and flat-and-dark-field correction', 'WindowState', 'maximized');
         end
         
         subplot(2,3,4)
@@ -1104,7 +1117,10 @@ if ~read_flatcor && ~read_sino
         colorbar
         axis equal tight
         
-        figure('Name', 'sinogram');
+        CheckAndMakePath( fig_path )
+        saveas( h1, sprintf( '%s%s.png', fig_path, regexprep( h1.Name, '\ |:', '_') ) );
+        
+        f = figure('Name', 'sinogram', 'WindowState', 'maximized');
         nn = round( size( proj, 2) / 2);
         % Crop lateral shift
         sino = squeeze( proj(:,nn,:) );
@@ -1114,6 +1130,8 @@ if ~read_flatcor && ~read_sino
         title(sprintf('sinogram: proj(:,%u,:) (shift corrected)', nn))
         colorbar
         axis equal tight
+        
+        saveas( f, sprintf( '%s%s.png', fig_path, regexprep( f.Name, '\ |:', '_') ) );
         
         drawnow
     end
@@ -1208,7 +1226,7 @@ else
         
         % Plot data
         if visual_output(1)
-            figure('Name', 'projection and sinogram');
+            f = figure('Name', 'projection and sinogram', 'WindowState', 'maximized');
             
             subplot(1,2,1)
             imsc1( proj(:,:,1))
@@ -1225,6 +1243,10 @@ else
             axis equal tight
             
             drawnow
+            
+            CheckAndMakePath( fig_path )
+            saveas( f, sprintf( '%s%s.png', fig_path, regexprep( f.Name, '\ |:', '_') ) );
+            
         end
     end
     
@@ -1451,6 +1473,7 @@ if tomo.run || tomo.run_interactive_mode
             set( ax2, 'YTick', [] )
             title(sprintf('rotation axis: metrics VS offset'))
             drawnow
+            saveas( h_rot_off, sprintf( '%s%s.png', fig_path, regexprep( h_rot_off.Name, '\ |:', '_') ) );
             
             % Play
             nimplay(vol, 1, [], 'OFFSET: sequence of reconstructed slices using different rotation axis offsets')
@@ -1556,6 +1579,7 @@ if tomo.run || tomo.run_interactive_mode
                         set( ax2, 'YTick', [] )
                         title(sprintf('rotation axis: metrics VS tilt'))
                         drawnow
+                        saveas( h_rot_off, sprintf( '%s%s.png', fig_path, regexprep( h_rot_off.Name, '\ |:', '_') ) );
                         
                         % Play
                         nimplay(vol, 1, [], 'TILT: sequence of reconstructed slices using different rotation axis tilts')
@@ -1632,9 +1656,13 @@ if tomo.run || tomo.run_interactive_mode
         end
         
         tomo.rot_axis.position = im_shape_binned1 / 2 + tomo.rot_axis.offset;
-        fprintf( '\nEND OF INTERACTIVE MODE\n' )
+        
+        % Save last sequence
+        filename = sprintf( '%srot_axis_sequence.gif', write.fig_path );
+        write_gif( vol, filename )
         
         tint = toc - tint;
+        fprintf( '\nEND OF INTERACTIVE MODE\n' )
     end
     prnt( '\n rotation axis offset: %.2f', tomo.rot_axis.offset );
     prnt( '\n rotation axis position: %.2f', tomo.rot_axis.position );
@@ -1962,14 +1990,15 @@ if tomo.run
             % Show orthogonal vol cuts
             if visual_output(1)
                 
-                figure('Name', 'Volume cut z', 'WindowState', 'maximized');
+                f = figure('Name', 'Volume cut z', 'WindowState', 'maximized');
                 nn = round( size( vol, 3 ) / 2);
                 imsc( squeeze( vol(:,:,nn) ) )
                 axis equal tight
                 title( sprintf( 'vol z = %u', nn ) )
                 colorbar
+                saveas( f, sprintf( '%s%s.png', fig_path, regexprep( f.Name, '\ |:', '_') ) );
                 
-                figure('Name', 'Volume cut y', 'WindowState', 'maximized');
+                f = figure('Name', 'Volume cut y', 'WindowState', 'maximized');
                 nn = round( size( vol, 2 ) / 2);
                 im = rot90( squeeze( vol(:,nn,:) ), -2);
                 if size( im , 1) < size( im , 2)
@@ -1981,8 +2010,9 @@ if tomo.run
                 end
                 axis equal tight
                 colorbar
-                
-                figure('Name', 'Volume cut x', 'WindowState', 'maximized');
+                saveas( f, sprintf( '%s%s.png', fig_path, regexprep( f.Name, '\ |:', '_') ) );
+
+                f = figure('Name', 'Volume cut x', 'WindowState', 'maximized');
                 nn = round( size( vol, 1 ) / 2);
                 im = flipud( squeeze( vol(nn,:,:) ) );
                 if size( im , 1) < size( im , 2)
@@ -1994,6 +2024,7 @@ if tomo.run
                 end
                 axis equal tight
                 colorbar
+                saveas( f, sprintf( '%s%s.png', fig_path, regexprep( f.Name, '\ |:', '_') ) );
                 
                 drawnow
             end
