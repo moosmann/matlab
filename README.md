@@ -57,13 +57,4 @@ How to start a reconstruction:
     - Type 'F5' key when focus is in the 'p05_reco' file    -
 
 
-
-How to set up automatized reconstruction loop:
-
-1) Make a copy of 'p05_reco_template.m' and follow the instructions of the
-   help within.
-
-2) Adjust default parameter section: modify, delete, or copy parameter 
-    from 'p05_reco'
-
-3) Add data or parameter sets and run file.
+How to set up a loop script to reconstruct several data sets: help p05_create_reco_loop
