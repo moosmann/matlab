@@ -239,6 +239,8 @@ scan_path = [raw_path 'syn004_24R_PEEK_8w_005']; ADD
 
 scan_path = [raw_path 'syn004_24R_PEEK_8w_006']; ADD
 
+raw_bin = 2;
+tomo.rot_axis.offset = 4.7 * 2 / raw_bin;
 scan_path = [raw_path 'syn005_94R_Mg5Gd_8w']; ADD
 
 scan_path = [raw_path 'syn007_24R_PEEK_8w']; ADD

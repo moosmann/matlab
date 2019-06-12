@@ -3,15 +3,19 @@ clear all
 
 %% Beamtimes
 beamtime = { ...
-2016 11001978
-2017 11003950
+% 2016 11001978
+% 2017 11003950
 2017 11004016
-2017 11003288
-2017 11003440
-2017 11003440
-2018 11004263
-2018 11004936
-2018 11005553};
+% 2017 11003288
+% 2017 11003440
+% 2017 11003440
+% 2018 11004263
+% 2018 11004936
+ 2018 11005553
+};
+
+interp_method = 'linear';
+interp_extrapval = 0;
 
 %% Output directory
 %parpath = '/asap3/petra3/gpfs/p05/2017/data/11003288/processed/segmentation/';
@@ -19,8 +23,6 @@ parpath = '/asap3/petra3/gpfs/p05/2018/data/11004936/processed/segmentation/';
 overviewpath = [parpath 'overview'];
 CheckAndMakePath( parpath )
 CheckAndMakePath( overviewpath );
-
-%parpath_load = '/asap3/petra3/gpfs/p05/2018/data/11004936/processed/segmentation_load/';
 
 scans = {};
 ss = 0;
@@ -107,14 +109,20 @@ for nn = length( beamtime ):-1:1
                 
                 %% Resample
                 fprintf( ' Resampling.' )
-                [x,y,z] =size( vol );
+                [x,y,z] = size( vol );
                 k = 5 / pixel_size;
-                xq = k:k:x;
-                yq = k:k:y;
-                zq = k:k:z;
+                if k < 1
+                    warning( '\n UPSAMPLING: pixel size = %g \n ', k );
+                end
+                xq = ceil( k ):k:x;
+                yq = ceil( k ):k:y;
+                zq = ceil( k ):k:z;
                 [Xq,Yq,Zq] = meshgrid( xq, yq, zq );
-                Vq = interp3( vol, Xq, Yq, Zq );
+                Vq = interp3( vol, Xq, Yq, Zq, interp_method, interp_extrapval );
                 [x,y,z] =size( Vq );
+                if isnan( Vq(:) )
+                    error( 'NaN detected' );
+                end
                 
                 %% Save resampled volume
                 fprintf( ' Saving.' )
@@ -122,7 +130,7 @@ for nn = length( beamtime ):-1:1
                 outpath = sprintf( '%s%s', parpath, unique_scan_name );
                 CheckAndMakePath( outpath )
                 parfor kk = 1:z
-                    filename = sprintf( '%s/vol_%04u.tif', outpath, kk )
+                    filename = sprintf( '%s/vol_%06u.tif', outpath, kk )
                     write32bitTIFfromSingle( filename, Vq(:,:,kk) );
                 end
                 
