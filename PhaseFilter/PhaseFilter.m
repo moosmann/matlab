@@ -5,16 +5,15 @@ function [fourier_filter, parameter_string] = PhaseFilter(method, filter_size, e
 % Phase retrieval:
 %
 %   pha = real( ifft2( fourier_filter(ARG) .* fft2( g_z ) ) ),
-%
 % where g_z is the intensity contrast defined as g_z = I_z - 1 with the
 % normalized intensity map I_z (i.e. flat- and dark-field corrected).
 %
 % OUTPUT:
+%
 % fourier_filter: 2D array, Fourier space filter for algebraic
 %   fourier-based phase retrieval. % no fftshift required.
 % parameter_sring: string, optional, unique string summarizing the
 %   parameters used.
-
 % 
 % ARGUMENTS:
 %
