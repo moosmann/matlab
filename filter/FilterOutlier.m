@@ -5,13 +5,13 @@ function [im, im_low, im_high] = FilterOutlier( im, threshold, bit_conversion, r
 % threshold : 1- or 2-component vector. Outliers to be filtered. If scalar
 %   lowest ands highest outliers are filtered alike.
 % bit_conversion : str, default: ''. if not empty convert to unsigned 8-,
-%   16-, 32-, or 64-bit integer.
+%   16-, 32-, or 64-bit integer. if empty: rescale, but do not convert.
 % return_threshs_only : bool, default:0. If only thresholds are desired.
 % verbose : bool, default:1. Print information.
 %
-% Written by J. Moosmann, 2018/07/23, last version:
+% Written by J. Moosmann.
 %
-% im = FilterOutlier( im, threshold, bit_conversion, verbose)
+% [im, im_low, im_high] = FilterOutlier( im, threshold, bit_conversion, return_threshs_only, verbose)
 
 %% Default arguments
 if nargin < 2
@@ -66,6 +66,8 @@ if ~return_threshs_only
                 im =  uint64( (2^64 - 1) * (im - im_low) / (im_high - im_low ) );
         end
         PrintVerbose( verbose, '\n Bit conversion.' )
+    else
+        im = (im - im_low) / (im_high - im_low );
     end
 end
 PrintVerbose( verbose, '\n' )

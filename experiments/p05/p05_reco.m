@@ -39,8 +39,10 @@ stop_after_proj_flat_correlation(1) = 0; % for data analysis, after flat field c
 
 %%% SCAN %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 scan_path = ...
+    '/asap3/petra3/gpfs/p05/2018/data/11004263/raw/syn004_96R_Mg5Gd_8w_a';
+    '/asap3/petra3/gpfs/p05/2018/data/11004450/raw/hnee21_pappel_oppositeWood_003';
     '/asap3/petra3/gpfs/p05/2019/data/11006295/raw/fin_036_human_163_a';    
-    %'/asap3/petra3/gpfs/p05/2019/data/11005842/raw/syn018_11l_ti_4w';
+    '/asap3/petra3/gpfs/p05/2019/data/11005842/raw/syn018_11l_ti_4w';
     '/asap3/petra3/gpfs/p05/2019/data/11005842/raw/test_flyshift_2';
 read_flatcor = 0; % read preprocessed flatfield-corrected projections. CHECK if negative log has to be taken!
 read_flatcor_path = ''; % subfolder of 'flat_corrected' containing projections
@@ -49,15 +51,15 @@ read_sino_folder = ''; % subfolder to scan path
 energy = []; % in eV! if empty: read from log file
 sample_detector_distance = []; % in m. if empty: read from log file
 eff_pixel_size = []; % in m. if empty: read from log file. effective pixel size =  detector pixel size / magnification
-pix_scaling = 1; % to account for beam divergence if pixel size was determined (via MTF) at single distance only
+pix_scaling = 1; % to account for beam divergence if pixel size was determined (via MTF) at the wrong distance
 %%% PREPROCESSING %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-raw_roi = [-1]; % vertical and/or horizontal ROI; (1,1) coordinate = top left pixel; supports absolute, relative, negative, and mixed indexing.
+raw_roi = []; % vertical and/or horizontal ROI; (1,1) coordinate = top left pixel; supports absolute, relative, negative, and mixed indexing.
 % []: use full image;
 % [y0 y1]: vertical ROI, skips first raw_roi(1)-1 lines, reads until raw_roi(2); if raw_roi(2) < 0 reads until end - |raw_roi(2)|; relative indexing similar.
 % [y0 y1 x0 x1]: vertical + horzontal ROI, each ROI as above
 % if -1: auto roi, selects vertical ROI automatically. Use only for DCM. Not working for *.raw data where images are flipped and DMM data.
 % if < -1: Threshold is set as min(proj(:,:,[1 end])) + abs(raw_roi)*median(dark(:)). raw_roi=-1 defaults to min(proj(:,:,[1 end])) + 4*median(dark(:))
-raw_bin = 8; % projection binning factor: integer
+raw_bin = 1; % projection binning factor: integer
 im_trafo = ''; % string to be evaluated after reading data in the case the image is flipped/rotated/etc due to changes at the beamline, e.g. 'rot90(im)'
 bin_before_filtering(1) = 1; % Apply binning before filtering pixel. less effective, but much faster especially for KIT camera.
 excentric_rot_axis = 0; % off-centered rotation axis increasing FOV. -1: left, 0: centeerd, 1: right. influences tomo.rot_axis.corr_area1
@@ -67,14 +69,14 @@ stitch_method = 'sine'; 'step';'linear'; %  ! CHECK correlation area !
 % 'step' : no interpolation, use step function
 % 'linear' : linear interpolation of overlap region
 % 'sine' : sinusoidal interpolation of overlap region
-proj_range = [4]; % range of projections to be used (from all found, if empty or 1: all, if scalar: stride, if range: start:incr:end
-ref_range = [20]; % range of flat fields to be used (from all found), if empty or 1: all. if scalar: stride, if range: start:incr:end
+proj_range = []; % range of projections to be used (from all found, if empty or 1: all, if scalar: stride, if range: start:incr:end
+ref_range = []; % range of flat fields to be used (from all found), if empty or 1: all. if scalar: stride, if range: start:incr:end
 pixel_filter_threshold_dark = [0.01 0.005]; % Dark fields: threshold parameter for hot/dark pixel filter, for details see 'FilterPixel'
 pixel_filter_threshold_flat = [0.01 0.005]; % Flat fields: threshold parameter for hot/dark pixel filter, for details see 'FilterPixel'
 pixel_filter_threshold_proj = [0.01 0.005]; % Raw projection: threshold parameter for hot/dark pixel filter, for details see 'FilterPixel'
 pixel_filter_radius = []; % Default: [3 3]. Increase only if blobs of zeros or other artefacts are expected. Can increase processing time heavily.
 ring_current_normalization = 1; % normalize flat fields and projections by ring current
-image_correlation.method = 'none';'ssim-ml';'entropy';'none';'diff';'shift';'ssim';'std';'cov';'corr';'cross-entropy12';'cross-entropy21';'cross-entropyx';
+image_correlation.method = 'ssim-ml';'entropy';'none';'diff';'shift';'ssim';'std';'cov';'corr';'cross-entropy12';'cross-entropy21';'cross-entropyx';
 % Correlation of projections and flat fields. Essential for DCM data. Even
 % though less efficient for DMM data, it usually improves reconstruction quality.
 % Available methods ('ssim-ml'/'entropy' usually work best):
@@ -102,7 +104,7 @@ ring_filter.jm.median_width = 11; % multiple widths are applied consecutively, e
 strong_abs_thresh = 1; % if 1: does nothing, if < 1: flat-corrected values below threshold are set to one. Try with algebratic reco techniques.
 decimal_round_precision = 2; % precision when rounding pixel shifts
 %%% PHASE RETRIEVAL %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-phase_retrieval.apply = 1; % See 'PhaseFilter' for detailed description of parameters !
+phase_retrieval.apply = 0; % See 'PhaseFilter' for detailed description of parameters !
 phase_retrieval.apply_before = 0; % before stitching, interactive mode, etc. For phase-contrast data with an excentric rotation axis phase retrieval should be done afterwards. To find the rotataion axis position use this option in a first run, and then turn it of afterwards.
 phase_retrieval.post_binning_factor = 1; % Binning factor after phase retrieval, but before tomographic reconstruction
 phase_retrieval.method = 'tie';'qp';'qpcut'; %'qp' 'ctf' 'tie' 'qp2' 'qpcut'
@@ -118,9 +120,9 @@ tomo.vol_size = [];%[-1 1 -1 1 -0.5 0.5];% 6-component vector [xmin xmax ymin ym
 tomo.vol_shape = []; %[1 1 1] shape (# voxels) of reconstruction volume. used for excentric rot axis pos. if empty, inferred from 'tomo.vol_size'. in absolute numbers of voxels or in relative number w.r.t. the default volume which is given by the detector width and height.
 tomo.rot_angle.full_range = []; % in radians. if []: full angle of rotation including additional increment, or array of angles. if empty full rotation angles is determined automatically to pi or 2 pi
 tomo.rot_angle.offset = pi; % global rotation of reconstructed volume
-tomo.rot_axis.offset = 0; % if empty use automatic computation
-tomo.rot_axis.offset_shift_range = []; %[]; % absolute lateral movement in pixels during fly-shift-scan, overwrite lateral shift read out from hdf5 log
+tomo.rot_axis.offset = 3; % if empty use automatic computation
 tomo.rot_axis.position = []; % if empty use automatic computation. EITHER OFFSET OR POSITION MUST BE EMPTY. YOU MUST NOT USE BOTH!
+tomo.rot_axis.offset_shift_range = []; %[]; % absolute lateral movement in pixels during fly-shift-scan, overwrite lateral shift read out from hdf5 log
 tomo.rot_axis.tilt = 0; % in rad. camera tilt w.r.t rotation axis. if empty calculate from registration of projections at 0 and pi
 tomo.fbp_filter.type = 'Ram-Lak';'linear'; % see iradonDesignFilter for more options. Ram-Lak according to Kak/Slaney
 tomo.fbp_filter.freq_cutoff = 1; % Cut-off frequency in Fourier space of the above FBP filter
@@ -151,7 +153,7 @@ write.phase_map = 0; % save phase maps (if phase retrieval is not 0)
 write.sino = 0; % save sinograms (after preprocessing & before FBP filtering and phase retrieval)
 write.sino_shift_cropped = 0; % save cropped sinos without lateral shift
 write.phase_sino = 0; % save sinograms of phase maps
-write.reco = 1; % save reconstructed slices (if tomo.run=1)
+write.reco = 0; % save reconstructed slices (if tomo.run=1)
 write.float = 1; % single precision (32-bit float) tiff
 write.uint16 = 0; % save 16bit unsigned integer tiff using 'write.compression.method'
 write.uint8 = 0; % save binned 8bit unsigned integer tiff using 'write.compression.method'
@@ -171,12 +173,12 @@ write.compression.parameter = [0.02 0.02]; % compression-method specific paramet
 %%% INTERACTION %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 verbose = 1; % print information to standard output
 visual_output = 1; % show images and plots during reconstruction
-interactive_mode.rot_axis_pos = 1; % reconstruct slices with dif+ferent rotation axis offsets
+interactive_mode.rot_axis_pos = 0; % reconstruct slices with dif+ferent rotation axis offsets
 interactive_mode.rot_axis_tilt = 0; % reconstruct slices with different offset AND tilts of the rotation axis
 interactive_mode.lamino = 0; % find laminography tilt instead camera rotation
 interactive_mode.fixed_other_tilt = 0; % fixed other tilt
 interactive_mode.slice_number = 0.5; % default slice number. if in [0,1): relative, if in (1, N]: absolute
-interactive_mode.phase_retrieval = 1; % Interactive retrieval to determine regularization parameter
+interactive_mode.phase_retrieval = 0; % Interactive retrieval to determine regularization parameter
 %%% HARDWARE / SOFTWARE %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 use_cluster = 0; % if available: on MAXWELL nodes disp/nova/wga/wgs cluster computation can be used. Recommended only for large data sets since parpool creation and data transfer implies a lot of overhead.
 poolsize = 0.8; % number of workers used in a local parallel pool. if 0: use current config. if >= 1: absolute number. if 0 < poolsize < 1: relative amount of all cores to be used. if SLURM scheduling is available, a default number of workers is used.
@@ -1037,7 +1039,9 @@ if ~read_flatcor && ~read_sino
     %% Projection/flat field correlation and flat field correction %%%%%%%%
     %%%% STOP HERE FOR FLATFIELD CORRELATION MAPPING %%%%%%%%%%%%%%%%%%%%%%
     %%%% use 'proj_flat_sequ' to show results of the correlcation
+    startS = ticBytes(gcp);
     [proj, corr, proj_roi, flat_roi] = proj_flat_correlation( proj, flat, image_correlation.method, image_correlation.area_width, image_correlation.area_height, im_shape_binned, image_correlation.shift.max_pixelshift, image_correlation.num_flats, decimal_round_precision, flatcor_path, verbose, visual_output, poolsize, beamtime_path);
+    toc_bytes = tocBytes(gcp,startS);
     proj_min0 = min( proj(:) );
     proj_max0 = max( proj(:) );
     prnt( '\n global min/max after flat-field corrected:  %6g %6g', proj_min0, proj_max0);
@@ -1458,7 +1462,7 @@ if tomo.run || tomo.run_interactive_mode
             end
             
             % Plot metrics
-            h_rot_off = figure('Name', 'OFFSET: metrics');
+            h_rot_off = figure('Name', 'OFFSET: metrics', 'WindowState', 'maximized');
             x = 1:7;%[1:4 6:7];
             Y = cell2mat({metrics_offset(x).val});
             plot( offset, Y, '-+');
@@ -1564,7 +1568,7 @@ if tomo.run || tomo.run_interactive_mode
                         end
                         
                         % Plot metrics
-                        h_rot_tilt = figure('Name', 'TILT: metrics');
+                        h_rot_tilt = figure('Name', 'TILT: metrics', 'WindowState', 'maximized');
                         x = 6:7;
                         Y = cell2mat({metrics_tilt(x).val});
                         plot( tilt, Y, '-+');
@@ -1658,8 +1662,10 @@ if tomo.run || tomo.run_interactive_mode
         tomo.rot_axis.position = im_shape_binned1 / 2 + tomo.rot_axis.offset;
         
         % Save last sequence
-        filename = sprintf( '%srot_axis_sequence.gif', write.fig_path );
-        write_gif( vol, filename )
+        if exist( 'vol', 'var' )
+            filename = sprintf( '%srot_axis_sequence.gif', write.fig_path );
+            write_gif( vol, filename )
+        end
         
         tint = toc - tint;
         fprintf( '\nEND OF INTERACTIVE MODE\n' )

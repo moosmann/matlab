@@ -1,13 +1,17 @@
 function k = FrequencyVector(len, precision, normalized)
-% Frequency vector of length N corresponding MATLAB's implementation of
-% disrectized Fourier space discretization.
+% (Normalized) frequency vector matching MATLAB's discretization of Fourier
+% space.
 %
-% len: scalar integer.
+% ARGUMENTS:
+% len: scalar integer. Length of the frequency vector.
 % precsision: single' or 'double'. Default: 'single'
-% normalized: boolean, default: 1. Output frequencies are normalized between
-% [-1 1].
+% normalized: boolean, default: 1. Output frequencies are normalized
+%   between [-1 1].
 %
-% Written by Julian Moosmann, last version 2013-11-12. Update: 2017-10-26
+% OUTPUT:
+% k : 1D frequency vector, to be used with meshgrid for example.
+%
+% Written by Julian Moosmann.
 %
 % k = FrequencyVector(len, precision, normalized)
 

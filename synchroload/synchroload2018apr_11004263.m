@@ -56,12 +56,6 @@ end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% DEFAULT PARAMETERS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-% Define parameter here. Otherwise parameters are taken from the current
-% version of 'p05_reco' if not set in the section below.
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
 fast_reco = 0; % !!! OVERWRITES SOME PARAMETERS SET BELOW !!!
 stop_after_data_reading(1) = 0; % for data analysis, before flat field correlation 
 stop_after_proj_flat_correlation(1) = 0; % for data analysis, after flat field correlation
@@ -74,7 +68,7 @@ sample_detector_distance = []; % in m. if empty: read from log file
 eff_pixel_size = []; % in m. if empty: read from log file. effective pixel size =  detector pixel size / magnification
 pix_scaling = 1;
 %%% PREPROCESSING %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-raw_roi = []; % if []: use full image; if [y0 y1]: vertical ROI, skips first raw_roi(1)-1 lines, reads until raw_roi(2). When raw_roi(2) < 0 reads until end - |raw_roi(2)|; if negative scalar: auto roi, selects ROI automatically.Not working for *.raw data where images are flipped.
+raw_roi = [-1]; % if []: use full image; if [y0 y1]: vertical ROI, skips first raw_roi(1)-1 lines, reads until raw_roi(2). When raw_roi(2) < 0 reads until end - |raw_roi(2)|; if negative scalar: auto roi, selects ROI automatically.Not working for *.raw data where images are flipped.
 raw_bin = 2; % projection binning factor: integer
 im_trafo = ''; % string to be evaluated after reading data in the case the image is flipped/rotated/etc due to changes at the beamline, e.g. 'rot90(im)'
 bin_before_filtering(1) = 0; % Apply binning before filtering pixel. less effective, but much faster especially for KIT camera.
@@ -195,7 +189,7 @@ interactive_mode.rot_axis_tilt = 0; % reconstruct slices with different offset A
 interactive_mode.lamino = 0; % find laminography tilt instead camera rotation
 interactive_mode.fixed_other_tilt = 0; % fixed other tilt
 interactive_mode.slice_number = 0.5; % default slice number. if in [0,1): relative, if in (1, N]: absolute
-interactive_mode.phase_retrieval = 1; % Interactive retrieval to determine regularization parameter
+interactive_mode.phase_retrieval = 0; % Interactive retrieval to determine regularization parameter
 %%% HARDWARE / SOFTWARE %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 use_cluster = 0; % if available: on MAXWELL nodes disp/nova/wga/wgs cluster computation can be used. Recommended only for large data sets since parpool creation and data transfer implies a lot of overhead.
 poolsize = 0.60; % number of workers used in a local parallel pool. if 0: use current config. if >= 1: absolute number. if 0 < poolsize < 1: relative amount of all cores to be used. if SLURM scheduling is available, a default number of workers is used.
@@ -328,10 +322,14 @@ raw_bin = 3;
 % scan_path = [raw_path 'syn027_72L_Mg5Gd_12w_kit']; ADD
 % scan_path = [raw_path 'syn028_72L_Mg5Gd_12w_kit']; ADD
 % scan_path = [raw_path 'syn029_72L_Mg5Gd_12w_kit']; ADD
-% scan_path = [raw_path 'syn030_72L_Mg5Gd_12w_kit_noshake']; ADD
-% scan_path = [raw_path 'syn031_72L_Mg5Gd_12w_kit_noshake_reallyNoShake']; ADD
+raw_bin = 4;
+bin_before_filtering(1) = 1;
+interactive_mode.rot_axis_pos = 1;
+scan_path = [raw_path 'syn030_72L_Mg5Gd_12w_kit_noshake']; ADD
+scan_path = [raw_path 'syn031_72L_Mg5Gd_12w_kit_noshake_reallyNoShake']; ADD
 scan_path = [raw_path 'syn032_72L_Mg5Gd_12w_kit']; ADD
 
+raw_bin = 3;
 %% Check
 % Not working. offset shift problems, probably due to missing images
 tomo.rot_axis.offset = 0.7 * 3 /  raw_bin;
