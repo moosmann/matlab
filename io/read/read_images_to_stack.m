@@ -38,7 +38,9 @@ NumFiles = numel(files);
 if verbose
     fprintf('Found %u files matching string pattern ''%s'' in directory ''%s''\n',NumFiles,FilenamePattern,InputPath);
 end
-    
+if NumFiles == 0
+    error( 'No files found matching the pattern: %s', FilenamePattern )
+end
 
 %% Read images into stack
 if numel(StepSize_or_VecOfImagesToRead) == 1

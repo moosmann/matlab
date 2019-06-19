@@ -259,7 +259,7 @@ if exist( 'interactive_mode', 'var' ) && isfield( interactive_mode, 'phase_retri
             end
             
             % Plot metrics
-            figure('Name', 'REGULARIZATION PARAMETER: metrics');
+            f = figure('Name', 'REGULARIZATION PARAMETER: metrics');
             x = 1:numel( reco_metric );
             Y = cell2mat({reco_metric(x).val});
             plot( reg_par, Y, '-+');            
@@ -274,6 +274,8 @@ if exist( 'interactive_mode', 'var' ) && isfield( interactive_mode, 'phase_retri
             set( ax2, 'YTick', [] )
             title(sprintf('rotation axis: metrics VS regularization parameter'))
             drawnow
+            
+            saveas( f, sprintf( '%s%s.png', write.fig_path, regexprep( f.Name, '\ |:', '_') ) );
             
             % Play
             nimplay( pha, 1, [], 'PHASE RETRIEVAL: sequence of reconstructed slices using different phase retrieval parameters')

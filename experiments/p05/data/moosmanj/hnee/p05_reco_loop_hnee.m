@@ -1,4 +1,4 @@
-function p05_reco_hnee( SUBSETS, RUN_RECO, PRINT_PARAMETERS)
+function p05_reco_loop_hnee( SUBSETS, RUN_RECO, PRINT_PARAMETERS)
 
 if nargin < 1
     SUBSETS = [];

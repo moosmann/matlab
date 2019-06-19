@@ -46,7 +46,11 @@ p05_load_force_values( raw_path, scan_name, steps, out_path, adc2force, readhdf5
 
 %% 2017 Nov 13 11004016
 raw_path = '/asap3/petra3/gpfs/p05/2017/data/11004016/raw';
-%scan_name = 'syn002_6L_PEEK_4w';
+steps = [];
+out_path = '';
+adc2force = 5.31 / 10.62*9.81; % Not needed for plotting
+readhdf5 = 1;
+scan_name = 'syn002_6L_PEEK_4w';
 %scan_name = 'syn003_92L_Mg10Gd_4w';
 %scan_name = 'syn004_84L_Mg10Gd_4w';
 %scan_name = 'syn005_81L_Mg5Gd_8w';
@@ -55,8 +59,10 @@ raw_path = '/asap3/petra3/gpfs/p05/2017/data/11004016/raw';
 %scan_name = 'syn008_76R_Mg10Gd_8w';
 %scan_name = 'syn009_32R_PEEK_8w';
 %scan_name = 'syn010_19R_PEEK_4w';
-scan_name = 'syn011_14R_PEEK_4w';
+%scan_name = 'syn011_14R_PEEK_4w';
 %scan_name = 'syn012_79L_Mg5Gd_8w';
+p05_load_force_values( raw_path, scan_name, steps, out_path, adc2force, readhdf5 )
+
 
 %% 2017 Nov 23 11003288
 raw_path = '/asap3/petra3/gpfs/p05/2017/data/11003288/raw';

@@ -1,63 +1,71 @@
 function [fourier_filter, parameter_string] = PhaseFilter(method, filter_size, energy_distance_pixelsize, regularization_parameter, binary_filter_threshold, frequency_cutoff, precision)
-% Fourier space filter for Fourier-transform-based, simple algebraic,
+% Fourier space filter for Fourier-transform-based algebraic
 % single-distance phase retrieval.
 %
-% Given a normalized intensity map I_z (i.e. flat- and dark-field
-% corrected), we define the intensity contrast as g_z = I_z - 1. 
+% Phase retrieval:
 %
-% Phase retrieval: 
-% phi = real( ifft2( fourier_filter(ARG) .* fft2( g_z ) ) ), 
-% No fftshift required. Optional output is a unique string consisting of
-% the given parameters. 
+%   pha = real( ifft2( fourier_filter(ARG) .* fft2( g_z ) ) ),
 %
+% where g_z is the intensity contrast defined as g_z = I_z - 1 with the
+% normalized intensity map I_z (i.e. flat- and dark-field corrected).
+%
+% OUTPUT:
+% fourier_filter: 2D array, Fourier space filter for algebraic
+%   fourier-based phase retrieval. % no fftshift required.
+% parameter_sring: string, optional, unique string summarizing the
+%   parameters used.
+
+% 
 % ARGUMENTS:
 %
 % method : string. Default: 'tie'.
 %   Variants:
-%   'tie' : Linearized transport of intensity equation. Essentially the
-%   inversion of the Laplacian, sometimes also referred to as Paganin
-%   or Bronnikov phase retrieval.
-%   'ctf' : Inversion of the contrast transfer function in the pure phase
-%   case. Is essentially the inversion of a sine.
+%   'tie' : Linearized transport of intensity equation. Amounts to the
+%     inversion of the Laplacian, also referred to as Paganin
+%     or Bronnikov phase retrieval.
+%   'ctf' : Inversion of the contrast transfer function for the pure phase
+%     case. Amounts to the inversion of the CTF sinusoidal prefactor.
 %   'ctfhalfsine': Same as 'ctf' up to the first half period of the sine.
 %   'qp' : Quasiparticle version of 'ctf', i.e. cropping of frequency bands
-%   centered around the positions of the zero crossing of the Fourier
-%   transform of g_z. See papers: http://dx.doi.org/10.1364/OE.19.025881
-%   and http://dx.doi.org/10.1364/OE.19.012066.
-%   'qpcut' : quasiparticle phase retrieval up to the cutoff frequency in
-%   Fourier space
+%     centered around the positions of the zero crossing of the Fourier
+%     transform of g_z. See papers: http://dx.doi.org/10.1364/OE.19.025881
+%     and http://dx.doi.org/10.1364/OE.19.012066.
+%   'qpcut' : quasiparticle phase retrieval up to a cutoff frequency in
+%     Fourier space, see parameter below
 %   'qp2' : Similar to the quasiparticle phase retrieval except that the
-%   frequency bands are not set to zero but multiplied by the constant
-%   which is given by the values of the CTF at the boundary of frequency
-%   band to be filtered.
+%     frequency bands are not set to zero but multiplied by the constant
+%     which is given by the values of the CTF at the boundary of frequency
+%     band to be filtered.
 %
 % filter_size : 1x2-vector. Default [1024 1024]. Size of output filter.
 %
 % energy_distance_pixelsize : 1x3-vector. Default: [20e3 0.945 .75e-6].
-% Energy in eV, Distance in m, Pixelsize in m.
+%   Energy in eV, Distance in m, Pixelsize in m.
 %
-% regularization_parameter : scalar. Default: 2.5. Phase retrieval is
-% regularised according: 1/func(x) ->
-% 1/(func(x)+10^(-regularization_parameter)), for details of the
-% placeholder  function func see below. Thus, the regularization parameter
-% regularization_parameter is the negative of the decadic logartihm of the
-% constant which is added to the denominator in order to regularize the
-% singularity at zero frequency. Typical values are between 1.5 and 3.5
-% depending on energy, residual absorption, etc.
+% regularization_parameter : scalar,  default: 2.5. Phase retrieval is
+%   regularized according: 
+%        1/func(x) -> 1/(func(x)+10^(-regularization_parameter)), 
+%   for details of the placeholder function 'func' see code below. The
+%   regularization parameter is the negative of the decadic logartihm of
+%   the constant which is added to the denominator in order to regularize
+%   the singularity at zero frequency. Typical values are between 1.5 and
+%   3.5 depending on energy, residual absorption, etc.
 %
-% binary_filter_threshold : scalar. Default: 0.1. Parameter for
-% quasiparticle % phase retrieval defining the width of the rings which are
-% cropped around the zero crossings of the CTF denominator (in Fourier
-% space). Typical values are between 0.01 and 0.1, where large values
-% yields results similiar to 'tie' phase retrieval.  
+% binary_filter_threshold : scalar in [0 1], default: 0.1. Parameter for
+%   quasiparticle % phase retrieval defining the width of the rings which
+%   are cropped around the zero crossings of the CTF denominator (in
+%   Fourier space). Typical values are between 0.01 and 0.1, where large
+%   values yields results similiar to 'tie' phase retrieval. Note that a
+%   value of e.g. 0.1 filters 10% of all frequencies in Fourier space.
 %
-% frequency_cutoff : cutoff frequency in radian for 'qphalfsine' method
+% frequency_cutoff : scalar, in rad, default pi, cutoff frequency in radian for
+%   'qphalfsine' method 
 %
 % precision : string. 'single' (default), or 'double'.
 % 
-% Written by Julian Moosmann, last modification: 2017-01-06
+% Written by Julian Moosmann.
 %
-% PhaseFilter(method, filter_size, energy_distance_pixelsize, regularization_parameter, binary_filter_threshold, precision)
+% [fourier_filter, parameter_string] = PhaseFilter(method, filter_size, energy_distance_pixelsize, regularization_parameter, binary_filter_threshold, frequency_cutoff, precision)
 
 
 %% Default arguments %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -160,16 +168,21 @@ end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 function k = FrequencyVector(len, precision, normalized)
-% Frequency vector of length N corresponding to MATLAB's implementation of
-% disrectized Fourier space discretization.
+% (Normalized) frequency vector matching MATLAB's discretization of Fourier
+% space.
 %
-% len: scalar integer
+% ARGUMENTS:
+% len: scalar integer. Length of the frequency vector.
 % precsision: single' or 'double'. Default: 'single'
-% normalized: boolean, default: 1. Output frequencies are normalized between
-% [-1 1].
+% normalized: boolean, default: 1. Output frequencies are normalized
+%   between [-1 1].
 %
-% Written by Julian Moosmann, last version 2013-11-12. Update: 2017-10-26
+% OUTPUT:
+% k : 1D frequency vector, to be used with meshgrid for example.
+%
+% Written by Julian Moosmann.
 %
 % k = FrequencyVector(len, precision, normalized)
 
@@ -196,35 +209,3 @@ end
 if normalized
     k = k / floor( len / 2);
 end
-
-% function k = FrequencyVector(SizeOfVector,Precision,Normalize)
-% % Frequency vector for MATLAB's implementation of Fourier space
-% % discretization (without 'fftshift') ranging from 0 to
-% % floor(('SizeOfVector'-1)/2) and -floor('SizeOfVector'/2) to -1.
-% %
-% % SizeOfVector: integer.
-% %
-% % Precsision: string, default: 'single'. Available: 'single', or 'double'.
-% %
-% % Normalize: boolean, default: 1. Output frequencies normalized by size of
-% % vector.
-% %
-% % Written by Julian Moosmann, last version 2013-11-12.
-% %
-% %k = FrequencyVector(SizeOfVector,Precision,Normalize)
-% 
-% %% Default arguments %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% if nargin < 2
-%     Precision = 'single';
-% end
-% if nargin < 3
-%     Normalize = 1;
-% end
-% 
-% %% MAIN %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% 
-% % Precision
-% SizeOfVector = eval(sprintf('%s(%u)',Precision,SizeOfVector));
-% 
-% % Create vector
-% k = [0:1:ceil( (SizeOfVector-1)/2 )  -floor( (SizeOfVector-1)/2):1:-1] /(1 -Normalize*(1 - 1*SizeOfVector ) );
