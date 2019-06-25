@@ -158,7 +158,7 @@ write.compression.parameter = [0.02 0.02]; % compression-method specific paramet
 % INTERACTION %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 verbose = 1; % print information to standard output
 visual_output = 1; % show images and plots during reconstruction
-interactive_mode.rot_axis_pos = 0; % reconstruct slices with dif+ferent rotation axis offsets
+interactive_mode.rot_axis_pos = 1; % reconstruct slices with dif+ferent rotation axis offsets
 interactive_mode.rot_axis_tilt = 0; % reconstruct slices with different offset AND tilts of the rotation axis
 interactive_mode.lamino = 0; % find laminography tilt instead camera rotation
 interactive_mode.fixed_other_tilt = 0; % fixed other tilt

@@ -40,10 +40,10 @@ stop_after_proj_flat_correlation(1) = 0; % for data analysis, after flat field c
 %%% SCAN %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 scan_path = ...
     '/asap3/petra3/gpfs/p05/2018/data/11004263/raw/syn004_96R_Mg5Gd_8w_a';
-    '/asap3/petra3/gpfs/p05/2018/data/11004450/raw/hnee21_pappel_oppositeWood_003';
-    '/asap3/petra3/gpfs/p05/2019/data/11006295/raw/fin_036_human_163_a';    
-    '/asap3/petra3/gpfs/p05/2019/data/11005842/raw/syn018_11l_ti_4w';
-    '/asap3/petra3/gpfs/p05/2019/data/11005842/raw/test_flyshift_2';
+'/asap3/petra3/gpfs/p05/2018/data/11004450/raw/hnee21_pappel_oppositeWood_003';
+'/asap3/petra3/gpfs/p05/2019/data/11006295/raw/fin_036_human_163_a';
+'/asap3/petra3/gpfs/p05/2019/data/11005842/raw/syn018_11l_ti_4w';
+'/asap3/petra3/gpfs/p05/2019/data/11005842/raw/test_flyshift_2';
 read_flatcor = 0; % read preprocessed flatfield-corrected projections. CHECK if negative log has to be taken!
 read_flatcor_path = ''; % subfolder of 'flat_corrected' containing projections
 read_sino = 0; % read preprocessed sinograms. CHECK if negative log has to be taken!
@@ -120,7 +120,7 @@ tomo.vol_size = [];%[-1 1 -1 1 -0.5 0.5];% 6-component vector [xmin xmax ymin ym
 tomo.vol_shape = []; %[1 1 1] shape (# voxels) of reconstruction volume. used for excentric rot axis pos. if empty, inferred from 'tomo.vol_size'. in absolute numbers of voxels or in relative number w.r.t. the default volume which is given by the detector width and height.
 tomo.rot_angle.full_range = []; % in radians. if []: full angle of rotation including additional increment, or array of angles. if empty full rotation angles is determined automatically to pi or 2 pi
 tomo.rot_angle.offset = pi; % global rotation of reconstructed volume
-tomo.rot_axis.offset = 3; % if empty use automatic computation
+tomo.rot_axis.offset = []; % if empty use automatic computation
 tomo.rot_axis.position = []; % if empty use automatic computation. EITHER OFFSET OR POSITION MUST BE EMPTY. YOU MUST NOT USE BOTH!
 tomo.rot_axis.offset_shift_range = []; %[]; % absolute lateral movement in pixels during fly-shift-scan, overwrite lateral shift read out from hdf5 log
 tomo.rot_axis.tilt = 0; % in rad. camera tilt w.r.t rotation axis. if empty calculate from registration of projections at 0 and pi
@@ -246,6 +246,31 @@ if abs(excentric_rot_axis)
     if crop_at_rot_axis(1) && stitch_projections(1)
         error( 'Do not use ''stitch projections'' in combination with ''crop_at_rot_axis''. Cropping at rot axis only makes sense without stitching in order to avoid oversampling artefacts within the overlap region.' )
     end
+end
+if ~isfield( write, 'path' )
+    write.path = '';
+end
+if ~isfield( write, 'parfolder' )
+    write.parfolder = '';
+end
+
+if ~isfield( write, 'subfolder' )
+    write.subfolder.reco = 'reco';
+    write.subfolder.flatcor = 'flatcor';
+    write.subfolder.phase_map = 'phase_map';
+    write.subfolder.sino = 'sino';
+end
+if ~isfield( write.subfolder, 'reco' )
+    write.subfolder.reco = 'reco';
+end
+if ~isfield( write.subfolder, 'flatcor' )
+    write.subfolder.flatcor = 'flatcor';
+end
+if ~isfield( write.subfolder, 'phase_map' )
+    write.subfolder.phase_map = 'phase_map';
+end
+if ~isfield( write.subfolder, 'sino' )
+    write.subfolder.sino = 'sino';
 end
 if ~isfield( write, 'deleteFiles' )
     write.deleteFiles = 0;
@@ -479,6 +504,7 @@ if ~read_flatcor && ~read_sino
     if exist( 'pix_scaling', 'var' ) && ~isempty( pix_scaling )
         eff_pixel_size = pix_scaling * eff_pixel_size;
     end
+    eff_pixel_size_binned = raw_bin * eff_pixel_size;
     exposure_time = par.exposure_time;
     if isempty( energy )
         if isfield( par, 'energy')
@@ -722,7 +748,7 @@ if ~read_flatcor && ~read_sino
                     drawnow
                     
                     saveas( f, sprintf( '%s%s.png', fig_path, regexprep( f.Name, '\ |:', '_') ) );
-
+                    
                 end
             end
         end
@@ -735,7 +761,7 @@ if ~read_flatcor && ~read_sino
     prnt( '\n energy : %.1f keV', energy / 1e3 )
     prnt( '\n distance sample dector : %.1f mm', sample_detector_distance * 1000 )
     prnt( '\n effective pixel size unbinned : %.2f micron',  eff_pixel_size * 1e6)
-    prnt( '\n effective pixel size : %.2f micron',  eff_pixel_size_binned * 1e6)
+    prnt( '\n effective pixel size binned: %.2f micron',  eff_pixel_size_binned * 1e6)
     prnt( '\n raw image shape : %u x %u = %.1g pixels', im_shape_raw, prod( im_shape_raw ))
     prnt( '\n raw image shape roi : %u x %u = %.1g pixels', size( im_roi ), numel( im_roi ) )
     numel_im_roi_binned = prod( im_shape_binned );
@@ -991,6 +1017,7 @@ if ~read_flatcor && ~read_sino
                 title(sprintf('ring currents'))
                 legend( sprintf( 'flats, mean: %.2f mA', ref_rcm), sprintf( 'projs, mean: %.2f mA', proj_rcm) )
                 drawnow
+                CheckAndMakePath( fig_path )
                 saveas( hrc, sprintf( '%s%s.png', fig_path, regexprep( hrc.Name, '\ |:', '_') ) );
             end
         else
@@ -1220,7 +1247,7 @@ else
                 end
             end
         end
-
+        
         % Read sinogram
         parfor nn = 1:im_shape_binned2
             filename = sprintf('%s%s', sino_path, sino_names_mat(nn, :));
@@ -2017,7 +2044,7 @@ if tomo.run
                 axis equal tight
                 colorbar
                 saveas( f, sprintf( '%s%s.png', fig_path, regexprep( f.Name, '\ |:', '_') ) );
-
+                
                 f = figure('Name', 'Volume cut x', 'WindowState', 'maximized');
                 nn = round( size( vol, 1 ) / 2);
                 im = flipud( squeeze( vol(nn,:,:) ) );
@@ -2313,9 +2340,11 @@ if write.reco
             fprintf(fid, 'write.uint16_binned : %g\n', write.uint16_binned);
             fprintf(fid, 'write.uint8 : %u\n', write.uint8);
             fprintf(fid, 'write.uint8_binned : %u\n', write.uint8_binned);
-            fprintf(fid, 'write.compression.method : %s\n', write.compression.method);
+            if write.uint16 || write.uint8 || write.uint16_binned || write.uint8_binned
+                fprintf(fid, 'write.compression.method : %s\n', write.compression.method);
+            end
             if exist( 'tlow', 'var' ) && exist( 'thigh', 'var' )
-                fprintf(fid, 'compression_limits : %f %f\n', tlow, thigh);
+                fprintf(fid, 'compression.limits : %f %f\n', tlow, thigh);
             end
             fprintf(fid, 'reco_bin : %u\n', write.reco_binning_factor);
         end
