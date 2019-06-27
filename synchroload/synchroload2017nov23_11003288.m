@@ -152,6 +152,7 @@ SET_DEFAULT
 %% PARAMETER / DATA SETS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 raw_path = '/asap3/petra3/gpfs/p05/2017/data/11003288/raw/';
+interactive_determination_of_rot_axis = 1;
 
 scan_path = [raw_path 'syn134_28R_PEEK_8w']; ADD
 

@@ -242,6 +242,9 @@ end
 if ~isempty( tomo.rot_axis.offset ) && ~isempty( tomo.rot_axis.position )
     error('tomo.rot_axis.offset (%f) and tomo.rot_axis.position (%f) cannot be used simultaneously. One must be empty.', tomo.rot_axis.offset, tomo.rot_axis.position)
 end
+if isempty( tomo.rot_axis.offset )
+    tomo.rot_axis.offset = 0;
+end
 if abs(excentric_rot_axis)
     if crop_at_rot_axis(1) && stitch_projections(1)
         error( 'Do not use ''stitch projections'' in combination with ''crop_at_rot_axis''. Cropping at rot axis only makes sense without stitching in order to avoid oversampling artefacts within the overlap region.' )
