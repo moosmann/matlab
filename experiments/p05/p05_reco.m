@@ -284,6 +284,9 @@ end
 if ~isfield( tomo, 'reco_mode' )
     tomo.reco_mode = '3D';
 end
+if ~isfield( write, 'scan_name_appendix' )
+    write.scan_name_appendix = '';
+end
 
 astra_clear % if reco was aborted, ASTRA memory is not cleared
 
@@ -316,8 +319,9 @@ scan_path = [scan_path, filesep];
 if ~strcmp(raw_folder, 'raw') && ~read_sino && ~read_flatcor
     error('Given path does not contain a ''raw'' folder: %s', raw_folder)
 end
-prnt( '%s', scan_name)
-prnt( '\n scan_path:%s', scan_path)
+prnt( '%s', scan_name )
+prnt( ' at %s', datetime )
+prnt( '\n scan_path:%s', scan_path )
 
 % Memory
 prnt( '\n hostname : %s', getenv( 'HOSTNAME' ) );
@@ -352,6 +356,9 @@ if isempty( write.path )
     write.path = [beamtime_path, filesep, out_folder, filesep, scan_name];
 else
     write.path = [write.path, filesep, scan_name];
+end
+if ~isempty( write.scan_name_appendix )
+    write.path = [ write.path '_' write.scan_name_appendix ];
 end
 if ~isempty(write.parfolder)
     write.path = [write.path, filesep, write.parfolder];

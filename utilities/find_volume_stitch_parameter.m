@@ -1,23 +1,41 @@
-function s = find_volume_stitch_parameter( scan_path, reco_subfolder, crop )
+function [s, vol] = find_volume_stitch_parameter( scan_path, scan_subfolder, reco_subfolder, crop, save_stitched_volume, stitched_volume_path )
 % Stich reconstructed volumes using log file information.
 %
-% scan_path: string. absolute path pattern common for all height levels
-% reco_subfolder: string. subfolder to 'reco' to be used for stitching.
+% ARGUMENTS
+% scan_path : string. absolute path pattern common for all height levels
+% scan_subfolder : string. typically 'reco' or 'reco_phase'
+% reco_subfolder : string. subfolder to 'reco' to be used for stitching.
 %   E.g. 'float_rawBin2'
-% crop: bool, crop volumes at stitch level
+% crop : bool, crop volumes at stitch level
+% save_stitched_volume : bool. save slices of stitchted volume
+% stitched_volume_path : string. default: scan_path
+%
+% RETRURNS
+% s : struct containing individual arrays and full information for
+%   stitching
+% vol : stitched volume array
 %
 % Written by J. Moosmann
 
 if nargin < 1
     %scan_path = '/asap3/petra3/gpfs/p05/2017/data/11003950/processed/syn22_77L_Mg5Gd_8w';% upward
     %scan_path = '/asap3/petra3/gpfs/p05/2018/data/11004263/processed/syn004_96R_Mg5Gd_8w'; % downward
-    scan_path = '/asap3/petra3/gpfs/p05/2018/data/11004263/processed/syn018_35L_PEEK_8w'; % three level
+    scan_path = '/asap3/petra3/gpfs/p05/2018/data/11004263/processed/syn018_35L_PEEK_8w'; %
 end
 if nargin < 2
-    reco_subfolder = 'float_rawBin2';
+    scan_subfolder = 'reco';
 end
 if nargin < 3
+    reco_subfolder = 'float_rawBin2';
+end
+if nargin < 4
     crop = 1;
+end
+if nargin < 5
+    save_stitched_volume = 1;
+end
+if nargin < 6
+    stitched_volume_path = '';
 end
 
 ca;
@@ -25,6 +43,9 @@ ca;
 fprintf( '\nscan_path: %s', scan_path )
 % Scans to stitch
 scan_struct = dir( [scan_path '*' ] );
+[~, scan_name ] = fileparts( scan_path );
+mask = ~strcmp( {scan_struct.name}, scan_name );
+scan_struct = scan_struct( mask );
 num_scans = numel( scan_struct );
 % Allocate containing volumes
 s(num_scans) = struct;
@@ -38,7 +59,7 @@ for nn = 1:num_scans
     s(nn).full_path = full_path;
     
     % Reco log
-    reco_log = [full_path '/reco/reco.log' ];
+    reco_log = [full_path filesep scan_subfolder filesep 'reco.log' ];
     if ~exist( reco_log, 'file' )
         fprintf( '\nReco log not found!\n' )
         break
@@ -126,7 +147,7 @@ for nn = 1:num_scans
     fprintf( '\n  effective pixelsizse: %f', effective_pixel_size )
     
     % Read volume
-    vol_path = [full_path '/reco/' reco_subfolder];
+    vol_path = [full_path filesep scan_subfolder filesep reco_subfolder];
     im_struct = dir( [ vol_path filesep '*.tif' ] );
     im = imread( [vol_path filesep im_struct(1).name] );
     vol = zeros( [size(im) numel( im_struct )], 'single' );
@@ -213,7 +234,7 @@ for nn = 1:num_scans
     % XZ
     xz = ( squeeze( s(nn).vol(:,yy,:) ) );
     figure(hxz)
-    subplot(1,2,stitch_order(nn))
+    subplot(1,num_scans,stitch_order(nn))
     imsc( xz )
     zz = size( s(nn).vol, 3 );
     ztcks = 1:round( zz / 10 ):zz;
@@ -226,7 +247,7 @@ for nn = 1:num_scans
     % YZ
     yz = ( squeeze( s(nn).vol(xx,:,:) ) );
     figure(hyz)
-    subplot(1,2,stitch_order(nn))
+    subplot(1,num_scans,stitch_order(nn))
     imsc( yz )
     xticks( ztcks )
     xtickangle(90)
@@ -273,9 +294,10 @@ for nn = 1:num_scans
     
     % Plot
     figure( hroi )
-    subplot(1,2,nn)
+    subplot(1,num_scans,nn)
     plot( [l, lf, t*ones(size(l))] )
     title( sprintf( 'xz cut level. left: %u, right: %u', v1, v2 ) )
+    axis tight
 end
 drawnow
 
@@ -361,7 +383,7 @@ for nn = 1:num_scans - 1
         % Check monotonicity
         while z1stitch_val > z2stitch_val
             z2stitch_pos = z2stitch_pos + 1;
-            z2stitch_val = zval2( z2stitch_pos );        
+            z2stitch_val = zval2( z2stitch_pos );
         end
         
         % Stich indices
@@ -411,8 +433,8 @@ for nn = 1:num_scans - 1
         zz2 = z2stitch_pos:length( zval2 );
     end
     
-    %% Plot
-    figure('Name', sprintf( 'vertically stitched volume part %u', nn) )
+   % Plot
+    figure('Name', sprintf( 'vertically stitched volume part %u', nn ) )
     % XZ
     imx1 = squeeze( s(nn).vol(:,yy,zz1) );
     imx2 = squeeze( s(nn+1).vol(:,yy,zz2) );
@@ -449,3 +471,36 @@ if  crop
 end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 fprintf( '\n' )
+
+%% Save stitched volume
+if save_stitched_volume
+    
+    % Output path
+    if isempty( stitched_volume_path )
+        stitched_volume_path  = scan_path;
+        CheckAndMakePath( stitched_volume_path )
+    end
+    fprintf( '\n Outpath: %s' , stitched_volume_path )
+    
+    % Loop over volumes
+    index_offset = 0;
+    for nn = stitch_order
+        
+        num_proj = size( s(nn).vol, 3 );
+        vol = s(nn).vol;
+        
+        % Loop over projections
+        parfor pp = 1:num_proj
+            filename = sprintf( '%s/vol_%06u.tif', stitched_volume_path, pp + index_offset);
+            im = vol(:,:,pp)
+            write32bitTIFfromSingle( filename, im )
+        end
+        index_offset = index_offset + num_proj;
+    end
+end
+
+%% Stitch volume
+if nargout == 2
+    vol = cat(3, s(s(1).stitch_order).vol );
+end
+

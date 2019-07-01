@@ -217,9 +217,24 @@ scan_path = [raw_path 'syn153_58L_Mg_12_cmos_test']; ADD
 
 scan_path = [raw_path 'syn154_58L_Mg_12_cmos_test']; ADD
 
-scan_path = [raw_path 'syn155_berit']; ADD
 
+raw_roi = [1100 2401];
+raw_bin = 2;
+vol_shape = [0.8 0.8 0.25];
+vol_size = [-0.8 0.8 -0.8 0.8 -0.25 0.25];
+fbp_filter_type = 'linear';
+correlation_method = 'none';
 scan_path = [raw_path 'syn156_berit']; ADD
+
+raw_roi = [1100 2401];
+raw_bin = 2;
+vol_shape = [1.6 1.6 0.5];
+vol_size = [-0.8 0.8 -0.8 0.8 -0.5 0.5];
+fbp_filter_type = 'Ram-Lak';
+butterworth_filter = 1;
+correlation_method = 'ssim-ml';
+scan_path = [raw_path 'syn156_berit']; ADD
+
 
 scan_path = [raw_path 'syn157_cor_mg5gd410s_mg10gd401s_png1p_23']; ADD
 

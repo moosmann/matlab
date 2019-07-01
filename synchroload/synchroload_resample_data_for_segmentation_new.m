@@ -1,3 +1,4 @@
+
 %ca
 clear all
 
@@ -128,8 +129,6 @@ if read_scans
             end
         end
         
-        
-        
     end
     
     %% Save parameter struct
@@ -205,7 +204,7 @@ for nn = 1:numel( t )
             [scan_path, subreco_folder] = fileparts( full_reco_path );
             scan_path = fileparts( scan_path );
             fprintf( '\n scan_path: %s,\n subreco_folder: %s', scan_path, subreco_folder)
-            stitch_struct = find_volume_stitch_parameter( scan_path(1:end-2), subreco_folder  );
+            stitch_struct = stitch_volumes( scan_path(1:end-2), 'reco', subreco_folder  );
             effective_pixel_size_binned = stitch_struct(1).effective_pixel_size_binned;
             
             % Resample

@@ -10,9 +10,9 @@
 % Composition/(Z: fraction by weight)
 
 clear all
-  eV_to_J = 1 / 6.24e18;
+eV_to_J = 1 / 6.24e18;
 
-  E = (45:45)*1e3;
+E = (45:45)*1e3;
   
 % Energy in eV
 % X-ray mass attenuation coefficient mu/rho in m^2 / kg

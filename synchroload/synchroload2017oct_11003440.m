@@ -77,7 +77,7 @@ raw_roi = []; % vertical and/or horizontal ROI; (1,1) coordinate = top left pixe
 % [y0 y1 x0 x1]: vertical + horzontal ROI, each ROI as above
 % if -1: auto roi, selects vertical ROI automatically. Use only for DCM. Not working for *.raw data where images are flipped and DMM data.
 % if < -1: Threshold is set as min(proj(:,:,[1 end])) + abs(raw_roi)*median(dark(:)). raw_roi=-1 defaults to min(proj(:,:,[1 end])) + 4*median(dark(:))
-raw_bin = 1; % projection binning factor: integer
+raw_bin = 2; % projection binning factor: integer
 im_trafo = ''; % string to be evaluated after reading data in the case the image is flipped/rotated/etc due to changes at the beamline, e.g. 'rot90(im)'
 bin_before_filtering(1) = 1; % Apply binning before filtering pixel. less effective, but much faster especially for KIT camera.
 excentric_rot_axis = 0; % off-centered rotation axis increasing FOV. -1: left, 0: centeerd, 1: right. influences tomo.rot_axis.corr_area1
@@ -261,6 +261,7 @@ scan_path = [raw_path 'syn32_99R_Mg10Gd_4w']; ADD
 
 scan_path = [raw_path 'syn33_80R_Mg10Gd_8w']; ADD
 
+tomo.rot_axis.offset = 1.0 * 2 / raw_bin;
 scan_path = [raw_path 'syn34_79R_Mg10Gd_8w']; ADD
 
 scan_path = [raw_path 'syn35_77R_Mg10Gd_8w']; ADD
@@ -281,6 +282,7 @@ scan_path = [raw_path 'syn42_38L_PEEK_8w']; ADD
 
 scan_path = [raw_path 'syn43_38L_PEEK_8w']; ADD
 
+tomo.rot_axis.offset = 0.3 * 2 / raw_bin;
 scan_path = [raw_path 'syn44_66L_Mg5Gd_12w']; ADD
 
 scan_path = [raw_path 'syn45_101BL_Mg5Gd_4w']; ADD
@@ -309,12 +311,16 @@ scan_path = [raw_path 'syn53_91R_Mg5Gd_4w']; ADD
 %scan_path = [raw_path 'syn56_Mg5Gd434s_Mg10Gd408s_Mg5Gd8p']; ADD
 %scan_path = [raw_path 'syn57_cor']; ADD
 
-
 scan_path = [raw_path 'syn60_cor']; ADD
 
 scan_path = [raw_path 'syn61_cor']; ADD
 
 scan_path = [raw_path 'syn62_cor']; ADD
+
+%% CMOS
+im_trafo = 'rot90(im)'; 
+raw_bin = 3;
+
 
 scan_path = [raw_path 'syn64_CPDexplant']; ADD
 
@@ -380,8 +386,11 @@ scan_path = [raw_path 'syn94_96R']; ADD
 
 scan_path = [raw_path 'syn95_69L']; ADD
 
+% ring current normalization not working, output is constant
+tomo.rot_axis.offset = 0.3 * 2 / raw_bin;
 scan_path = [raw_path 'syn96_82L']; ADD
 
+tomo.rot_axis.offset = 0.3 * 2 / raw_bin;
 scan_path = [raw_path 'syn97_74L']; ADD
 
 scan_path = [raw_path 'syn98_77L']; ADD
@@ -391,5 +400,3 @@ scan_path = [raw_path 'syn99_43R']; ADD
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 p05_reco_loop( SUBSETS, RUN_RECO, PRINT_PARAMETERS)
-
-%% OLD VERSION BEFORE SORTING OUT EMPTY/ABORTED SCANS
