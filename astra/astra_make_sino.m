@@ -1,5 +1,4 @@
 function [sino, angles, vol_geom, proj_geom, cfg] = astra_make_sino(data, numPixVol, numPixSino)
-% 
 % Written for Matlab Script 'ContRotRecoSim'.
 % 
 % Written by Julian Moosmann, last version: 2013-12-10

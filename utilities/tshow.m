@@ -39,7 +39,7 @@ im = double(imread(imName));
 ishow(im,imName)
 %% Assign image to workspace
 if isempty(WorkspaceVariableName)
-   WorkspaceVariableName = lower([imName(1:3) num2str(ImageNumber,'%04u')]);          
+   WorkspaceVariableName = lower( ['im_' imName(1:3) num2str(ImageNumber,'%04u')]);          
 end
 if ischar(WorkspaceVariableName)
     assignin(workspace, WorkspaceVariableName, im);

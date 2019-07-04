@@ -1,0 +1,8 @@
+Test scans
+
+energies 20 25 30 35 40 45
+
+total scan times 20s to 10 min
+
+
+

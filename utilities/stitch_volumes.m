@@ -19,8 +19,8 @@ function [s, vol] = stitch_volumes( scan_path, scan_subfolder, reco_subfolder, c
 
 if nargin < 1
     %scan_path = '/asap3/petra3/gpfs/p05/2017/data/11003950/processed/syn22_77L_Mg5Gd_8w';% upward
-    %scan_path = '/asap3/petra3/gpfs/p05/2018/data/11004263/processed/syn004_96R_Mg5Gd_8w'; % downward
-    scan_path = '/asap3/petra3/gpfs/p05/2018/data/11004263/processed/syn018_35L_PEEK_8w'; %
+    scan_path = '/asap3/petra3/gpfs/p05/2018/data/11004263/processed/syn004_96R_Mg5Gd_8w'; % downward
+    %scan_path = '/asap3/petra3/gpfs/p05/2018/data/11004263/processed/syn018_35L_PEEK_8w'; %
 end
 if nargin < 2
     scan_subfolder = 'reco';

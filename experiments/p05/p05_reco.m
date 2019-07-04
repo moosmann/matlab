@@ -142,6 +142,7 @@ write.path = ''; %'/gpfs/petra3/scratch/moosmanj'; % absolute path were output d
 write.to_scratch = 1; % write to 'scratch_cc' instead of 'processed'
 write.deleteFiles = 0; % delete files already existing in output folders. Useful if number or names of files differ when reprocessing.
 write.beamtimeID = ''; % string (regexp),typically beamtime ID, mandatory if 'write.deleteFiles' is true (safety check)
+write.scan_name_appendix = ''; % appendix to the output folder name which defaults to the scan name
 write.parfolder = '';% parent folder to 'reco', 'sino', 'phase', and 'flat_corrected'
 write.subfolder.flatcor = ''; % subfolder in 'flat_corrected'
 write.subfolder.phase_map = ''; % subfolder in 'phase_map'

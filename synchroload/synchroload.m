@@ -17,16 +17,18 @@ edit synchroload2018nov_11005553.m
 edit synchroload2019may_11005842
 
 %% Other scripts
-edit synchroload_figureMeetingApr2017.m
-edit synchroload_radiography.m
-edit synchroload_renorm_slices.m
-edit synchroload_resample_data_for_segmentation.m
-edit synchroload_sequ_force.m
-edit synchroload_sequ.m
-edit synchroload_syn13.m
-edit synchroload_syn166.m
+edit synchroload_figureMeetingApr2017
+edit synchroload_radiography
+edit synchroload_renorm_slices
+edit synchroload_resample_data_for_segmentation
+edit synchroload_resample_data_sets
+edit synchroload_sequ_force
+edit synchroload_sequ
+edit synchroload_syn13
+edit synchroload_syn166
 edit stitch_volumes
-edit find_volume_stitch_parameter
+edit dose_synchroload
+edit dose_bone_test.m
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Load force value: create figure %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
