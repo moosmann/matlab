@@ -3,13 +3,20 @@ function CellOfFilenames = FilenameCell(DirectoryName)
 % 'DirectoryName'. Default directoy is present working directory. Output
 % cell does not include '.' and '..'.
 %
-% Written by Julian Moosmann, last modified 2013-09-13
+% Written by Julian Moosmann
 
 if nargin < 1
     DirectoryName = './*';
 end
 
 CellOfFilenames = dir(DirectoryName);
+
+% for aLoop = 1:numel(CellOfFilenames)
+%     if length(strfind(CellOfFilenames{aLoop},'ref')) > 1
+%         CellOfFilenames{aLoop} = {};
+%     end
+% end
+
 CellOfFilenames = {CellOfFilenames(:).name};
 
 if ~isempty(CellOfFilenames)

@@ -36,7 +36,7 @@ if exist( 'interactive_mode', 'var' ) && isfield( interactive_mode, 'phase_retri
             
     fprintf( '\n\nENTER INTERACTIVE PHASE RETRIEVAL MODE' )
     
-    reg_par_def_range = 0:6;
+    reg_par_def_range = 1:6;
     
     if interactive_mode.slice_number > 1
         slice = interactive_mode.slice_number;
