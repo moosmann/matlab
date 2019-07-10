@@ -5,7 +5,7 @@
 
 eV_to_J = 1 / 6.24e18;
 
-bin = 2;
+bin = 4;
 energy = 20000:500:50000;
 fprintf( ' energy: min : %g keV, max : %g keV, steps : %u', min( energy )/1000, max( energy )/1000, numel( energy ) )
 voxel_size.value = bin * 2 * 3.115e-6;
@@ -27,6 +27,19 @@ else
 end
 plot( energy / 1000, Y)
 legend( {'100 micron', '300 micron'} )
+xlabel( 'energy / keV' )
+
+%% PEEK cylinder
+peek05 = PEEK( energy, 5e-3 );
+peek10 = PEEK( energy, 10e-3 );
+Y = [peek05.transmission.value; peek10.transmission.value];
+if exist( 'hpeek' , 'var' ) && isvalid( hpeek )
+    figure(hpeek)
+else
+    hpeek = figure( 'Name', 'Transmission Scintillator' );
+end
+plot( energy / 1000, Y)
+legend( {'5 mm', '10 mm'} )
 xlabel( 'energy / keV' )
 
 %% Bone sample
@@ -58,10 +71,33 @@ bone_mass = bc.total_mass.value;
 fprintf( '\n bone volume : %g m^3 (%.2g%%)', bone_volume, 100 * bone_volume / total_volume )
 fprintf( '\n bone mass : %g mg', bone_mass * 1e6 )
 
+%% Transmission PEEK cylinder
+peek_cyl_diam_inner.value = 45e-3 / 2;
+peek_cyl_diam_inner.unit = 'm';
+peek_cyl_diam_outer.value = 50e-3 / 2;
+peek_cyl_diam_outer.unit = 'm';
+f = @(x) sqrt(peek_cyl_diam_outer.value^2 - x.^2) - sqrt(peek_cyl_diam_inner.value^2 - x.^2);
+xx = size( vol_bone, 1 );
+x = voxel_size.value * ( ( 1:xx ) - round( xx / 2 ) );
+projected_thickness_peek.value = f( x );
+projected_thickness_peek.unit = 'm';
+fprintf( '\nPEEK cylinder: ' )
+fprintf( '\n outer diameter : %g mm', peek_cyl_diam_outer.value * 1000 )
+fprintf( '\n inner diameter : %g %s', peek_cyl_diam_inner.value * 1000)
+fprintf( '\n projected thicknes: [min, max] = [%.2g %.2g] mm', min( projected_thickness_peek.value ) * 1000, max( projected_thickness_peek.value ) * 1000 )
+if exist( 'hpeek_thick' , 'var' ) && isvalid( hpeek_thick )
+    figure(hpeek_thick)
+else
+    hpeek_thick = figure( 'Name', 'PEEK cylinder thickness' );
+end
+plot( x * 1000, projected_thickness_peek.value * 1000)
+xlabel( 'radius / mm' )
+ylabel( 'thickness / mm' )
+
 %% Dose
 % Projected bone thickness
 projected_thickness_b = permute( astra_make_sino_3D( vol_bone ), [ 3 1 2] ) * voxel_size.value;
-fprintf( '\n projections shape : %u %u %u', size( absorbed_energy ) )
+fprintf( '\n projections shape : %u %u %u', size( projected_thickness_b ) )
 num_proj = size( projected_thickness_b, 3 );
 
 % Scan time
@@ -81,19 +117,22 @@ flux.unit = 'photons / s';
 
 fprintf( '\n Start loop over energy and projections' )
 bone_density = bc.density.value;
-mac = bc.mass_att_coeff.value;
+mac_bone = bc.mass_att_coeff.value;
+mac_peek = 
 exp_time = exp_time_per_image.value;
 flu = flux.value;
 fprintf( '\n energy step (%u): ', numel( energy ) )
 for kk = 1:numel( energy )
     fprintf( ' %u', kk)
-    mac_kk = mac(kk);
+    mac_bone_kk = mac_bone(kk);
+    mac_peer_kk = mac_peek(kk);
     energy_kk = energy(kk);
+    t = peek10.transmission.value(kk);
     for ll = 1:num_proj
         % absorption image
-        a = 1 - exp( - bone_density * projected_thickness_b(:,:,ll) * mac_kk );
+        a = 1 - exp( - bone_density * projected_thickness_b(:,:,ll) * mac_bone_kk );
         % absorbed energy of full image
-        absorbed_energy_per_image(ll) = sum( sum( a * flu * exp_time .* energy_kk * eV_to_J ) );
+        absorbed_energy_per_image(ll) = sum( sum( a * t * flu * exp_time .* energy_kk * eV_to_J ) );
     end
     % absorbed energy of full tomo scan summing over all images
     absorbed_energy_per_scan(kk) = sum( absorbed_energy_per_image );
