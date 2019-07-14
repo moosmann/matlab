@@ -3,14 +3,18 @@
 %
 % 1 Gy = 1 J / kg = m^2 / s^2
 
+%sample_type = 'real';
+sample_type = 'phantom';
+%scintillator_factor = cdwo300.absorption.value;
+
 eV_to_J = 1 / 6.24e18;
 
 bin = 4;
-energy = 20000:500:50000;
+energy = 30000:2000:50000;
 fprintf( ' energy: min : %g keV, max : %g keV, steps : %u', min( energy )/1000, max( energy )/1000, numel( energy ) )
 voxel_size.value = bin * 2 * 3.115e-6;
 voxel_size.unit = 'm';
-fprintf( '\n voxel_size : %g %s\n', voxel_size.value, voxel_size.unit )
+fprintf( '\n voxel_size : %g micron', voxel_size.value * 1000^2)
 
 exp_time_per_image.value = 300e-3;
 exp_time_per_image.unit = 's';
@@ -19,6 +23,7 @@ exp_time_per_image.unit = 's';
 
 cdwo100 = cadmium_tungstate(energy,100e-6);
 cdwo300 = cadmium_tungstate(energy,300e-6);
+scintillator_factor = cdwo100.transmission.value;
 Y = [cdwo100.absorption.value; cdwo300.absorption.value];
 if exist( 'h1' , 'var' ) && isvalid( h1 )
     figure(h1)
@@ -36,27 +41,39 @@ Y = [peek05.transmission.value; peek10.transmission.value];
 if exist( 'hpeek' , 'var' ) && isvalid( hpeek )
     figure(hpeek)
 else
-    hpeek = figure( 'Name', 'Transmission Scintillator' );
+    hpeek = figure( 'Name', 'Transmission PEEK scintillator' );
 end
 plot( energy / 1000, Y)
 legend( {'5 mm', '10 mm'} )
 xlabel( 'energy / keV' )
 
 %% Bone sample
-
-scan_path = '/asap3/petra3/gpfs/p05/2017/data/11003440/processed/syn32_99R_Mg10Gd_4w/segmentation/2017_11003440_syn32_99R_Mg10Gd_4w_labels';
-if ~exist( 'vol', 'var' )
-    vol = read_images_to_stack( scan_path );
-    domain( vol(:), 1, 'original volume  ' )
-    vol = single( vol );
-    vol = Binning( vol, bin ) / bin^3;
-    domain( vol(:), 1, 'single conversion' )
-    vol = permute( vol, [1 2 3] );
+switch sample_type
+    case {1, 'real'}
+        scan_path = '/asap3/petra3/gpfs/p05/2017/data/11003440/processed/syn32_99R_Mg10Gd_4w/segmentation/2017_11003440_syn32_99R_Mg10Gd_4w_labels';
+        if ~exist( 'vol', 'var' )
+            fprintf( '\n' )
+            vol = read_images_to_stack( scan_path );
+            domain( vol(:), 1, 'original volume  ' )
+            vol = single( vol );
+            vol = Binning( vol, bin ) / bin^3;
+            domain( vol(:), 1, 'single conversion' )
+            vol = permute( vol, [1 2 3] );
+        end
+        fprintf( '\nvolume shape : %u %u %u', size( vol ) )
+        vol_bone = vol == 205;
+        sc =  (vol == 105 | vol == 5);
+    case {2, 'phantom'}
+        vol = zeros( [300 300], 'single' );
+        d12 = 5e-3 / voxel_size.value  / 2;
+        x = (1:size(vol,1) ) - round( size(vol,1) / 2 );
+        y = (1:size(vol,2) ) - round( size(vol,2) / 2 );
+        [xx,yy] = meshgrid( x, y );
+        m = sqrt( xx.^2 + yy.^2 );
+        vol( m < d12 ) = 1;
+        vol_bone  = repmat( vol, [1 1 250] );
+        clear vol
 end
-fprintf( '\nvolume shape : %u %u %u', size( vol ) )
-vol_bone = vol == 205;
-sc =  (vol == 105 | vol == 5);
-
 bc = bone_cortical(energy,2e-3);
 
 % volume
@@ -96,9 +113,10 @@ ylabel( 'thickness / mm' )
 
 %% Dose
 % Projected bone thickness
-projected_thickness_b = permute( astra_make_sino_3D( vol_bone ), [ 3 1 2] ) * voxel_size.value;
-fprintf( '\n projections shape : %u %u %u', size( projected_thickness_b ) )
-num_proj = size( projected_thickness_b, 3 );
+projected_thickness_bone = permute( astra_make_sino_3D( vol_bone ), [ 3 1 2] ) * voxel_size.value;
+fprintf( '\n projections shape : %u %u %u', size( projected_thickness_bone ) )
+num_proj = size( projected_thickness_bone, 3 );
+fprintf( '\n bone projected thickness: max = %g mm, avg = %g mm', max(projected_thickness_bone(:))*1000, mean( projected_thickness_bone(:)) *1000)
 
 % Scan time
 total_scan_time = num_proj * exp_time_per_image.value;
@@ -109,30 +127,46 @@ absorbed_energy_per_image = zeros( [1, num_proj] );
 absorbed_energy_per_scan = zeros( [1, numel( energy )] );
 
 % Flux values from previous experiment
-flux_density.value = 2.5655e+17;
+fd.value = [2.5 3.7 5.2] *1e17;
+fd.unit = 'photons / s / m^2';
+fd_energy.value = [30 40 45] * 1e3;
+fd_energy.unit = 'eV';
+flux_density.value = interp1( fd_energy.value, fd.value, energy, 'linear', 'extrap' );
 flux_density.unit = 'photons / s / m^2';
-area = size( projected_thickness_b, 1) * size( projected_thickness_b, 2) * voxel_size.value^2;
+
+area = size( projected_thickness_bone, 1) * size( projected_thickness_bone, 2) * voxel_size.value^2;
+fprintf( '\ndetector area : %g mm x %g mm', size( projected_thickness_bone, 1) * voxel_size.value * 1000, size( projected_thickness_bone, 2) * voxel_size.value * 1000 )
 flux.value = flux_density.value * area;
+
+figure( 'Name', sprintf( 'Flux' ) );
+plot( energy / 1000, flux.value )
+xlabel( 'energy / keV' )
+ylabel( 'photons / s' )
+drawnow
+
+%flux.value = 7.2e10 * ones( numel( energy ) );
 flux.unit = 'photons / s';
 
 fprintf( '\n Start loop over energy and projections' )
 bone_density = bc.density.value;
 mac_bone = bc.mass_att_coeff.value;
-mac_peek = 
+peek_density = peek05.density.value;
+mac_peek = peek05.mass_att_coeff.value;
 exp_time = exp_time_per_image.value;
-flu = flux.value;
 fprintf( '\n energy step (%u): ', numel( energy ) )
 for kk = 1:numel( energy )
     fprintf( ' %u', kk)
     mac_bone_kk = mac_bone(kk);
     mac_peer_kk = mac_peek(kk);
     energy_kk = energy(kk);
-    t = peek10.transmission.value(kk);
+    t = exp( - peek_density * projected_thickness_peek.value * mac_peer_kk );
+    t = repmat( t, [300 1] );
+    f_kk = flux.value(kk) / size( projected_thickness_bone, 1 ) / size( projected_thickness_bone, 2 );
     for ll = 1:num_proj
         % absorption image
-        a = 1 - exp( - bone_density * projected_thickness_b(:,:,ll) * mac_bone_kk );
+        a = 1 - exp( - bone_density * projected_thickness_bone(:,:,ll) * mac_bone_kk );
         % absorbed energy of full image
-        absorbed_energy_per_image(ll) = sum( sum( a * t * flu * exp_time .* energy_kk * eV_to_J ) );
+        absorbed_energy_per_image(ll) = sum( sum( a * t * f_kk * exp_time .* energy_kk * eV_to_J ) );
     end
     % absorbed energy of full tomo scan summing over all images
     absorbed_energy_per_scan(kk) = sum( absorbed_energy_per_image );
@@ -142,13 +176,21 @@ fprintf( '\n Loop finished' )
 dose.value = absorbed_energy_per_scan / bone_mass;
 dose.unit = 'Gy';
 
-if exist( 'h2' , 'var' ) && isvalid( h2 )
-    figure(h2)
-else
-    h2 = figure( 'Name', 'Dose: Cortical bone' );
-end
+figure( 'Name', sprintf( 'Dose %s: Cortical bone', sample_type) );
 plot( energy / 1000, dose.value / 1000 )
 xlabel( 'energy / keV' )
+ylabel( 'dose / kGy' )
+
+%% efficiency scaled dose
+figure( 'Name', sprintf( 'Dose*scintillator efficiency %s: Cortical bone', sample_type) );
+x = energy / 1000;
+
+scintillator_factor = scintillator_factor - min( scintillator_factor(:) ) + 1;
+y = dose.value / 1000 .* scintillator_factor;
+plot( x, y )
+xlabel( 'energy / keV' )
+ylabel( 'dose / kGy' )
+
 
 fprintf( '\n' )
 

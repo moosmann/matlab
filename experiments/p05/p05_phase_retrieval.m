@@ -340,8 +340,10 @@ if exist( 'interactive_mode', 'var' ) && isfield( interactive_mode, 'phase_retri
     
     % Save sequence
     % Renormalize: subtract minimum, then divide by maximum-minimum.
-    filename = sprintf( '%sphase_retrieval__reg_par_sequence.gif', write.fig_path );
-    write_gif( pha, filename )
+    if exist( 'pha', 'var')
+        filename = sprintf( '%sphase_retrieval__reg_par_sequence.gif', write.fig_path );
+        write_gif( pha, filename )
+    end
     fprintf( '\nEND OF INTERACTIVE MODE' )  
 end
 

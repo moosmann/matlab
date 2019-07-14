@@ -1,3 +1,5 @@
+
+
 % Flux measurements, commissioning, start: Wednesday, 2018-11-07
 % PETRA III: 40 Bunch mode, 90 mA top-up
 
@@ -48,62 +50,80 @@ ss = ss + 1;
 s(nn).slit(ss) = 5 * 5; % mm^2
 s(nn).flux(ss) =  7195894765156.3301;
 
-flux_density = s(nn).flux ./ s(nn).slit;
-
-figure( 'Name', 'Flux density vs slit' )
-plot( s(nn).slit,  flux_density, '-x' )
-xlabel( 'slit area / mm^2' )
-ylabel( 'flux density / ( photons / s / mm^2' )
-
-%% synchroload beamtime %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-nn = nn + 1;
-s(nn).energy = 45000;
-f2 = 1095734443447;
-fd2 = 2.5655e+17 / 1000^3; %photons / s / m^2
-s2 = 4.271000; % mm^2
-
-hold on
-plot( s2, f2, 'o' )
-legend( {'30 keV', '45 keV'} )
 
 %% E 40 keV%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 nn = nn + 1;
 s(nn).energy = 40000;
 ss = 0;
 
-ss = ss + 1; 
 s(nn).time = 3;
 
 ss = ss + 1; 
 s(nn).slit(ss) = 7 * 7;% mm^2
-s(nn).flux = 10488633252830.309;
+s(nn).flux(ss) = 10488633252830.309;
 
 ss = ss + 1;
 s(nn).slit(ss) = 6 * 6; % mm^2
-s(nn).flux = 10488633252830.309;
+s(nn).flux(ss) = 10488633252830.309;
 
 ss = ss + 1;
 s(nn).slit(ss) = 5 * 5; % mm^2
-s(nn).flux = 7599308484093.8027;
+s(nn).flux(ss) = 7599308484093.8027;
 
 ss = ss + 1; 
 s(nn).slit(ss) = 4 * 4; % mm^2
-s(nn).flux = 5272609387773.2314;
+s(nn).flux(ss) = 5272609387773.2314;
 
 ss = ss + 1; 
 s(nn).slit(ss) = 3 * 3; % mm^2
-s(nn).flux = 3145347014571.5469;
+s(nn).flux(ss) = 3145347014571.5469;
 
 ss = ss + 1;
 s(nn).slit(ss) = 2 * 2; % mm^2
-s(nn).flux = 1469944935441.7734;
+s(nn).flux(ss) = 1469944935441.7734;
 
 ss = ss + 1; 
 s(nn).slit(ss) = 1 * 1; % mm^2
-s(nn).flux = 374143014711.56433;
+s(nn).flux(ss) = 374143014711.56433;
+
+%% synchroload beamtime %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+nn = nn + 1;
+s(nn).energy = 45000;
+s(nn).flux = 1095734443447;
+fd2 = 2.5655e+17 / 1000^3; %photons / s / m^2
+s(nn).slit = 4.271000; % mm^2
+
+
+
+%% Plot
+figure( 'Name', 'Flux density vs slit' )
+l = cell( [1, 3] );
+for nn = 1:3
+    flux_density = s(nn).flux  ./ (s(nn).slit * 1e-6);
+    plot( s(nn).slit,  flux_density, '-x' )
+    hold on
+    l{nn} = sprintf( '%u keV', s(nn).energy / 1000 );
+end
+xlabel( 'slit area / mm^2' )
+ylabel( 'flux density / ( photons / s / m^2' )
+legend( l )
+
+
+%% Plot
+figure( 'Name', 'Flux vs slit' )
+l = cell( [1, 3] );
+for nn = 1:3
+    flux = s(nn).flux  ;
+    plot( s(nn).slit,  flux, '-x' )
+    hold on
+    l{nn} = sprintf( '%u keV', s(nn).energy / 1000 );
+end
+xlabel( 'slit area / mm^2' )
+ylabel( 'flux  / ( photons / s )' )
+legend( l )
 
 %% E 50 keV %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-nn = nn + 1;
-energy(nn) = 50000; % eV
+%nn = nn + 1;
+%energy(nn) = 50000; % eV
 % Filter: 300 µm CVD + 50 µm Cu and 4mm GC
 % x-ray transmission at 50000 eV: 0.73

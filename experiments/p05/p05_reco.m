@@ -39,14 +39,7 @@ stop_after_proj_flat_correlation(1) = 0; % for data analysis, after flat field c
 
 %%% SCAN %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 scan_path = ...
-        '/asap3/petra3/gpfs/p05/2019/data/11007885/raw/ini_009_sihler';
-        '/asap3/petra3/gpfs/p05/2019/data/11007885/raw/ini_008_mln0999_eosin_6h';
-        '/asap3/petra3/gpfs/p05/2019/data/11007885/raw/ini_007_mln1004_lugol_6h';
-        '/asap3/petra3/gpfs/p05/2019/data/11007885/raw/ini_005_mln0989_blei_6h';
-        '/asap3/petra3/gpfs/p05/2019/data/11007885/raw/ini_004_mln1004_6h';
-        '/asap3/petra3/gpfs/p05/2019/data/11007885/raw/ini_003_mln1001_iod_etoh_6h';
-        '/asap3/petra3/gpfs/p05/2019/data/11007885/raw/ini_001_mln1003_iod_etoh_72h';
-        '/asap3/petra3/gpfs/p05/2019/data/11007885/raw/hzg_012_flyshift_longerscan';
+    pwd;
 read_flatcor = 0; % read preprocessed flatfield-corrected projections. CHECK if negative log has to be taken!
 read_flatcor_path = ''; % subfolder of 'flat_corrected' containing projections
 read_sino = 0; % read preprocessed sinograms. CHECK if negative log has to be taken!
@@ -62,7 +55,7 @@ raw_roi = []; % vertical and/or horizontal ROI; (1,1) coordinate = top left pixe
 % [y0 y1 x0 x1]: vertical + horzontal ROI, each ROI as above
 % if -1: auto roi, selects vertical ROI automatically. Use only for DCM. Not working for *.raw data where images are flipped and DMM data.
 % if < -1: Threshold is set as min(proj(:,:,[1 end])) + abs(raw_roi)*median(dark(:)). raw_roi=-1 defaults to min(proj(:,:,[1 end])) + 4*median(dark(:))
-raw_bin = 2; % projection binning factor: integer
+raw_bin = 4; % projection binning factor: integer
 im_trafo = ''; % string to be evaluated after reading data in the case the image is flipped/rotated/etc due to changes at the beamline, e.g. 'rot90(im)'
 bin_before_filtering(1) = 1; % Apply binning before filtering pixel. less effective, but much faster especially for KIT camera.
 excentric_rot_axis = 0; % off-centered rotation axis increasing FOV. -1: left, 0: centeerd, 1: right. influences tomo.rot_axis.corr_area1
@@ -73,13 +66,13 @@ stitch_method = 'sine'; 'step';'linear'; %  ! CHECK correlation area !
 % 'linear' : linear interpolation of overlap region
 % 'sine' : sinusoidal interpolation of overlap region
 proj_range = []; % range of projections to be used (from all found, if empty or 1: all, if scalar: stride, if range: start:incr:end
-ref_range = [10]; % range of flat fields to be used (from all found), if empty or 1: all. if scalar: stride, if range: start:incr:end
+ref_range = [8]; % range of flat fields to be used (from all found), if empty or 1: all. if scalar: stride, if range: start:incr:end
 pixel_filter_threshold_dark = [0.01 0.005]; % Dark fields: threshold parameter for hot/dark pixel filter, for details see 'FilterPixel'
 pixel_filter_threshold_flat = [0.01 0.005]; % Flat fields: threshold parameter for hot/dark pixel filter, for details see 'FilterPixel'
 pixel_filter_threshold_proj = [0.01 0.005]; % Raw projection: threshold parameter for hot/dark pixel filter, for details see 'FilterPixel'
 pixel_filter_radius = []; % Default: [3 3]. Increase only if blobs of zeros or other artefacts are expected. Can increase processing time heavily.
 ring_current_normalization = 1; % normalize flat fields and projections by ring current
-image_correlation.method = 'none';'ssim-ml';'none';'entropy';'diff';'shift';'ssim';'std';'cov';'corr';'cross-entropy12';'cross-entropy21';'cross-entropyx';
+image_correlation.method = 'ssim-ml';'none';'entropy';'diff';'shift';'ssim';'std';'cov';'corr';'cross-entropy12';'cross-entropy21';'cross-entropyx';
 % Correlation of projections and flat fields. Essential for DCM data. Even
 % though less efficient for DMM data, it usually improves reconstruction quality.
 % Available methods ('ssim-ml'/'entropy' usually work best):
@@ -107,11 +100,11 @@ ring_filter.jm.median_width = 11; % multiple widths are applied consecutively, e
 strong_abs_thresh = 1; % if 1: does nothing, if < 1: flat-corrected values below threshold are set to one. Try with algebratic reco techniques.
 decimal_round_precision = 2; % precision when rounding pixel shifts
 %%% PHASE RETRIEVAL %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-phase_retrieval.apply = 1; % See 'PhaseFilter' for detailed description of parameters !
+phase_retrieval.apply = 0; % See 'PhaseFilter' for detailed description of parameters !
 phase_retrieval.apply_before = 0; % before stitching, interactive mode, etc. For phase-contrast data with an excentric rotation axis phase retrieval should be done afterwards. To find the rotataion axis position use this option in a first run, and then turn it of afterwards.
 phase_retrieval.post_binning_factor = 1; % Binning factor after phase retrieval, but before tomographic reconstruction
 phase_retrieval.method = 'tie';'qp';'qpcut'; %'qp' 'ctf' 'tie' 'qp2' 'qpcut'
-phase_retrieval.reg_par = 1.5; % regularization parameter. larger values tend to blurrier images. smaller values tend to original data.
+phase_retrieval.reg_par = 2; % regularization parameter. larger values tend to blurrier images. smaller values tend to original data.
 phase_retrieval.bin_filt = 0.1; % threshold for quasiparticle retrieval 'qp', 'qp2'
 phase_retrieval.cutoff_frequ = 2 * pi; % in radian. frequency cutoff in Fourier space for 'qpcut' phase retrieval
 phase_retrieval.padding = 1; % padding of intensities before phase retrieval, 0: no padding
@@ -123,7 +116,7 @@ tomo.vol_size = [];%[-1 1 -1 1 -0.5 0.5];% 6-component vector [xmin xmax ymin ym
 tomo.vol_shape = []; %[1 1 1] shape (# voxels) of reconstruction volume. used for excentric rot axis pos. if empty, inferred from 'tomo.vol_size'. in absolute numbers of voxels or in relative number w.r.t. the default volume which is given by the detector width and height.
 tomo.rot_angle.full_range = []; % in radians. if []: full angle of rotation including additional increment, or array of angles. if empty full rotation angles is determined automatically to pi or 2 pi
 tomo.rot_angle.offset = pi; % global rotation of reconstructed volume
-tomo.rot_axis.offset = 0.0; % if empty use automatic computation
+tomo.rot_axis.offset = -4; % if empty use automatic computation
 tomo.rot_axis.position = []; % if empty use automatic computation. EITHER OFFSET OR POSITION MUST BE EMPTY. YOU MUST NOT USE BOTH!
 tomo.rot_axis.offset_shift_range = []; %[]; % absolute lateral movement in pixels during fly-shift-scan, overwrite lateral shift read out from hdf5 log
 tomo.rot_axis.tilt = 0; % in rad. camera tilt w.r.t rotation axis. if empty calculate from registration of projections at 0 and pi
@@ -187,9 +180,9 @@ interactive_mode.slice_number = 0.5; % default slice number. if in [0,1): relati
 interactive_mode.phase_retrieval = 1; % Interactive retrieval to determine regularization parameter
 %%% HARDWARE / SOFTWARE %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 use_cluster = 0; % if available: on MAXWELL nodes disp/nova/wga/wgs cluster computation can be used. Recommended only for large data sets since parpool creation and data transfer implies a lot of overhead.
-poolsize = 0.25; % number of workers used in a local parallel pool. if 0: use current config. if >= 1: absolute number. if 0 < poolsize < 1: relative amount of all cores to be used. if SLURM scheduling is available, a default number of workers is used.
+poolsize = 0.8; % number of workers used in a local parallel pool. if 0: use current config. if >= 1: absolute number. if 0 < poolsize < 1: relative amount of all cores to be used. if SLURM scheduling is available, a default number of workers is used.
 tomo.astra_link_data = 1; % ASTRA data objects become references to Matlab arrays. Reduces memory issues.
-tomo.astra_gpu_index = [1 2]; % GPU Device index to use, Matlab notation: index starts from 1. default: [], uses all
+tomo.astra_gpu_index = []; % GPU Device index to use, Matlab notation: index starts from 1. default: [], uses all
 %%% EXPERIMENTAL OR NOT YET IMPLEMENTED %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 write.uint8_segmented = 0; % experimental: threshold segmentation for histograms with 2 distinct peaks: __/\_/\__
 
@@ -485,7 +478,7 @@ if ~read_flatcor && ~read_sino
     % Dark file names
     dark_names = FilenameCell( [scan_path, '*.dar'] );
     if isempty( dark_names )
-        dark_names = FilenameCell( [scan_path, '*dar*.tif'] );
+        dark_names = FilenameCell( [scan_path, '*dar.tif'] );
     end
     if isempty( dark_names )
         dark_names =  FilenameCell( [scan_path, '*dar*.raw'] );
@@ -584,9 +577,22 @@ if ~read_flatcor && ~read_sino
         % Image shape
         filename = sprintf('%s%s', scan_path, ref_names{1});
         
-        %% mod: breaks raw data support
-        %[im_raw, tif_info] = read_image( filename, '', [], tif_info, im_shape_raw, dtype, im_trafo );
-        [im_raw, tif_info] = read_image( filename, '', [], tif_info, [], dtype, im_trafo );
+        % mod: breaks raw data support
+        % Fixed: 2019-07-10
+        % CLEAN UP required
+        if raw_data
+            switch lower( cam )
+                case 'ehd'
+                    im_shape_raw = [3056 3056];
+                    %dtype = 'uint16';
+                case 'kit'
+                    im_shape_raw = [5120 3840];
+                    %dtype = 'uint16';
+            end
+            [im_raw, tif_info] = read_image( filename, '', [], tif_info, im_shape_raw, dtype, im_trafo );
+        else
+            [im_raw, tif_info] = read_image( filename, '', [], tif_info, [], dtype, im_trafo );
+        end
         im_shape_raw = size( im_raw );
         
         if exist('fast_reco','var') && fast_reco(1)

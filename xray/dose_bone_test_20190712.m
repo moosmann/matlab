@@ -40,6 +40,7 @@ fprintf( '\n absorption bone: %f', absorption * 100 )
 
 % Flux area
 flux = 1095734443447;
+flux = 1.86e12;
 filename = '/asap3/petra3/gpfs/p05/2019/data/11005842/raw/dosetest/flux_window.tif';
 im = double( imread( filename ) );
 m = im > 1000;
