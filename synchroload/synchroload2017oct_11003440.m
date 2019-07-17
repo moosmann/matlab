@@ -1,46 +1,4 @@
 function synchroload2017oct_11003440( SUBSETS, RUN_RECO, PRINT_PARAMETERS)
-% Template function to loop over data sets given in the 'PARAMETER / DATA
-% SETS' section below. The 'DEFAULT PARAMETERS' section defines the default
-% paramters. To add a data / parameter to the loop, define your
-% reconstruction parameters followed by 'ADD'. Using 'ADD('r') restores the
-% default parameters after a datat set is added. Default parameters are
-% defined with 'SET_DEFAULT' (or 'ADD_DEFAULT' or 'ADD('d')' or
-% 'ADD('default')'.
-%
-% Caution: if parameters are changed, they remain changed after a data set
-% was added unless 'ADD('r')' ('ADD('restore')) is used which restores 
-% all parameters as defined in the 'DEFAULT PARAMETER' section by
-% 'SET_DEFAULT'.
-%
-% Caution: all parameters not defined within the file are taken from main
-% reconstruction script 'p05_reco'.
-%
-% Caution: if default parameters are not defined by closing the DEFAULT
-% PARAMETER section with 'SET_DEFAULT', then the first time 'ADD' is called
-% defines default parameters.
-% 
-% Workflow:
-% - Copy this file.
-% - Check, modify, or copy parameter from 'p05_reco' in  'DEFAULT
-%   PARAMETERS' section.
-% - Add parameter / data sets to loop over in the ''PARAMETER / DATA SETS'
-%   section. 
-% - Type 'F5' or call without arguments to list all added data sets.
-% - Choose subset of added data sets to loop over by indices (see SUBSETS
-%   arguments below).
-% - Use RUN_RECO equals 0 with PRINT_PARAMETERS (see below) to check
-%   parameters setting.
-% - Set RUN_RECO equals 1 to start the loop.
-% 
-% ARGUMENTS
-% SUBSETS : 1D array of integers. subset of added data sets to be looped over
-% RUN_RECO : bool. default: 0. 0: loops over the subsets but does not start
-% reconstructions, 1: start the reconstruction loop.
-% PRINT_PARAMETERS : string or cell of strings, eg {'raw_roi',
-% 'parfolder'}. Parameter setting to be printed at each loop iteration.
-% Useful in combination with RUN_RECO = 0 to check parameter setting for
-% the subset to loop over
-%
 % Created on 19-Mar-2018 by moosmanj
 
 if nargin < 1
@@ -166,7 +124,7 @@ interactive_mode.slice_number = 0.5; % default slice number. if in [0,1): relati
 interactive_mode.phase_retrieval = 0; % Interactive retrieval to determine regularization parameter
 %%% HARDWARE / SOFTWARE %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 use_cluster = 0; % if available: on MAXWELL nodes disp/nova/wga/wgs cluster computation can be used. Recommended only for large data sets since parpool creation and data transfer implies a lot of overhead.
-poolsize = 0.60; % number of workers used in a local parallel pool. if 0: use current config. if >= 1: absolute number. if 0 < poolsize < 1: relative amount of all cores to be used. if SLURM scheduling is available, a default number of workers is used.
+poolsize = 0.75; % number of workers used in a local parallel pool. if 0: use current config. if >= 1: absolute number. if 0 < poolsize < 1: relative amount of all cores to be used. if SLURM scheduling is available, a default number of workers is used.
 tomo.astra_link_data = 1; % ASTRA data objects become references to Matlab arrays. Reduces memory issues.
 tomo.astra_gpu_index = []; % GPU Device index to use, Matlab notation: index starts from 1. default: [], uses all
 link_data = 1; % ASTRA data objects become references to Matlab arrays. Reduces memory issues.
@@ -246,7 +204,7 @@ scan_path = [raw_path 'syn32_99R_Mg10Gd_4w']; ADD
 
 scan_path = [raw_path 'syn33_80R_Mg10Gd_8w']; ADD
 
-tomo.rot_axis.offset = 1.0 * 2 / raw_bin;
+tomo.rot_axis.offset = 1.1 * 2 / raw_bin;
 scan_path = [raw_path 'syn34_79R_Mg10Gd_8w']; ADD
 
 scan_path = [raw_path 'syn35_77R_Mg10Gd_8w']; ADD
@@ -370,27 +328,37 @@ scan_path = [raw_path 'syn88_cor_P3_6']; ADD
 
 scan_path = [raw_path 'syn89_cor_P3_7']; ADD
 
+write.scan_name_appendix = '_Mg5Gd_12w'; 
 scan_path = [raw_path 'syn90_70L']; ADD
 
+write.scan_name_appendix = '_Mg5Gd_12w'; 
 scan_path = [raw_path 'syn91_72L']; ADD
 
+write.scan_name_appendix = '_Mg5Gd_8w'; 
 scan_path = [raw_path 'syn92_93R']; ADD
 
+write.scan_name_appendix = '_Mg5G_8w'; 
 scan_path = [raw_path 'syn93_76L']; ADD
 
+write.scan_name_appendix = '_Mg5Gd_8w'; 
 scan_path = [raw_path 'syn94_96R']; ADD
 
+write.scan_name_appendix = 'Mg5Gd_12w'; 
 scan_path = [raw_path 'syn95_69L']; ADD
 
 % ring current normalization not working, output is constant
 tomo.rot_axis.offset = 0.3 * 2 / raw_bin;
+write.scan_name_appendix = '_Mg5Gd_8w'; 
 scan_path = [raw_path 'syn96_82L']; ADD
 
 tomo.rot_axis.offset = 0.3 * 2 / raw_bin;
+write.scan_name_appendix = 'Mg5Gd_8w'; 
 scan_path = [raw_path 'syn97_74L']; ADD
 
+write.scan_name_appendix = '_Mg5Gd_8w'; 
 scan_path = [raw_path 'syn98_77L']; ADD
 
+write.scan_name_appendix = '_Ti_12w'; 
 scan_path = [raw_path 'syn99_43R']; ADD
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

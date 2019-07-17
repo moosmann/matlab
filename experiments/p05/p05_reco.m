@@ -259,6 +259,7 @@ assign_default( 'write.beamtimeID', '' )
 assign_default( 'tomo.reco_mode', '3D' )
 assign_default( 'write.scan_name_appendix', '' )
 assign_default( 'interactive_mode.rot_axis_pos_default_search_range', [] )
+assign_default( 'interactive_mode.phase_retrieval_default_search_range', [] )
 
 astra_clear % if reco was aborted, ASTRA memory is not cleared
 
@@ -425,6 +426,9 @@ if ~read_flatcor && ~read_sino
     if isempty( ref_names )
         ref_names =  FilenameCell( [scan_path, '*flat*.raw'] );
     end
+    if isempty( ref_names )
+        ref_names = FilenameCell( [scan_path, '*ref*.tif'] ); 
+    end
     num_ref_found = numel(ref_names);
     if isempty( ref_range )
         ref_range = 1;
@@ -451,10 +455,14 @@ if ~read_flatcor && ~read_sino
     dark_names = FilenameCell( [scan_path, '*.dar'] );
     if isempty( dark_names )
         dark_names = FilenameCell( [scan_path, '*dar.tif'] );
-    end
+    end    
     if isempty( dark_names )
         dark_names =  FilenameCell( [scan_path, '*dar*.raw'] );
     end
+    if isempty( dark_names )
+        dark_names = FilenameCell( [scan_path, '*dar*.tif'] );
+    end
+    
     dark_nums = CellString2Vec( dark_names, imtype_str_flag );
     num_dark = numel(dark_names);
     prnt( '\n number of darks found : %g', num_dark)
@@ -1088,7 +1096,7 @@ if ~read_flatcor && ~read_sino
     proj_min0 = min( proj(:) );
     proj_max0 = max( proj(:) );
     prnt( '\n global min/max after flat-field corrected:  %6g %6g', proj_min0, proj_max0);
-    
+   
     if stop_after_proj_flat_correlation
         fprintf( '\n' )
         keyboard;
