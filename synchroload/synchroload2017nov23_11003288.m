@@ -160,13 +160,13 @@ sample_detector_distance = []; % in m. if empty: read from log file
 eff_pixel_size = []; % in m. if empty: read from log file. effective pixel size =  detector pixel size / magnification
 pix_scaling = 1; % to account for beam divergence if pixel size was determined (via MTF) at the wrong distance
 %%% PREPROCESSING %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-raw_roi = [0.48 0.52]; % vertical and/or horizontal ROI; (1,1) coordinate = top left pixel; supports absolute, relative, negative, and mixed indexing.
+raw_roi = []; % vertical and/or horizontal ROI; (1,1) coordinate = top left pixel; supports absolute, relative, negative, and mixed indexing.
 % []: use full image;
 % [y0 y1]: vertical ROI, skips first raw_roi(1)-1 lines, reads until raw_roi(2); if raw_roi(2) < 0 reads until end - |raw_roi(2)|; relative indexing similar.
 % [y0 y1 x0 x1]: vertical + horzontal ROI, each ROI as above
 % if -1: auto roi, selects vertical ROI automatically. Use only for DCM. Not working for *.raw data where images are flipped and DMM data.
 % if < -1: Threshold is set as min(proj(:,:,[1 end])) + abs(raw_roi)*median(dark(:)). raw_roi=-1 defaults to min(proj(:,:,[1 end])) + 4*median(dark(:))
-raw_bin = 1; % projection binning factor: integer
+raw_bin = 2; % projection binning factor: integer
 im_trafo = ''; % string to be evaluated after reading data in the case the image is flipped/rotated/etc due to changes at the beamline, e.g. 'rot90(im)'
 bin_before_filtering(1) = 0; % Apply binning before filtering pixel. less effective, but much faster especially for KIT camera.
 excentric_rot_axis = 0; % off-centered rotation axis increasing FOV. -1: left, 0: centeerd, 1: right. influences tomo.rot_axis.corr_area1
@@ -183,20 +183,7 @@ pixel_filter_threshold_flat = [0.01 0.005]; % Flat fields: threshold parameter f
 pixel_filter_threshold_proj = [0.01 0.005]; % Raw projection: threshold parameter for hot/dark pixel filter, for details see 'FilterPixel'
 pixel_filter_radius = []; % Default: [3 3]. Increase only if blobs of zeros or other artefacts are expected. Can increase processing time heavily.
 ring_current_normalization = 1; % normalize flat fields and projections by ring current
-image_correlation.method = 'none'; 'ssim-ml';'entropy';'diff';'shift';'ssim';'std';'cov';'corr';'cross-entropy12';'cross-entropy21';'cross-entropyx';
-% Correlation of projections and flat fields. Essential for DCM data. Even
-% though less efficient for DMM data, it usually improves reconstruction quality.
-% Available methods ('ssim-ml'/'entropy' usually work best):
-% 'none' : no correlation, uses median flat, for fast recos
-% 'ssim-ml' : Matlab's structural similarity index (SSIM), includes Gaussian smoothing
-% 'entropy' : entropy measure of proj over flat
-% 'ssim' : own implementation of SSIM, smoothing not yet implemented, usually worse, but sometimes better than 'ssim-ml'
-% 'cov' : cross covariance
-% 'corr' : cross correlation = normalized cross covariance
-% 'std' : standard deviation of proj over flat
-% 'diff': difference of proj and flat
-% 'shift': computes relative shift from peak of cross-correlation map
-% 'cross-entropy*' : variants of (asymmetric) cross entropy
+image_correlation.method = 'ssim-ml';'entropy';'diff';'shift';'ssim';'std';'cov';'corr';'cross-entropy12';'cross-entropy21';'cross-entropyx';
 image_correlation.num_flats = 1; % number of flat fields used for average/median of flats. for 'shift'-correlation its the maximum number
 image_correlation.area_width = [0 0.01];%[0.98 1];% correlation area: index vector or relative/absolute position of [first pix, last pix]
 image_correlation.area_height = [0.3 0.7]; % correlation area: index vector or relative/absolute position of [first pix, last pix]
@@ -282,7 +269,7 @@ write.compression.parameter = [0.02 0.02]; % compression-method specific paramet
 % 'histo' : [LOW HIGH] = write.compression.parameter (100*LOW)% and (100*HIGH)% of the original histogram, e.g. [0.02 0.02]
 %%% INTERACTION %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 verbose = 1; % print information to standard output
-visual_output = 1; % show images and plots during reconstruction
+visual_output = 0; % show images and plots during reconstruction
 interactive_mode.rot_axis_pos = 1; % reconstruct slices with dif+ferent rotation axis offsets
 interactive_mode.rot_axis_tilt = 0; % reconstruct slices with different offset AND tilts of the rotation axis
 interactive_mode.lamino = 0; % find laminography tilt instead camera rotation
@@ -297,7 +284,6 @@ tomo.astra_gpu_index = []; % GPU Device index to use, Matlab notation: index sta
 %%% EXPERIMENTAL OR NOT YET IMPLEMENTED %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 write.uint8_segmented = 0; % experimental: threshold segmentation for histograms with 2 distinct peaks: __/\_/\__
 
-
 % Set default. Defines default parameter set to be used.
 SET_DEFAULT
 
@@ -311,8 +297,10 @@ scan_path = [raw_path 'syn134_28R_PEEK_8w']; ADD
 
 scan_path = [raw_path 'syn135_27R_PEEK_8w']; ADD
 
+tomo.rot_axis.offset = -5.3 * 2 / raw_bin;
 scan_path = [raw_path 'syn136_95L_Mg10Gd_8w']; ADD
 
+tomo.rot_axis.offset = - 5.7 * 2 / raw_bin;
 scan_path = [raw_path 'syn137_96L_Mg10Gd_8w']; ADD
 
 scan_path = [raw_path 'syn138_29R_PEEK_8w']; ADD

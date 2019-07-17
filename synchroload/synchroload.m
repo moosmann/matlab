@@ -118,14 +118,16 @@ p05_load_plot_from_hdf5( filename, out_path, adc2force );
 %% 2019 July 11006704 LTP IV
 raw_path = '/asap3/petra3/gpfs/p05/2019/data/11006704/raw';
 
-steps = 2:31;
+steps = 1:25;
 out_path = '';
 adc2force = 8.36;
 readhdf5 = 1;
 
 %scan_name = 'syn002_65L_Mg5Gd_12w';
 %scan_name = 'syn001_35R_Ti_8w';
-scan_name = 'syn004_71L_Mg5Gd_12w';
+%scan_name = 'syn004_71L_Mg5Gd_12w';
+%scan_name = 'syn007_47L_Peek_12w';
+scan_name = 'syn008_47R_Ti_12w';
 p05_load_force_values( raw_path, scan_name, steps, out_path, adc2force, readhdf5 )
 
 
