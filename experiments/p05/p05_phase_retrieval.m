@@ -354,6 +354,7 @@ end
 im_shape = [size(proj,1) , size(proj,2)];
 im_shape_pad = (1 + padding) * im_shape;
 [phase_filter, pha_appendix] = PhaseFilter( method, im_shape_pad, edp, reg_par, bin_filt, cutoff_frequ, 'single');
+write.pha_appendix = pha_appendix;
 
 % reco phase dir
 if isempty( write.subfolder.reco )

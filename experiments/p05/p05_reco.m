@@ -38,8 +38,7 @@ stop_after_data_reading(1) = 0; % for data analysis, before flat field correlati
 stop_after_proj_flat_correlation(1) = 0; % for data analysis, after flat field correlation
 
 %%% SCAN %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-scan_path = ...
-    pwd;
+scan_path = pwd;
 read_flatcor = 0; % read preprocessed flatfield-corrected projections. CHECK if negative log has to be taken!
 read_flatcor_path = ''; % subfolder of 'flat_corrected' containing projections
 read_sino = 0; % read preprocessed sinograms. CHECK if negative log has to be taken!
@@ -89,7 +88,6 @@ image_correlation.method = 'ssim-ml';'entropy';'diff';'shift';'ssim';'std';'cov'
 image_correlation.num_flats = 1; % number of flat fields used for average/median of flats. for 'shift'-correlation its the maximum number
 image_correlation.area_width = [0 0.01];%[0.98 1];% correlation area: index vector or relative/absolute position of [first pix, last pix]
 image_correlation.area_height = [0.3 0.7]; % correlation area: index vector or relative/absolute position of [first pix, last pix]
-image_correlation.shift.max_pixelshift = 0.25; % maximum pixelshift allowed for 'shift'-correlation method: if 0 use the best match (i.e. the one with the least shift), if > 0 uses all flats with shifts smaller than image_correlation.shift.max_pixelshift
 ring_filter.apply = 0; % ring artifact filter (use only for scans without lateral sample movement)
 ring_filter.apply_before_stitching = 0; % ! Consider when phase retrieval is applied !
 ring_filter.method = 'jm'; 'wavelet-fft';
@@ -98,7 +96,6 @@ ring_filter.waveletfft.wname = 'db25';'db30'; % wavelet type, see 'FilterStripes
 ring_filter.waveletfft.sigma = 2.4; %  suppression factor for 'wavelet-fft'
 ring_filter.jm.median_width = 11; % multiple widths are applied consecutively, eg [3 11 21 31 39];
 strong_abs_thresh = 1; % if 1: does nothing, if < 1: flat-corrected values below threshold are set to one. Try with algebratic reco techniques.
-decimal_round_precision = 2; % precision when rounding pixel shifts
 %%% PHASE RETRIEVAL %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 phase_retrieval.apply = 0; % See 'PhaseFilter' for detailed description of parameters !
 phase_retrieval.apply_before = 0; % before stitching, interactive mode, etc. For phase-contrast data with an excentric rotation axis phase retrieval should be done afterwards. To find the rotataion axis position use this option in a first run, and then turn it of afterwards.
@@ -199,12 +196,12 @@ eff_pixel_size_binned = raw_bin * eff_pixel_size;
 
 %%% Reco loop: parameters set by external call from 'p05_reco_loop' %%%%%%%
 if exist( 'external_parameter' ,'var')
-    %verbose = 0;
     visual_output = 0;
     dbstop if error
     interactive_mode.rot_axis_pos = 0;
     fast_reco = 0;
     stop_after_data_reading(1) = 0;
+    stop_after_proj_flat_correlation(1) = 0;
     fn = fieldnames( external_parameter );
     for nn = 1:numel( fn )
         var_name = fn{nn};
@@ -248,12 +245,14 @@ if abs(excentric_rot_axis)
         error( 'Do not use ''stitch projections'' in combination with ''crop_at_rot_axis''. Cropping at rot axis only makes sense without stitching in order to avoid oversampling artefacts within the overlap region.' )
     end
 end
+assign_default( 'image_correlation.shift.max_pixelshift', 0.25, 1 ); % maximum pixelshift allowed for 'shift'-correlation method: if 0 use the best match (i.e. the one with the least shift), if > 0 uses all flats with shifts smaller than image_correlation.shift.max_pixelshift
+assign_default( 'image_correlation.decimal_round_precision',2, 1 ); % precision when rounding pixel shifts
 assign_default( 'write.path', '' )
 assign_default( 'write.parfolder', '' )
-assign_default( 'write.subfolder.reco', 'reco', 1 )
-assign_default( 'write.subfolder.flatcor', 'flatceor', 1 )
-assign_default( 'write.subfolder.phase_map', 'phase_map', 1 )
-assign_default( 'write.subfolder.sino', 'sino', 1 )
+assign_default( 'write.subfolder.reco', '' )
+assign_default( 'write.subfolder.flatcor', '' )
+assign_default( 'write.subfolder.phase_map', '' )
+assign_default( 'write.subfolder.sino', '' )
 assign_default( 'write.deleteFiles', 0)
 assign_default( 'write.beamtimeID', '' )
 assign_default( 'tomo.reco_mode', '3D' )
@@ -268,7 +267,7 @@ imsc1 = @(im) imsc( rot90( im ) );
 prnt = @(varargin) PrintVerbose( verbose, varargin{:});
 NameCellToMat = @(name_cell) reshape(cell2mat(name_cell), [numel(name_cell{1}), numel(name_cell)])';
 
-% Disable annoying warnings
+% Disable warnings
 warning( 'off', 'MATLAB:imagesci:rtifc:missingPhotometricTag' );
 warning( 'off', 'MATLAB:hg:AutoSoftwareOpenGL' );
 
@@ -1080,7 +1079,7 @@ if ~read_flatcor && ~read_sino
     %%%% STOP HERE FOR FLATFIELD CORRELATION MAPPING %%%%%%%%%%%%%%%%%%%%%%
     %%%% use 'proj_flat_sequ' to show results of the correlcation
     startS = ticBytes(gcp);
-    [proj, corr, proj_roi, flat_roi] = proj_flat_correlation( proj, flat, image_correlation.method, image_correlation.area_width, image_correlation.area_height, im_shape_binned, image_correlation.shift.max_pixelshift, image_correlation.num_flats, decimal_round_precision, flatcor_path, verbose, visual_output, poolsize, beamtime_path);
+    [proj, corr, roi] = proj_flat_correlation( proj, flat, image_correlation, im_shape_binned, flatcor_path, verbose, visual_output, poolsize );
     toc_bytes = tocBytes(gcp,startS);
     if visual_output
         figure('Name', 'Parallel pool data transfer: proj/flat correlation', 'WindowState', 'maximized');
@@ -1096,7 +1095,6 @@ if ~read_flatcor && ~read_sino
     proj_min0 = min( proj(:) );
     proj_max0 = max( proj(:) );
     prnt( '\n global min/max after flat-field corrected:  %6g %6g', proj_min0, proj_max0);
-   
     if stop_after_proj_flat_correlation
         fprintf( '\n' )
         keyboard;
@@ -2244,12 +2242,17 @@ CheckAndMakePath( reco_path )
 save( sprintf( '%sangles.mat', reco_path), 'angles' );
 if write.reco
     logfile_path = reco_path;
+    
 else
     logfile_path = write.path;
 end
 CheckAndMakePath( logfile_path )
 if write.reco
-    logfile_name = sprintf( '%sreco.log', logfile_path);
+    if phase_retrieval.apply
+        logfile_name = sprintf( '%sreco_phase%s.log', write.phase_appendix, logfile_path);
+    else
+        logfile_name = sprintf( '%sreco.log', logfile_path);
+    end
     fid = fopen( logfile_name, 'w');
     fprintf(fid, 'scan_name : %s\n', scan_name);
     fprintf(fid, 'beamtime_id : %s\n', beamtime_id);

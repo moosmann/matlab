@@ -1,4 +1,4 @@
-function [proj, corr, proj_roi, flat_roi] = proj_flat_correlation( proj, flat, correlation_method, flat_corr_area1, flat_corr_area2, raw_im_shape_binned, corr_shift_max_pixelshift, corr_num_flats, decimal_round_precision, flatcor_path, verbose, visualOutput, poolsize, beamtime_path)
+function [proj, corr, roi] = proj_flat_correlation( proj, flat, image_correlation, im_shape_binned, flatcor_path, verbose, visualOutput, poolsize )
 % Correlate all projection with all flat-field to find the best matching
 % pairs for the flat-field correction using method of choice.
 %
@@ -7,8 +7,14 @@ function [proj, corr, proj_roi, flat_roi] = proj_flat_correlation( proj, flat, c
 %   p(-x) i.e. rot180(p) and f(x), (p^*)(-x) ** f(x)
 % ... to be completed ...
 %
-% Written by Julian Moosmann. First version: 2017-08-23. Last modifcation:
-% 2019-02-05
+% Written by Julian Moosmann.
+
+ correlation_method = image_correlation.method;
+ flat_corr_area1 = image_correlation.area_width;
+ flat_corr_area2 = image_correlation.area_height;
+ corr_shift_max_pixelshift = image_correlation.shift.max_pixelshift;
+ corr_num_flats = image_correlation.num_flats;
+ decimal_round_precision = image_correlation.decimal_round_precision;
 
 %% Projection / flat-field correlcation
 switch correlation_method
@@ -18,8 +24,8 @@ switch correlation_method
         flat_median = median( flat, 3);
         proj = bsxfun( @times, proj, 1./flat_median);
         corr = [];
-        proj_roi =[];
-        flat_roi = [];
+        roi.proj =[];
+        roi.flat = [];
         
     otherwise
         num_proj_used = size( proj, 3);
@@ -30,10 +36,10 @@ switch correlation_method
         t = toc;
         
         % Correlation ROI
-        flat_corr_area1 = IndexParameterToRange(flat_corr_area1, raw_im_shape_binned(1));
-        flat_corr_area2 = IndexParameterToRange(flat_corr_area2, raw_im_shape_binned(2));
-        flat_roi = flat(flat_corr_area1, flat_corr_area2, :);
-        proj_roi = proj(flat_corr_area1, flat_corr_area2, :);
+        flat_corr_area1 = IndexParameterToRange(flat_corr_area1, im_shape_binned(1));
+        flat_corr_area2 = IndexParameterToRange(flat_corr_area2, im_shape_binned(2));
+        roi.flat = flat(flat_corr_area1, flat_corr_area2, :);
+        roi.proj = proj(flat_corr_area1, flat_corr_area2, :);
         
         % Preallocation
         foo = zeros( num_proj_used, num_ref_used);
@@ -60,12 +66,12 @@ switch correlation_method
         for ff = 1:num_ref_used
             
             % flat field
-            f = flat_roi(:,:,ff);
+            f = roi.flat(:,:,ff);
             
             parfor pp = 1:num_proj_used
                 
                 % projection
-                p = proj_roi(:,:,pp);
+                p = roi.proj(:,:,pp);
                 
                 if sum(strcmpi( correlation_method, {'shift','all'}))
                     % shift via image cross correlation
@@ -131,7 +137,7 @@ switch correlation_method
                     %                         case 'ehd'
                     %                             L = 2^16;
                     %                     end
-                    % L = round(max(max(flat_roi(:)),max(flat_roi(:))) - min(min(flat_roi(:)),min(flat_roi(:))));
+                    % L = round(max(max(roi.flat(:)),max(roi.flat(:))) - min(min(roi.flat(:)),min(roi.flat(:))));
                     L = 1;
                     
                     % Parameters
@@ -147,7 +153,7 @@ switch correlation_method
                     
                 elseif sum(strcmpi( correlation_method, {'ssim-ml','all'}))
                     % Matlab's structural similarity index (SSIM)
-                    c_ssim_ml(pp,ff) = - ssim( proj_roi(:,:,pp), f ); %'DynamicRange', 'uint16'
+                    c_ssim_ml(pp,ff) = - ssim( roi.proj(:,:,pp), f ); %'DynamicRange', 'uint16'
                 end
             end
         end
