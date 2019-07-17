@@ -55,7 +55,7 @@ raw_roi = []; % vertical and/or horizontal ROI; (1,1) coordinate = top left pixe
 % [y0 y1 x0 x1]: vertical + horzontal ROI, each ROI as above
 % if -1: auto roi, selects vertical ROI automatically. Use only for DCM. Not working for *.raw data where images are flipped and DMM data.
 % if < -1: Threshold is set as min(proj(:,:,[1 end])) + abs(raw_roi)*median(dark(:)). raw_roi=-1 defaults to min(proj(:,:,[1 end])) + 4*median(dark(:))
-raw_bin = 4; % projection binning factor: integer
+raw_bin = 2; % projection binning factor: integer
 im_trafo = ''; % string to be evaluated after reading data in the case the image is flipped/rotated/etc due to changes at the beamline, e.g. 'rot90(im)'
 bin_before_filtering(1) = 1; % Apply binning before filtering pixel. less effective, but much faster especially for KIT camera.
 excentric_rot_axis = 0; % off-centered rotation axis increasing FOV. -1: left, 0: centeerd, 1: right. influences tomo.rot_axis.corr_area1
@@ -66,13 +66,13 @@ stitch_method = 'sine'; 'step';'linear'; %  ! CHECK correlation area !
 % 'linear' : linear interpolation of overlap region
 % 'sine' : sinusoidal interpolation of overlap region
 proj_range = []; % range of projections to be used (from all found, if empty or 1: all, if scalar: stride, if range: start:incr:end
-ref_range = [8]; % range of flat fields to be used (from all found), if empty or 1: all. if scalar: stride, if range: start:incr:end
+ref_range = []; % range of flat fields to be used (from all found), if empty or 1: all. if scalar: stride, if range: start:incr:end
 pixel_filter_threshold_dark = [0.01 0.005]; % Dark fields: threshold parameter for hot/dark pixel filter, for details see 'FilterPixel'
 pixel_filter_threshold_flat = [0.01 0.005]; % Flat fields: threshold parameter for hot/dark pixel filter, for details see 'FilterPixel'
 pixel_filter_threshold_proj = [0.01 0.005]; % Raw projection: threshold parameter for hot/dark pixel filter, for details see 'FilterPixel'
-pixel_filter_radius = []; % Default: [3 3]. Increase only if blobs of zeros or other artefacts are expected. Can increase processing time heavily.
+pixel_filter_radius = [3 3]; % Increase only if blobs of zeros or other artefacts are expected. Can increase processing time heavily.
 ring_current_normalization = 1; % normalize flat fields and projections by ring current
-image_correlation.method = 'ssim-ml';'none';'entropy';'diff';'shift';'ssim';'std';'cov';'corr';'cross-entropy12';'cross-entropy21';'cross-entropyx';
+image_correlation.method = 'ssim-ml';'entropy';'diff';'shift';'ssim';'std';'cov';'corr';'cross-entropy12';'cross-entropy21';'cross-entropyx';
 % Correlation of projections and flat fields. Essential for DCM data. Even
 % though less efficient for DMM data, it usually improves reconstruction quality.
 % Available methods ('ssim-ml'/'entropy' usually work best):
@@ -116,7 +116,7 @@ tomo.vol_size = [];%[-1 1 -1 1 -0.5 0.5];% 6-component vector [xmin xmax ymin ym
 tomo.vol_shape = []; %[1 1 1] shape (# voxels) of reconstruction volume. used for excentric rot axis pos. if empty, inferred from 'tomo.vol_size'. in absolute numbers of voxels or in relative number w.r.t. the default volume which is given by the detector width and height.
 tomo.rot_angle.full_range = []; % in radians. if []: full angle of rotation including additional increment, or array of angles. if empty full rotation angles is determined automatically to pi or 2 pi
 tomo.rot_angle.offset = pi; % global rotation of reconstructed volume
-tomo.rot_axis.offset = -4; % if empty use automatic computation
+tomo.rot_axis.offset = 0; % if empty use automatic computation
 tomo.rot_axis.position = []; % if empty use automatic computation. EITHER OFFSET OR POSITION MUST BE EMPTY. YOU MUST NOT USE BOTH!
 tomo.rot_axis.offset_shift_range = []; %[]; % absolute lateral movement in pixels during fly-shift-scan, overwrite lateral shift read out from hdf5 log
 tomo.rot_axis.tilt = 0; % in rad. camera tilt w.r.t rotation axis. if empty calculate from registration of projections at 0 and pi
@@ -173,11 +173,13 @@ write.compression.parameter = [0.02 0.02]; % compression-method specific paramet
 verbose = 1; % print information to standard output
 visual_output = 1; % show images and plots during reconstruction
 interactive_mode.rot_axis_pos = 1; % reconstruct slices with dif+ferent rotation axis offsets
+interactive_mode.rot_axis_pos_default_search_range = []; % if empty: asks for search range when entering interactive mode, otherwise directly start with given search range
 interactive_mode.rot_axis_tilt = 0; % reconstruct slices with different offset AND tilts of the rotation axis
 interactive_mode.lamino = 0; % find laminography tilt instead camera rotation
 interactive_mode.fixed_other_tilt = 0; % fixed other tilt
 interactive_mode.slice_number = 0.5; % default slice number. if in [0,1): relative, if in (1, N]: absolute
 interactive_mode.phase_retrieval = 1; % Interactive retrieval to determine regularization parameter
+interactive_mode.phase_retrieval_default_search_range = []; % if empty: asks for search range when entering interactive mode, otherwise directly start with given search range
 %%% HARDWARE / SOFTWARE %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 use_cluster = 0; % if available: on MAXWELL nodes disp/nova/wga/wgs cluster computation can be used. Recommended only for large data sets since parpool creation and data transfer implies a lot of overhead.
 poolsize = 0.8; % number of workers used in a local parallel pool. if 0: use current config. if >= 1: absolute number. if 0 < poolsize < 1: relative amount of all cores to be used. if SLURM scheduling is available, a default number of workers is used.
@@ -229,9 +231,7 @@ end
 if ~phase_retrieval.apply
     phase_retrieval.post_binning_factor = 0;
 end
-if ~exist( 'pixel_filter_radius', 'var') || isempty( pixel_filter_radius )
-    pixel_filter_radius = [3 3];
-end
+assign_default( 'pixel_filter_radius', [3 3], 1 )
 if interactive_mode.rot_axis_tilt && strcmpi( tomo.reco_mode, 'slice' )
     error( 'Slicewise reconstruction and reconstruction with tilted rotation axis are not compatible!' )
 end
@@ -242,51 +242,23 @@ end
 if ~isempty( tomo.rot_axis.offset ) && ~isempty( tomo.rot_axis.position )
     error('tomo.rot_axis.offset (%f) and tomo.rot_axis.position (%f) cannot be used simultaneously. One must be empty.', tomo.rot_axis.offset, tomo.rot_axis.position)
 end
-if isempty( tomo.rot_axis.offset )
-    tomo.rot_axis.offset = 0;    
-end
+assign_default( 'tomo.rot_axis.offset', 0 )
 if abs(excentric_rot_axis)
     if crop_at_rot_axis(1) && stitch_projections(1)
         error( 'Do not use ''stitch projections'' in combination with ''crop_at_rot_axis''. Cropping at rot axis only makes sense without stitching in order to avoid oversampling artefacts within the overlap region.' )
     end
 end
-if ~isfield( write, 'path' )
-    write.path = '';
-end
-if ~isfield( write, 'parfolder' )
-    write.parfolder = '';
-end
-
-if ~isfield( write, 'subfolder' )
-    write.subfolder.reco = 'reco';
-    write.subfolder.flatcor = 'flatcor';
-    write.subfolder.phase_map = 'phase_map';
-    write.subfolder.sino = 'sino';
-end
-if ~isfield( write.subfolder, 'reco' )
-    write.subfolder.reco = 'reco';
-end
-if ~isfield( write.subfolder, 'flatcor' )
-    write.subfolder.flatcor = 'flatcor';
-end
-if ~isfield( write.subfolder, 'phase_map' )
-    write.subfolder.phase_map = 'phase_map';
-end
-if ~isfield( write.subfolder, 'sino' )
-    write.subfolder.sino = 'sino';
-end
-if ~isfield( write, 'deleteFiles' )
-    write.deleteFiles = 0;
-end
-if ~isfield( write, 'beamtimeID' )
-    write.beamtimeID = '';
-end
-if ~isfield( tomo, 'reco_mode' )
-    tomo.reco_mode = '3D';
-end
-if ~isfield( write, 'scan_name_appendix' )
-    write.scan_name_appendix = '';
-end
+assign_default( 'write.path', '' )
+assign_default( 'write.parfolder', '' )
+assign_default( 'write.subfolder.reco', 'reco', 1 )
+assign_default( 'write.subfolder.flatcor', 'flatceor', 1 )
+assign_default( 'write.subfolder.phase_map', 'phase_map', 1 )
+assign_default( 'write.subfolder.sino', 'sino', 1 )
+assign_default( 'write.deleteFiles', 0)
+assign_default( 'write.beamtimeID', '' )
+assign_default( 'tomo.reco_mode', '3D' )
+assign_default( 'write.scan_name_appendix', '' )
+assign_default( 'interactive_mode.rot_axis_pos_default_search_range', [] )
 
 astra_clear % if reco was aborted, ASTRA memory is not cleared
 
@@ -299,7 +271,7 @@ NameCellToMat = @(name_cell) reshape(cell2mat(name_cell), [numel(name_cell{1}), 
 warning( 'off', 'MATLAB:imagesci:rtifc:missingPhotometricTag' );
 warning( 'off', 'MATLAB:hg:AutoSoftwareOpenGL' );
 
-prnt( 'Start reconstruction of ')
+prnt( 'START RECONSTRUCTION: ')
 
 %% Folders
 while scan_path(end) == filesep
@@ -442,7 +414,7 @@ if ~read_flatcor && ~read_sino
     % Ref file names
     ref_names = FilenameCell( [scan_path, '*.ref'] );
     if isempty( ref_names )
-        ref_names = FilenameCell( [scan_path, '*ref.tif'] ); %%%%OBS OBS OBS OBS
+        ref_names = FilenameCell( [scan_path, '*ref.tif'] ); 
     end
     if isempty( ref_names )
         ref_names =  FilenameCell( [scan_path, '*flat*.tif'] );
@@ -1111,8 +1083,7 @@ if ~read_flatcor && ~read_sino
         keyboard;
     end
     
-    % Filter strong/full absorption (combine with iterative reco
-    % techniques)
+    % Filter strong/full absorption (combine with iterative reco methods)
     if strong_abs_thresh < 1
         t = toc;
         prnt( '\n set flat-corrected values below %f to one, ', strong_abs_thresh)
