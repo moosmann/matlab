@@ -1074,6 +1074,17 @@ if ~read_flatcor && ~read_sino
     startS = ticBytes(gcp);
     [proj, corr, proj_roi, flat_roi] = proj_flat_correlation( proj, flat, image_correlation.method, image_correlation.area_width, image_correlation.area_height, im_shape_binned, image_correlation.shift.max_pixelshift, image_correlation.num_flats, decimal_round_precision, flatcor_path, verbose, visual_output, poolsize, beamtime_path);
     toc_bytes = tocBytes(gcp,startS);
+    if visual_output
+        figure('Name', 'Parallel pool data transfer: proj/flat correlation', 'WindowState', 'maximized');
+        plot( toc_bytes / 1024^3 )
+        axis tight
+        title( sprintf( 'Data transfer per worker. Total: %.1f GiB (to), %.1f GiB (from)', sum( toc_bytes ) / 1024^3 ) )
+        xlabel( 'worker no.' )
+        ylabel( 'transferred data / GiB' )
+        legend( {'to', 'from'} )
+        drawnow
+        pause( 0.1 )
+    end
     proj_min0 = min( proj(:) );
     proj_max0 = max( proj(:) );
     prnt( '\n global min/max after flat-field corrected:  %6g %6g', proj_min0, proj_max0);
