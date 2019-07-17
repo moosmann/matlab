@@ -9,7 +9,6 @@ edit synchroload2017nov03_11003773
 edit synchroload2017nov13_11004016.m
 edit synchroload2017nov23_11003288.m
 edit synchroload2017nov23_11003288_oldDoubleCheck.m
-edit synchroload2017oct_11003440_1.m
 edit synchroload2017oct_11003440.m
 edit synchroload2018apr_11004263.m
 edit synchroload2018may_11004936.m
@@ -20,8 +19,9 @@ edit synchroload2019may_11005842
 edit synchroload_figureMeetingApr2017
 edit synchroload_radiography
 edit synchroload_renorm_slices
-edit synchroload_resample_data_for_segmentation
-edit synchroload_resample_data_sets
+edit synchroload_resample_data_for_segmentation_old
+edit synchroload_resample_data_for_segmentation_autodetect.m
+edit synchroload_resample_data_for_segmentation_listmode.m
 edit synchroload_sequ_force
 edit synchroload_sequ
 edit synchroload_syn13

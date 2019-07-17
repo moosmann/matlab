@@ -1,1 +1,1 @@
-cd /asap3/petra3/gpfs/p05/2016/data/11002518/processed/synchroload
+cd('/asap3/petra3/gpfs/common/p05/jm/matlab/synchroload')

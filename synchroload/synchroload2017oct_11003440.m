@@ -226,7 +226,7 @@ scan_path = [raw_path 'syn42_38L_PEEK_8w']; ADD
 
 scan_path = [raw_path 'syn43_38L_PEEK_8w']; ADD
 
-tomo.rot_axis.offset = 0.3 * 2 / raw_bin;
+tomo.rot_axis.offset = 0.4 * 2 / raw_bin;
 scan_path = [raw_path 'syn44_66L_Mg5Gd_12w']; ADD
 
 scan_path = [raw_path 'syn45_101BL_Mg5Gd_4w']; ADD
@@ -328,37 +328,39 @@ scan_path = [raw_path 'syn88_cor_P3_6']; ADD
 
 scan_path = [raw_path 'syn89_cor_P3_7']; ADD
 
-write.scan_name_appendix = '_Mg5Gd_12w'; 
+write.scan_name_appendix = 'Mg5Gd_12w'; 
 scan_path = [raw_path 'syn90_70L']; ADD
 
-write.scan_name_appendix = '_Mg5Gd_12w'; 
+write.scan_name_appendix = 'Mg5Gd_12w'; 
 scan_path = [raw_path 'syn91_72L']; ADD
 
-write.scan_name_appendix = '_Mg5Gd_8w'; 
+write.scan_name_appendix = 'Mg5Gd_8w'; 
 scan_path = [raw_path 'syn92_93R']; ADD
 
-write.scan_name_appendix = '_Mg5G_8w'; 
+write.scan_name_appendix = 'Mg5G_8w'; 
 scan_path = [raw_path 'syn93_76L']; ADD
 
-write.scan_name_appendix = '_Mg5Gd_8w'; 
+write.scan_name_appendix = 'Mg5Gd_8w'; 
 scan_path = [raw_path 'syn94_96R']; ADD
 
 write.scan_name_appendix = 'Mg5Gd_12w'; 
 scan_path = [raw_path 'syn95_69L']; ADD
 
 % ring current normalization not working, output is constant
-tomo.rot_axis.offset = 0.3 * 2 / raw_bin;
-write.scan_name_appendix = '_Mg5Gd_8w'; 
+interactive_mode.rot_axis_pos = 0;
+tomo.rot_axis.offset = -1.4 * 2 / raw_bin;
+write.scan_name_appendix = 'Mg5Gd_8w'; 
 scan_path = [raw_path 'syn96_82L']; ADD
 
+interactive_mode.rot_axis_pos = 0;
 tomo.rot_axis.offset = 0.3 * 2 / raw_bin;
 write.scan_name_appendix = 'Mg5Gd_8w'; 
 scan_path = [raw_path 'syn97_74L']; ADD
 
-write.scan_name_appendix = '_Mg5Gd_8w'; 
+write.scan_name_appendix = 'Mg5Gd_8w'; 
 scan_path = [raw_path 'syn98_77L']; ADD
 
-write.scan_name_appendix = '_Ti_12w'; 
+write.scan_name_appendix = 'Ti_12w'; 
 scan_path = [raw_path 'syn99_43R']; ADD
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
