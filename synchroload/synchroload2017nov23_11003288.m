@@ -44,67 +44,7 @@ end
 % ring_filter.waveletfft.wname = 'db25';'db30'; % wavelet type for 'wavelet-fft'
 % ring_filter.waveletfft.sigma = 2.4; %  suppression factor for 'wavelet-fft'
 % ring_filter.jm.median_width = 11; % [3 11 21 31 39];
-% % PHASE RETRIEVAL %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% phase_retrieval.apply = 0;
-% % TOMOGRAPHY %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% do_tomo = 1; % run tomographic reconstruction
-% vol_shape = [];% shape of the volume to be reconstructed, either in absolute number of voxels or in relative number w.r.t. the default volume which is given by the detector width and height
-% vol_size = []; % if empty, unit voxel size is assumed
-% rot_angle_full = []; % in radians: empty ([]), full angle of rotation, or array of angles. if empty full rotation angles is determined automatically to pi or 2 pi
 % rot_angle_offset = pi; % global rotation of reconstructed volume
-% rot_axis_offset = []; % if empty use automatic computation
-% rot_axis_pos = []; % if empty use automatic computation. either offset or pos has to be empty. can't use both
-% rot_corr_area1 = []; % ROI to correlate projections at angles 0 & pi. Use [0.75 1] or so for scans with an excentric rotation axis
-% rot_corr_area2 = []; % ROI to correlate projections at angles 0 & pi
-% rot_corr_gradient = 0; % use gradient of intensity maps if signal variations are too weak to correlate projections
-% rot_axis_tilt = 0; % in rad. camera tilt w.r.t rotation axis. if empty calculate from registration of projections at 0 and pi
-% fbp_filter_type = 'Ram-Lak';'linear'; % Ram-Lak according to Kak/Slaney
-% fpb_filter_freq_cutoff = 1; % Cut-off frequency in Fourier space of the above FBP filter
-% fbp_filter_padding = 1; % symmetric padding for consistent boundary conditions, 0: no padding
-% fbp_filter_padding_method = 'symmetric';
-% butterworth_filter = 1; % use butterworth filter in addition to FBP filter
-% butterworth_order = 1;
-% butterworth_cutoff_frequ = 0.9;
-% astra_pixel_size = 1; % size of a detector pixel: if different from one 'vol_size' needs to be ajusted
-% take_neg_log = []; % take negative logarithm. if empty, use 1 for attenuation contrast, 0 for phase contrast
-% % OUTPUT %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% out_path = '';
-% write.to_scratch = 1; % write to 'scratch_cc' instead of 'processed'
-% write.flatcor = 1; % save preprocessed flat corrected projections
-% write.phase_map = 0; % save phase maps (if phase retrieval is not 0)
-% write.sino = 0; % save sinograms (after preprocessing & before FBP filtering and phase retrieval)
-% write.phase_sino = 0; % save sinograms of phase maps
-% write.reco = 1; % save reconstructed slices (if do_tomo=1)
-% write.float = 1; % single precision (32-bit float) tiff
-% write.uint16 = 0;
-% write.uint8 = 0;
-% reco_bin = 2; % binning factor of reconstructed volume if binned volumes are saved
-% write.float_binned = 0; % binned single precision (32-bit float) tiff
-% write.uint16_binned = 0;
-% write.uint8_binned = 0;
-% write.uint8_segmented = 0;
-% compression_method = 'histo';'full'; 'std'; 'threshold'; % method to compression dynamic range into [0, 1]
-% compression_parameter = [0.20 0.15]; % compression-method specific parameter
-% % dynamic range is compressed s.t. new dynamic range assumes
-% % 'full' : full dynamic range is used
-% % 'threshold' : [LOW HIGH] = compression_parameter, eg. [-0.01 1]
-% % 'std' : NUM = compression_parameter, mean +/- NUM*std, dynamic range is rescaled to within -/+ NUM standard deviations around the mean value
-% % 'histo' : [LOW HIGH] = compression_parameter (100*LOW)% and (100*HIGH)% of the original histogram, e.g. [0.02 0.02]
-% parfolder = '';%sprintf( 'cor_%s', correlation_method);''; % parent folder for 'reco', 'sino', 'phase', and 'flat_corrected'
-% subfolder_flatcor = ''; % subfolder in 'flat_corrected'
-% subfolder_phase_map = ''; % subfolder in 'phase_map'
-% subfolder_sino = ''; % subfolder in 'sino'
-% subfolder_reco = ''; % subfolder in 'reco'
-% % INTERACTION %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% visual_output = 0; % show images and plots during reconstruction
-% interactive_determination_of_rot_axis = 0; % reconstruct slices with different rotation axis offsets
-% interactive_determination_of_rot_axis_slice = 0.5; % slice number, default: 0.5. if in [0,1): relative, if in (1, N]: absolute
-% % HARDWARE / SOFTWARE %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% poolsize = 0.80; % number of workers used in a parallel pool. if > 1: absolute number. if 0 < poolsize < 1: relative amount of all cores to be used
-% link_data = 1; % ASTRA data objects become references to Matlab arrays. Reduces memory issues.
-% gpu_index = []; % GPU Device index to use, Matlab notation: index starts from 1. default: [], uses all
-
-
 fast_reco = 0; % !!! OVERWRITES SOME PARAMETERS SET BELOW !!!
 stop_after_data_reading(1) = 0; % for data analysis, before flat field correlation
 stop_after_proj_flat_correlation(1) = 0; % for data analysis, after flat field correlation
@@ -203,10 +143,10 @@ write.subfolder.flatcor = 'unbinned'; % subfolder in 'flat_corrected'
 write.subfolder.phase_map = ''; % subfolder in 'phase_map'
 write.subfolder.sino = ''; % subfolder in 'sino'
 write.subfolder.reco = ''; % subfolder in 'reco'
-write.flatcor = 1; % save preprocessed flat corrected projections
+write.flatcor = 0; % save preprocessed flat corrected projections
 write.flatcor_shift_cropped = 0; % save lateral shift corrected projections, projections are not interpolated, but cropped to nearest integer pixel
 write.phase_map = 0; % save phase maps (if phase retrieval is not 0)
-write.sino = 0; % save sinograms (after preprocessing & before FBP filtering and phase retrieval)
+write.sino = 1; % save sinograms (after preprocessing & before FBP filtering and phase retrieval)
 write.sino_shift_cropped = 0; % save cropped sinos without lateral shift
 write.phase_sino = 0; % save sinograms of phase maps
 write.reco = 1; % save reconstructed slices (if tomo.run=1)
@@ -228,7 +168,7 @@ write.compression.parameter = [0.02 0.02]; % compression-method specific paramet
 % 'histo' : [LOW HIGH] = write.compression.parameter (100*LOW)% and (100*HIGH)% of the original histogram, e.g. [0.02 0.02]
 %%% INTERACTION %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 verbose = 1; % print information to standard output
-visual_output = 0; % show images and plots during reconstruction
+visual_output = 1; % show images and plots during reconstruction
 interactive_mode.rot_axis_pos = 1; % reconstruct slices with dif+ferent rotation axis offsets
 interactive_mode.rot_axis_tilt = 0; % reconstruct slices with different offset AND tilts of the rotation axis
 interactive_mode.lamino = 0; % find laminography tilt instead camera rotation
@@ -237,7 +177,7 @@ interactive_mode.slice_number = 0.5; % default slice number. if in [0,1): relati
 interactive_mode.phase_retrieval = 1; % Interactive retrieval to determine regularization parameter
 %%% HARDWARE / SOFTWARE %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 use_cluster = 0; % if available: on MAXWELL nodes disp/nova/wga/wgs cluster computation can be used. Recommended only for large data sets since parpool creation and data transfer implies a lot of overhead.
-poolsize = 0.25; % number of workers used in a local parallel pool. if 0: use current config. if >= 1: absolute number. if 0 < poolsize < 1: relative amount of all cores to be used. if SLURM scheduling is available, a default number of workers is used.
+poolsize = 0.8; % number of workers used in a local parallel pool. if 0: use current config. if >= 1: absolute number. if 0 < poolsize < 1: relative amount of all cores to be used. if SLURM scheduling is available, a default number of workers is used.
 tomo.astra_link_data = 1; % ASTRA data objects become references to Matlab arrays. Reduces memory issues.
 tomo.astra_gpu_index = []; % GPU Device index to use, Matlab notation: index starts from 1. default: [], uses all
 %%% EXPERIMENTAL OR NOT YET IMPLEMENTED %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -249,43 +189,39 @@ SET_DEFAULT
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% PARAMETER / DATA SETS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-raw_path = '/asap3/petra3/gpfs/p05/2017/data/11003288/raw/';
-interactive_determination_of_rot_axis = 1;
 
+raw_path = '/asap3/petra3/gpfs/p05/2017/data/11003288/raw/';
+
+interactive_determination_of_rot_axis = 0;
+tomo.rot_axis.offset = -5.35 * 2 / raw_bin;
 scan_path = [raw_path 'syn134_28R_PEEK_8w']; ADD
 
+interactive_determination_of_rot_axis = 1;
 scan_path = [raw_path 'syn135_27R_PEEK_8w']; ADD
 
+interactive_determination_of_rot_axis = 0;
 tomo.rot_axis.offset = -5.3 * 2 / raw_bin;
 scan_path = [raw_path 'syn136_95L_Mg10Gd_8w']; ADD
 
+interactive_determination_of_rot_axis = 1;
 tomo.rot_axis.offset = - 5.7 * 2 / raw_bin;
 scan_path = [raw_path 'syn137_96L_Mg10Gd_8w']; ADD
 
+% no beam ? after 257 images
 scan_path = [raw_path 'syn138_29R_PEEK_8w']; ADD
 
-scan_path = [raw_path 'syn139_48L_PEEK_12w']; ADD
-
-scan_path = [raw_path 'syn140_61L_PEEK_12w']; ADD
-
-scan_path = [raw_path 'syn141_90L_Mg10Gd_4w']; ADD
-
-scan_path = [raw_path 'syn142_35L_PEEK_8w']; ADD
-
-scan_path = [raw_path 'syn143_101BR_Mg10Gd_4w']; ADD
-
-scan_path = [raw_path 'syn144_26R_PEEK_8w']; ADD
+% no beam: DELETED RAW DATA
+% scan_path = [raw_path 'syn139_48L_PEEK_12w']; ADD
+% scan_path = [raw_path 'syn140_61L_PEEK_12w']; ADD
+% scan_path = [raw_path 'syn141_90L_Mg10Gd_4w']; ADD
+% scan_path = [raw_path 'syn142_35L_PEEK_8w']; ADD
+% scan_path = [raw_path 'syn143_101BR_Mg10Gd_4w']; ADD
+% scan_path = [raw_path 'syn144_26R_PEEK_8w']; ADD
 
 scan_path = [raw_path 'syn145_58L_Mg_12_cmos_test']; ADD
-
 scan_path = [raw_path 'syn146_58L_Mg_12_cmos_test']; ADD
-
 scan_path = [raw_path 'syn148_58L_Mg_12_cmos_test']; ADD
-
 scan_path = [raw_path 'syn149_58L_Mg_12_cmos_test']; ADD
-
-% aborted
-%scan_path = [raw_path 'syn150_58L_Mg_12_000']; ADD
 
 rot_axis_offset = -192.10;
 scan_path = [raw_path 'syn151_58L_Mg_12_000']; ADD

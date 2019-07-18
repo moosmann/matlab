@@ -21,7 +21,9 @@
 % (2014)
 % Also cite the ASTRA Toolbox, see http://www.astra-toolbox.com/
 %
-% Written by Julian Moosmann.
+% For the latest version, see: https://github.com/moosmann/matlab.git
+%
+% Written by Julian Moosmann. 
 
 if ~exist( 'external_parameter' ,'var')
     clearvars
@@ -298,7 +300,7 @@ prnt( '\n scan_path:%s', scan_path )
 % Memory
 prnt( '\n hostname : %s', getenv( 'HOSTNAME' ) );
 [mem_free, mem_avail, mem_total] = free_memory;
-prnt( '\n system memory: free, available, total : %g GiB, %g GiB, %g GiB', round([mem_free/1024^3, mem_avail/1024^3, mem_total/1024^3]) )
+prnt( '\n system memory: free, available, total : %.1f GiB, %.1f GiB, %.1f GiB', round([mem_free/1024^3, mem_avail/1024^3, mem_total/1024^3]) )
 if isempty( tomo.astra_gpu_index )
     tomo.astra_gpu_index = 1:gpuDeviceCount;
 end
@@ -392,7 +394,6 @@ if ~read_flatcor && ~read_sino
     % Projection file names
     proj_names = FilenameCell( [scan_path, '*.img'] );
     raw_data = 0;
-    
     if isempty( proj_names )
         proj_names =  FilenameCell( [scan_path, '*img*.tif'] );
         raw_data = 0;
@@ -586,6 +587,19 @@ if ~read_flatcor && ~read_sino
         [petra.time, index] = unique( h5read( h5log,'/entry/hardware/beam_current/current/time') );
         petra.current = h5read( h5log,'/entry/hardware/beam_current/current/value');
         petra.current = petra.current(index);
+        if visual_output(1) 
+            f = figure('Name', 'PETRA beam current', 'WindowState', 'maximized');
+            x = double(petra.time(2:1:end)-petra.time(2)) / 1000 / 60;
+            y = petra.current(2:1:end);
+            plot( x, y, '.' )
+            xlabel( 'time / min' )
+            ylabel( 'current / mA' )
+            title(sprintf('PETRA beam current during scan') )
+            axis tight
+            drawnow
+            CheckAndMakePath( fig_path )
+            saveas( f, sprintf( '%s%s.png', fig_path, regexprep( f.Name, '\ |:', '_') ) );
+        end
         % rotation axis and wiggle
         s_rot.time = double( h5read( h5log, '/entry/scan/data/s_rot/time') );
         s_rot.value = h5read( h5log, '/entry/scan/data/s_rot/value');
@@ -608,6 +622,8 @@ if ~read_flatcor && ~read_sino
             plot( offset_shift, '.')
             title(sprintf('Rotation axis offset shift (zero mean)') )
             axis equal tight
+            xlabel( 'projection number' )
+            ylabel( 'lateral shift / pixel' )
             drawnow
             CheckAndMakePath( fig_path )
             saveas( f, sprintf( '%s%s.png', fig_path, regexprep( f.Name, '\ |:', '_') ) );
@@ -1026,6 +1042,8 @@ if ~read_flatcor && ~read_sino
                 subplot(1,1,1);
                 plot( ref_nums, ref_rc(:), '.',proj_nums, proj_rc(:), '.' )
                 axis tight
+                xlabel( 'image no.' )
+                ylabel( 'current / mA' )
                 title(sprintf('ring currents'))
                 legend( sprintf( 'flats, mean: %.2f mA', ref_rcm), sprintf( 'projs, mean: %.2f mA', proj_rcm) )
                 drawnow
@@ -1082,15 +1100,17 @@ if ~read_flatcor && ~read_sino
     [proj, corr, roi] = proj_flat_correlation( proj, flat, image_correlation, im_shape_binned, flatcor_path, verbose, visual_output, poolsize );
     toc_bytes = tocBytes(gcp,startS);
     if visual_output
-        figure('Name', 'Parallel pool data transfer: proj/flat correlation', 'WindowState', 'maximized');
-        plot( toc_bytes / 1024^3 )
+        f = figure('Name', 'Parallel pool data transfer during image correlation', 'WindowState', 'maximized');
+        plot( toc_bytes / 1024^3, 'o-' )
         axis tight
-        title( sprintf( 'Data transfer per worker. Total: %.1f GiB (to), %.1f GiB (from)', sum( toc_bytes ) / 1024^3 ) )
+        title( sprintf( 'Data transfer in parpool per worker. Total: %.1f GiB (to), %.1f GiB (from)', sum( toc_bytes ) / 1024^3 ) )
         xlabel( 'worker no.' )
         ylabel( 'transferred data / GiB' )
         legend( {'to', 'from'} )
         drawnow
         pause( 0.1 )
+        CheckAndMakePath( fig_path )
+        saveas( f, sprintf( '%s%s.png', fig_path, regexprep( f.Name, '\ |:', '_') ) );
     end
     proj_min0 = min( proj(:) );
     proj_max0 = max( proj(:) );
@@ -1141,6 +1161,15 @@ if ~read_flatcor && ~read_sino
     % drop angles where projections are empty
     angles(~projs_to_use) = [];
     
+    % Prepare sino slice for figure and saving
+    nn = round( size( proj, 2) / 2);
+    sino = squeeze( proj(:,nn,:) );
+    [~,m] = sort( angles );
+    % Crop lateral shift
+    sinoc = CropShift( sino(:,m), offset_shift );
+    filename = sprintf( '%ssino_middle.tif', reco_path );
+    write32bitTIFfromSingle( filename, sinoc);
+    
     if visual_output(1)
         if exist( 'h1' , 'var' ) && isvalid( h1 )
             figure(h1)
@@ -1172,19 +1201,13 @@ if ~read_flatcor && ~read_sino
         CheckAndMakePath( fig_path )
         saveas( h1, sprintf( '%s%s.png', fig_path, regexprep( h1.Name, '\ |:', '_') ) );
         
-        f = figure('Name', 'sinogram', 'WindowState', 'maximized');
-        nn = round( size( proj, 2) / 2);
-        % Crop lateral shift
-        sino = squeeze( proj(:,nn,:) );
-        [~,m] = sort( angles );
-        sinoc = CropShift( sino(:,m), offset_shift );
+        f = figure('Name', 'sinogram', 'WindowState', 'maximized');        
         imsc1( sinoc )
         title(sprintf('sinogram: proj(:,%u,:) (shift corrected)', nn))
         colorbar
         axis equal tight
         
         saveas( f, sprintf( '%s%s.png', fig_path, regexprep( f.Name, '\ |:', '_') ) );
-        
         drawnow
     end
     
@@ -1377,6 +1400,9 @@ if tomo.run || tomo.run_interactive_mode
             % from beam current log
             tomo.rot_angle.full_range = (cur.proj(end).angle - cur.proj(1).angle) * pi /180; % KIT: , EHD: ok
         end
+    end
+    if isempty( tomo.rot_angle.full_range )
+        tomo.rot_angle.full_range = max( angles(:) ) - min( angles(:) );
     end
     prnt( '\n full rotation angle: %g * pi', tomo.rot_angle.full_range / pi)
     if numel( angles ) ~= num_proj_used

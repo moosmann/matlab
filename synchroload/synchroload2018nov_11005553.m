@@ -301,6 +301,8 @@ scan_path = [raw_path 'syn026_femur_55L_000']; ADD
 scan_path = [raw_path 'syn026_femur_55L_001']; ADD
 
 % good, some small local movement
+interactive_mode.rot_axis_pos = 1;
+tomo.run = 0;
 tomo.rot_axis.offset = 1.2 * 3 / raw_bin;
 scan_path = [raw_path 'syn027_20R_PEEK_4w']; ADD
 
@@ -321,6 +323,8 @@ scan_path = [raw_path 'syn030_84R_Mg5Gd_4w_restart_pushed']; ADD
 scan_path = [raw_path 'syn032_84R_Mg5Gd_4w_restart_pushed']; ADD
 
 % Good quality
+interactive_mode.rot_axis_pos = 1;
+tomo.run = 0;
 raw_bin = 3; % CMOS
 tomo.rot_axis.offset = 2.65 * 3 / raw_bin;
 scan_path = [raw_path 'syn033_68R_Mg10Gd_12w']; ADD
