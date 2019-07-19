@@ -620,10 +620,11 @@ if ~read_flatcor && ~read_sino
         if visual_output(1) && numel( offset_shift ) > 2 && abs( std( offset_shift ) ) > 0
             f = figure('Name', 'rotation axis offset shift', 'WindowState', 'maximized');
             plot( offset_shift, '.')
-            title(sprintf('Rotation axis offset shift (zero mean)') )
+            title( sprintf('Rotation axis offset shift (zero mean)') )
             axis equal tight
             xlabel( 'projection number' )
             ylabel( 'lateral shift / pixel' )
+            legend( sprintf( 'effective pixel binned: %.2f', eff_pixel_size_binned ) )
             drawnow
             CheckAndMakePath( fig_path )
             saveas( f, sprintf( '%s%s.png', fig_path, regexprep( f.Name, '\ |:', '_') ) );
@@ -1103,7 +1104,7 @@ if ~read_flatcor && ~read_sino
         f = figure('Name', 'Parallel pool data transfer during image correlation', 'WindowState', 'maximized');
         plot( toc_bytes / 1024^3, 'o-' )
         axis tight
-        title( sprintf( 'Data transfer in parpool per worker. Total: %.1f GiB (to), %.1f GiB (from)', sum( toc_bytes ) / 1024^3 ) )
+        title( sprintf( 'Data transfer of workers in parpool. Total: %.1f GiB (to), %.1f GiB (from)', sum( toc_bytes ) / 1024^3 ) )
         xlabel( 'worker no.' )
         ylabel( 'transferred data / GiB' )
         legend( {'to', 'from'} )
@@ -2275,7 +2276,7 @@ end
 CheckAndMakePath( logfile_path )
 if write.reco
     if phase_retrieval.apply
-        logfile_name = sprintf( '%sreco_phase%s.log', write.phase_appendix, logfile_path);
+        logfile_name = sprintf( '%sreco_phase_%s.log', logfile_path, write.phase_appendix );
     else
         logfile_name = sprintf( '%sreco.log', logfile_path);
     end

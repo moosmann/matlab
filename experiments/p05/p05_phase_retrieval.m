@@ -353,14 +353,14 @@ end
 %% Phase retrieval filter
 im_shape = [size(proj,1) , size(proj,2)];
 im_shape_pad = (1 + padding) * im_shape;
-[phase_filter, pha_appendix] = PhaseFilter( method, im_shape_pad, edp, reg_par, bin_filt, cutoff_frequ, 'single');
-write.pha_appendix = pha_appendix;
+[phase_filter, phase_appendix] = PhaseFilter( method, im_shape_pad, edp, reg_par, bin_filt, cutoff_frequ, 'single');
+write.phase_appendix = phase_appendix;
 
 % reco phase dir
 if isempty( write.subfolder.reco )
-    write.reco_phase_path = [write.path, filesep, 'reco_phase', filesep, pha_appendix, filesep];
+    write.reco_phase_path = [write.path, filesep, 'reco_phase', filesep, phase_appendix, filesep];
 else
-    write.reco_phase_path = [write.path, filesep, 'reco_phase', filesep, pha_appendix, filesep, write.subfolder.reco, filesep];
+    write.reco_phase_path = [write.path, filesep, 'reco_phase', filesep, phase_appendix, filesep, write.subfolder.reco, filesep];
 end
 CheckAndMakePath( write.reco_phase_path )
 PrintVerbose( verbose, '\n energy : %g eV', phase_retrieval.energy)
@@ -401,7 +401,7 @@ end
 if write.phase_map
     t = toc;
     PrintVerbose( verbose, '\nSave phase maps:')
-    phase_map_path = [write.phase_map_path, pha_appendix, filesep];
+    phase_map_path = [write.phase_map_path, phase_appendix, filesep];
     CheckAndMakePath( phase_map_path );
     % Save phase maps
     parfor nn = 1:size( proj, 3)

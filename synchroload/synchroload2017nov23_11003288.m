@@ -192,24 +192,20 @@ SET_DEFAULT
 
 raw_path = '/asap3/petra3/gpfs/p05/2017/data/11003288/raw/';
 
-interactive_determination_of_rot_axis = 0;
 tomo.rot_axis.offset = -5.35 * 2 / raw_bin;
 scan_path = [raw_path 'syn134_28R_PEEK_8w']; ADD
 
-interactive_determination_of_rot_axis = 1;
+tomo.rot_axis.offset = - 5.85 * 2 / raw_bin;
 scan_path = [raw_path 'syn135_27R_PEEK_8w']; ADD
 
-interactive_determination_of_rot_axis = 0;
 tomo.rot_axis.offset = -5.3 * 2 / raw_bin;
 scan_path = [raw_path 'syn136_95L_Mg10Gd_8w']; ADD
 
-interactive_determination_of_rot_axis = 1;
 tomo.rot_axis.offset = - 5.7 * 2 / raw_bin;
 scan_path = [raw_path 'syn137_96L_Mg10Gd_8w']; ADD
 
 % no beam ? after 257 images
 scan_path = [raw_path 'syn138_29R_PEEK_8w']; ADD
-
 % no beam: DELETED RAW DATA
 % scan_path = [raw_path 'syn139_48L_PEEK_12w']; ADD
 % scan_path = [raw_path 'syn140_61L_PEEK_12w']; ADD
@@ -225,33 +221,20 @@ scan_path = [raw_path 'syn149_58L_Mg_12_cmos_test']; ADD
 
 rot_axis_offset = -192.10;
 scan_path = [raw_path 'syn151_58L_Mg_12_000']; ADD
-
 scan_path = [raw_path 'syn151_58L_Mg_12_001']; ADD
-
 scan_path = [raw_path 'syn151_58L_Mg_12_002']; ADD
-
 scan_path = [raw_path 'syn151_58L_Mg_12_003']; ADD
-
 scan_path = [raw_path 'syn151_58L_Mg_12_004']; ADD
-
 scan_path = [raw_path 'syn151_58L_Mg_12_005']; ADD
-
 scan_path = [raw_path 'syn151_58L_Mg_12_006']; ADD
-
 scan_path = [raw_path 'syn151_58L_Mg_12_007']; ADD
-
 scan_path = [raw_path 'syn151_58L_Mg_12_008']; ADD
-
 scan_path = [raw_path 'syn151_58L_Mg_12_009']; ADD
-
 scan_path = [raw_path 'syn151_58L_Mg_12_011']; ADD
 
 scan_path = [raw_path 'syn152_58L_Mg_12_cmos_test']; ADD
-
 scan_path = [raw_path 'syn153_58L_Mg_12_cmos_test']; ADD
-
 scan_path = [raw_path 'syn154_58L_Mg_12_cmos_test']; ADD
-
 
 raw_roi = [1100 2401];
 raw_bin = 2;
@@ -270,55 +253,34 @@ butterworth_filter = 1;
 correlation_method = 'ssim-ml';
 scan_path = [raw_path 'syn156_berit']; ADD
 
-
 scan_path = [raw_path 'syn157_cor_mg5gd410s_mg10gd401s_png1p_23']; ADD
-
 scan_path = [raw_path 'syn158_cor_mg5gd414s_mg10gd405s_png2p_23']; ADD
-
 scan_path = [raw_path 'syn159_cor_mg5gd430s_mg10gd413s_png9p_23']; ADD
-
 scan_path = [raw_path 'syn160_cor_mg5gd432s_mg10gd418s_png10p_23']; ADD
-
 scan_path = [raw_path 'syn161_cor_mg5gd413s_mg10gd409s_mg5gd3p_23']; ADD
-
 scan_path = [raw_path 'syn162_cor_mg5gd416s_mg10gd410s_mg5gd7p_23']; ADD
-
 scan_path = [raw_path 'syn163_cor_mg5gd428s_mg10gd408s_mg5gd8p_23']; ADD
-
 scan_path = [raw_path 'syn164_cor_mg5gd434s_mg5gd1p_23']; ADD
 
 rot_axis_offset = -187.400000;
 interactive_determination_of_rot_axis = 1;
 scan_path = [raw_path 'syn165_58L_Mg10Gd_12w_000']; ADD
-
 scan_path = [raw_path 'syn165_58L_Mg10Gd_12w_001']; ADD
-
 scan_path = [raw_path 'syn165_58L_Mg10Gd_12w_002']; ADD
-
 scan_path = [raw_path 'syn165_58L_Mg10Gd_12w_003']; ADD
-
 scan_path = [raw_path 'syn165_58L_Mg10Gd_12w_004']; ADD
 
 interactive_determination_of_rot_axis = 0;
 rot_axis_offset = -187.300000;
 scan_path = [raw_path 'syn166_104R_Mg10Gd_4w_000']; ADD
-
 scan_path = [raw_path 'syn166_104R_Mg10Gd_4w_001']; ADD
-
 scan_path = [raw_path 'syn166_104R_Mg10Gd_4w_002']; ADD
-
 scan_path = [raw_path 'syn166_104R_Mg10Gd_4w_003']; ADD
-
 scan_path = [raw_path 'syn166_104R_Mg10Gd_4w_004']; ADD
-
 scan_path = [raw_path 'syn166_104R_Mg10Gd_4w_005']; ADD
-
 scan_path = [raw_path 'syn166_104R_Mg10Gd_4w_006']; ADD
-
 scan_path = [raw_path 'syn166_104R_Mg10Gd_4w_007']; ADD
-
 scan_path = [raw_path 'syn166_104R_Mg10Gd_4w_008']; ADD
-
 scan_path = [raw_path 'syn166_104R_Mg10Gd_4w_009']; ADD
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
