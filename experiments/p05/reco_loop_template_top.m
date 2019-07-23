@@ -16,8 +16,8 @@
 % reconstruction script 'p05_reco'.
 %
 % Caution: if default parameters are not defined by closing the DEFAULT
-% PARAMETER section with 'SET_DEFAULT', then the first time 'ADD' is called
-% defines default parameters.
+% PARAMETER section with a 'SET_DEFAULT' statement, then the first call of
+% 'ADD' will define default parameters.
 % 
 % Workflow:
 % - Copy this file.

@@ -1,228 +1,280 @@
-function [proj, corr, roi] = proj_flat_correlation( proj, flat, image_correlation, im_shape_binned, flatcor_path, verbose, visualOutput, poolsize )
+function [proj, corr, roi] = proj_flat_correlation( proj, flat, image_correlation  )
 % Correlate all projection with all flat-field to find the best matching
 % pairs for the flat-field correction using method of choice.
 %
-% correlation_method :
-%   'shift' : cross correlation equals convolution of complex conjugate of
-%   p(-x) i.e. rot180(p) and f(x), (p^*)(-x) ** f(x)
-% ... to be completed ...
+% proj : stack of projections
+% flat : stack of flat field
+% image_correlation : struct, required fields see below
 %
 % Written by Julian Moosmann.
+%
+% proj_flat_correlation( proj, flat, image_correlation  )
 
- correlation_method = image_correlation.method;
- flat_corr_area1 = image_correlation.area_width;
- flat_corr_area2 = image_correlation.area_height;
- corr_shift_max_pixelshift = image_correlation.shift.max_pixelshift;
- corr_num_flats = image_correlation.num_flats;
- decimal_round_precision = image_correlation.decimal_round_precision;
+%% TODO: Clean up and simplify
+
+% Parameters in struct fields
+method = image_correlation.method;
+flat_corr_area1 = image_correlation.area_width;
+flat_corr_area2 = image_correlation.area_height;
+corr_shift_max_pixelshift = image_correlation.shift.max_pixelshift;
+corr_num_flats = image_correlation.num_flats;
+decimal_round_precision = image_correlation.decimal_round_precision;
+force_calc = image_correlation.force_calc;
+im_shape_binned = image_correlation.im_shape_binned;
+flatcor_path = image_correlation.flatcor_path;
+verbose = image_correlation.verbose;
+visual_output = image_correlation.visual_output;
+poolsize = image_correlation.poolsize;
+
+num_proj_used = size( proj, 3);
+num_ref_used = size( flat, 3);
 
 %% Projection / flat-field correlcation
-switch correlation_method
+switch method
     
     case {'none', ''}
         % Flat field correction without correlation
         flat_median = median( flat, 3);
         proj = bsxfun( @times, proj, 1./flat_median);
         corr = [];
-        roi.proj =[];
-        roi.flat = [];
+        roi_proj =[];
+        roi_flat = [];
         
     otherwise
-        num_proj_used = size( proj, 3);
-        num_ref_used = size( flat, 3);
-        
-        % Correlate flat fields
-        PrintVerbose(verbose, '\nCorrelate projections and flat-fields. Method: %s.', correlation_method)
-        t = toc;
+        % Check if previously calculated correlation matrix exist & is
+        % valid
+        if ~force_calc
+            filename_scra = sprintf( '%scorr.mat', flatcor_path);
+            filename_proc = regexprep( filename_scra, 'scratch_cc', 'processed' );
+            if exist( filename_proc, 'file' )
+                load( filename_proc,  'corr' );
+            else
+                if exist( filename_scra, 'file' )
+                    load( filename_scra,  'corr' );
+                end
+            end
+            if exist( 'corr', 'var' )
+                force_calc = ~(isequal( corr.method, method) ...
+                    && isequal( corr.im_shape_binned, im_shape_binned ) ...
+                    && isequal( corr.size.proj, size( proj ) ) ...
+                    && isequal( corr.size.flat, size( flat ) ) );
+                corr_mat = corr.mat;
+            else
+                force_calc = 1;
+            end
+        end
         
         % Correlation ROI
         flat_corr_area1 = IndexParameterToRange(flat_corr_area1, im_shape_binned(1));
         flat_corr_area2 = IndexParameterToRange(flat_corr_area2, im_shape_binned(2));
-        roi.flat = flat(flat_corr_area1, flat_corr_area2, :);
-        roi.proj = proj(flat_corr_area1, flat_corr_area2, :);
         
-        % Preallocation
-        foo = zeros( num_proj_used, num_ref_used);
-        c_shift_1 = foo;
-        c_shift_2 = foo;
-        c_diff1_l1 = foo;
-        c_diff1_l2 = foo;
-        c_diff2_l1 = foo;
-        c_diff2_l2 = foo;
-        c_std = foo;
-        c_ent = foo;
-        c_cross_entropy12 = foo;
-        c_cross_entropy21 = foo;
-        c_cross_entropyx = foo;
-        c_cov = foo;
-        c_corr = foo;
-        c_ssim = foo;
-        c_ssim_ml = foo;
-        c_l = foo;
-        c_c = foo;
-        c_s = foo;
+        roi_flat = flat(flat_corr_area1, flat_corr_area2, :);
+        roi_proj = proj(flat_corr_area1, flat_corr_area2, :);
         
-        % Compute shift/correlation for each pair projection/flat-field
-        for ff = 1:num_ref_used
-            
-            % flat field
-            f = roi.flat(:,:,ff);
-            
-            parfor pp = 1:num_proj_used
-                
-                % projection
-                p = roi.proj(:,:,pp);
-                
-                if sum(strcmpi( correlation_method, {'shift','all'}))
-                    % shift via image cross correlation
-                    out = ImageCorrelation( p, f, 0, 0, 0, 0, 1);
-                    c_shift_1(pp,ff) = round( out.shift1, decimal_round_precision );
-                    c_shift_2(pp,ff) = round( out.shift2, decimal_round_precision) ; % relevant shift
-                    
-                elseif sum(strcmpi( correlation_method, {'diff','all'}))
-                    % differences
-                    d1 =  abs( abs( p ) - abs( f ) ) ;
-                    d2 =  sqrt( abs( p.^2 - f.^2) );
-                    
-                    % anisotropic grad sum L1
-                    c_diff1_l1(pp,ff) = norm( d1(:), 1);
-                    
-                    % anisotropic grad sum L2
-                    c_diff1_l2(pp,ff) = norm( d1(:), 2);
-                    
-                    % isotropic grad sum L1
-                    c_diff2_l1(pp,ff) = norm( d2(:), 1);
-                    
-                    % isotropic grad sum L2
-                    c_diff2_l2(pp,ff) = norm( d2(:), 2);
-                    
-                elseif sum(strcmpi( correlation_method, {'std','all'}))
-                    % std : standard deviation of ratio of p and f
-                    c_std(pp,ff) = std2( p ./ f );
-                    
-                elseif sum(strcmpi( correlation_method, {'entropy','all'}))
-                    % entropy : entropy of ratio of p and f
-                    c_ent(pp,ff) = entropy( double( p ./ f ) );
-                    
-                elseif sum(strcmpi( correlation_method, {'cross-entropy12', 'cross-entropy21', 'cross-entropyx','all'}))
-                    % cross entropy of proj and flat
-                    p1 = imhist( normat( p(:) ) ) ./ numel( p );
-                    p2 = imhist( normat( f(:) ), numel( p1 ) ) ./ numel( f );
-                    m = boolean( (p1 == 0) + (p2 == 0) );
-                    p1(m) = [];
-                    p2(m) = [];
-                    c_cross_entropy12(pp,ff) = - sum( p1 .* log( p2 ) );
-                    c_cross_entropy21(pp,ff) = - sum( p2 .* log( p1 ) );
-                    c_cross_entropyx(pp,ff) = sum( p2 .* log2( p1 ) - p1 .* log2( p2 ) );
-                    
-                elseif sum(strcmpi( correlation_method, {'cov', 'corr', 'ssim','all'}))
-                    % input
-                    p_mean = mean2( p );
-                    p_std = std2( p );
-                    f_mean = mean2( f );
-                    f_std = std2( f );
-                    cov_pf = mean2( ( p - p_mean ) .* (f - f_mean ) );
-                    
-                    % cov : cross covariance
-                    c_cov(pp,ff) = - cov_pf;
-                    
-                    % corr : cross correlation
-                    c_corr(pp,ff) = - cov_pf ./ ( p_std * f_std );
-                    
-                    % ssim : structural similarity index (SSIM)
-                    % Dynamic range of camera
-                    %                     switch lower( cam )
-                    %                         case 'kit'
-                    %                             L = 2^12;
-                    %                         case 'ehd'
-                    %                             L = 2^16;
-                    %                     end
-                    % L = round(max(max(roi.flat(:)),max(roi.flat(:))) - min(min(roi.flat(:)),min(roi.flat(:))));
-                    L = 1;
-                    
-                    % Parameters
-                    c1 = ( 0.01 * L )^2;
-                    c2 = ( 0.03 * L )^2;
-                    c3 = c2 / 2;
-                    
-                    % Components: luminance, contrast, structure
-                    c_l(pp,ff) = ( 2 * p_mean * f_mean + c1 ) / ( p_mean^2 + f_mean^2 + c1 );
-                    c_c(pp,ff) = ( 2 * p_std * f_std + c2 ) / ( p_std^2 + f_std^2 + c2 );
-                    c_s(pp,ff) = ( cov_pf + c3) / ( p_std * f_std + c3 );
-                    c_ssim(pp,ff) = - c_l(pp,ff) * c_c(pp,ff) * c_s(pp,ff);
-                    
-                elseif sum(strcmpi( correlation_method, {'ssim-ml','all'}))
-                    % Matlab's structural similarity index (SSIM)
-                    c_ssim_ml(pp,ff) = - ssim( roi.proj(:,:,pp), f ); %'DynamicRange', 'uint16'
-                end
+        if ~force_calc
+            dt = '??';
+            if isfield( corr, 'datetime' )
+                dt = corr.datetime;
             end
+            PrintVerbose( verbose, '\nLoading correlation computed on %s!', dt )
+        else
+            
+            % Correlate flat fields
+            PrintVerbose(verbose, '\nCorrelate projections and flat-fields. Method: %s.', method)
+            t = toc;
+            
+            % Preallocation
+            foo = zeros( num_proj_used, num_ref_used);
+            c_shift_1 = foo;
+            c_shift_2 = foo;
+            c_diff1_l1 = foo;
+            c_diff1_l2 = foo;
+            c_diff2_l1 = foo;
+            c_diff2_l2 = foo;
+            c_std = foo;
+            c_ent = foo;
+            c_cross_entropy12 = foo;
+            c_cross_entropy21 = foo;
+            c_cross_entropyx = foo;
+            c_cov = foo;
+            c_corr = foo;
+            c_ssim = foo;
+            c_ssim_ml = foo;
+            c_l = foo;
+            c_c = foo;
+            c_s = foo;
+            
+            % Compute shift/correlation for each pair projection/flat-field
+            for ff = 1:num_ref_used
+                
+                % flat field
+                f = roi_flat(:,:,ff);
+                
+                parfor pp = 1:num_proj_used
+                    
+                    % projection
+                    p = roi_proj(:,:,pp);
+                    
+                    if sum(strcmpi( method, {'shift','all'}))
+                        % shift via image cross correlation
+                        out = ImageCorrelation( p, f, 0, 0, 0, 0, 1);
+                        c_shift_1(pp,ff) = round( out.shift1, decimal_round_precision );
+                        c_shift_2(pp,ff) = round( out.shift2, decimal_round_precision) ; % relevant shift
+                        
+                    elseif sum(strcmpi( method, {'diff','all'}))
+                        % differences
+                        d1 =  abs( abs( p ) - abs( f ) ) ;
+                        d2 =  sqrt( abs( p.^2 - f.^2) );
+                        
+                        % anisotropic grad sum L1
+                        c_diff1_l1(pp,ff) = norm( d1(:), 1);
+                        
+                        % anisotropic grad sum L2
+                        c_diff1_l2(pp,ff) = norm( d1(:), 2);
+                        
+                        % isotropic grad sum L1
+                        c_diff2_l1(pp,ff) = norm( d2(:), 1);
+                        
+                        % isotropic grad sum L2
+                        c_diff2_l2(pp,ff) = norm( d2(:), 2);
+                        
+                    elseif sum(strcmpi( method, {'std','all'}))
+                        % std : standard deviation of ratio of p and f
+                        c_std(pp,ff) = std2( p ./ f );
+                        
+                    elseif sum(strcmpi( method, {'entropy','all'}))
+                        % entropy : entropy of ratio of p and f
+                        c_ent(pp,ff) = entropy( double( p ./ f ) );
+                        
+                    elseif sum(strcmpi( method, {'cross-entropy12', 'cross-entropy21', 'cross-entropyx','all'}))
+                        % cross entropy of proj and flat
+                        p1 = imhist( normat( p(:) ) ) ./ numel( p );
+                        p2 = imhist( normat( f(:) ), numel( p1 ) ) ./ numel( f );
+                        m = boolean( (p1 == 0) + (p2 == 0) );
+                        p1(m) = [];
+                        p2(m) = [];
+                        c_cross_entropy12(pp,ff) = - sum( p1 .* log( p2 ) );
+                        c_cross_entropy21(pp,ff) = - sum( p2 .* log( p1 ) );
+                        c_cross_entropyx(pp,ff) = sum( p2 .* log2( p1 ) - p1 .* log2( p2 ) );
+                        
+                    elseif sum(strcmpi( method, {'cov', 'corr', 'ssim','all'}))
+                        % input
+                        p_mean = mean2( p );
+                        p_std = std2( p );
+                        f_mean = mean2( f );
+                        f_std = std2( f );
+                        cov_pf = mean2( ( p - p_mean ) .* (f - f_mean ) );
+                        
+                        % cov : cross covariance
+                        c_cov(pp,ff) = - cov_pf;
+                        
+                        % corr : cross correlation
+                        c_corr(pp,ff) = - cov_pf ./ ( p_std * f_std );
+                        
+                        % ssim : structural similarity index (SSIM)
+                        % Dynamic range of camera
+                        %                     switch lower( cam )
+                        %                         case 'kit'
+                        %                             L = 2^12;
+                        %                         case 'ehd'
+                        %                             L = 2^16;
+                        %                     end
+                        % L = round(max(max(roi_flat(:)),max(roi_flat(:))) - min(min(roi_flat(:)),min(roi_flat(:))));
+                        L = 1;
+                        
+                        % Parameters
+                        c1 = ( 0.01 * L )^2;
+                        c2 = ( 0.03 * L )^2;
+                        c3 = c2 / 2;
+                        
+                        % Components: luminance, contrast, structure
+                        c_l(pp,ff) = ( 2 * p_mean * f_mean + c1 ) / ( p_mean^2 + f_mean^2 + c1 );
+                        c_c(pp,ff) = ( 2 * p_std * f_std + c2 ) / ( p_std^2 + f_std^2 + c2 );
+                        c_s(pp,ff) = ( cov_pf + c3) / ( p_std * f_std + c3 );
+                        c_ssim(pp,ff) = - c_l(pp,ff) * c_c(pp,ff) * c_s(pp,ff);
+                        
+                    elseif sum(strcmpi( method, {'ssim-ml','all'}))
+                        % Matlab's structural similarity index (SSIM)
+                        c_ssim_ml(pp,ff) = - ssim( roi_proj(:,:,pp), f ); %'DynamicRange', 'uint16'
+                    end
+                end
+                
+                switch method
+                    case 'shift'
+                        corr_mat = c_shift_2;
+                    case 'diff'
+                        corr_mat = c_diff1_l2;
+                    case 'std'
+                        corr_mat = c_std;
+                    case 'entropy'
+                        corr_mat = c_ent;
+                    case 'cross-entropy12'
+                        corr_mat = c_cross_entropy12;
+                    case 'cross-entropy21'
+                        corr_mat = c_cross_entropy21;
+                    case 'cross-entropyx'
+                        corr_mat = c_cross_entropyx;
+                    case 'ssim'
+                        corr_mat = c_ssim;
+                    case 'ssim-ml'
+                        corr_mat = c_ssim_ml;
+                    case 'cov'
+                        corr_mat = c_cov;
+                    case 'corr'
+                        corr_mat = c_corr;
+                    case 'all'
+                        corr.shift1 = c_shift_1;
+                        corr.shift2 = c_shift_2;
+                        corr.diff1_l1 = c_diff1_l1;
+                        corr.diff1_l2 = c_diff1_l2;
+                        corr.diff2_l1 = c_diff2_l1;
+                        corr.diff2_l2 = c_diff2_l2;
+                        corr.std = c_std;
+                        corr.entropy = c_ent;
+                        corr.cross_entropy12 = c_cross_entropy12;
+                        corr.cross_entropy21 = c_cross_entropy21;
+                        corr.cross_entropyx = c_cross_entropyx;
+                        corr.ssim = c_ssim;
+                        corr.ssim_ml = c_ssim_ml;
+                        corr.cov = c_cov;
+                        corr.corr = c_corr;
+                end
+                
+                if strcmp( method, 'all' )
+                    % sorted measures: position and values
+                    [corr.diff1_l1_val,corr.diff1_l1_pos] = sort( c_diff1_l1, 2 );
+                    [corr.diff1_l2_val,corr.diff1_l2_pos] = sort( c_diff1_l2, 2 );
+                    [corr.diff2_l1_val,corr.diff2_l1_pos] = sort( c_diff2_l1, 2 );
+                    [corr.diff2_l2_val,corr.diff2_l2_pos] = sort( c_diff2_l2, 2 );
+                    [corr.std_val,corr.std_pos] = sort( c_std, 2 );
+                    [corr.ent_val,corr.ent_pos] = sort( c_ent, 2 );
+                    [corr.cross_ent12_val,corr.cross_ent12_pos] = sort( c_cross_entropy12, 2 );
+                    [corr.cross_ent21_val,corr.cross_ent21_pos] = sort( c_cross_entropy21, 2 );
+                    [corr.cross_entx_val,corr.cross_entx_pos] = sort( c_cross_entropyx, 2 );
+                    [corr.cov_val,corr.cov_pos] = sort( c_cov, 2 );
+                    [corr.corr_val,corr.corr_pos] = sort( c_corr, 2 );
+                    [corr.ssim_val,corr.ssim_pos] = sort( c_ssim, 2 );
+                    [corr.ssim_ml_val,corr.ssim_ml_pos] = sort( c_ssim_ml, 2 );
+                end
+                % Save correlation matrix
+                corr.mat = corr_mat;
+                corr.method = method;
+                corr.im_shape_binned = im_shape_binned;
+                corr.size.proj = size( proj );
+                corr.size.flat = size( flat );
+                corr.datetime = datetime;
+                CheckAndMakePath( flatcor_path )
+                save( sprintf( '%scorr.mat', flatcor_path), 'corr' )
+                
+            end
+            PrintVerbose(verbose, ' Time elapsed: %.1f s (%.2f min)', toc - t, ( toc - t ) / 60 )
         end
-        
-        switch correlation_method
-            case 'shift'
-                corr_mat = c_shift_2;
-            case 'diff'
-                corr_mat = c_diff1_l2;
-            case 'std'
-                corr_mat = c_std;
-            case 'entropy'
-                corr_mat = c_ent;
-            case 'cross-entropy12'
-                corr_mat = c_cross_entropy12;
-            case 'cross-entropy21'
-                corr_mat = c_cross_entropy21;
-            case 'cross-entropyx'
-                corr_mat = c_cross_entropyx;
-            case 'ssim'
-                corr_mat = c_ssim;
-            case 'ssim-ml'
-                corr_mat = c_ssim_ml;
-            case 'cov'
-                corr_mat = c_cov;
-            case 'corr'
-                corr_mat = c_corr;
-            case 'all'
-                corr.shift1 = c_shift_1;
-                corr.shift2 = c_shift_2;
-                corr.diff1_l1 = c_diff1_l1;
-                corr.diff1_l2 = c_diff1_l2;
-                corr.diff2_l1 = c_diff2_l1;
-                corr.diff2_l2 = c_diff2_l2;
-                corr.std = c_std;
-                corr.entropy = c_ent;
-                corr.cross_entropy12 = c_cross_entropy12;
-                corr.cross_entropy21 = c_cross_entropy21;
-                corr.cross_entropyx = c_cross_entropyx;
-                corr.ssim = c_ssim;
-                corr.ssim_ml = c_ssim_ml;
-                corr.cov = c_cov;
-                corr.corr = c_corr;
-        end
-        
-        if strcmp( correlation_method, 'all' )
-            % sorted measures: position and values
-            [corr.diff1_l1_val,corr.diff1_l1_pos] = sort( c_diff1_l1, 2 );
-            [corr.diff1_l2_val,corr.diff1_l2_pos] = sort( c_diff1_l2, 2 );
-            [corr.diff2_l1_val,corr.diff2_l1_pos] = sort( c_diff2_l1, 2 );
-            [corr.diff2_l2_val,corr.diff2_l2_pos] = sort( c_diff2_l2, 2 );
-            [corr.std_val,corr.std_pos] = sort( c_std, 2 );
-            [corr.ent_val,corr.ent_pos] = sort( c_ent, 2 );
-            [corr.cross_ent12_val,corr.cross_ent12_pos] = sort( c_cross_entropy12, 2 );
-            [corr.cross_ent21_val,corr.cross_ent21_pos] = sort( c_cross_entropy21, 2 );
-            [corr.cross_entx_val,corr.cross_entx_pos] = sort( c_cross_entropyx, 2 );
-            [corr.cov_val,corr.cov_pos] = sort( c_cov, 2 );
-            [corr.corr_val,corr.corr_pos] = sort( c_corr, 2 );
-            [corr.ssim_val,corr.ssim_pos] = sort( c_ssim, 2 );
-            [corr.ssim_ml_val,corr.ssim_ml_pos] = sort( c_ssim_ml, 2 );
-        end
-        
-        PrintVerbose(verbose, ' Time elapsed: %.1f s (%.2f min)', toc - t, ( toc - t ) / 60 )
         
         %% Visual output %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-        if visualOutput(1)
+        if visual_output
             figure('Name', 'Correlation of projections and flat-fields');
             
-            switch correlation_method
+            switch method
                 case 'shift'
                     [~, flat_corr_shift_min_pos_x] =  min ( abs( c_shift_1), [], 2);
                     [~, flat_corr_shift_min_pos_y] =  min ( abs( c_shift_2), [], 2);
@@ -277,7 +329,7 @@ switch correlation_method
                     plot( Y, '.' )
                     legend( 'first proj', 'mid proj', 'last proj' )
                     axis tight
-                    title(sprintf('correlation method: %s', correlation_method))
+                    title(sprintf('correlation method: %s', method))
                     xlabel( 'flat field index' )
                     ylabel( 'measure' )
             end
@@ -287,15 +339,17 @@ switch correlation_method
         %% Flat- and dark-field correction %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         PrintVerbose(verbose, '\nFlat- and dark-field correction.')
         t = toc;
-        
+
+        % Memory requirement and parpool processing
         [mem_free, ~, mem_total] = free_memory;
         mem_req_tot = Bytes( proj ) + Bytes(flat) * (poolsize + 1);
         mem_req_par = Bytes(flat) * poolsize;
-        
         if mem_req_tot < 0.75 * mem_total && mem_req_par < mem_free
             pflag = 1;
+            fprintf( ' Use parpool.' )
         else
             pflag = 0;
+            fprintf( ' No parpool.' )
         end
         
         % Reduce number of workers because of memory overhead
@@ -306,7 +360,7 @@ switch correlation_method
         %             OpenParpool( num_worker, 0, [beamtime_path filesep 'scratch_cc'], 1);
         %         end
         
-        switch correlation_method
+        switch method
             case 'shift'
                 % best match
                 if corr_shift_max_pixelshift == 0
@@ -369,16 +423,7 @@ switch correlation_method
                 fprintf( 'All available measures calulated. NO FLAT FIELD CORRECTION DONE.')
                 
             otherwise
-                [corr_mat_val, corr_mat_pos] = sort( normat( corr_mat ), 2);
-                corr.mat = corr_mat;
-                corr.mat_val = corr_mat_val;
-                corr.mat_pos = corr_mat_pos;
-                
-                % Save correlation matrix
-                CheckAndMakePath( flatcor_path )
-                save( sprintf( '%s/corr_mat_val.mat', flatcor_path), 'corr_mat_val' )
-                save( sprintf( '%s/corr_mat_pos.mat', flatcor_path), 'corr_mat_pos' )
-                
+                [~, corr_mat_pos] = sort( normat( corr_mat ), 2);
                 % Flat field correction
                 flat_ind = corr_mat_pos(:,1:corr_num_flats);
                 if pflag
@@ -402,4 +447,5 @@ switch correlation_method
                 PrintVerbose(verbose, ' Time elapsed: %.1f s (%.2f min)', toc - t, ( toc - t ) / 60 )
         end
 end
-
+roi.proj = roi_proj;
+roi.flat = roi_flat;

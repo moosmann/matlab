@@ -35,7 +35,7 @@ close all hidden % close all open windows
 %% PARAMETERS / SETTINGS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-fast_reco = 0; % !!! OVERWRITES SOME PARAMETERS SET BELOW !!!
+fast_reco = 1; % !!! OVERWRITES SOME PARAMETERS SET BELOW !!!
 stop_after_data_reading(1) = 0; % for data analysis, before flat field correlation
 stop_after_proj_flat_correlation(1) = 0; % for data analysis, after flat field correlation
 
@@ -87,6 +87,7 @@ image_correlation.method = 'ssim-ml';'entropy';'diff';'shift';'ssim';'std';'cov'
 % 'diff': difference of proj and flat
 % 'shift': computes relative shift from peak of cross-correlation map
 % 'cross-entropy*' : variants of (asymmetric) cross entropy
+image_correlation.force_calc = 0; % bool. force compuation of correlation even though a (previously computed) corrlation matrix exists
 image_correlation.num_flats = 1; % number of flat fields used for average/median of flats. for 'shift'-correlation its the maximum number
 image_correlation.area_width = [0 0.01];%[0.98 1];% correlation area: index vector or relative/absolute position of [first pix, last pix]
 image_correlation.area_height = [0.3 0.7]; % correlation area: index vector or relative/absolute position of [first pix, last pix]
@@ -196,7 +197,7 @@ offset_shift = 0;
 tomo.offset_shift = offset_shift;
 eff_pixel_size_binned = raw_bin * eff_pixel_size;
 
-%%% Reco loop: parameters set by external call from 'p05_reco_loop' %%%%%%%
+%%% Parameters set by reconstruction loop script 'p05_reco_loop' %%%%%%%%%%
 if exist( 'external_parameter' ,'var')
     visual_output = 0;
     dbstop if error
@@ -211,6 +212,7 @@ if exist( 'external_parameter' ,'var')
         assignin('caller', var_name, var_val )
     end
     clear external_parameter;
+    dbstop if error
 end
 
 % overwrite parameters for fast reconstruction
@@ -220,7 +222,7 @@ if exist('fast_reco','var') && fast_reco(1)
     bin_before_filtering(1) = 1;
     proj_range = 1;
     ref_range = 10;
-    image_correlation.method = 'none';
+    %image_correlation.method = 'none';
     write.to_scratch = 1;
     pixel_filter_radius  = [3 3];
     cprintf( 'Red', '\nATTENTION: fast reco mode is turned on!\n\n' )
@@ -247,6 +249,7 @@ if abs(excentric_rot_axis)
         error( 'Do not use ''stitch projections'' in combination with ''crop_at_rot_axis''. Cropping at rot axis only makes sense without stitching in order to avoid oversampling artefacts within the overlap region.' )
     end
 end
+assign_default( 'image_correlation.force_calc', 0 );
 assign_default( 'image_correlation.shift.max_pixelshift', 0.25, 1 ); % maximum pixelshift allowed for 'shift'-correlation method: if 0 use the best match (i.e. the one with the least shift), if > 0 uses all flats with shifts smaller than image_correlation.shift.max_pixelshift
 assign_default( 'image_correlation.decimal_round_precision',2, 1 ); % precision when rounding pixel shifts
 assign_default( 'write.path', '' )
@@ -1095,10 +1098,20 @@ if ~read_flatcor && ~read_sino
     end
     
     %% Projection/flat field correlation and flat field correction %%%%%%%%
-    %%%% STOP HERE FOR FLATFIELD CORRELATION MAPPING %%%%%%%%%%%%%%%%%%%%%%
+    %%%% STOP HERE TO CHECK FLATFIELD CORRELATION MAPPING %%%%%%%%%%%%%%%%%
     %%%% use 'proj_flat_sequ' to show results of the correlcation
     startS = ticBytes(gcp);
-    [proj, corr, roi] = proj_flat_correlation( proj, flat, image_correlation, im_shape_binned, flatcor_path, verbose, visual_output, poolsize );
+    image_correlation.im_shape_binned = im_shape_binned;
+    image_correlation.flatcor_path = flatcor_path;
+    image_correlation.verbose = verbose;
+    image_correlation.visual_output = visual_output;
+    image_correlation.poolsize = poolsize;     
+    image_correlation.raw_roi = raw_roi;
+    image_correlation.raw_bin = raw_bin;
+    image_correlation.bin_before_filtering = bin_before_filtering;
+    image_correlation.proj_range = proj_range;
+    image_correlation.ref_range = ref_range;
+    [proj, corr, roi] = proj_flat_correlation( proj, flat, image_correlation );
     toc_bytes = tocBytes(gcp,startS);
     if visual_output
         f = figure('Name', 'Parallel pool data transfer during image correlation', 'WindowState', 'maximized');
@@ -1162,12 +1175,13 @@ if ~read_flatcor && ~read_sino
     % drop angles where projections are empty
     angles(~projs_to_use) = [];
     
-    % Prepare sino slice for figure and saving
+    % Prepare a single sino slice for figure and saving
     nn = round( size( proj, 2) / 2);
     sino = squeeze( proj(:,nn,:) );
     [~,m] = sort( angles );
     % Crop lateral shift
     sinoc = CropShift( sino(:,m), offset_shift );
+    CheckAndMakePath( reco_path )
     filename = sprintf( '%ssino_middle.tif', reco_path );
     write32bitTIFfromSingle( filename, sinoc);
     
@@ -2267,6 +2281,7 @@ end
 %% Write reco log file %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 CheckAndMakePath( reco_path )
 save( sprintf( '%sangles.mat', reco_path), 'angles' );
+save( sprintf( '%soffset_shift.mat', reco_path), 'offset_shift' );
 if write.reco
     logfile_path = reco_path;
     
@@ -2276,9 +2291,9 @@ end
 CheckAndMakePath( logfile_path )
 if write.reco
     if phase_retrieval.apply
-        logfile_name = sprintf( '%sreco_phase_%s.log', logfile_path, write.phase_appendix );
+        logfile_name = sprintf( '%sreco_phase_%s_rawBin%u.log', logfile_path, write.phase_appendix, raw_bin );
     else
-        logfile_name = sprintf( '%sreco.log', logfile_path);
+        logfile_name = sprintf( '%sreco_rawBin%u.log', logfile_path, raw_bin);
     end
     fid = fopen( logfile_name, 'w');
     fprintf(fid, 'scan_name : %s\n', scan_name);
@@ -2305,7 +2320,9 @@ if write.reco
         fprintf(fid, 'num_proj_used : %u\n', num_proj_used);
         fprintf(fid, 'proj_range : %u:%u:%u\n', proj_range(1), proj_range(2) - proj_range(1), proj_range(end) );
         fprintf(fid, 'im_shape_raw : %u %u\n', im_shape_raw);
-        fprintf(fid, 'raw_roi : %u %u\n', raw_roi);
+        fprintf(fid, 'raw_roi : ');
+        fprintf(fid, ' %u', raw_roi);
+        fprintf(fid, '\n' );
         fprintf(fid, 'image_shape_roi : %u %u\n', size( im_roi ));
         fprintf(fid, 'image_shape_roi_binned : %u %u\n', im_shape_binned);
         fprintf(fid, 'raw_binning_factor : %u\n', raw_bin);
