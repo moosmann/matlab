@@ -1,15 +1,15 @@
 % P05 reconstruction pipeline: preprocessing, filtering, phase retrieval,
-% tomographic reconstruction, simple segmentation, etc.
+% tomographic reconstruction, ,,,
 %
 % USAGE:
-% Set parameters in PARAMETERS / SETTINGS section below and run script.
+% Edit parameters in PARAMETERS / SETTINGS section below and run script.
 %
 % HOW TO RUN THE SCRIPT:
 % - Editor windows: press 'F5' when focus is in the Editor window
 % - Editor tab: click 'Run' in the toolstrip
 % - Command Window: type 'p05_reco' and hit Enter
 %
-% HOW TO AUTOMATICALLY LOOP OVER RECONSTRUCTIONS:
+% HOW TO AUTOMATICALLY LOOP RECO OVER DATA SETS:
 % To loop over different data or parameters sets see
 % 'p05_reco_loop_template' and/or 'p05_create_reco_loop_script'.
 %
@@ -21,7 +21,7 @@
 % (2014)
 % Also cite the ASTRA Toolbox, see http://www.astra-toolbox.com/
 %
-% For the latest version, see: https://github.com/moosmann/matlab.git
+% Latest version: https://github.com/moosmann/matlab.git
 %
 % Written by Julian Moosmann. 
 
@@ -40,7 +40,7 @@ stop_after_data_reading(1) = 0; % for data analysis, before flat field correlati
 stop_after_proj_flat_correlation(1) = 0; % for data analysis, after flat field correlation
 
 %%% SCAN %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-scan_path = pwd;
+scan_path = pwd; % sting/pwd. pwd: change to directory of the scan to be reconstructed, sting: absolute scan path
 read_flatcor = 0; % read preprocessed flatfield-corrected projections. CHECK if negative log has to be taken!
 read_flatcor_path = ''; % subfolder of 'flat_corrected' containing projections
 read_sino = 0; % read preprocessed sinograms. CHECK if negative log has to be taken!
@@ -303,7 +303,7 @@ prnt( '\n scan_path:%s', scan_path )
 % Memory
 prnt( '\n hostname : %s', getenv( 'HOSTNAME' ) );
 [mem_free, mem_avail, mem_total] = free_memory;
-prnt( '\n system memory: free, available, total : %.1f GiB, %.1f GiB, %.1f GiB', round([mem_free/1024^3, mem_avail/1024^3, mem_total/1024^3]) )
+prnt( '\n system memory: free, available, total : %.0f GiB, %.0f GiB, %.0f GiB', round([mem_free/1024^3, mem_avail/1024^3, mem_total/1024^3]) )
 if isempty( tomo.astra_gpu_index )
     tomo.astra_gpu_index = 1:gpuDeviceCount;
 end
@@ -1445,7 +1445,7 @@ if tomo.run || tomo.run_interactive_mode
     if isempty( tomo.rot_axis.tilt )
         tomo.rot_axis.tilt = 0;
     end
-    %% Interactive mode:rotation axis position / tilt %%%%%%%%%%%%%%%%%%%%%
+    %% INTERACTIVE MODE: rotation axis position / tilt %%%%%%%%%%%%%%%%%%%%%
     %    %%% AUTOMATIC MODE %%%
     %     automatic_mode = 0; % Find rotation axis position automatically. NOT IMPLEMENTED!
     %     automatic_mode_coarse = 'entropy'; % NOT IMPLEMENTED!
@@ -1926,7 +1926,6 @@ if crop_at_rot_axis(1)
                 xx = xl0(nn):xl1(nn);
                 %1:floor(tomo.rot_axis.position)-1
                 projc(:,:,pp) = proj( xx, :, pp);
-                
                 %proj(xl1(nn):end,:,pp) = 1;
             end
             for nn = 1:numel( proj_ind_r )
@@ -1934,14 +1933,11 @@ if crop_at_rot_axis(1)
                 xx = xr0(nn):xr1(nn);
                 %ceil(tomo.rot_axis.position) + 1:
                 projc(:,:,pp) = proj( xx, :, pp);
-                
                 proj(1:xl0(nn),:,pp) = 1;
             end
-            
             proj = projc;
             %clear proj;
         else
-            
             switch excentric_rot_axis
                 case 1
                     proj( ceil(tomo.rot_axis.position) + 1:end, :, :) = [];
@@ -1955,11 +1951,11 @@ if crop_at_rot_axis(1)
             
         end
         prnt( ' done in %.1f (%.2f min)', toc-t, (toc-t)/60)
-        %%% Check above %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+        %%% Check above %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     end
 end
 
-%% Save sinograms %%
+%% Save sinogram %%
 if write.sino
     t = toc;
     prnt( '\nSave sinogram:')

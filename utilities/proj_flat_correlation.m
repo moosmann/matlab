@@ -41,8 +41,7 @@ switch method
         roi_flat = [];
         
     otherwise
-        % Check if previously calculated correlation matrix exist & is
-        % valid
+        % Load previously calculated correlation matrix & check if valid
         if ~force_calc
             filename_scra = sprintf( '%scorr.mat', flatcor_path);
             filename_proc = regexprep( filename_scra, 'scratch_cc', 'processed' );
@@ -57,8 +56,12 @@ switch method
                 force_calc = ~(isequal( corr.method, method) ...
                     && isequal( corr.im_shape_binned, im_shape_binned ) ...
                     && isequal( corr.size.proj, size( proj ) ) ...
-                    && isequal( corr.size.flat, size( flat ) ) );
-                corr_mat = corr.mat;
+                    && isequal( corr.size.flat, size( flat ) ) ) ...
+                    && isequal( corr.raw_roi, image_correlation.raw_roi ) ...
+                    && isequal( corr.raw_bin, image_correlation.raw_bin ) ...
+                    && isequal( corr.bin_before_filtering, image_correlation.bin_before_filtering ) ...
+                    && isequal( corr.proj_range, image_correlation.proj_range ) ...
+                    && isequal( corr.ref_range, image_correlation.ref_range );
             else
                 force_calc = 1;
             end
@@ -201,27 +204,27 @@ switch method
                 
                 switch method
                     case 'shift'
-                        corr_mat = c_shift_2;
+                        corr.mat = c_shift_2;
                     case 'diff'
-                        corr_mat = c_diff1_l2;
+                        corr.mat = c_diff1_l2;
                     case 'std'
-                        corr_mat = c_std;
+                        corr.mat = c_std;
                     case 'entropy'
-                        corr_mat = c_ent;
+                        corr.mat = c_ent;
                     case 'cross-entropy12'
-                        corr_mat = c_cross_entropy12;
+                        corr.mat = c_cross_entropy12;
                     case 'cross-entropy21'
-                        corr_mat = c_cross_entropy21;
+                        corr.mat = c_cross_entropy21;
                     case 'cross-entropyx'
-                        corr_mat = c_cross_entropyx;
+                        corr.mat = c_cross_entropyx;
                     case 'ssim'
-                        corr_mat = c_ssim;
+                        corr.mat = c_ssim;
                     case 'ssim-ml'
-                        corr_mat = c_ssim_ml;
+                        corr.mat = c_ssim_ml;
                     case 'cov'
-                        corr_mat = c_cov;
+                        corr.mat = c_cov;
                     case 'corr'
-                        corr_mat = c_corr;
+                        corr.mat = c_corr;
                     case 'all'
                         corr.shift1 = c_shift_1;
                         corr.shift2 = c_shift_2;
@@ -257,12 +260,17 @@ switch method
                     [corr.ssim_ml_val,corr.ssim_ml_pos] = sort( c_ssim_ml, 2 );
                 end
                 % Save correlation matrix
-                corr.mat = corr_mat;
+                %corr.mat = corr_mat;
                 corr.method = method;
                 corr.im_shape_binned = im_shape_binned;
                 corr.size.proj = size( proj );
                 corr.size.flat = size( flat );
                 corr.datetime = datetime;
+                corr.raw_roi = image_correlation.raw_roi;
+                corr.raw_bin = image_correlation.raw_bin;
+                corr.bin_before_filtering = image_correlation.bin_before_filtering;
+                corr.proj_range = image_correlation.proj_range;
+                corr.ref_range = image_correlation.ref_range;
                 CheckAndMakePath( flatcor_path )
                 save( sprintf( '%scorr.mat', flatcor_path), 'corr' )
                 
@@ -325,7 +333,7 @@ switch method
                 otherwise
                     mid = round( num_proj_used / 2 );
                     f = @(mat,pp) mat(pp,:)';
-                    Y = [ f( corr_mat, 1), f( corr_mat, mid), f( corr_mat, num_proj_used) ];
+                    Y = [ f( corr.mat, 1), f( corr.mat, mid), f( corr.mat, num_proj_used) ];
                     plot( Y, '.' )
                     legend( 'first proj', 'mid proj', 'last proj' )
                     axis tight
@@ -364,7 +372,7 @@ switch method
             case 'shift'
                 % best match
                 if corr_shift_max_pixelshift == 0
-                    [~, pos] = min( abs( corr_mat ), [], 2 );
+                    [~, pos] = min( abs( corr.mat ), [], 2 );
                     
                     if pflag
                         parfor nn = 1:num_proj_used
@@ -423,7 +431,7 @@ switch method
                 fprintf( 'All available measures calulated. NO FLAT FIELD CORRECTION DONE.')
                 
             otherwise
-                [~, corr_mat_pos] = sort( normat( corr_mat ), 2);
+                [~, corr_mat_pos] = sort( normat( corr.mat ), 2);
                 % Flat field correction
                 flat_ind = corr_mat_pos(:,1:corr_num_flats);
                 if pflag

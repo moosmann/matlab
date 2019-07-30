@@ -241,7 +241,6 @@ tomo.rot_axis.offset = 0.6 * 2 / raw_bin;
 scan_path = [raw_path 'syn014_105R_Mg10Gd_4w_009']; ADD
 
 % good quality
-interactive_mode.rot_axis_pos = 0;
 raw_bin = 3;
 tomo.rot_axis.offset = 0.05 * 2 / raw_bin;
 scan_path = [raw_path 'syn015_86L_Mg10Gd_4w_beforedrilling']; ADD
@@ -249,7 +248,6 @@ scan_path = [raw_path 'syn015_86L_Mg10Gd_4w_beforedrilling']; ADD
 scan_path = [raw_path 'syn016_67L_Mg10Gd_8w_000']; ADD
 
 % sligtly worse than before drilling
-raw_bin = 3;
 tomo.rot_axis.offset = 0.05 * 2 / raw_bin;
 scan_path = [raw_path 'syn017_86L_Mg10Gd_4w_afterdrilling']; ADD
 
@@ -285,21 +283,20 @@ scan_path = [raw_path 'syn022_LongTerm_18008_bot']; ADD
 scan_path = [raw_path 'syn022_LongTerm_18008_mid']; ADD
 scan_path = [raw_path 'syn022_LongTerm_18008_top']; ADD
 
+% movement in ~ 1 voxel range at 3 x binning
+tomo.rot_axis.offset = 0.15 * 3 / raw_bin;
 scan_path = [raw_path 'syn023_13R_PEEK_4w']; ADD
 
 %% To do
-interactive_mode.rot_axis_pos = 1;
+
 % 0-180: 0.75
 scan_path = [raw_path 'syn026_femur_55L_000']; ADD
 scan_path = [raw_path 'syn026_femur_55L_001']; ADD
 
 % good, some small local movement
-raw_bin = 3;
-interactive_mode.rot_axis_pos = 1;
-tomo.rot_axis.offset = 1.6 * 2 / raw_bin;
 scan_path = [raw_path 'syn027_20R_PEEK_4w']; ADD
 
-% quite some movement in on half of the sample
+% quite some movement in one half of the sample
 tomo.rot_axis.offset = 1.5 * 3 / raw_bin;
 scan_path = [raw_path 'syn028_60L_Mg10Gd_12w']; ADD
 
@@ -307,8 +304,7 @@ scan_path = [raw_path 'syn028_60L_Mg10Gd_12w']; ADD
 scan_path = [raw_path 'syn029_84R_Mg5Gd_4w_000']; ADD
 scan_path = [raw_path 'syn029_84R_Mg5Gd_4w_001']; ADD
 scan_path = [raw_path 'syn029_84R_Mg5Gd_4w_002']; ADD
-scan_path = [raw_path 'syn029_84R_Mg5Gd_4w_003']; ADD
-% technical problems, scan continues
+scan_path = [raw_path 'syn029_84R_Mg5Gd_4w_003']; ADD% technical problems, scan continues
 scan_path = [raw_path 'syn029_84R_Mg5Gd_4w_restart_004']; ADD
 scan_path = [raw_path 'syn029_84R_Mg5Gd_4w_restart_005']; ADD
 scan_path = [raw_path 'syn029_84R_Mg5Gd_4w_restart_006']; ADD
@@ -316,7 +312,6 @@ scan_path = [raw_path 'syn030_84R_Mg5Gd_4w_restart_pushed']; ADD
 scan_path = [raw_path 'syn032_84R_Mg5Gd_4w_restart_pushed']; ADD
 
 % Good quality
-interactive_mode.rot_axis_pos = 0;
 raw_bin = 3; % CMOS
 tomo.rot_axis.offset = 2.65 * 3 / raw_bin;
 scan_path = [raw_path 'syn033_68R_Mg10Gd_12w']; ADD
