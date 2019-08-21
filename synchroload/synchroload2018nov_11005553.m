@@ -16,11 +16,6 @@ end
 %% DEFAULT PARAMETERS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-% Define parameter here. Otherwise parameters are taken from the current
-% version of 'p05_reco' if not set in the section below.
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
 fast_reco = 0; % !!! OVERWRITES SOME PARAMETERS SET BELOW !!!
 stop_after_data_reading(1) = 0; % for data analysis, before flat field correlation 
 stop_after_proj_flat_correlation(1) = 0; % for data analysis, after flat field correlation

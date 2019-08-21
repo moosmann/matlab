@@ -1,20 +1,24 @@
 
 %ca
 clear all
-
 read_scans = 1;
 
 %% Beamtimes
 beamtime = { ...
-    2016 11001978
-    2017 11003950
-    2017 11004016
-    2017 11003288
-    2017 11003440
-    2017 11003440
-    2018 11004263
-    2018 11004936
-    2018 11005553};
+    %     2016 11001978
+    %     2017 11003950
+    %     2017 11004016
+    %     2017 11003288
+    %     2017 11003440
+    %     2017 11003440
+    %     2018 11004263
+    %     2018 11004936
+    %     2018 11005553
+    2019 11006704
+    };
+
+%name_pattern = '*Mg*';
+name_pattern = '*Peek*';
 
 %% Output directory
 segpath = '/asap3/petra3/gpfs/p05/2018/data/11004936/processed/segmentation/';
@@ -31,14 +35,19 @@ if read_scans
     for nn = 1:length( beamtime )
         
         % beamtime folder
-        beamtime_year = beamtime{nn,1};
-        beamtime_id = beamtime{nn,2};
+        if size( beamtime, 1 ) == 1
+            beamtime_year = beamtime{1};
+            beamtime_id = beamtime{2};
+        else
+            beamtime_year = beamtime{nn,1};
+            beamtime_id = beamtime{nn,2};
+        end
         proc = sprintf( '/asap3/petra3/gpfs/p05/%u/data/%u/processed', beamtime_year, beamtime_id );
         
         % scan folder
-        scan_struct = dir( [proc '/*Mg*'] );
+        scan_struct = dir( [proc filesep name_pattern] );
         
-        fprintf( '\nexp %2u: year %u, beamtime %u, %u folders with Mg', nn, beamtime_year, beamtime_id, length( scan_struct ) );
+        fprintf( '\nexp %2u: year %u, beamtime %u, %u folders with %s', nn, beamtime_year, beamtime_id, length( scan_struct ), name_pattern );
         
         % Loop over scans
         for mm = 1:length( scan_struct )

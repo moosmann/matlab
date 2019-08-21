@@ -88,8 +88,7 @@ fprintf( '\n transmission_pet : %f', transmission_pet )
 fprintf( '\n')
 
 mean_dose = 57.8534;
-dose_level = [0.1 1 2 5] * 1e3;
-dose_level = [0.1 1 2 5] * 1e3;
+dose_level = [0.1 1 2 3.5] * 1e3;
 
 scan_time = ( dose_level / mean_dose );
 

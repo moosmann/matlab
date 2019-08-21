@@ -1,4 +1,4 @@
-function p05_load_force_values( raw_path, scan_name, steps, out_path, adc2force, readhdf5 )
+function p05_load_force_values( p )
 
 % Read out wait_force values of 4D load tomography data.
 %
@@ -13,27 +13,12 @@ function p05_load_force_values( raw_path, scan_name, steps, out_path, adc2force,
 %   load cell to Newton
 
 %% DEFAULT ARGUMENTS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-if nargin < 1
-    % e.g.
-    raw_path = '/asap3/petra3/gpfs/p05/2017/data/11004016/raw';
-end
-if nargin < 2
-    % e.g.
-    scan_name = 'syn011_14R_PEEK_4w';
-end
-if nargin < 3
-    steps = []; % # of tomos to process, use low number for testing
-end
-if nargin < 4
-    out_path = '';
-end
-if nargin < 5
-    adc2force = 4.8;
-    fprintf( '\nLoad cell conversion from Volt to Newtone set per default to %.f N. Check value!', adc2force)
-end
-if nargin < 6
-    readhdf5 = 1;
-end
+raw_path = assign_from_struct( p, 'raw_path', '/asap3/petra3/gpfs/p05/2017/data/11004016/raw' );
+scan_name = assign_from_struct( p, 'scan_name', 'syn011_14R_PEEK_4w' );
+steps = assign_from_struct( p, 'steps', [] );
+out_path = assign_from_struct( p, 'out_path', '' );
+adc2force = assign_from_struct( p, 'adc2force', 4.8 );
+readhdf5 = assign_from_struct( p, 'readhdf5', 1 );
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 tic
@@ -46,7 +31,7 @@ if isempty( out_path )
 end
 CheckAndMakePath( out_path );
 
-font_size = 12;
+font_size = 14;
 fprintf( '\n scan path : %s', scan_path)
 fprintf( '\n scan name : %s', scan_name)
 fprintf( '\n output path : %s', out_path)
@@ -63,9 +48,17 @@ end
 if isscalar( steps )
     steps = 1:steps;
 end
+if isequal( numel( steps), 2)
+    if steps(2) < 0
+        steps(2) = numel( struct_scans ) - steps(2);
+    end
+    steps = steps(1):steps(2);
+end
 num_steps = numel( steps );
 
 %p = [raw_path filesep struct_scans(3).name];
+fprintf( '\n steps: ' )
+fprintf( ' %u', steps )
 
 %% Read in load sequence
 wait_time = [];
@@ -83,7 +76,7 @@ setforce_force = [];
 for nn = 1:num_steps
     ss = steps(nn);
     scan_name_nn = struct_scans(ss).name;
-    fprintf( '\n %2u : %s.', nn, scan_name_nn)
+    fprintf( '\n %2u %2u: %s.', nn, ss, scan_name_nn)
     p = [raw_path filesep scan_name_nn];
     
     filename = sprintf( '%s/%stime_adc1_p05pusher_wait.dat',p, scan_name);
@@ -254,12 +247,14 @@ axes1 = axes('Parent',fig,'FontSize',font_size,'XMinorTick','off');
 
 if ~isempty( setforce_force )
     
-    plot( tomo_time - tomo_time(1), tomo_force, 'r.', setforce_time - tomo_time(1), setforce_force, 'b.', 'LineWidth',12);
+    p = plot( tomo_time - tomo_time(1), tomo_force, 'r.', setforce_time - tomo_time(1), setforce_force, 'b.', 'LineWidth',12);
     legend( {'Tomogram', 'Set force / Waiting'}, 'FontSize', font_size,'Location','northwest')
+    xlabel('time / h', 'FontSize',font_size);
+
 else
     if isempty( wait_time ) && isempty( tomo_time )
         
-        plot( wait_force, 'b.', 'LineWidth',12);
+        p = plot( wait_force, 'b.', 'LineWidth',12);
         legend( {'Waiting'}, 'FontSize', font_size,'Location','northwest')
         
         xlabel('projections', 'FontSize',font_size);
@@ -267,21 +262,23 @@ else
     else
         if isempty( wait_time ) || isempty( tomo_time )
             if ~isempty( wait_time )
-                plot( wait_time - wait_time(1), wait_force, 'b.', 'LineWidth',12);
+                p = plot( wait_time - wait_time(1), wait_force, 'b.', 'LineWidth',12);
                 legend( {'Waiting'}, 'FontSize', font_size,'Location','northwest')
             else
-                plot( tomo_time - tomo_time(1), tomo_force, 'r.', 'LineWidth',12);
+                p = plot( tomo_time - tomo_time(1), tomo_force, 'r.', 'LineWidth',12);
                 legend( {'Tomogram'}, 'FontSize', font_size,'Location','northwest')
             end
         else
-            plot( wait_time - tomo_time(1), wait_force, 'b.', tomo_time - tomo_time(1), tomo_force, 'r.', 'LineWidth',12);
+            p = plot( wait_time - tomo_time(1), wait_force, 'b.', tomo_time - tomo_time(1), tomo_force, 'r.', 'LineWidth',12);
             legend( {'Waiting', 'Tomogram'}, 'FontSize', font_size,'Location','northwest')
         end
         
         % Create xlabel
-        xlabel('waiting / h', 'FontSize',font_size);
+        xlabel('time / h', 'FontSize',font_size);
     end
 end
+set( p ,'LineWidth', 8)
+set( p, 'MarkerSize',8 )
 % Create ylabel
 ylabel('Force / N', 'FontSize',font_size);
 

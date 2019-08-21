@@ -1,4 +1,4 @@
-function [vol, vol_reg] = p05_load_sequ( proc_path, scan_name, reco_sub, regdir, steps, out_thresh, register, auto_roi_center )
+function [vol, vol_reg] = p05_load_sequ( p )
 % Create images sequences from 4D load tomography data.
 %
 % Script to process in 4D image squences e.g. from load tomography. Read in
@@ -15,30 +15,16 @@ function [vol, vol_reg] = p05_load_sequ( proc_path, scan_name, reco_sub, regdir,
 %   8bit conversion
 
 %% DEFAULT ARGUMENTS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-if nargin < 1
-    proc_path = '/asap3/petra3/gpfs/p05/2017/data/11004016/processed';
-end
-if nargin < 2
-    scan_name = 'syn007_94L_Mg10Gd_8w';
-end
-if nargin < 3
-    reco_sub = '/reco/float_rawBin4';
-end
-if nargin < 4
-    regdir = 'x'; % x or y cut, y sometimes works better if there are more structures to correlate
-end
-if nargin < 5
-    steps = []; % # of tomos to process, use low number for testing
-end
-if nargin < 6
-    out_thresh = 0.01; % percentage of outliers to be thresholded
-end
-if nargin < 7
-    register = 0;
-end
-if nargin < 8
-    auto_roi_center = 0;
-end
+proc_path = assign_from_struct( p , 'proc_path', '/asap3/petra3/gpfs/p05/2017/data/11004016/processed' );
+scan_name = assign_from_struct( p, 'scan_name', 'syn007_94L_Mg10Gd_8w' );
+reco_sub = assign_from_struct( p , 'reco_sub', 'float_rawBin2' );
+regdir = assign_from_struct( p , 'regdir', 'x' ); % x or y cut, y sometimes works better if there are more structures to correlate
+steps = assign_from_struct( p , 'steps', [] ); % # of tomos to process, use low number for testing
+out_thresh = assign_from_struct( p , 'out_thresh', 0.01 ); % percentage of outliers to be thresholded
+register = assign_from_struct( p , 'register', 0 );
+auto_roi_center = assign_from_struct( p , 'auto_roi_center', 0 );
+crop_roi = assign_from_struct( p , 'crop_roi', [] );
+
 % TO DO
 % get outlier thresholds from several slices
 
@@ -124,13 +110,53 @@ for nn = 1:numel( steps )
     fprintf(  ' Slices : %u.', num_slices )
     pause(0.01)
 end
+[sx, sy, sz, ~] = size( vol );
 fprintf( '\n Read data in %.1f s', toc - t);
+
+vol_mean4 = mean( vol, 4 );
+
+%% Vertical ROI
+im1max = normat(  double( squeeze(max( vol_mean4,[],1)) ) );
+im1min = normat( -double( squeeze(min( vol_mean4,[],1)) ) );
+im2max = normat(  double( squeeze(max( vol_mean4,[],2)) ) );
+im2min = normat( -double( squeeze(min( vol_mean4,[],2)) ) );
+figure('Name', 'Extrema projections' )
+subplot( 2, 2, 1 )
+imsc( im1max )
+axis equal tight
+subplot( 2, 2, 2 )
+imsc( im1min )
+axis equal tight
+subplot( 2, 2, 3 )
+imsc( im2max )
+axis equal tight
+subplot( 2, 2, 4 )
+imsc( im2min )
+axis equal tight
+l = mean( im1max + im1min + im2max + im2min, 1 );
+lm = mean( l );
+for zz = 1:sz
+    z0 = zz;
+    if l(z0) > lm
+        break;
+    end
+end
+for zz = sz:-1:z0+1
+    z1 = zz;
+    if l(z1) > lm
+        break;
+    end
+end
+dz = 0.1* (z1-z0);
+z0 = max( 1, z0 - dz );
+z1 = min( sz, z1 + dz );
+fprintf( '\n vertical ROI: %u %u', z0, z1 )
 
 %% Auto ROI
 if auto_roi_center
     roi_cen = zeros( [3, 2] );
     for nn = 1:3
-        im = squeeze( mean( squeeze( vol(:,:,:,1) ), nn ) );
+        im = squeeze( mean( squeeze( vol_mean4 ), nn ) );
         for mm = 1:2
             im_std = squeeze( std( squeeze( im ), 0, mm ) ) ;
             im_std = SubtractMean( im_std );
@@ -138,15 +164,29 @@ if auto_roi_center
             roi_cen(nn,mm) = round( CenterOfMass( im_std ) );
         end
     end
-    xx = roi_cen(3,1);
-    yy = roi_cen(3,2);
+    xx = roi_cen(3,2);
+    yy = roi_cen(3,1);
     zz = round(( roi_cen(1,2) + roi_cen(2,2) ) / 2);
 else
     xx = round( size( vol, 1) / 2);
     yy = round( size( vol, 2) / 2);
     zz = round( size( vol, 3) / 2);
 end
-fprintf( '\nroi center before registering: x,y,z = %u,%u,%u',xx,yy,zz)
+fprintf( '\n roi center : x,y,z = %u,%u,%u',xx,yy,zz)
+if ~isempty( crop_roi )
+    cx = round( crop_roi(1) / 2 );
+    cy = round( crop_roi(2) / 2 );
+    x0 = max( 1, xx - cx );
+    x1 = min( sx , xx + cx);
+    y0 = max( 1, yy - cy);
+    y1 = min( sy , yy + cy);
+    vol= vol(x0:x1,y0:y1,z0:z1,:);
+    [sx, sy, sz, ~] = size( vol );
+    fprintf( '\n ROI shape : %u %u %u', sx, sy, sz );
+end
+figure( 'Name', 'vol roi' )
+imsc( vol(:,:,round(sz/2),1))
+axis equal tight
 
 %% Registering
 if register
@@ -180,47 +220,94 @@ if register
         
     end
     fprintf( 'Done in %.1f s', toc - t);
-    
-    %% Auto ROI
-    if auto_roi_center
-        roi_cen = zeros( [3, 2] );
-        for nn = 1:3
-            im = squeeze( mean( squeeze( vol_reg(:,:,:,1) ), nn ) );
-            for mm = 1:2
-                im_std = squeeze( std( squeeze( im ), 0, mm ) ) ;
-                im_std = SubtractMean( im_std );
-                im_std( im_std <= 0 ) = 0;
-                roi_cen(nn,mm) = round( CenterOfMass( im_std ) );
-            end
-        end
-        xx = roi_cen(3,1);
-        yy = roi_cen(3,2);
-        zz = round( ( roi_cen(1,2) + roi_cen(2,2) ) / 2 );
-    else
-        xx = round( size( vol_reg, 1) / 2);
-        yy = round( size( vol_reg, 2) / 2);
-        zz = round( size( vol_reg, 3) / 2);
-    end
-    fprintf( '\n roi center after registering: x,y,z = %u,%u,%u',xx,yy,zz)
-    
-    
 else
-    fprintf( '\n No registerion of slice ' )
+    fprintf( '\n No registration of slices ' )
     vol_reg = vol;
 end
+
+%% Auto ROI
+if auto_roi_center
+    roi_cen = zeros( [3, 2] );
+    for nn = 1:3
+        im = squeeze( mean( squeeze( vol_reg(:,:,:,1) ), nn ) );
+        for mm = 1:2
+            im_std = squeeze( std( squeeze( im ), 0, mm ) ) ;
+            im_std = SubtractMean( im_std );
+            im_std( im_std <= 0 ) = 0;
+            roi_cen(nn,mm) = round( CenterOfMass( im_std ) );
+        end
+    end
+    xx = roi_cen(3,2);
+    yy = roi_cen(3,1);
+    zz = round( ( roi_cen(1,2) + roi_cen(2,2) ) / 2 );
+else
+    xx = round( size( vol_reg, 1) / 2);
+    yy = round( size( vol_reg, 2) / 2);
+    zz = round( size( vol_reg, 3) / 2);
+end
+fprintf( '\n roi center: x,y,z = %u,%u,%u',xx,yy,zz)
 
 %% Save
 %nimplay(cat(3,im1(s:end,:),im2(1:end-s+1,:)))
 %nimplay( squeeze(vol_reg(xx,:,:,:)));
 
-% Slice: Animated gif
+CheckAndMakePath( scan_path )
+
+%% Save 3D tif %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+fprintf( '\n Save 3D multi tifs z .' )
+t = toc;
+tif_path = [scan_path filesep 'tif'];
+CheckAndMakePath( tif_path )
+for mm = 1:size( vol_reg, 4 )
+    filename = sprintf( '%s/%s_loadSequ_%02u.tif', tif_path, scan_name, mm );
+    for nn = 1:size( vol_reg, 3 )
+        im = squeeze( vol_reg(:,:,nn,mm) );
+        if nn == 1
+            imwrite( im, filename, 'Compression','none');
+        else
+            imwrite( im, filename, 'WriteMode', 'append',  'Compression','none');
+        end
+    end
+end
+fprintf( ' Done in %.1f s', toc - t);
+
+%% Save 3D tif %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+fprintf( '\n Save 3D multi tifs x slicing.' )
+t = toc;
+tif_path = [scan_path filesep 'tif'];
+CheckAndMakePath( tif_path )
+for mm = 1:size( vol_reg, 4 )
+    filename = sprintf( '%s/%s_loadSequ_%02u.tif', tif_path, scan_name, mm );
+    for nn = 1:size( vol_reg, 3 )
+        im = squeeze( vol_reg(:,:,nn,mm) );
+        if nn == 1
+            imwrite( im, filename, 'Compression','none');
+        else
+            imwrite( im, filename, 'WriteMode', 'append',  'Compression','none');
+        end
+    end
+end
+fprintf( ' Done in %.1f s', toc - t);
+%% Save ROI tif
+if ~isempty( crop_roi )
+    for mm = 1:size( vol_reg, 4 )
+        filename = sprintf( '%s/%s_loadSequ_%02u.tif', scan_path, scan_name, mm );
+        for nn = 1:size( vol_reg, 3 )
+            im = squeeze( vol_reg(:,:,nn,mm) );
+            if nn == 1
+                imwrite( im, filename, 'Compression','none');
+            else
+                imwrite( im, filename, 'WriteMode', 'append',  'Compression','none');
+            end
+        end
+    end
+end
+
+%% Slice: Animated gif
 t = toc;
 fprintf( '\n Save animated gifs' )
-
-CheckAndMakePath( scan_path )
 filename = sprintf( '%s/%s_loadSequ_x%04u.gif', scan_path, scan_name, xx );
 fprintf( '\n output file: %s', filename)
-
 map = colormap(gray);
 for nn = 1:size(vol_reg,4)
     %[A, map] = gray2ind(rot90(squeeze( vol_reg(xx,:,:,nn))));
@@ -234,7 +321,6 @@ end
 
 filename = sprintf( '%s/%s_loadSequ_y%04u.gif', scan_path, scan_name, yy );
 fprintf( '\n output file: %s', filename)
-
 for nn = 1:size(vol_reg,4)
     A = gray2ind(rot90(squeeze( vol_reg(:,yy,:,nn))));
     if nn == 1
@@ -257,13 +343,6 @@ for nn = 1:size(vol_reg,4)
 end
 fprintf( '\n Done in %.1f s', toc - t);
 
-% Save 4D matlab array
-% t = toc;
-% fprintf( '\n Save 4D matlab volume.' )
-% filename = sprintf( '%s/%s_loadSequ_4D.mat', scan_path, scan_name );
-% fprintf( '\n output file: %s', filename)
-% save( filename, 'vol_reg' , '-v7.3', '-nocompression')
-% fprintf( '\n Done in %.1f s', toc - t);
 
 %% Show %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %nimplay( squeeze( vol_reg(xx,:,:,:) ) )
