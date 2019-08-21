@@ -56,9 +56,9 @@ raw_roi = []; % vertical and/or horizontal ROI; (1,1) coordinate = top left pixe
 % [y0 y1 x0 x1]: vertical + horzontal ROI, each ROI as above
 % if -1: auto roi, selects vertical ROI automatically. Use only for DCM. Not working for *.raw data where images are flipped and DMM data.
 % if < -1: Threshold is set as min(proj(:,:,[1 end])) + abs(raw_roi)*median(dark(:)). raw_roi=-1 defaults to min(proj(:,:,[1 end])) + 4*median(dark(:))
-raw_bin = 2; % projection binning factor: integer
+raw_bin = 4; % projection binning factor: integer
 im_trafo = ''; % string to be evaluated after reading data in the case the image is flipped/rotated/etc due to changes at the beamline, e.g. 'rot90(im)'
-bin_before_filtering(1) = 1; % Apply binning before filtering pixel. less effective, but much faster especially for KIT camera.
+bin_before_filtering(1) = 0; % Apply binning before filtering pixel. less effective, but much faster especially for KIT camera.
 excentric_rot_axis = 0; % off-centered rotation axis increasing FOV. -1: left, 0: centeerd, 1: right. influences tomo.rot_axis.corr_area1
 crop_at_rot_axis = 0; % for recos of scans with excentric rotation axis but WITHOUT projection stitching
 stitch_projections = 0; % for 2 pi scans: stitch projection at rotation axis position. Recommended with phase retrieval to reduce artefacts. Standard absorption contrast data should work well without stitching. Subpixel stitching not supported (non-integer rotation axis position is rounded, less/no binning before reconstruction can be used to improve precision).
@@ -171,10 +171,10 @@ write.compression.parameter = [0.02 0.02]; % compression-method specific paramet
 % 'histo' : [LOW HIGH] = write.compression.parameter (100*LOW)% and (100*HIGH)% of the original histogram, e.g. [0.02 0.02]
 %%% INTERACTION %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 verbose = 1; % print information to standard output
-visual_output = 1; % show images and plots during reconstruction
+visual_output = 0; % show images and plots during reconstruction
 interactive_mode.rot_axis_pos = 1; % reconstruct slices with dif+ferent rotation axis offsets
 interactive_mode.rot_axis_pos_default_search_range = []; % if empty: asks for search range when entering interactive mode, otherwise directly start with given search range
-interactive_mode.rot_axis_tilt = 0; % reconstruct slices with different offset AND tilts of the rotation axis
+interactive_mode.rot_axis_tilt = 1; % reconstruct slices with different offset AND tilts of the rotation axis
 interactive_mode.lamino = 0; % find laminography tilt instead camera rotation
 interactive_mode.fixed_other_tilt = 0; % fixed other tilt
 interactive_mode.slice_number = 0.5; % default slice number. if in [0,1): relative, if in (1, N]: absolute
@@ -215,7 +215,7 @@ if exist( 'external_parameter' ,'var')
     dbstop if error
 end
 
-% overwrite parameters for fast reconstruction
+%%% FAST RECO MODE
 if exist('fast_reco','var') && fast_reco(1)
     raw_bin = 2;
     raw_roi = [0.4 0.6];
@@ -232,7 +232,6 @@ end
 if ~phase_retrieval.apply
     phase_retrieval.post_binning_factor = 0;
 end
-assign_default( 'pixel_filter_radius', [3 3], 1 )
 if interactive_mode.rot_axis_tilt && strcmpi( tomo.reco_mode, 'slice' )
     error( 'Slicewise reconstruction and reconstruction with tilted rotation axis are not compatible!' )
 end
@@ -243,12 +242,13 @@ end
 if ~isempty( tomo.rot_axis.offset ) && ~isempty( tomo.rot_axis.position )
     error('tomo.rot_axis.offset (%f) and tomo.rot_axis.position (%f) cannot be used simultaneously. One must be empty.', tomo.rot_axis.offset, tomo.rot_axis.position)
 end
-assign_default( 'tomo.rot_axis.offset', 0 )
 if abs(excentric_rot_axis)
     if crop_at_rot_axis(1) && stitch_projections(1)
         error( 'Do not use ''stitch projections'' in combination with ''crop_at_rot_axis''. Cropping at rot axis only makes sense without stitching in order to avoid oversampling artefacts within the overlap region.' )
     end
 end
+assign_default( 'tomo.rot_axis.offset', 0 )
+assign_default( 'pixel_filter_radius', [3 3], 1 )
 assign_default( 'image_correlation.force_calc', 0 );
 assign_default( 'image_correlation.shift.max_pixelshift', 0.25, 1 ); % maximum pixelshift allowed for 'shift'-correlation method: if 0 use the best match (i.e. the one with the least shift), if > 0 uses all flats with shifts smaller than image_correlation.shift.max_pixelshift
 assign_default( 'image_correlation.decimal_round_precision',2, 1 ); % precision when rounding pixel shifts
@@ -262,7 +262,7 @@ assign_default( 'write.deleteFiles', 0)
 assign_default( 'write.beamtimeID', '' )
 assign_default( 'tomo.reco_mode', '3D' )
 assign_default( 'write.scan_name_appendix', '' )
-assign_default( 'interactive_mode.rot_axis_pos_default_search_range', [] )
+assign_default( 'interactive_mode.rot_axis_pos_default_search_range', -4:0.5:4 )
 assign_default( 'interactive_mode.phase_retrieval_default_search_range', [] )
 
 astra_clear % if reco was aborted, ASTRA memory is not cleared
@@ -1427,16 +1427,34 @@ if tomo.run || tomo.run_interactive_mode
     % retrieve index at angles 0 and pi 
      [val1, ind1] = min( abs( angles )); 
      [val2, ind2] = min( abs( angles - pi )); 
-    
-    %% CHECK
-    tomo.rot_axis.position = im_shape_binned1 / 2 + tomo.rot_axis.offset;
-    
-    % Tilt of rotation axis
-    if interactive_mode.rot_axis_tilt(1)
-        corr_offset = ( offset_shift(ind1) + offset_shift(ind2) ) / 2;
-        im1c = RotAxisSymmetricCropping( proj(:,tomo.rot_axis.corr_area2,ind1), tomo.rot_axis.position + corr_offset, 1);
-        im2c = flipud(RotAxisSymmetricCropping( proj(:,tomo.rot_axis.corr_area2,ind2) , tomo.rot_axis.position + corr_offset, 1));
-        [optimizer, metric] = imregconfig('monomodal');
+     
+     %% CHECK
+     tomo.rot_axis.position = im_shape_binned1 / 2 + tomo.rot_axis.offset;
+     
+     % Tilt of rotation axis
+     if interactive_mode.rot_axis_tilt(1)
+         
+         % ROI for correlation of projections at angles 0 & pi
+         if isempty( tomo.rot_axis.corr_area1 )
+             switch excentric_rot_axis
+                 case -1
+                     tomo.rot_axis.corr_area1 = [0 0.25];
+                 case 0
+                     tomo.rot_axis.corr_area1 = [0.25 0.75];
+                 case 1
+                     tomo.rot_axis.corr_area1 = [0.75 1];
+             end
+         end
+         if isempty( tomo.rot_axis.corr_area2 )
+             tomo.rot_axis.corr_area2 = [0.1 0.9];
+         end
+         tomo.rot_axis.corr_area1 = IndexParameterToRange( tomo.rot_axis.corr_area1, im_shape_binned1 );
+         tomo.rot_axis.corr_area2 = IndexParameterToRange( tomo.rot_axis.corr_area2, im_shape_binned2 );
+         
+         corr_offset = ( offset_shift(ind1) + offset_shift(ind2) ) / 2;
+         im1c = RotAxisSymmetricCropping( proj(:,tomo.rot_axis.corr_area2,ind1), tomo.rot_axis.position + corr_offset, 1);
+         im2c = flipud(RotAxisSymmetricCropping( proj(:,tomo.rot_axis.corr_area2,ind2) , tomo.rot_axis.position + corr_offset, 1));
+         [optimizer, metric] = imregconfig('monomodal');
         tform_calc = imregtform(im2c, im1c, 'rigid', optimizer, metric);
         rot_axis_tilt_calc = asin( tform_calc.T(1,2) ) / 2;
     else
@@ -1482,7 +1500,9 @@ if tomo.run || tomo.run_interactive_mode
         fprintf( '\n slice : %u', slice)
         fprintf( '\n\nOFFSET:' )
         fprintf( '\n current rotation axis offset / position : %.2f, %.2f', tomo.rot_axis.offset, tomo.rot_axis.position)
-        fprintf( '\n default offset range : current ROT_AXIS_OFFSET + (-4:0.5:4)')
+        fprintf( '\n default offset range : current ROT_AXIS_OFFSET + [')
+        fprintf( ' %f', interactive_mode.rot_axis_pos_default_search_range )
+        fprintf( ']' )
         offset = input( '\n\nENTER RANGE OF ROTATION AXIS OFFSETS\n (if empty: use default range, scalar: skip interactive mode, ''s'': change slice, ''d'': debug mode): ');
         if ~isempty( offset ) && strcmp( offset(1), 's' )
             slice = input( sprintf( '\n\nENTER ABSOLUTE [1,%u] OR RELATIVE [0,1] SLICE NUMBER : ', im_shape_binned2) );
@@ -1593,7 +1613,7 @@ if tomo.run || tomo.run_interactive_mode
                 offset = input( '\n\nENTER RANGE OF ROTATION AXIS OFFSETS\n (if empty use default range, if scalar skips interactive mode): ');
             end
             if isempty( offset )
-                offset = tomo.rot_axis.offset + (-4:0.5:4);
+                offset = tomo.rot_axis.offset + interactive_mode.rot_axis_pos_default_search_range;
             end
             if isscalar( offset )
                 fprintf( ' old rotation axis offset : %.2f', tomo.rot_axis.offset)
@@ -1679,7 +1699,7 @@ if tomo.run || tomo.run_interactive_mode
                         set( ax2, 'YTick', [] )
                         title(sprintf('rotation axis: metrics VS tilt'))
                         drawnow
-                        saveas( h_rot_off, sprintf( '%s%s.png', fig_path, regexprep( h_rot_off.Name, '\ |:', '_') ) );
+                        saveas( h_rot_tilt, sprintf( '%s%s.png', fig_path, regexprep( h_rot_tilt.Name, '\ |:', '_') ) );
                         
                         % Play
                         nimplay(vol, 1, [], 'TILT: sequence of reconstructed slices using different rotation axis tilts')

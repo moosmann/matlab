@@ -20,9 +20,11 @@ DetectorSpacingY = detector_spacing(2);
 
 % Volume geometry
 det_col_count = size( vol, 1 );
-det_row_count = size( vol, 2 );
-slices = size( vol, 3 );
-vol_geom = astra_create_vol_geom( det_row_count, det_col_count, slices );
+det_row_count = size( vol, 3 );
+%slices = size( vol, 3 );
+%vol_geom = astra_create_vol_geom( det_row_count, det_col_count, slices );
+vol_geom = astra_create_vol_geom( size( vol ) );
+
 
 % Geometry vector
 vectors = zeros( numel(angles), 12);
@@ -56,7 +58,7 @@ end
 proj_geom = astra_create_proj_geom( 'parallel3d_vec',  det_row_count, det_col_count, vectors);
 
 
-[proj_id, proj_data] = astra_create_sino3d_cuda(vol, proj_geom, vol_geom);
+[~, proj_data] = astra_create_sino3d_cuda(vol, proj_geom, vol_geom);
 
 
 % 
