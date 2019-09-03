@@ -175,7 +175,7 @@ verbose = 1; % print information to standard output
 visual_output = 0; % show images and plots during reconstruction
 interactive_mode.rot_axis_pos = 1; % reconstruct slices with dif+ferent rotation axis offsets
 interactive_mode.rot_axis_pos_default_search_range = []; % if empty: asks for search range when entering interactive mode, otherwise directly start with given search range
-interactive_mode.rot_axis_tilt = 1; % reconstruct slices with different offset AND tilts of the rotation axis
+interactive_mode.rot_axis_tilt = 0; % reconstruct slices with different offset AND tilts of the rotation axis
 interactive_mode.lamino = 0; % find laminography tilt instead camera rotation
 interactive_mode.fixed_other_tilt = 0; % fixed other tilt
 interactive_mode.slice_number = 0.5; % default slice number. if in [0,1): relative, if in (1, N]: absolute
@@ -1451,7 +1451,11 @@ if tomo.run || tomo.run_interactive_mode
          tomo.rot_axis.corr_area1 = IndexParameterToRange( tomo.rot_axis.corr_area1, im_shape_binned1 );
          tomo.rot_axis.corr_area2 = IndexParameterToRange( tomo.rot_axis.corr_area2, im_shape_binned2 );
          
-         corr_offset = ( offset_shift(ind1) + offset_shift(ind2) ) / 2;
+         if numel( offset_shift ) > 1
+             corr_offset = ( offset_shift(ind1) + offset_shift(ind2) ) / 2;
+         else
+             corr_offset = 0;
+         end
          im1c = RotAxisSymmetricCropping( proj(:,tomo.rot_axis.corr_area2,ind1), tomo.rot_axis.position + corr_offset, 1);
          im2c = flipud(RotAxisSymmetricCropping( proj(:,tomo.rot_axis.corr_area2,ind2) , tomo.rot_axis.position + corr_offset, 1));
          [optimizer, metric] = imregconfig('monomodal');
@@ -1500,6 +1504,9 @@ if tomo.run || tomo.run_interactive_mode
         fprintf( '\n slice : %u', slice)
         fprintf( '\n\nOFFSET:' )
         fprintf( '\n current rotation axis offset / position : %.2f, %.2f', tomo.rot_axis.offset, tomo.rot_axis.position)
+        if isempty( interactive_mode.rot_axis_pos_default_search_range )
+            interactive_mode.rot_axis_pos_default_search_range = -4:4;
+        end
         fprintf( '\n default offset range : current ROT_AXIS_OFFSET + [')
         fprintf( ' %f', interactive_mode.rot_axis_pos_default_search_range )
         fprintf( ']' )
@@ -1613,7 +1620,7 @@ if tomo.run || tomo.run_interactive_mode
                 offset = input( '\n\nENTER RANGE OF ROTATION AXIS OFFSETS\n (if empty use default range, if scalar skips interactive mode): ');
             end
             if isempty( offset )
-                offset = tomo.rot_axis.offset + interactive_mode.rot_axis_pos_default_search_range;
+                offset = tomo.rot_axis.offset;
             end
             if isscalar( offset )
                 fprintf( ' old rotation axis offset : %.2f', tomo.rot_axis.offset)
@@ -1716,7 +1723,11 @@ if tomo.run || tomo.run_interactive_mode
                             tomo.rot_axis.position = im_shape_binned1 / 2 + tomo.rot_axis.offset;
                             
                             % Compare projection at 0 pi and projection at 1 pi corrected for rotation axis tilt
-                            corr_offset = ( offset_shift(ind1) + offset_shift(ind2) ) / 2;
+                            if numel( offset_shift ) > 1
+                                corr_offset = ( offset_shift(ind1) + offset_shift(ind2) ) / 2;
+                            else
+                                corr_offset = 0;
+                            end
                             im1c = RotAxisSymmetricCropping( proj(:,tomo.rot_axis.corr_area2,ind1), tomo.rot_axis.position + corr_offset, 1);
                             im2c = flipud(RotAxisSymmetricCropping( proj(:,tomo.rot_axis.corr_area2,ind2) , tomo.rot_axis.position + corr_offset, 1));
                             [optimizer, metric] = imregconfig('monomodal');
