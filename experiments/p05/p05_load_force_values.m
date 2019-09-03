@@ -248,14 +248,14 @@ axes1 = axes('Parent',fig,'FontSize',font_size,'XMinorTick','off');
 if ~isempty( setforce_force )
     
     p = plot( tomo_time - tomo_time(1), tomo_force, 'r.', setforce_time - tomo_time(1), setforce_force, 'b.', 'LineWidth',12);
-    legend( {'Tomogram', 'Set force / Waiting'}, 'FontSize', font_size,'Location','northwest')
+    legend( {'tomogram', 'Set force / waiting'}, 'FontSize', font_size,'Location','northwest')
     xlabel('time / h', 'FontSize',font_size);
 
 else
     if isempty( wait_time ) && isempty( tomo_time )
         
         p = plot( wait_force, 'b.', 'LineWidth',12);
-        legend( {'Waiting'}, 'FontSize', font_size,'Location','northwest')
+        legend( {'waiting'}, 'FontSize', font_size,'Location','northwest')
         
         xlabel('projections', 'FontSize',font_size);
         
@@ -263,14 +263,14 @@ else
         if isempty( wait_time ) || isempty( tomo_time )
             if ~isempty( wait_time )
                 p = plot( wait_time - wait_time(1), wait_force, 'b.', 'LineWidth',12);
-                legend( {'Waiting'}, 'FontSize', font_size,'Location','northwest')
+                legend( {'waiting'}, 'FontSize', font_size,'Location','northwest')
             else
                 p = plot( tomo_time - tomo_time(1), tomo_force, 'r.', 'LineWidth',12);
-                legend( {'Tomogram'}, 'FontSize', font_size,'Location','northwest')
+                legend( {'tomogram'}, 'FontSize', font_size,'Location','northwest')
             end
         else
             p = plot( wait_time - tomo_time(1), wait_force, 'b.', tomo_time - tomo_time(1), tomo_force, 'r.', 'LineWidth',12);
-            legend( {'Waiting', 'Tomogram'}, 'FontSize', font_size,'Location','northwest')
+            legend( {'waiting', 'tomogram'}, 'FontSize', font_size,'Location','northwest')
         end
         
         % Create xlabel

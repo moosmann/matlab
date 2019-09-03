@@ -17,18 +17,18 @@ edit synchroload2019may_11005842.m
 edit synchroload2019july_11006704.m
 
 %% Other scripts
-edit synchroload_figureMeetingApr2017
-edit synchroload_radiography
-edit synchroload_renorm_slices
-edit synchroload_resample_data_for_segmentation_old
+edit synchroload_figureMeetingApr2017.m
+edit synchroload_radiography.m
+edit synchroload_renorm_slices.m
+edit synchroload_resample_data_for_segmentation_old.m
 edit synchroload_resample_data_for_segmentation_autodetect.m
 edit synchroload_resample_data_for_segmentation_listmode.m
-edit synchroload_sequ_force
-edit synchroload_sequ
-edit synchroload_syn13
-edit synchroload_syn166
-edit stitch_volumes
-edit dose_synchroload
+edit synchroload_sequ_force.m
+edit synchroload_sequ.m
+edit synchroload_syn13.m
+edit synchroload_syn166.m
+edit stitch_volumes.m
+edit dose_synchroload.m
 edit dose_bone_test.m
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -100,7 +100,6 @@ p.scan_name = 'syn002_6L_PEEK_4w';
 %p.scan_name = 'syn012_79L_Mg5Gd_8w';
 p05_load_force_values( p )
 
-
 %% 2017 Nov 23 11003288
 p.raw_path = '/asap3/petra3/gpfs/p05/2017/data/11003288/raw';
 p.steps = [];
@@ -159,6 +158,8 @@ p.steps = [];
 p.register = 0;
 p.outlier_thresh = 0.01;
 p.proc_path = '/asap3/petra3/gpfs/p05/2019/data/11006704/processed';
+p.voxel_size = 6.4e-6;
+p.barcol = 'white';
 p.reco_sub = 'reco/float_rawBin5';
 p.scan_name = 'syn004_71L_Mg5Gd_12w';
 %p.scan_name = 'syn007_47L_Peek_12w';

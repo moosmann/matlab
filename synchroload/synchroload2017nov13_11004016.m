@@ -1,4 +1,4 @@
-function p05_reco_loop_synchroload2017nov_11004016( SUBSETS, RUN_RECO, PRINT_PARAMETERS)
+function synchroload2017nov13_11004016( SUBSETS, RUN_RECO, PRINT_PARAMETERS)
 % Template function to loop over data sets given in the 'PARAMETER / DATA
 % SETS' section below. The 'DEFAULT PARAMETERS' section defines the default
 % paramters. To add a data / parameter to the loop, define your

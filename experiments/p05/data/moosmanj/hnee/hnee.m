@@ -34,6 +34,12 @@ p.roi = [];
 p.scan_name = 'hnee19_pappel_oppositeWood';
 p.roi = [225 890 355 490 171 690];
 
+% GERISSEN nach 5. scan, bei ca 35 N
+p.scan_name = 'hnee21_pappel_oppositeWood';
+p.roi = [79 927 393 557 255 680];
+
+p.reco_sub = 'reco_phase/tie_regPar1p50/float_rawBin2';
+p.steps = [5 7];
 [vol, roi] = p05_load_sequ_2( p );
 
 %% Load sequence force plots %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

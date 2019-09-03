@@ -27,6 +27,8 @@ if isempty( tmp_folder )
     tmp_folder = '/gpfs/petra3/scratch/moosmanj/';
 end
 
+CheckAndMakePath( tmp_folder )
+
 if poolsize < 1 && poolsize > 0
     poolsize = max( floor( poolsize * feature('numCores') ), 1 );
 end

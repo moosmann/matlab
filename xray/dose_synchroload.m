@@ -6,7 +6,7 @@
 ca
 %clear all
 sample_type = 'real';
-sample_type = 'phantom';
+%sample_type = 'cylinder';
 num_proj_phan = 1200;
 %scintillator_factor = cdwo300.absorption.value;
 
@@ -37,6 +37,7 @@ else
 end
 p = plot( energy / 1000, Y );
 legend( {'100 micron', '300 micron'}, 'FontSize',font_size )
+title( 'scintillator efficiency' )
 xlabel( 'energy / keV', 'FontSize',font_size )
 ylabel( 'absorption', 'FontSize',font_size )
 set( p ,'LineWidth',4)
@@ -60,7 +61,7 @@ peek10 = PEEK( energy, 10e-3 );
 
 %% Bone sample
 switch sample_type
-    case {1, 'real'}
+    case 'real'
         scan_path = '/asap3/petra3/gpfs/p05/2017/data/11003440/processed/syn32_99R_Mg10Gd_4w/segmentation/2017_11003440_syn32_99R_Mg10Gd_4w_labels';
         if ~exist( 'vol', 'var' )
             fprintf( '\n' )
@@ -76,7 +77,7 @@ switch sample_type
         vol_bone = double( vol == 205 );
         
         %sc =  (vol == 105 | vol == 5);
-    case {2, 'phantom'}
+    case 'cylinder'
         vol = zeros( [300 300], 'double' );
         d12 = phantom_diameter / voxel_size.value  / 2;
         x = (1:size(vol,1) ) - round( size(vol,1) / 2 );
@@ -90,7 +91,9 @@ end
 bc = bone_cortical(energy,2e-3);
 figure( 'Name', 'Sample' )
 subplot( 1, 3, 1)
-imsc( squeeze( vol_bone(:,:, round( size(vol_bone,3)/2))))
+im = squeeze( vol_bone(:,:, round( size(vol_bone,3)/2)));
+imwrite( im, sprintf( '%ssample_%s_noFig.png', fig_path, sample_type ) );
+imsc( im ) 
 axis equal tight
 subplot( 1, 3, 2)
 imsc( squeeze( vol_bone(:,round( size(vol_bone,2)/2),:)))
@@ -98,6 +101,16 @@ axis equal tight
 subplot( 1, 3, 3)
 imsc( squeeze( vol_bone(round( size(vol_bone,1)/2),:,:)))
 axis equal tight
+
+f = figure( 'Name', 'Sample hor cut' );
+imsc( im )
+title( sample_type, 'FontSize', font_size  );
+axis equal tight
+set(gca,'xtick',[])
+set(gca,'xticklabel',[])
+set(gca,'ytick',[])
+set(gca,'yticklabel',[])
+saveas( f, sprintf( '%ssample_%s.png', fig_path, sample_type ) );
 
 % volume
 bc.total_volume.value = sum( vol_bone(:) ) * voxel_size.value^3;
@@ -206,7 +219,7 @@ for kk = 1:numel( energy )
     mac_water_kk = mac_water(kk);
     energy_kk = energy(kk);
     t = exp( - peek_density * projected_thickness_peek.value * mac_peek_kk );
-    t = t .* exp( - water_density * projected_thickness_water.value * mac_water_kk );
+    %t = t .* exp( - water_density * projected_thickness_water.value * mac_water_kk );
     t = repmat( t, [300 1] );
     % Flux per pixel
     f_kk = flux.value(kk) / size( projected_thickness_bone, 1 ) / size( projected_thickness_bone, 2 );
@@ -237,7 +250,7 @@ p = plot( energy / 1000, dose.value / 1000 );
 xlabel( 'energy / keV', 'FontSize', font_size )
 ylabel( 'dose / kGy', 'FontSize', font_size )
 set( p ,'LineWidth',4)
-title( sprintf('%s data', sample_type ) , 'FontSize', font_size );
+title( sprintf('dose simulation: %s', sample_type ) , 'FontSize', font_size );
 ax = gca;
 ax.FontSize = font_size; 
 axis tight
@@ -245,7 +258,7 @@ saveas( f, sprintf( '%s%s.png', fig_path, regexprep( f.Name, '\ |:', '_') ) );
 switch sample_type
     case 'real'
         dose_real = dose;
-    case 'phantom'
+    case 'cylinder'
         dose_phan = dose;
 end
 
@@ -264,7 +277,7 @@ xlabel( 'energy / keV', 'FontSize', font_size )
 ylabel( 'effective dose / kGy','FontSize', font_size )
 legend( {'100 micron', '300 micron'}, 'FontSize', font_size, 'Location','northwest' )
 set( p ,'LineWidth',4)
-title( sprintf('%s data', sample_type ) , 'FontSize', font_size );
+title( sprintf('effective dose simulation: %s', sample_type ) , 'FontSize', font_size );
 ax = gca;
 ax.FontSize = font_size; 
 axis tight
@@ -280,7 +293,7 @@ if exist( 'dose_real', 'var' ) && exist( 'dose_phan', 'var')
     ylabel( 'dose / kGy', 'FontSize', font_size )
     set( p ,'LineWidth',4)
     title( sprintf('dose simulation' ) , 'FontSize', font_size );
-    legend( {'phantom', 'real'}, 'FontSize', font_size )
+    legend( {'cylinder', 'real'}, 'FontSize', font_size )
     ax = gca;
     ax.FontSize = font_size;
     axis tight

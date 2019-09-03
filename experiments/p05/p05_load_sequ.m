@@ -24,6 +24,8 @@ out_thresh = assign_from_struct( p , 'out_thresh', 0.01 ); % percentage of outli
 register = assign_from_struct( p , 'register', 0 );
 auto_roi_center = assign_from_struct( p , 'auto_roi_center', 0 );
 crop_roi = assign_from_struct( p , 'crop_roi', [] );
+barcol = assign_from_struct( p , 'barcol', 'white' );
+voxel_size = assign_from_struct( p , 'voxel_size', [] );
 
 % TO DO
 % get outlier thresholds from several slices
@@ -247,13 +249,143 @@ else
 end
 fprintf( '\n roi center: x,y,z = %u,%u,%u',xx,yy,zz)
 
-%% Save
-%nimplay(cat(3,im1(s:end,:),im2(1:end-s+1,:)))
-%nimplay( squeeze(vol_reg(xx,:,:,:)));
-
 CheckAndMakePath( scan_path )
 
-%% Save 3D tif %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% Slice: Animated gif
+gif_path = [ scan_path filesep 'gif' ];
+CheckAndMakePath( gif_path )
+t = toc;
+fprintf( '\n Save animated gifs' )
+map = colormap(gray);
+
+% gif x
+% Scalebar coordinates
+A = gray2ind(rot90(squeeze( vol_reg(xx,:,:,1)), -1 ));
+[dx,dy] = size( A );
+barWidth = dy / 10;
+fac = 1;
+while round( barWidth / fac ) > 0
+    barWidth = fac * round( barWidth / fac );
+    fac = fac * 10;
+end
+margin = max( 10, round( min( dx, dy ) / 20 ) );
+barHeight = max( 2, round( dx / 50 ) );
+barx = 1+dx-barHeight-margin:dx-margin;
+bary = 1+dy-barWidth-margin:dy-margin;
+switch barcol
+    case 'white'
+        barval = max(A(:));
+    case 'black'
+        barval = max(A(:));
+end
+fprintf( '\n scalebar width : %u', barWidth )
+fprintf( '\n scalebar heigth : %u', barHeight )
+fprintf( '\n scalebar margin : %u', margin )
+fprintf( '\n scalebar grayvalue : %g', barval )
+barstr = sprintf( 'barH%uW%u', barHeight, barWidth );
+if ~isempty( voxel_size )
+    barstr = sprintf( '%s_voxel%.2f', barstr, voxel_size*1e6 );
+    barstr = regexprep( barstr, '\.', 'p' );
+end
+fprintf( '\n scalebar string : %s', barstr )
+filename = sprintf( '%s/%s_loadSequ_x%04u_%s.gif', gif_path, scan_name, xx, barstr );
+fprintf( '\n output file: %s', filename)
+for nn = 1:size(vol_reg,4)
+    A = gray2ind(rot90(squeeze( vol_reg(xx,:,:,nn))));
+    A(barx,bary) = barval;
+    if nn == 1
+        imwrite(A,map,filename,'gif','LoopCount',Inf,'DelayTime',1);
+    else
+        imwrite(A,map,filename,'gif','WriteMode','append','DelayTime',1);
+    end
+end
+
+% gif y
+% Scalebar coordinates
+A = gray2ind(rot90(squeeze( vol_reg(:,yy,:,1)), -1));
+[dx,dy] = size( A );
+barWidth = dy / 10;
+fac = 1;
+while round( barWidth / fac ) > 0
+    barWidth = fac * round( barWidth / fac );
+    fac = fac * 10;
+end
+margin = max( 10, round( min( dx, dy ) / 20 ) );
+barHeight = max( 2, round( dx / 50 ) );
+barx = 1+dx-barHeight-margin:dx-margin;
+bary = 1+dy-barWidth-margin:dy-margin;
+switch barcol
+    case 'white'
+        barval = max(A(:));
+    case 'black'
+        barval = max(A(:));
+end
+fprintf( '\n scalebar width : %u', barWidth )
+fprintf( '\n scalebar heigth : %u', barHeight )
+fprintf( '\n scalebar margin : %u', margin )
+fprintf( '\n scalebar grayvalue : %g', barval )
+barstr = sprintf( 'barH%uW%u', barHeight, barWidth );
+if ~isempty( voxel_size )
+    barstr = sprintf( '%s_voxel%.2f', barstr, voxel_size*1e6 );
+    barstr = regexprep( barstr, '\.', 'p' );
+end
+fprintf( '\n scalebar string : %s', barstr )
+filename = sprintf( '%s/%s_loadSequ_y%04u_%s.gif', gif_path, scan_name, yy, barstr );
+fprintf( '\n output file: %s', filename)
+for nn = 1:size(vol_reg,4)
+    A = gray2ind(rot90(squeeze( vol_reg(:,yy,:,nn))));
+    A(barx,bary) = barval;
+    if nn == 1
+        imwrite(A,map,filename,'gif','LoopCount',Inf,'DelayTime',1);
+    else
+        imwrite(A,map,filename,'gif','WriteMode','append','DelayTime',1);
+    end
+end
+
+% gif z
+% Scalebar coordinates
+A = gray2ind((squeeze( vol_reg(:,:,zz,1))));
+[dx,dy] = size( A );
+barWidth = dy / 10;
+fac = 1;
+while round( barWidth / fac ) > 0
+    barWidth = fac * round( barWidth / fac );
+    fac = fac * 10;
+end
+margin = max( 10, round( min( dx, dy ) / 20 ) );
+barHeight = max( 2, round( dx / 50 ) );
+barx = 1+dx-barHeight-margin:dx-margin;
+bary = 1+dy-barWidth-margin:dy-margin;
+switch barcol
+    case 'white'
+        barval = max(A(:));
+    case 'black'
+        barval = max(A(:));
+end
+fprintf( '\n scalebar width : %u', barWidth )
+fprintf( '\n scalebar heigth : %u', barHeight )
+fprintf( '\n scalebar margin : %u', margin )
+fprintf( '\n scalebar grayvalue : %g', barval )
+barstr = sprintf( 'barH%uW%u', barHeight, barWidth );
+if ~isempty( voxel_size )
+    barstr = sprintf( '%s_voxel%.2f', barstr, voxel_size*1e6 );
+    barstr = regexprep( barstr, '\.', 'p' );
+end
+fprintf( '\n scalebar string : %s', barstr )
+filename = sprintf( '%s/%s_loadSequ_z%04u_%s.gif', gif_path, scan_name, zz, barstr );
+fprintf( '\n output file: %s', filename)
+for nn = 1:size(vol_reg,4)
+    A = gray2ind((squeeze( vol_reg(:,:,zz,nn))));
+    A(barx,bary) = barval;
+    if nn == 1
+        imwrite(A,map,filename,'gif','LoopCount',Inf,'DelayTime',1);
+    else
+        imwrite(A,map,filename,'gif','WriteMode','append','DelayTime',1);
+    end
+end
+fprintf( '\n Done in %.1f s', toc - t);
+
+%% Save 3D tif z %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 fprintf( '\n Save 3D multi tifs z .' )
 t = toc;
 tif_path = [scan_path filesep 'tif'];
@@ -271,7 +403,7 @@ for mm = 1:size( vol_reg, 4 )
 end
 fprintf( ' Done in %.1f s', toc - t);
 
-%% Save 3D tif %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% Save 3D tif x %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 fprintf( '\n Save 3D multi tifs x slicing.' )
 t = toc;
 tif_path = [scan_path filesep 'tif'];
@@ -302,47 +434,6 @@ if ~isempty( crop_roi )
         end
     end
 end
-
-%% Slice: Animated gif
-t = toc;
-fprintf( '\n Save animated gifs' )
-filename = sprintf( '%s/%s_loadSequ_x%04u.gif', scan_path, scan_name, xx );
-fprintf( '\n output file: %s', filename)
-map = colormap(gray);
-for nn = 1:size(vol_reg,4)
-    %[A, map] = gray2ind(rot90(squeeze( vol_reg(xx,:,:,nn))));
-    A = gray2ind(rot90(squeeze( vol_reg(xx,:,:,nn))));
-    if nn == 1
-        imwrite(A,map,filename,'gif','LoopCount',Inf,'DelayTime',1);
-    else
-        imwrite(A,map,filename,'gif','WriteMode','append','DelayTime',1);
-    end
-end
-
-filename = sprintf( '%s/%s_loadSequ_y%04u.gif', scan_path, scan_name, yy );
-fprintf( '\n output file: %s', filename)
-for nn = 1:size(vol_reg,4)
-    A = gray2ind(rot90(squeeze( vol_reg(:,yy,:,nn))));
-    if nn == 1
-        imwrite(A,map,filename,'gif','LoopCount',Inf,'DelayTime',1);
-    else
-        imwrite(A,map,filename,'gif','WriteMode','append','DelayTime',1);
-    end
-end
-
-filename = sprintf( '%s/%s_loadSequ_z%04u.gif', scan_path, scan_name, zz );
-fprintf( '\n output file: %s', filename)
-
-for nn = 1:size(vol_reg,4)
-    A = gray2ind((squeeze( vol_reg(:,:,zz,nn))));
-    if nn == 1
-        imwrite(A,map,filename,'gif','LoopCount',Inf,'DelayTime',1);
-    else
-        imwrite(A,map,filename,'gif','WriteMode','append','DelayTime',1);
-    end
-end
-fprintf( '\n Done in %.1f s', toc - t);
-
 
 %% Show %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %nimplay( squeeze( vol_reg(xx,:,:,:) ) )

@@ -40,11 +40,12 @@ stop_after_data_reading(1) = 0; % for data analysis, before flat field correlati
 stop_after_proj_flat_correlation(1) = 0; % for data analysis, after flat field correlation
 
 %%% SCAN %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-scan_path = pwd; % sting/pwd. pwd: change to directory of the scan to be reconstructed, sting: absolute scan path
+scan_path = '/asap3/spec.instruments/gpfs/nanotom/2019/data/11008012/processed/hzg_bw2_desy2010b/bmc01';
+    %pwd; % sting/pwd. pwd: change to directory of the scan to be reconstructed, sting: absolute scan path
 read_flatcor = 0; % read preprocessed flatfield-corrected projections. CHECK if negative log has to be taken!
 read_flatcor_path = ''; % subfolder of 'flat_corrected' containing projections
-read_sino = 0; % read preprocessed sinograms. CHECK if negative log has to be taken!
-read_sino_folder = ''; % subfolder to scan path
+read_sino = 1; % read preprocessed sinograms. CHECK if negative log has to be taken!
+read_sino_folder = 'trans04'; % subfolder to scan path
 energy = []; % in eV! if empty: read from log file
 sample_detector_distance = []; % in m. if empty: read from log file
 eff_pixel_size = []; % in m. if empty: read from log file. effective pixel size =  detector pixel size / magnification
@@ -1295,15 +1296,14 @@ else
             if isempty( tomo.rot_angle.full_range )
                 cprintf( 'Red', '\nEnter full angle of rotation (including one additional increment) or vector of angles, in radians:' );
                 tomo.rot_angle.full_range = input( '' );
-                if numel( inp ) ~= num_proj_read
-                    error( 'Number of angles (%u) entered not consistent with sinogram (%u) read.', numel( inp ), num_proj_read )
-                end
+            end
+            if isscalar( tomo.rot_angle.full_range )
+                angles = tomo.rot_angle.full_range * (0:num_proj_read - 1) / num_proj_read;
             else
-                if isscalar( tomo.rot_angle.full_range )
-                    angles = tomo.rot_angle.full_range * (0:num_proj_read - 1) / num_proj_read;
-                else
-                    angles = tomo.rot_angle.full_range;
-                end
+                angles = tomo.rot_angle.full_range;
+            end
+            if length( angles ) ~= num_proj_read
+                error( 'Number of angles (%u) entered not consistent with sinogram (%u) read.', numel( angles), num_proj_read )
             end
         end
         
