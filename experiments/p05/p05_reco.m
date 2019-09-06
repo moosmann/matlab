@@ -115,7 +115,9 @@ tomo.run_interactive_mode = 1; % if tomo.run = 0, intendet to determine rot axis
 tomo.reco_mode = '3D'; 'slice'; % slice-wise or full 3D backprojection. 'slice': volume must be centered at origin & no support of rotation axis tilt, reco binning, save compressed
 tomo.vol_size = [];%[-1 1 -1 1 -0.5 0.5];% 6-component vector [xmin xmax ymin ymax zmin zmax], for excentric rot axis pos / extended FoV;. if empty, volume is centerd within tomo.vol_shape. unit voxel size is assumed. if smaller than 10 values are interpreted as relative size w.r.t. the detector size. Take care bout minus signs! Note that if empty vol_size is dependent on the rotation axis position.
 tomo.vol_shape = []; %[1 1 1] shape (# voxels) of reconstruction volume. used for excentric rot axis pos. if empty, inferred from 'tomo.vol_size'. in absolute numbers of voxels or in relative number w.r.t. the default volume which is given by the detector width and height.
-tomo.rot_angle.full_range = []; % in radians. if []: full angle of rotation including additional increment, or array of angles. if empty full rotation angles is determined automatically to pi or 2 pi
+tomo.rot_angle.full_range = pi;%
+
+%[]; % in radians. if []: full angle of rotation including additional increment, or array of angles. if empty full rotation angles is determined automatically to pi or 2 pi
 tomo.rot_angle.offset = pi; % global rotation of reconstructed volume
 tomo.rot_axis.offset = 0; % if empty use automatic computation
 tomo.rot_axis.position = []; % if empty use automatic computation. EITHER OFFSET OR POSITION MUST BE EMPTY. YOU MUST NOT USE BOTH!
@@ -174,8 +176,9 @@ write.compression.parameter = [0.02 0.02]; % compression-method specific paramet
 verbose = 1; % print information to standard output
 visual_output = 0; % show images and plots during reconstruction
 interactive_mode.rot_axis_pos = 1; % reconstruct slices with dif+ferent rotation axis offsets
-interactive_mode.rot_axis_pos_default_search_range = []; % if empty: asks for search range when entering interactive mode, otherwise directly start with given search range
-interactive_mode.rot_axis_tilt = 0; % reconstruct slices with different offset AND tilts of the rotation axis
+interactive_mode.rot_axis_pos_default_search_range = []; % if empty: asks for search range when entering interactive mode
+interactive_mode.rot_axis_tilt = 1; % reconstruct slices with different offset AND tilts of the rotation axis
+interactive_mode.rot_axis_tilt_default_search_range = []; % if empty: asks for search range when entering interactive mode
 interactive_mode.lamino = 0; % find laminography tilt instead camera rotation
 interactive_mode.fixed_other_tilt = 0; % fixed other tilt
 interactive_mode.slice_number = 0.5; % default slice number. if in [0,1): relative, if in (1, N]: absolute
@@ -249,10 +252,10 @@ if abs(excentric_rot_axis)
     end
 end
 assign_default( 'tomo.rot_axis.offset', 0 )
-assign_default( 'pixel_filter_radius', [3 3], 1 )
+assign_default( 'pixel_filter_radius', [3 3] )
 assign_default( 'image_correlation.force_calc', 0 );
-assign_default( 'image_correlation.shift.max_pixelshift', 0.25, 1 ); % maximum pixelshift allowed for 'shift'-correlation method: if 0 use the best match (i.e. the one with the least shift), if > 0 uses all flats with shifts smaller than image_correlation.shift.max_pixelshift
-assign_default( 'image_correlation.decimal_round_precision',2, 1 ); % precision when rounding pixel shifts
+assign_default( 'image_correlation.shift.max_pixelshift', 0.25 ); % maximum pixelshift allowed for 'shift'-correlation method: if 0 use the best match (i.e. the one with the least shift), if > 0 uses all flats with shifts smaller than image_correlation.shift.max_pixelshift
+assign_default( 'image_correlation.decimal_round_precision',2 ); % precision when rounding pixel shifts
 assign_default( 'write.path', '' )
 assign_default( 'write.parfolder', '' )
 assign_default( 'write.subfolder.reco', '' )
@@ -262,8 +265,10 @@ assign_default( 'write.subfolder.sino', '' )
 assign_default( 'write.deleteFiles', 0)
 assign_default( 'write.beamtimeID', '' )
 assign_default( 'tomo.reco_mode', '3D' )
+assign_default( 'tomo.rot_axis.tilt', 0 )
 assign_default( 'write.scan_name_appendix', '' )
-assign_default( 'interactive_mode.rot_axis_pos_default_search_range', -4:0.5:4 )
+assign_default( 'interactive_mode.rot_axis_pos_default_search_range', -4:0.5:4 ) % binned pixel
+assign_default( 'interactive_mode.rot_axis_tilt_default_search_range', -0.005:0.001:0.005 ) % radian
 assign_default( 'interactive_mode.phase_retrieval_default_search_range', [] )
 
 astra_clear % if reco was aborted, ASTRA memory is not cleared
@@ -1294,7 +1299,7 @@ else
         % Angles
         if  ~exist( 'angles', 'var' )
             if isempty( tomo.rot_angle.full_range )
-                cprintf( 'Red', '\nEnter full angle of rotation (including one additional increment) or vector of angles, in radians:' );
+                cprintf( 'Red', '\nEnter full angle of rotation (including one additional increment) or vector of angles, in radians: ' );
                 tomo.rot_angle.full_range = input( '' );
             end
             if isscalar( tomo.rot_angle.full_range )
@@ -1401,7 +1406,7 @@ if phase_retrieval.apply
 end
 
 %% TOMOGRAPHY %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-tint = 0;
+tint = 0;        
 if tomo.run || tomo.run_interactive_mode
     prnt( '\nTomography:')
     t = toc;
@@ -1424,49 +1429,47 @@ if tomo.run || tomo.run_interactive_mode
         error('Number of elements in array of angles (%g) unequal number of projections read (%g)', numel( angles ), num_proj_used)
     end
     
-    % retrieve index at angles 0 and pi 
-     [val1, ind1] = min( abs( angles )); 
-     [val2, ind2] = min( abs( angles - pi )); 
-     
-     %% CHECK
-     tomo.rot_axis.position = im_shape_binned1 / 2 + tomo.rot_axis.offset;
-     
-     % Tilt of rotation axis
-     if interactive_mode.rot_axis_tilt(1)
-         
-         % ROI for correlation of projections at angles 0 & pi
-         if isempty( tomo.rot_axis.corr_area1 )
-             switch excentric_rot_axis
-                 case -1
-                     tomo.rot_axis.corr_area1 = [0 0.25];
-                 case 0
-                     tomo.rot_axis.corr_area1 = [0.25 0.75];
-                 case 1
-                     tomo.rot_axis.corr_area1 = [0.75 1];
-             end
-         end
-         if isempty( tomo.rot_axis.corr_area2 )
-             tomo.rot_axis.corr_area2 = [0.1 0.9];
-         end
-         tomo.rot_axis.corr_area1 = IndexParameterToRange( tomo.rot_axis.corr_area1, im_shape_binned1 );
-         tomo.rot_axis.corr_area2 = IndexParameterToRange( tomo.rot_axis.corr_area2, im_shape_binned2 );
-         
-         if numel( offset_shift ) > 1
-             corr_offset = ( offset_shift(ind1) + offset_shift(ind2) ) / 2;
-         else
-             corr_offset = 0;
-         end
-         im1c = RotAxisSymmetricCropping( proj(:,tomo.rot_axis.corr_area2,ind1), tomo.rot_axis.position + corr_offset, 1);
-         im2c = flipud(RotAxisSymmetricCropping( proj(:,tomo.rot_axis.corr_area2,ind2) , tomo.rot_axis.position + corr_offset, 1));
-         [optimizer, metric] = imregconfig('monomodal');
+    % retrieve index at angles 0 and pi
+    [val1, ind1] = min( abs( angles ));
+    [val2, ind2] = min( abs( angles - pi ));
+    
+    %% CHECK
+    tomo.rot_axis.position = im_shape_binned1 / 2 + tomo.rot_axis.offset;
+    
+    % Tilt of rotation axis
+    if interactive_mode.rot_axis_tilt(1)
+        
+        % ROI for correlation of projections at angles 0 & pi
+        if isempty( tomo.rot_axis.corr_area1 )
+            switch excentric_rot_axis
+                case -1
+                    tomo.rot_axis.corr_area1 = [0 0.25];
+                case 0
+                    tomo.rot_axis.corr_area1 = [0.25 0.75];
+                case 1
+                    tomo.rot_axis.corr_area1 = [0.75 1];
+            end
+        end
+        if isempty( tomo.rot_axis.corr_area2 )
+            tomo.rot_axis.corr_area2 = [0.1 0.9];
+        end
+        tomo.rot_axis.corr_area1 = IndexParameterToRange( tomo.rot_axis.corr_area1, im_shape_binned1 );
+        tomo.rot_axis.corr_area2 = IndexParameterToRange( tomo.rot_axis.corr_area2, im_shape_binned2 );
+        
+        if numel( offset_shift ) > 1
+            corr_offset = ( offset_shift(ind1) + offset_shift(ind2) ) / 2;
+        else
+            corr_offset = 0;
+        end
+        im1c = RotAxisSymmetricCropping( proj(:,tomo.rot_axis.corr_area2,ind1), tomo.rot_axis.position + corr_offset, 1);
+        im2c = flipud(RotAxisSymmetricCropping( proj(:,tomo.rot_axis.corr_area2,ind2) , tomo.rot_axis.position + corr_offset, 1));
+        [optimizer, metric] = imregconfig('monomodal');
         tform_calc = imregtform(im2c, im1c, 'rigid', optimizer, metric);
         rot_axis_tilt_calc = asin( tform_calc.T(1,2) ) / 2;
     else
         rot_axis_tilt_calc = [];
     end
-    if isempty( tomo.rot_axis.tilt )
-        tomo.rot_axis.tilt = 0;
-    end
+
     %% INTERACTIVE MODE: rotation axis position / tilt %%%%%%%%%%%%%%%%%%%%%
     %    %%% AUTOMATIC MODE %%%
     %     automatic_mode = 0; % Find rotation axis position automatically. NOT IMPLEMENTED!
@@ -1480,246 +1483,268 @@ if tomo.run || tomo.run_interactive_mode
     %     end
     
     tint = 0;
-    if interactive_mode.rot_axis_pos(1)
+    if interactive_mode.rot_axis_pos
         tint = toc;
-        fprintf( '\n\nENTER INTERACTIVE MODE' )
-        fprintf( '\n number of pixels: %u', im_shape_binned1)
-        fprintf( '\n image center: %.1f', im_shape_binned1 / 2)
+        cprintf( 'RED', '\n\nENTER INTERACTIVE MODE' )
+        
+        % parameter strcut for interactive functions
+        itomo = tomo;
         
         if phase_retrieval.apply && phase_retrieval.apply_before
-            itake_neg_log = 0;
+            itomo.take_neg_log = 0;
         else
-            itake_neg_log = 1;
+            itomo.take_neg_log = 1;
         end
         if phase_retrieval.apply
-            inumber_of_stds = 9;
+            itomo.inumber_of_stds = 9;
         else
-            inumber_of_stds = 4;
+            itomo.inumber_of_stds = 4;
         end
         if interactive_mode.slice_number > 1
             slice = interactive_mode.slice_number;
         elseif interactive_mode.slice_number <= 1 && interactive_mode.slice_number >= 0
             slice = round((im_shape_binned2 - 1) * interactive_mode.slice_number + 1 );
         end
-        fprintf( '\n slice : %u', slice)
-        fprintf( '\n\nOFFSET:' )
-        fprintf( '\n current rotation axis offset / position : %.2f, %.2f', tomo.rot_axis.offset, tomo.rot_axis.position)
-        if isempty( interactive_mode.rot_axis_pos_default_search_range )
-            interactive_mode.rot_axis_pos_default_search_range = -4:4;
-        end
-        fprintf( '\n default offset range : current ROT_AXIS_OFFSET + [')
-        fprintf( ' %f', interactive_mode.rot_axis_pos_default_search_range )
-        fprintf( ']' )
-        offset = input( '\n\nENTER RANGE OF ROTATION AXIS OFFSETS\n (if empty: use default range, scalar: skip interactive mode, ''s'': change slice, ''d'': debug mode): ');
-        if ~isempty( offset ) && strcmp( offset(1), 's' )
-            slice = input( sprintf( '\n\nENTER ABSOLUTE [1,%u] OR RELATIVE [0,1] SLICE NUMBER : ', im_shape_binned2) );
-            if slice <= 1 && slice >= 0
-                slice = round((im_shape_binned2 - 1) * slice + 1 );
-            end
-            fprintf( ' \n new slice : %u', slice );
-            offset = input( '\n\nENTER RANGE OF ROTATION AXIS OFFSETS\n (if empty use default range, if scalar skips interactive mode): ');
-        end
-        if ~isempty( offset ) && strcmp( offset(1), 'd')
-            keyboard
-            offset = input( '\n\nENTER RANGE OF ROTATION AXIS OFFSETS\n (if empty use default range, if scalar skips interactive mode): ');
-        end
-        if isempty( offset )
-            % default range is centered at the given or calculated offset
-            offset = tomo.rot_axis.offset + (-4:0.5:4);
-        end
-        if isscalar( offset )
-            fprintf( ' old rotation axis offset : %.2f', tomo.rot_axis.offset)
-            tomo.rot_axis.offset = offset;
-            fprintf( '\n new rotation axis offset : %.2f', tomo.rot_axis.offset)
-        end
+        
+        itomo.offset_shift = offset_shift;
+        itomo.offset = tomo.rot_axis.offset;
+        itomo.tilt = tomo.rot_axis.tilt;
+        itomo.lamino = interactive_mode.lamino;
+        itomo.fixed_tilt = interactive_mode.fixed_other_tilt;
+        itomo.slice = slice;
+        
+        offset = [];
+        tilt = [];
         
         % Loop over offsets
         while ~isscalar( offset )
             
-            [ivol_shape, ivol_size] = volshape_volsize( proj, tomo.vol_shape, tomo.vol_size, median(offset), verbose);
+            cprintf( 'RED', '\n\nEntering offset loop' )
             
-            % Reco
-            %%% Clean up !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-            fra = tomo;
-            %fra.angles = angles;
-            fra.slice = slice;
-            fra.offset = offset;
-            fra.tilt = tomo.rot_axis.tilt;
-            fra.take_neg_log = itake_neg_log;
-            fra.inumber_of_stds = inumber_of_stds;
-            fra.vol_shape = ivol_shape;
-            fra.vol_size = ivol_size;
-            fra.lamino = interactive_mode.lamino;
-            fra.fixed_tilt = interactive_mode.fixed_other_tilt;
-            fra.astra_gpu_index = tomo.astra_gpu_index;
-            fra.offset_shift = offset_shift;
+            % Print parameters
+            fprintf( '\n\n number of pixels: %u', im_shape_binned1)
+            fprintf( '\n image center: %.1f', im_shape_binned1 / 2)
+            fprintf( '\n current slice : %u', slice)
+            fprintf( '\n current rotation axis position : %.2f', tomo.rot_axis.position)
+            cprintf( 'GREEN', '\n current rotation axis OFFSET : %.2f', tomo.rot_axis.offset )
+            fprintf( '\n default offset range : current OFFSET + [')
+            fprintf( ' %.2g', interactive_mode.rot_axis_pos_default_search_range )
+            fprintf( ']' )
             
-            tomo.fra = fra;
-            [vol, metrics_offset] = find_rot_axis_offset( fra, proj );
-            
-            % Metric minima
-            [~, min_pos] = min(cell2mat({metrics_offset(:).val}));
-            [~, max_pos] = max(cell2mat({metrics_offset(:).val}));
-            
-            % Print image number, rotation axis values, and different metrics
-            fprintf( '\n\nOFFSET:' )
-            fprintf( '\n current rotation axis offset/position : %.2f, %.2f', tomo.rot_axis.offset, tomo.rot_axis.position)
-            fprintf( '\n current slice : %u\n', slice )
-            fprintf( '%11s', 'image no.', 'offset', metrics_offset.name)
-            for nn = 1:numel(offset)
-                if offset(nn) == tomo.rot_axis.offset
-                    cprintf( 'Green', sprintf('\n%11u%11.3f', nn, offset(nn)))
-                else
-                    cprintf( 'Black', '\n%11u%11.3f', nn, offset(nn))
-                end
-                
-                for mm = 1:numel(metrics_offset)
-                    if min_pos(mm) == nn
-                        cprintf( 'Red', '%11.2g', metrics_offset(mm).val(nn) )
-                    elseif max_pos(mm) == nn
-                        cprintf( 'Blue', '%11.2g', metrics_offset(mm).val(nn) )
-                    else
-                        cprintf( 'Black', '%11.2g', metrics_offset(mm).val(nn) )
-                    end
-                end
-            end
-            
-            % Plot metrics
-            h_rot_off = figure('Name', 'OFFSET: metrics', 'WindowState', 'maximized');
-            x = 1:7;%[1:4 6:7];
-            Y = cell2mat({metrics_offset(x).val});
-            plot( offset, Y, '-+');
-            axis tight
-            xlabel( 'offset' )
-            legend( metrics_offset(x).name )
-            ax1 = gca;
-            ax2 = axes( 'Position', ax1.Position, 'XAxisLocation', 'top', 'YAxisLocation', 'right', 'Color', 'none');
-            line(1:numel( offset ), 0, 'Parent', ax2 )
-            xlabel( 'index (image no.)' )
-            set( ax1, 'YTick', [] ) % 'XTickMode', 'auto', 'XMinorTick', 'on')
-            set( ax2, 'YTick', [] )
-            title(sprintf('rotation axis: metrics VS offset'))
-            drawnow
-            saveas( h_rot_off, sprintf( '%s%s.png', fig_path, regexprep( h_rot_off.Name, '\ |:', '_') ) );
-            
-            % Play
-            nimplay(vol, 1, [], 'OFFSET: sequence of reconstructed slices using different rotation axis offsets')
-            
-            % Input
-            offset = input( '\n\nENTER ROTATION AXIS OFFSET OR A RANGE OF OFFSETS\n (if empty use current offset, ''s'' to change slice number, ''d'' for debug mode): ');
-            if ~isempty( offset ) && strcmp( offset(1), 's' )
-                slice = input( sprintf( '\n\nENTER ABSOLUTE [1,%u] OR RELATIVE [0,1] SLICE NUMBER : ', im_shape_binned2) );
-                if slice <= 1 && slice >= 0
-                    slice = round((im_shape_binned2 - 1) * slice + 1 );
-                end
-                fprintf( ' \n new slice : %u', slice );
-                offset = input( '\n\nENTER RANGE OF ROTATION AXIS OFFSETS\n (if empty use default range, if scalar skips interactive mode): ');
-            end
-            if ~isempty( offset ) && strcmp( offset(1), 'd')
-                keyboard
-                offset = input( '\n\nENTER RANGE OF ROTATION AXIS OFFSETS\n (if empty use default range, if scalar skips interactive mode): ');
-            end
-            if isempty( offset )
-                offset = tomo.rot_axis.offset;
-            end
-            if isscalar( offset )
-                fprintf( ' old rotation axis offset : %.2f', tomo.rot_axis.offset)
-                tomo.rot_axis.offset = offset;
-                fprintf( '\n new rotation axis offset : %.2f', tomo.rot_axis.offset)
-                
-                % TILT %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-                if interactive_mode.rot_axis_tilt(1)
-                    fprintf( '\n\nTILT:' )
-                    fprintf( '\n current rotation axis tilt : %g rad = %g deg', tomo.rot_axis.tilt, tomo.rot_axis.tilt * 180 / pi)
-                    fprintf( '\n calcul. rotation axis tilt : %g rad = %g deg', rot_axis_tilt_calc, rot_axis_tilt_calc * 180 / pi)
-                    fprintf( '\n default tilt range is : current ROT_AXIS_TILT + (-0.005:0.001:0.005)')
-                    tilt = input( '\n\nENTER TILT OF ROTATION AXIS OR RANGE OF TILTS\n (if empty: use default, ''s'': change slice, ''d'': debug mode):');
-                    % option to change which slice to reconstruct
-                    if ~isempty( tilt ) && strcmp( tilt(1), 's' )
-                        slice = input( sprintf( '\n\nENTER ABSOLUTE [1,%u] OR RELATIVE [0,1] SLICE NUMBER : ', im_shape_binned2) );
+            % Query parameters
+            inp = '';
+            while ischar( inp )
+                switch inp
+                    case 's'
+                        slice = input( sprintf( '\nENTER ABSOLUTE [1,%u] OR RELATIVE [0,1] SLICE NUMBER : ', im_shape_binned2) );
                         if slice <= 1 && slice >= 0
                             slice = round((im_shape_binned2 - 1) * slice + 1 );
                         end
-                        tilt = input( '\n\nENTER TILT OF ROTATION AXIS OR RANGE OF TILTS\n (if empty use default):');
+                        fprintf( ' new slice : %u (before: %u)', slice, itomo.slice );
+                        itomo.slice = slice;
+                    case 'd'
+                        cprintf( 'RED', 'ENTERING DEBUG MODE. Continue with F5.' )
+                        keyboard
+                end % switch inp
+                % Query parameters text
+                txt = [...
+                    '\n\nENTER RANGE OF ROTATION AXIS OFFSETS'...
+                    '\n ('...
+                    'if empty: use default range, '...
+                    'scalar: end interactive mode, '...
+                    '''s'': change slice, '...
+                    '''d'': debug mode): '];
+                inp = input( txt );
+            end % while ischar( inp )
+            if isempty( inp )
+                offset = itomo.rot_axis.offset + interactive_mode.rot_axis_pos_default_search_range;
+            else
+                offset = inp;
+            end  % isempty( inp )
+            
+            % Set offset or loop over offset range
+            if isscalar( offset )
+                fprintf( ' new rotation axis offset : %.2f (before: %.2f)', offset, itomo.rot_axis.offset)
+                itomo.rot_axis.offset = offset;
+                
+                % Loop over tilt again?
+                if ~isempty( tilt )
+                    inp = '';
+                    while isempty( inp )
+                        inp = input( '\n\nENTER TILT LOOP AGAIN? (''y''/1,''n''/0) ');
                     end
-                    if ~isempty( tilt ) && strcmp( tilt(1), 'd')
-                        keyboard;
-                        tilt = input( '\n\nENTER TILT OF ROTATION AXIS OR RANGE OF TILTS\n (if empty use default):');
+                    switch lower( inp )
+                        case {'y', 'yes', 1}
+                            tilt = [];
+                        case {'n', 'no', 0}
                     end
-                    if isempty( tilt )
-                        tilt = tomo.rot_axis.tilt + (-0.005:0.001:0.005);
+                end %  if ~isempty( tilt )
+                
+            else % when a range is given
+
+                % Reco parameter
+                [itomo.vol_shape, itomo.vol_size] = volshape_volsize( proj, itomo.vol_shape, itomo.vol_size, median(offset), 0);
+                itomo.offset = offset;
+                %tomo.itomo = itomo; % for debugging
+                
+                % Reco
+                [vol, metrics_offset] = find_rot_axis_offset( itomo, proj );
+                
+                % Metric minima
+                [~, min_pos] = min(cell2mat({metrics_offset(:).val}));
+                [~, max_pos] = max(cell2mat({metrics_offset(:).val}));
+                
+                % Print image number, rotation axis values, and different metrics
+                fprintf( '%11s', 'image no.', 'offset', metrics_offset.name)
+                for nn = 1:numel(offset)
+                    if offset(nn) == tomo.rot_axis.offset
+                        cprintf( 'Green', sprintf('\n%11u%11.3f', nn, offset(nn)))
+                    else
+                        cprintf( 'Black', '\n%11u%11.3f', nn, offset(nn))
                     end
                     
+                    for mm = 1:numel(metrics_offset)
+                        if min_pos(mm) == nn
+                            cprintf( 'Red', '%11.2g', metrics_offset(mm).val(nn) )
+                        elseif max_pos(mm) == nn
+                            cprintf( 'Blue', '%11.2g', metrics_offset(mm).val(nn) )
+                        else
+                            cprintf( 'Black', '%11.2g', metrics_offset(mm).val(nn) )
+                        end
+                    end
+                end
+                
+                % Plot metrics
+                h_rot_off = figure('Name', 'OFFSET: metrics', 'WindowState', 'maximized');
+                x = 1:7; %[1:4 6:7];
+                Y = cell2mat({metrics_offset(x).val});
+                plot( offset, Y, '-+');
+                axis tight
+                xlabel( 'offset' )
+                legend( metrics_offset(x).name )
+                ax1 = gca;
+                ax2 = axes( 'Position', ax1.Position, 'XAxisLocation', 'top', 'YAxisLocation', 'right', 'Color', 'none');
+                line(1:numel( offset ), 0, 'Parent', ax2 )
+                xlabel( 'index (image no.)' )
+                set( ax1, 'YTick', [] ) % 'XTickMode', 'auto', 'XMinorTick', 'on')
+                set( ax2, 'YTick', [] )
+                title(sprintf('rotation axis: metrics VS offset'))
+                drawnow
+                saveas( h_rot_off, sprintf( '%s%s.png', fig_path, regexprep( h_rot_off.Name, '\ |:', '_') ) );
+                
+                % Play
+                nimplay(vol, 1, [], 'OFFSET: sequence of reconstructed slices using different rotation axis offsets')
+                
+            end % isscalar( offset )
+            
+            if isscalar( offset )
+                
+                % TILT %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+                if interactive_mode.rot_axis_tilt
+                    
+                    cprintf( 'RED', '\n\nEntering tilt loop:' )
+                    cprintf( 'GREEN', '\n current rotation axis TILT : %g rad = %g deg', tomo.rot_axis.tilt, tomo.rot_axis.tilt * 180 / pi)
+                    fprintf( '\n calcul. rotation axis TILT : %g rad = %g deg', rot_axis_tilt_calc, rot_axis_tilt_calc * 180 / pi)
+                    fprintf( '\n default tilt range : current TILT + [')
+                    fprintf( ' %.2g', interactive_mode.rot_axis_tilt_default_search_range )
+                    fprintf( ']' )
+                    
+                    % Loop over tilts
                     while ~isscalar( tilt )
                         
-                        % Reco
-                        %fra.angles = angles;
-                        fra.slice = slice;
-                        fra.offset = offset;
-                        fra.tilt = tilt;
-                        fra.take_neg_log = itake_neg_log;
-                        fra.inumber_of_stds = inumber_of_stds;
-                        fra.vol_shape = ivol_shape;
-                        fra.vol_size = ivol_size;
-                        fra.lamino = interactive_mode.lamino;
-                        fra.fixed_tilt = interactive_mode.fixed_other_tilt;
-                        fra.astra_gpu_index = tomo.astra_gpu_index;
-                        fra.offset_shift = offset_shift;
-                        [vol, metrics_tilt] = find_rot_axis_tilt( fra, proj);
+                        % Query parameters
+                        inp = '';
+                        while ischar( inp )
+                            switch inp
+                                case 's'
+                                    slice = input( sprintf( '\nENTER ABSOLUTE [1,%u] OR RELATIVE [0,1] SLICE NUMBER : ', im_shape_binned2) );
+                                    if slice <= 1 && slice >= 0
+                                        slice = round((im_shape_binned2 - 1) * slice + 1 );
+                                    end
+                                    fprintf( ' new slice : %u (before: %u)', slice, itomo.slice );
+                                    itomo.slice = slice;
+                                case 'd'
+                                    cprintf( 'RED', 'ENTERING DEBUG MODE. Continue with F5.' )
+                                    keyboard
+                            end % switch inp
+                            
+                            % Query parameters text
+                            txt = [...
+                                '\n\nENTER RANGE OF ROTATION AXIS TILTS'...
+                                '\n ('...
+                                'if empty: use default range, '...
+                                'scalar: end interactive mode, '...
+                                '''s'': change slice, '...
+                                '''d'': debug mode): '];
+                            inp = input( txt );
+                        end % while ischar( inp )
+                        if isempty( inp )
+                            tilt = tomo.rot_axis.tilt + interactive_mode.rot_axis_tilt_default_search_range;
+                        else
+                            tilt = inp;    
+                        end % isempty( inp )
                         
-                        % Metric minima
-                        [~, min_pos] = min(cell2mat({metrics_tilt(:).val}));
-                        [~, max_pos] = max(cell2mat({metrics_tilt(:).val}));
-                        
-                        % Print image number and rotation axis tilt
-                        fprintf( '%11s', 'image no.', 'tilt/rad', 'tilt/deg', metrics_tilt.name )
-                        for nn = 1:numel(tilt)
-                            if tilt(nn) == tomo.rot_axis.tilt
-                                cprintf( 'Green', sprintf( '\n%11u%11g%11g', nn, tilt(nn), tilt(nn)/pi*180 ) )
-                            else
-                                cprintf( 'Black', sprintf( '\n%11u%11g%11g', nn, tilt(nn), tilt(nn)/pi*180 ) )
-                            end
-                            for mm = 1:numel(metrics_tilt)
-                                if min_pos(mm) == nn
-                                    cprintf( 'Red', '%11.3g', metrics_tilt(mm).val(nn) )
-                                elseif max_pos(mm) == nn
-                                    cprintf( 'Blue', '%11.3g', metrics_tilt(mm).val(nn) )
+                        % Set tilt or loop over tilts
+                        if isscalar( tilt )
+                            fprintf( ' new rotation axis tilt : %.2f (before: %.2f)', tilt, tomo.rot_axis.tilt )
+                            tomo.rot_axis.tilt = tilt;
+                            
+                        else
+                            % Reco parameters                            
+                            itomo.tilt = tilt;
+                            
+                            % Reco
+                            [vol, metrics_tilt] = find_rot_axis_tilt( itomo, proj);
+                            
+                            % Metric minima
+                            [~, min_pos] = min(cell2mat({metrics_tilt(:).val}));
+                            [~, max_pos] = max(cell2mat({metrics_tilt(:).val}));
+                            
+                            % Print image number and rotation axis tilt
+                            fprintf( '%11s', 'image no.', 'tilt/rad', 'tilt/deg', metrics_tilt.name )
+                            for nn = 1:numel(tilt)
+                                if tilt(nn) == tomo.rot_axis.tilt
+                                    cprintf( 'Green', sprintf( '\n%11u%11g%11g', nn, tilt(nn), tilt(nn)/pi*180 ) )
                                 else
-                                    cprintf( 'Black', '%11.3g', metrics_tilt(mm).val(nn) )
+                                    cprintf( 'Black', sprintf( '\n%11u%11g%11g', nn, tilt(nn), tilt(nn)/pi*180 ) )
+                                end
+                                for mm = 1:numel(metrics_tilt)
+                                    if min_pos(mm) == nn
+                                        cprintf( 'Red', '%11.3g', metrics_tilt(mm).val(nn) )
+                                    elseif max_pos(mm) == nn
+                                        cprintf( 'Blue', '%11.3g', metrics_tilt(mm).val(nn) )
+                                    else
+                                        cprintf( 'Black', '%11.3g', metrics_tilt(mm).val(nn) )
+                                    end
                                 end
                             end
-                        end
-                        
-                        % Plot metrics
-                        h_rot_tilt = figure('Name', 'TILT: metrics', 'WindowState', 'maximized');
-                        x = 6:7;
-                        Y = cell2mat({metrics_tilt(x).val});
-                        plot( tilt, Y, '-+');
-                        axis tight
-                        xlabel( 'tilt angle' )
-                        legend( metrics_tilt(x).name)
-                        ax1 = gca;
-                        set( ax1, 'YTick', [] )
-                        ax2 = axes( 'Position', ax1.Position, 'XAxisLocation', 'top', 'YAxisLocation', 'right', 'Color', 'none');
-                        line(1:numel( offset ), 0, 'Parent', ax2 )
-                        xlabel( 'index (image no.)' )
-                        set( ax2, 'YTick', [] )
-                        title(sprintf('rotation axis: metrics VS tilt'))
-                        drawnow
-                        saveas( h_rot_tilt, sprintf( '%s%s.png', fig_path, regexprep( h_rot_tilt.Name, '\ |:', '_') ) );
-                        
-                        % Play
-                        nimplay(vol, 1, [], 'TILT: sequence of reconstructed slices using different rotation axis tilts')
-                        
-                        % Input
-                        tilt = input( '\nENTER TILT OF ROTATION AXIS OR RANGE OF TILTS\n (if empty use current tilt):');
-                        if isempty( tilt )
-                            tilt = tomo.rot_axis.tilt;
+                            
+                            % Plot metrics
+                            h_rot_tilt = figure('Name', 'TILT: metrics', 'WindowState', 'maximized');
+                            x = 6:7;
+                            Y = cell2mat({metrics_tilt(x).val});
+                            plot( tilt, Y, '-+');
+                            axis tight
+                            xlabel( 'tilt angle' )
+                            legend( metrics_tilt(x).name)
+                            ax1 = gca;
+                            set( ax1, 'YTick', [] )
+                            ax2 = axes( 'Position', ax1.Position, 'XAxisLocation', 'top', 'YAxisLocation', 'right', 'Color', 'none');
+                            line(1:numel( offset ), 0, 'Parent', ax2 )
+                            xlabel( 'index (image no.)' )
+                            set( ax2, 'YTick', [] )
+                            title(sprintf('rotation axis: metrics VS tilt'))
+                            drawnow
+                            saveas( h_rot_tilt, sprintf( '%s%s.png', fig_path, regexprep( h_rot_tilt.Name, '\ |:', '_') ) );
+                            
+                            % Play
+                            nimplay(vol, 1, [], 'TILT: sequence of reconstructed slices using different rotation axis tilts')
+                            
                         end
                         
                         if isscalar( tilt )
-                            tomo.rot_axis.tilt = tilt;
-                            
+                            fprintf( '\n\nRegistration of projection' )
+                            %tomo.rot_axis.tilt = tilt;
                             tomo.rot_axis.position = im_shape_binned1 / 2 + tomo.rot_axis.offset;
                             
                             % Compare projection at 0 pi and projection at 1 pi corrected for rotation axis tilt
@@ -1766,26 +1791,31 @@ if tomo.run || tomo.run_interactive_mode
                                 name = sprintf( 'registered projections at %g and %g degree. corrected. rot axis tilt from REGISTRATION: %g, rot axis offset: %g', angles(ind1)/pi*180, angles(ind2)/pi*180, rot_axis_tilt_calc, tomo.rot_axis.offset);
                                 nimplay( cat(3, im1c(xt:end-xt,xt:end-xt)', im2c_warped_calc(xt:end-xt,xt:end-xt)'), 1, 0, name)
                                 
-                                tilt = input( '\nENTER ROTATION AXIS TILT\n (if empty use current value): ');
-                                if isempty( tilt )
-                                    tilt = tomo.rot_axis.tilt;
-                                else
-                                    tomo.rot_axis.tilt = tilt;
+                                inp = input( '\n\nENTER ROTATION AXIS TILT, if empty use current tilt: ');
+                                if ~isempty( inp )
+                                    tilt = inp;
                                 end
                             end
                             
-                            offset = input( '\nENTER RANGE OF OFFSETS TO CONTINUE INTERACTIVE LOOP OR TYPE ENTER TO EXIT LOOP: ');
-                            if isempty( offset )
-                                offset = tomo.rot_axis.offset;
+                            % Loop over offsets again?
+                            inp = [];
+                            while isempty( inp )
+                                inp = input( '\nENTER OFFSET LOOP AGAIN? (''y''/1,''n''/0) ');
+                                
                             end
-                        end
-                    end
-                else
-                    tomo.rot_axis.tilt = 0;
-                end
-            end
-        end
-        
+                            switch lower( inp )
+                                case {'y', 'yes', 1}
+                                    offset = [];
+                                case {'n', 'no', 0}
+                            end
+
+                        end % if isscalar( tilt )
+                    end % while ~isscalar( tilt )
+                    tomo.rot_axis.tilt = tilt;
+                end % if interactive_mode.rot_axis_tilt
+            end % if isscalar( offset )
+        end % while ~isscalar( offset )
+        tomo.rot_axis.offset = offset;
         tomo.rot_axis.position = im_shape_binned1 / 2 + tomo.rot_axis.offset;
         
         % Save last sequence
@@ -1795,8 +1825,9 @@ if tomo.run || tomo.run_interactive_mode
         end
         
         tint = toc - tint;
-        fprintf( '\nEND OF INTERACTIVE MODE\n' )
+        cprintf( 'RED', '\nEND OF INTERACTIVE MODE\n' )
     end
+    
     prnt( '\n rotation axis offset: %.2f', tomo.rot_axis.offset );
     prnt( '\n rotation axis position: %.2f', tomo.rot_axis.position );
     prnt( '\n rotation axis tilt: %g rad (%g deg)', tomo.rot_axis.tilt, tomo.rot_axis.tilt * 180 / pi)
@@ -2238,7 +2269,7 @@ if tomo.run
             end
             
         case {'slice', '2d'}
-            %% Slicewise backprojection %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+            %% Slicewise backprojection %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
             prnt( '\n Backproject and save slices:')
             t2 = toc;
             

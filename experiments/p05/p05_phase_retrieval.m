@@ -33,11 +33,14 @@ if exist( 'interactive_mode', 'var' ) && isfield( interactive_mode, 'phase_retri
         proj1 = proj(:,:,1);
         proj_mean = mean( proj, 3);
     end
-            
+    
     fprintf( '\n\nENTER INTERACTIVE PHASE RETRIEVAL MODE' )
-    
-    reg_par_def_range = 1:6;
-    
+    if ~isempty( interactive_mode.phase_retrieval_default_search_range )
+        reg_par_def_range = interactive_mode.phase_retrieval_default_search_range;
+    else
+        reg_par_def_range = 1:6;
+    end
+
     if interactive_mode.slice_number > 1
         slice = interactive_mode.slice_number;
     elseif interactive_mode.slice_number <= 1 && interactive_mode.slice_number >= 0

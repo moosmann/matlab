@@ -16,7 +16,7 @@ if nargin < 2
     default_value = [];
 end
 if nargin < 3
-    assign_if_empty = 0;
+    assign_if_empty = 1;
 end
 
 %% Variable or struct with fields
