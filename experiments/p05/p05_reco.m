@@ -40,12 +40,12 @@ stop_after_data_reading(1) = 0; % for data analysis, before flat field correlati
 stop_after_proj_flat_correlation(1) = 0; % for data analysis, after flat field correlation
 
 %%% SCAN %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-scan_path = '/asap3/spec.instruments/gpfs/nanotom/2019/data/11008012/processed/hzg_bw2_desy2010b/bmc01';
-    %pwd; % string/pwd. pwd: change to directory of the scan to be reconstructed, sting: absolute scan path
+scan_path = pwd; % string/pwd. pwd: change to directory of the scan to be reconstructed, sting: absolute scan path
+    '/asap3/spec.instruments/gpfs/nanotom/2019/data/11008012/processed/hzg_bw2_desy2010b/bmc01';
 read_flatcor = 0; % read preprocessed flatfield-corrected projections. CHECK if negative log has to be taken!
 read_flatcor_path = ''; % subfolder of 'flat_corrected' containing projections
-read_sino = 1; % read preprocessed sinograms. CHECK if negative log has to be taken!
-read_sino_folder = 'trans04'; % subfolder to scan path
+read_sino = 0; % read preprocessed sinograms. CHECK if negative log has to be taken!
+read_sino_folder = ''; % subfolder to scan path
 energy = []; % in eV! if empty: read from log file
 sample_detector_distance = []; % in m. if empty: read from log file
 eff_pixel_size = []; % in m. if empty: read from log file. effective pixel size =  detector pixel size / magnification
@@ -57,7 +57,7 @@ raw_roi = []; % vertical and/or horizontal ROI; (1,1) coordinate = top left pixe
 % [y0 y1 x0 x1]: vertical + horzontal ROI, each ROI as above
 % if -1: auto roi, selects vertical ROI automatically. Use only for DCM. Not working for *.raw data where images are flipped and DMM data.
 % if < -1: Threshold is set as min(proj(:,:,[1 end])) + abs(raw_roi)*median(dark(:)). raw_roi=-1 defaults to min(proj(:,:,[1 end])) + 4*median(dark(:))
-raw_bin = 4; % projection binning factor: integer
+raw_bin = 2; % projection binning factor: integer
 im_trafo = ''; % string to be evaluated after reading data in the case the image is flipped/rotated/etc due to changes at the beamline, e.g. 'rot90(im)'
 bin_before_filtering(1) = 0; % Apply binning before filtering pixel. less effective, but much faster especially for KIT camera.
 crop_at_rot_axis = 0; % for recos of scans with excentric rotation axis but WITHOUT projection stitching
@@ -114,9 +114,7 @@ tomo.run_interactive_mode = 1; % if tomo.run = 0, intendet to determine rot axis
 tomo.reco_mode = '3D'; 'slice'; % slice-wise or full 3D backprojection. 'slice': volume must be centered at origin & no support of rotation axis tilt, reco binning, save compressed
 tomo.vol_size = [];%[-1 1 -1 1 -0.5 0.5];% 6-component vector [xmin xmax ymin ymax zmin zmax], for excentric rot axis pos / extended FoV;. if empty, volume is centerd within tomo.vol_shape. unit voxel size is assumed. if smaller than 10 values are interpreted as relative size w.r.t. the detector size. Take care bout minus signs! Note that if empty vol_size is dependent on the rotation axis position.
 tomo.vol_shape = []; %[1 1 1] shape (# voxels) of reconstruction volume. used for excentric rot axis pos. if empty, inferred from 'tomo.vol_size'. in absolute numbers of voxels or in relative number w.r.t. the default volume which is given by the detector width and height.
-tomo.rot_angle.full_range = pi;%
-
-%[]; % in radians. if []: full angle of rotation including additional increment, or array of angles. if empty full rotation angles is determined automatically to pi or 2 pi
+tomo.rot_angle.full_range = []; % in radians. if []: full angle of rotation including additional increment, or array of angles. if empty full rotation angles is determined automatically to pi or 2 pi
 tomo.rot_angle.offset = pi; % global rotation of reconstructed volume
 tomo.rot_axis.offset = 0; % if empty use automatic computation
 tomo.rot_axis.position = []; % if empty use automatic computation. EITHER OFFSET OR POSITION MUST BE EMPTY. YOU MUST NOT USE BOTH!
@@ -176,7 +174,7 @@ par.verbose = 1; % print information to standard output
 par.visual_output = 0; % show images and plots during reconstruction
 interactive_mode.rot_axis_pos = 1; % reconstruct slices with dif+ferent rotation axis offsets
 interactive_mode.rot_axis_pos_default_search_range = []; % if empty: asks for search range when entering interactive mode
-interactive_mode.rot_axis_tilt = 1; % reconstruct slices with different offset AND tilts of the rotation axis
+interactive_mode.rot_axis_tilt = 0; % reconstruct slices with different offset AND tilts of the rotation axis
 interactive_mode.rot_axis_tilt_default_search_range = []; % if empty: asks for search range when entering interactive mode
 interactive_mode.lamino = 0; % find laminography tilt instead camera rotation
 interactive_mode.fixed_other_tilt = 0; % fixed other tilt
@@ -503,23 +501,23 @@ if ~read_flatcor && ~read_sino
         str = dir( sprintf( '%s*scan.log', scan_path) );
         filename = sprintf( '%s/%s', str.folder, str.name);
     end
-    [par, cur, cam] = p05_log( filename );
+    [logpar, cur, cam] = p05_log( filename );
     if isempty( eff_pixel_size )
-        eff_pixel_size = par.eff_pixel_size;
+        eff_pixel_size = logpar.eff_pixel_size;
     end
     % Scaling of pixel size if MTF is wrong. Important for lateral shift scans
     if exist( 'pix_scaling', 'var' ) && ~isempty( pix_scaling )
         eff_pixel_size = pix_scaling * eff_pixel_size;
     end
     eff_pixel_size_binned = raw_bin * eff_pixel_size;
-    exposure_time = par.exposure_time;
+    exposure_time = logpar.exposure_time;
     if isempty( energy )
-        if isfield( par, 'energy')
-            energy = par.energy;
+        if isfield( logpar, 'energy')
+            energy = logpar.energy;
         end
     end
     if isempty( sample_detector_distance )
-        sample_detector_distance = par.sample_detector_distance;
+        sample_detector_distance = logpar.sample_detector_distance;
     end
     if ~exist( h5log, 'file')
         % Image shape and ROI
@@ -613,7 +611,7 @@ if ~read_flatcor && ~read_sino
         s_stage_x.time = double( h5read( h5log, '/entry/scan/data/s_stage_x/time') );
         s_stage_x.value = h5read( h5log, '/entry/scan/data/s_stage_x/value');
         % Read out lateral rotation axis shift form log file
-        offset_shift_micron = s_stage_x.value( ~boolean( stimg_key.value(par.n_dark+1:end) ) );
+        offset_shift_micron = s_stage_x.value( ~boolean( stimg_key.value(logpar.n_dark+1:end) ) );
         offset_shift_unbinned = offset_shift_micron * 1e-3 / eff_pixel_size;
         offset_shift = offset_shift_unbinned / raw_bin;
         offset_shift = offset_shift - mean( offset_shift );
@@ -1408,9 +1406,9 @@ if tomo.run || tomo.run_interactive_mode
     
     % Full rotation angle
     if isempty( tomo.rot_angle.full_range )
-        if isfield( par, 'rotation')
+        if isfield( logpar, 'rotation')
             % From log file
-            tomo.rot_angle.full_range = par.rotation / 180 * pi;
+            tomo.rot_angle.full_range = logpar.rotation / 180 * pi;
         elseif exist('cur', 'var') && isfield(cur, 'proj') && isfield( cur.proj, 'angle')
             % from beam current log
             tomo.rot_angle.full_range = (cur.proj(end).angle - cur.proj(1).angle) * pi /180; % KIT: , EHD: ok
