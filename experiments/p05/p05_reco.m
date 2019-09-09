@@ -60,7 +60,6 @@ raw_roi = []; % vertical and/or horizontal ROI; (1,1) coordinate = top left pixe
 raw_bin = 4; % projection binning factor: integer
 im_trafo = ''; % string to be evaluated after reading data in the case the image is flipped/rotated/etc due to changes at the beamline, e.g. 'rot90(im)'
 bin_before_filtering(1) = 0; % Apply binning before filtering pixel. less effective, but much faster especially for KIT camera.
-excentric_rot_axis = 0; % off-centered rotation axis increasing FOV. -1: left, 0: centeerd, 1: right. influences tomo.rot_axis.corr_area1
 crop_at_rot_axis = 0; % for recos of scans with excentric rotation axis but WITHOUT projection stitching
 stitch_projections = 0; % for 2 pi scans: stitch projection at rotation axis position. Recommended with phase retrieval to reduce artefacts. Standard absorption contrast data should work well without stitching. Subpixel stitching not supported (non-integer rotation axis position is rounded, less/no binning before reconstruction can be used to improve precision).
 stitch_method = 'sine'; 'step';'linear'; %  ! CHECK correlation area !
@@ -246,11 +245,8 @@ end
 if ~isempty( tomo.rot_axis.offset ) && ~isempty( tomo.rot_axis.position )
     error('tomo.rot_axis.offset (%f) and tomo.rot_axis.position (%f) cannot be used simultaneously. One must be empty.', tomo.rot_axis.offset, tomo.rot_axis.position)
 end
-if abs(excentric_rot_axis)
-    if crop_at_rot_axis(1) && stitch_projections(1)
-        error( 'Do not use ''stitch projections'' in combination with ''crop_at_rot_axis''. Cropping at rot axis only makes sense without stitching in order to avoid oversampling artefacts within the overlap region.' )
-    end
-end
+
+% Default assignment if non-existing or empty!
 assign_default( 'tomo.rot_axis.offset', 0 )
 assign_default( 'pixel_filter_radius', [3 3] )
 assign_default( 'image_correlation.force_calc', 0 );
@@ -270,7 +266,8 @@ assign_default( 'write.scan_name_appendix', '' )
 assign_default( 'interactive_mode.rot_axis_pos_default_search_range', -4:0.5:4 ) % binned pixel
 assign_default( 'interactive_mode.rot_axis_tilt_default_search_range', -0.005:0.001:0.005 ) % radian
 assign_default( 'interactive_mode.phase_retrieval_default_search_range', [] )
-
+assign_default( 'tomo.rot_axis.corr_area2', [0.1 0.9] );
+        
 astra_clear % if reco was aborted, ASTRA memory is not cleared
 
 % Utility functions
@@ -1437,21 +1434,18 @@ if tomo.run || tomo.run_interactive_mode
     tomo.rot_axis.position = im_shape_binned1 / 2 + tomo.rot_axis.offset;
     
     % Tilt of rotation axis
-    if interactive_mode.rot_axis_tilt(1)
+    if interactive_mode.rot_axis_tilt
         
         % ROI for correlation of projections at angles 0 & pi
         if isempty( tomo.rot_axis.corr_area1 )
-            switch excentric_rot_axis
-                case -1
-                    tomo.rot_axis.corr_area1 = [0 0.25];
-                case 0
-                    tomo.rot_axis.corr_area1 = [0.25 0.75];
-                case 1
-                    tomo.rot_axis.corr_area1 = [0.75 1];
+            r = tomo.rot_axis.pos / im_shape_binned1;
+            if r < 1 / 4
+                tomo.rot_axis.corr_area1 = [0 0.25];
+            elseif r > 3 / 4
+                tomo.rot_axis.corr_area1 = [0.75 1];
+            else
+                tomo.rot_axis.corr_area1 = [0.25 0.75];
             end
-        end
-        if isempty( tomo.rot_axis.corr_area2 )
-            tomo.rot_axis.corr_area2 = [0.1 0.9];
         end
         tomo.rot_axis.corr_area1 = IndexParameterToRange( tomo.rot_axis.corr_area1, im_shape_binned1 );
         tomo.rot_axis.corr_area2 = IndexParameterToRange( tomo.rot_axis.corr_area2, im_shape_binned2 );
@@ -1833,7 +1827,7 @@ if tomo.run || tomo.run_interactive_mode
     prnt( '\n rotation axis tilt: %g rad (%g deg)', tomo.rot_axis.tilt, tomo.rot_axis.tilt * 180 / pi)
     [tomo.vol_shape, tomo.vol_size] = volshape_volsize( proj, tomo.vol_shape, tomo.vol_size, tomo.rot_axis.offset, verbose);
     
-    if interactive_mode.rot_axis_tilt(1) && visual_output(1)
+    if interactive_mode.rot_axis_tilt && visual_output(1)
         h4 = figure('Name','Projections at 0 and pi cropped symmetrically to rotation center');
         n = 2;
         m = 2;
@@ -1998,14 +1992,14 @@ if crop_at_rot_axis(1)
                 proj(1:xl0(nn),:,pp) = 1;
             end
             proj = projc;
-            %clear proj;
+            %clear projc;
         else
-            switch excentric_rot_axis
-                case 1
-                    proj( ceil(tomo.rot_axis.position) + 1:end, :, :) = [];
-                case -1
-                    %%% CHECK !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-                    proj( 1:floor(tomo.rot_axis.position)-1, :, :) = [];
+            % Crop relative to rot axis position if offset == 0
+            r = tomo.rot_axis.pos / im_shape_binned1;
+            if r < 0.5
+                proj( 1:floor(tomo.rot_axis.position)-1, :, :) = [];
+            else
+                proj( ceil(tomo.rot_axis.position) + 1:end, :, :) = [];
             end
         end
         if isempty( tomo.vol_shape )
@@ -2116,13 +2110,13 @@ if tomo.run
         proj = NegLog( proj, tomo.take_neg_log );
     end
     
+    % half weight pixel at rot axis pos as it is backprojected twice
     if crop_at_rot_axis(1)
-        % half weight pixel at rot axis pos as it is used twice
-        switch excentric_rot_axis
-            case 1
-                proj( end, :, :) = 0.5 * proj( end, :, :) ;
-            case -1
-                proj( 1, :, :) = 0.5 * proj( 1, :, :) ;
+        r = tomo.rot_axis.pos / im_shape_binned1;
+        if r < 0.5
+            proj( 1, :, :) = 0.5 * proj( 1, :, :) ;
+        else
+            proj( end, :, :) = 0.5 * proj( end, :, :) ;
         end
     end
     
@@ -2416,7 +2410,6 @@ if write.reco
         fprintf(fid, 'tomo.vol_shape : %u %u %u\n', tomo.vol_shape(1), tomo.vol_shape(2), tomo.vol_shape(3));
         fprintf(fid, 'tomo.vol_size : %f %f %f %f %f %f\n', tomo.vol_size(1), tomo.vol_size(2), tomo.vol_size(3), tomo.vol_size(4), tomo.vol_size(5), tomo.vol_size(6));
         % Rotation
-        fprintf(fid, 'excentric_rot_axis : %i\n', excentric_rot_axis);
         fprintf(fid, 'crop_at_rot_axis : %u\n', crop_at_rot_axis);
         fprintf(fid, 'stitch_projections : %u\n', stitch_projections);
         fprintf(fid, 'stitch_method : %s\n', stitch_method );
