@@ -7,8 +7,8 @@ export TZ='Europe/Berlin'
 export CUDA_PATH=/usr/local/cuda-10.1
 export PYTHONPATH=$CUDA_PATH/lib64/:$PYTHONPATH
 
-# MATLAB, try 2018a if error occur
-export MATLAB_VERSION=R2018b
+# MATLAB
+export MATLAB_VERSION=R2018a
 export MATLAB_USER_PATH=$PWD
 
 # ASTRA

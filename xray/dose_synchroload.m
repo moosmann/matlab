@@ -6,7 +6,7 @@
 ca
 %clear all
 sample_type = 'real';
-%sample_type = 'cylinder';
+sample_type = 'cylinder';
 num_proj_phan = 1200;
 %scintillator_factor = cdwo300.absorption.value;
 
@@ -22,7 +22,7 @@ phantom_diameter = 7e-3;
 exp_time_per_image.value = 50e-3;
 exp_time_per_image.unit = 's';
 
-font_size = 14;
+font_size = 16;
 fig_path = '/asap3/petra3/gpfs/p05/2019/data/11006704/processed/dose/';
 CheckAndMakePath( fig_path )
 
@@ -104,7 +104,7 @@ axis equal tight
 
 f = figure( 'Name', 'Sample hor cut' );
 imsc( im )
-title( sample_type, 'FontSize', font_size  );
+title( ['phantom: ' sample_type], 'FontSize', font_size + 1  );
 axis equal tight
 set(gca,'xtick',[])
 set(gca,'xticklabel',[])
@@ -275,7 +275,7 @@ Y = dose.value / 1000 .* [fsc(scintillator_factor100); fsc(scintillator_factor30
 p = plot( x, Y );
 xlabel( 'energy / keV', 'FontSize', font_size )
 ylabel( 'effective dose / kGy','FontSize', font_size )
-legend( {'100 micron', '300 micron'}, 'FontSize', font_size, 'Location','northwest' )
+legend( {'100 micron', '300 micron'}, 'FontSize', font_size, 'Location','north' )
 set( p ,'LineWidth',4)
 title( sprintf('effective dose simulation: %s', sample_type ) , 'FontSize', font_size );
 ax = gca;
