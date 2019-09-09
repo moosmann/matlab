@@ -6,8 +6,10 @@ rmpath( genpath(  [userpath '/.git'] ) );
 %rmpath( genpath(  [userpath '/test'] ) );
 rmpath( genpath(  [userpath '/old'] ) );
 
+user = getenv('USER');
 hostname = getenv('HOSTNAME');
-fprintf( 'HOSTNAME : %s', hostname );
+fprintf( 'USER : %s', user );
+fprintf( '\nHOSTNAME : %s', hostname );
 fprintf( '\nuserpath : %s', userpath );
 
 %% CUDA
@@ -44,7 +46,9 @@ fprintf( '\nGit commit ID : %s', git_commit_id );
 set(groot, 'DefaultFigureColormap', gray)
 close all;
 
-%% BUG FIXES
+%% BUG FIXES, obsolete
+
+distcomp.feature( 'LocalUseMpiexec', false );
 
 % Fix error: An unexpected error occurred during CUDA execution. The
 % CUDA error was: cannot set while device is active in this process.

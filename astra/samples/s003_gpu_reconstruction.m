@@ -50,3 +50,5 @@ figure(3); imshow(rec, []);
 astra_mex_algorithm('delete', alg_id);
 astra_mex_data2d('delete', rec_id);
 astra_mex_data2d('delete', sinogram_id);
+
+disp( 'FINISHED' )

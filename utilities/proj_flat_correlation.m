@@ -1,14 +1,15 @@
-function [proj, corr, roi] = proj_flat_correlation( proj, flat, image_correlation  )
+function [proj, corr, roi] = proj_flat_correlation( proj, flat, image_correlation, par  )
 % Correlate all projection with all flat-field to find the best matching
 % pairs for the flat-field correction using method of choice.
 %
 % proj : stack of projections
 % flat : stack of flat field
 % image_correlation : struct, required fields see below
+% par : struct, required fields see below
 %
 % Written by Julian Moosmann.
 %
-% proj_flat_correlation( proj, flat, image_correlation  )
+% proj_flat_correlation( proj, flat, image_correlation, par )
 
 %% TODO: Clean up and simplify
 
@@ -22,9 +23,9 @@ decimal_round_precision = image_correlation.decimal_round_precision;
 force_calc = image_correlation.force_calc;
 im_shape_binned = image_correlation.im_shape_binned;
 flatcor_path = image_correlation.flatcor_path;
-verbose = image_correlation.verbose;
-visual_output = image_correlation.visual_output;
-poolsize = image_correlation.poolsize;
+verbose = par.verbose;
+visual_output = par.visual_output;
+poolsize = par.poolsize;
 
 num_proj_used = size( proj, 3);
 num_ref_used = size( flat, 3);

@@ -31,3 +31,5 @@ figure(2); imshow(sinogram, []);
 
 % Free memory
 astra_mex_data2d('delete', sinogram_id);
+
+disp( 'FINISHED' )

@@ -1,11 +1,11 @@
-function [proj, h] = p05_filter_ring_artefacts( ring_filter, proj, angles, verbose, visual_output)
+function [proj, h] = p05_filter_ring_artefacts( ring_filter, proj, angles, par )
 % Filter ring artefacts for P05 data.
 %
 % Written by Julian Moosmann.
 %
-% [proj, h] = p05_filter_ring_artefacts( ring_filter, proj, angles, verbose, visual_output)
+% [proj, h] = p05_filter_ring_artefacts( ring_filter, proj, angles, par )
 
-PrintVerbose( verbose, '\nFilter ring artifacts using %s: ', ring_filter.method)
+PrintVerbose( par.verbose, '\nFilter ring artifacts using %s: ', ring_filter.method)
 t = toc;
 imsc1 = @(im) imsc( flipud( im' ) );
 % sort angles for displaying and non-contiguous acquisition
@@ -29,9 +29,9 @@ switch lower( ring_filter.method )
             proj(:,nn,:) = sino;
         end
         sino_filt = squeeze( proj(:,sino_slice,sorted_angle_index) )';
-        PrintVerbose( verbose, ' done in %.1f s (%.2f min)', toc-t, (toc-t)/60)
+        PrintVerbose( par.verbose, ' done in %.1f s (%.2f min)', toc-t, (toc-t)/60)
         
-        if visual_output
+        if par.visual_output
             h = figure('Name', 'Sinogram and ring filter');
             
             subplot(3,1,1)
@@ -80,10 +80,10 @@ switch lower( ring_filter.method )
         end
         sino_filt = squeeze( proj(:,sino_slice,sorted_angle_index) )';
         
-        PrintVerbose( verbose, ' Time elapsed: %.1f s (%.2f min)', toc-t, (toc-t)/60)
-        PrintVerbose( verbose, '\n ring filter mask min/max: %f, %f', min( mask(:) ), max( mask(:) ) )
+        PrintVerbose( par.verbose, ' Time elapsed: %.1f s (%.2f min)', toc-t, (toc-t)/60)
+        PrintVerbose( par.verbose, '\n ring filter mask min/max: %f, %f', min( mask(:) ), max( mask(:) ) )
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-        if visual_output
+        if par.visual_output
             h = figure('Name', 'Sinogram and ring filter');
             
             subplot(2,2,1)

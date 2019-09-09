@@ -4,11 +4,11 @@
 export TZ='Europe/Berlin'
 
 # NVIDIA CUDA
-export CUDA_PATH=/usr/local/cuda-9.1
+export CUDA_PATH=/usr/local/cuda-10.1
 export PYTHONPATH=$CUDA_PATH/lib64/:$PYTHONPATH
 
-# MATLAB
-export MATLAB_VERSION=R2018a
+# MATLAB, try 2018a if error occur
+export MATLAB_VERSION=R2018b
 export MATLAB_USER_PATH=$PWD
 
 # ASTRA

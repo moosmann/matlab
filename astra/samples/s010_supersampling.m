@@ -20,7 +20,7 @@ cfg_proj.VolumeGeometry = vol_geom;
 proj_id = astra_mex_projector('create', cfg_proj);
 
 
-[sinogram3 sinogram_id] = astra_create_sino(P, proj_id);
+[sinogram3, sinogram_id] = astra_create_sino(P, proj_id);
 
 figure(1); imshow(P, []);
 figure(2); imshow(sinogram3, []);
@@ -48,3 +48,4 @@ astra_mex_algorithm('delete', alg_id);
 rec = astra_mex_data2d('get', rec_id);
 figure(3); imshow(rec, []);
 
+disp( 'FINISHED' )

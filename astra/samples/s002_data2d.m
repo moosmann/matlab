@@ -58,3 +58,5 @@ astra_mex_data2d('delete', v0);
 astra_mex_data2d('delete', v1);
 astra_mex_data2d('delete', v2);
 astra_mex_data2d('delete', s0);
+
+disp( 'FINISHED' )

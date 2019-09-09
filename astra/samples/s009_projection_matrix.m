@@ -43,3 +43,5 @@ figure(1), imshow(s,[]);
 
 astra_mex_projector('delete', proj_id);
 astra_mex_matrix('delete', matrix_id);
+
+disp( 'FINISHED' )

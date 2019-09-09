@@ -1,13 +1,13 @@
-function [proj, write, tint] = p05_phase_retrieval( proj, phase_retrieval, tomo, write, interactive_mode, verbose, visual_output)
+function [proj, write, tint] = p05_phase_retrieval( proj, phase_retrieval, tomo, write, interactive_mode, par )
 % Phase retrieval for P05 data.
 %
 % Written by Julian Moosmann, 2018-01-11, last version: 2018-07-27
 %
-% [proj, write] = p05_phase_retrieval( proj, phase_retrieval, tomo, write, interactive_mode, verbose, visual_output)
+% [proj, write] = p05_phase_retrieval( proj, phase_retrieval, tomo, write, interactive_mode, par.verbose, par.visual_output)
 
 %% Main %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 t = toc;
-PrintVerbose( verbose, '\nPhase retrieval: ')
+PrintVerbose( par.verbose, '\nPhase retrieval: ')
 
 method = phase_retrieval.method;
 padding = phase_retrieval.padding;
@@ -366,11 +366,11 @@ else
     write.reco_phase_path = [write.path, filesep, 'reco_phase', filesep, phase_appendix, filesep, write.subfolder.reco, filesep];
 end
 CheckAndMakePath( write.reco_phase_path )
-PrintVerbose( verbose, '\n energy : %g eV', phase_retrieval.energy)
-PrintVerbose( verbose, '\n sample detector distance : %g m', phase_retrieval.sample_detector_distance)
-PrintVerbose( verbose, '\n pixel size : %g micron', phase_retrieval.eff_pixel_size_binned * 1e6)
-PrintVerbose( verbose, '\n phase retrieval method : %s', method)
-PrintVerbose( verbose, '\n reco_phase_path : %s', write.reco_phase_path)
+PrintVerbose( par.verbose, '\n energy : %g eV', phase_retrieval.energy)
+PrintVerbose( par.verbose, '\n sample detector distance : %g m', phase_retrieval.sample_detector_distance)
+PrintVerbose( par.verbose, '\n pixel size : %g micron', phase_retrieval.eff_pixel_size_binned * 1e6)
+PrintVerbose( par.verbose, '\n phase retrieval method : %s', method)
+PrintVerbose( par.verbose, '\n reco_phase_path : %s', write.reco_phase_path)
 
 %% Retrieval
 parfor nn = 1:size(proj, 3)
@@ -382,28 +382,28 @@ parfor nn = 1:size(proj, 3)
     %proj(:,:,nn) = gather( im(1:raw_im_shape_binned1, 1:raw_im_shape_binned2) );
 end
 pause(0.01)
-PrintVerbose( verbose, '\n done in %g s (%.2f min)', toc-t-tint, (toc-t-tint)/60)
+PrintVerbose( par.verbose, '\n done in %g s (%.2f min)', toc-t-tint, (toc-t-tint)/60)
 
-if visual_output
+if par.visual_output
 end
 
 %% Post phase retrieval binning
 phase_bin = phase_retrieval.post_binning_factor; % alias for readablity
 if phase_bin > 1
     t = toc;
-    PrintVerbose( verbose, '\nPost phase retrieval binning:')
+    PrintVerbose( par.verbose, '\nPost phase retrieval binning:')
     proj_bin = zeros( floor(size( proj ) ./ [phase_bin phase_bin 1] ), 'single');
     parfor nn = 1:size( proj, 3)
         proj_bin(:,:,nn) = Binning( proj(:,:,nn), phase_bin ) / phase_bin^2;
     end
     proj = proj_bin;
-    PrintVerbose( verbose, ' done in %g s (%.2f min)', toc - t, (toc - t) / 60)
+    PrintVerbose( par.verbose, ' done in %g s (%.2f min)', toc - t, (toc - t) / 60)
 end
 
 %% Save phase maps
 if write.phase_map
     t = toc;
-    PrintVerbose( verbose, '\nSave phase maps:')
+    PrintVerbose( par.verbose, '\nSave phase maps:')
     phase_map_path = [write.phase_map_path, phase_appendix, filesep];
     CheckAndMakePath( phase_map_path );
     % Save phase maps
@@ -412,13 +412,13 @@ if write.phase_map
         write32bitTIFfromSingle( filename, squeeze( rot90( proj( :, :, nn) ) ) )
     end
     pause(0.01)
-    PrintVerbose( verbose, ' done in %.1f s (%.2f min)', toc - t, (toc - t) / 60)
+    PrintVerbose( par.verbose, ' done in %.1f s (%.2f min)', toc - t, (toc - t) / 60)
 end
 
 %% Save sinograms
 if write.phase_sino
     t = toc;
-    PrintVerbose( verbose, '\nSave phase map sinogram:')
+    PrintVerbose( par.verbose, '\nSave phase map sinogram:')
     sino_phase_path = write.sino_phase_path;
     CheckAndMakePath(sino_phase_path)
     % Save slices
@@ -427,5 +427,5 @@ if write.phase_sino
         write32bitTIFfromSingle( filename, squeeze( proj( :, nn, :) )' )
     end
     pause(0.01)
-    PrintVerbose( verbose, ' done in %.1f s (%.2f min)', toc - t, (toc - t) / 60)
+    PrintVerbose( par.verbose, ' done in %.1f s (%.2f min)', toc - t, (toc - t) / 60)
 end

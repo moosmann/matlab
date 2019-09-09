@@ -34,3 +34,5 @@ astra_mex_algorithm('info');
 astra_mex_data3d('info');
 astra_mex_projector('info');
 astra_mex_matrix('info');
+
+disp( 'FINISHED' )

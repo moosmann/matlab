@@ -41,7 +41,7 @@ stop_after_proj_flat_correlation(1) = 0; % for data analysis, after flat field c
 
 %%% SCAN %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 scan_path = '/asap3/spec.instruments/gpfs/nanotom/2019/data/11008012/processed/hzg_bw2_desy2010b/bmc01';
-    %pwd; % sting/pwd. pwd: change to directory of the scan to be reconstructed, sting: absolute scan path
+    %pwd; % string/pwd. pwd: change to directory of the scan to be reconstructed, sting: absolute scan path
 read_flatcor = 0; % read preprocessed flatfield-corrected projections. CHECK if negative log has to be taken!
 read_flatcor_path = ''; % subfolder of 'flat_corrected' containing projections
 read_sino = 1; % read preprocessed sinograms. CHECK if negative log has to be taken!
@@ -172,8 +172,8 @@ write.compression.parameter = [0.02 0.02]; % compression-method specific paramet
 % 'std' : NUM = write.compression.parameter, mean +/- NUM*std, dynamic range is rescaled to within -/+ NUM standard deviations around the mean value
 % 'histo' : [LOW HIGH] = write.compression.parameter (100*LOW)% and (100*HIGH)% of the original histogram, e.g. [0.02 0.02]
 %%% INTERACTION %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-verbose = 1; % print information to standard output
-visual_output = 0; % show images and plots during reconstruction
+par.verbose = 1; % print information to standard output
+par.visual_output = 0; % show images and plots during reconstruction
 interactive_mode.rot_axis_pos = 1; % reconstruct slices with dif+ferent rotation axis offsets
 interactive_mode.rot_axis_pos_default_search_range = []; % if empty: asks for search range when entering interactive mode
 interactive_mode.rot_axis_tilt = 1; % reconstruct slices with different offset AND tilts of the rotation axis
@@ -184,12 +184,12 @@ interactive_mode.slice_number = 0.5; % default slice number. if in [0,1): relati
 interactive_mode.phase_retrieval = 1; % Interactive retrieval to determine regularization parameter
 interactive_mode.phase_retrieval_default_search_range = []; % if empty: asks for search range when entering interactive mode, otherwise directly start with given search range
 %%% HARDWARE / SOFTWARE %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-use_cluster = 0; % if available: on MAXWELL nodes disp/nova/wga/wgs cluster computation can be used. Recommended only for large data sets since parpool creation and data transfer implies a lot of overhead.
-poolsize = 0.8; % number of workers used in a local parallel pool. if 0: use current config. if >= 1: absolute number. if 0 < poolsize < 1: relative amount of all cores to be used. if SLURM scheduling is available, a default number of workers is used.
+par.use_cluster = 0; % if available: on MAXWELL nodes disp/nova/wga/wgs cluster computation can be used. Recommended only for large data sets since parpool creation and data transfer implies a lot of overhead.
+par.poolsize = 0.8; % number of workers used in a local parallel pool. if 0: use current config. if >= 1: absolute number. if 0 < poolsize < 1: relative amount of all cores to be used. if SLURM scheduling is available, a default number of workers is used.
 tomo.astra_link_data = 1; % ASTRA data objects become references to Matlab arrays. Reduces memory issues.
 tomo.astra_gpu_index = []; % GPU Device index to use, Matlab notation: index starts from 1. default: [], uses all
 %%% EXPERIMENTAL OR NOT YET IMPLEMENTED %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-write.uint8_segmented = 0; % experimental: threshold segmentation for histograms with 2 distinct peaks: __/\_/\__
+write.uint8_segmented = 0; % experimental: threshold segmentaion for histograms with 2 distinct peaks: __/\_/\__
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%% END OF PARAMETERS / SETTINGS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -202,7 +202,7 @@ eff_pixel_size_binned = raw_bin * eff_pixel_size;
 
 %%% Parameters set by reconstruction loop script 'p05_reco_loop' %%%%%%%%%%
 if exist( 'external_parameter' ,'var')
-    visual_output = 0;
+    par.visual_output = 0;
     dbstop if error
     interactive_mode.rot_axis_pos = 0;
     fast_reco = 0;
@@ -272,7 +272,7 @@ astra_clear % if reco was aborted, ASTRA memory is not cleared
 
 % Utility functions
 imsc1 = @(im) imsc( rot90( im ) );
-prnt = @(varargin) PrintVerbose( verbose, varargin{:});
+prnt = @(varargin) PrintVerbose( par.verbose, varargin{:});
 NameCellToMat = @(name_cell) reshape(cell2mat(name_cell), [numel(name_cell{1}), numel(name_cell)])';
 
 % Disable warnings
@@ -304,6 +304,7 @@ prnt( ' at %s', datetime )
 prnt( '\n scan_path:%s', scan_path )
 
 % Memory
+prnt( '\n user :  %s', getenv( 'USER' ) );
 prnt( '\n hostname : %s', getenv( 'HOSTNAME' ) );
 [mem_free, mem_avail, mem_total] = free_memory;
 prnt( '\n system memory: free, available, total : %.0f GiB, %.0f GiB, %.0f GiB', round([mem_free/1024^3, mem_avail/1024^3, mem_total/1024^3]) )
@@ -317,9 +318,9 @@ end
 
 % Start parallel CPU pool %%%
 t = toc;
-[poolobj, poolsize] = OpenParpool(poolsize, use_cluster, [beamtime_path filesep 'scratch_cc']);
-PrintVerbose( verbose && (poolsize > 1), '\nParpool opened on %s using %u workers. ', poolobj.Cluster.Profile, poolobj.Cluster.NumWorkers)
-PrintVerbose( verbose && (poolsize > 1), ' done in %.1f s (%.2f min)', toc - t, ( toc - t ) / 60 );
+[poolobj, par.poolsize] = OpenParpool( par.poolsize, par.use_cluster, [beamtime_path filesep 'scratch_cc']);
+PrintVerbose( par.verbose && (par.poolsize > 1), '\nParpool opened on %s using %u workers. ', poolobj.Cluster.Profile, poolobj.Cluster.NumWorkers)
+PrintVerbose( par.verbose && (par.poolsize > 1), ' done in %.1f s (%.2f min)', toc - t, ( toc - t ) / 60 );
 
 % Save scan path to file
 filename = [userpath, filesep, 'experiments/p05/path_to_latest_scan'];
@@ -376,7 +377,7 @@ if ~read_flatcor && ~read_sino
     else
         flatcor_path = [write.path, filesep, 'flat_corrected', filesep, write.subfolder.flatcor, filesep];
     end
-    PrintVerbose(verbose & write.flatcor, '\n flatcor_path: %s', flatcor_path)
+    PrintVerbose(par.verbose & write.flatcor, '\n flatcor_path: %s', flatcor_path)
     
     % Path to retreived phase maps
     if isempty( write.subfolder.phase_map )
@@ -384,7 +385,7 @@ if ~read_flatcor && ~read_sino
     else
         write.phase_map_path = [write.path, filesep, 'phase_map', filesep, write.subfolder.phase_map, filesep];
     end
-    PrintVerbose(verbose & write.phase_map, '\n phase_map_path: %s', write.phase_map_path)
+    PrintVerbose(par.verbose & write.phase_map, '\n phase_map_path: %s', write.phase_map_path)
     
     % Sinogram path
     if isempty( write.subfolder.sino )
@@ -394,8 +395,8 @@ if ~read_flatcor && ~read_sino
         sino_path = [write.path, filesep, 'sino', filesep, write.subfolder.sino, filesep];
         write.sino_phase_path = [write.path, filesep, 'sino_phase', filesep, write.subfolder.sino, filesep];
     end
-    PrintVerbose(verbose & write.sino, '\n sino_path: %s', sino_path)
-    PrintVerbose(verbose & phase_retrieval.apply & write.phase_sino, '\n sino_phase_path: %s', write.sino_phase_path)
+    PrintVerbose(par.verbose & write.sino, '\n sino_path: %s', sino_path)
+    PrintVerbose(par.verbose & phase_retrieval.apply & write.phase_sino, '\n sino_phase_path: %s', write.sino_phase_path)
     
     % Projection file names
     proj_names = FilenameCell( [scan_path, '*.img'] );
@@ -593,7 +594,7 @@ if ~read_flatcor && ~read_sino
         [petra.time, index] = unique( h5read( h5log,'/entry/hardware/beam_current/current/time') );
         petra.current = h5read( h5log,'/entry/hardware/beam_current/current/value');
         petra.current = petra.current(index);
-        if visual_output(1) 
+        if par.visual_output 
             f = figure('Name', 'PETRA beam current', 'WindowState', 'maximized');
             x = double(petra.time(2:1:end)-petra.time(2)) / 1000 / 60;
             y = petra.current(2:1:end);
@@ -623,7 +624,7 @@ if ~read_flatcor && ~read_sino
             offset_shift = tomo.rot_axis.offset_shift_range / raw_bin * (0:num_proj_used) / num_proj_used;
             offset_shift = offset_shift - mean( offset_shift );
         end
-        if visual_output(1) && numel( offset_shift ) > 2 && abs( std( offset_shift ) ) > 0
+        if par.visual_output && numel( offset_shift ) > 2 && abs( std( offset_shift ) ) > 0
             f = figure('Name', 'rotation axis offset shift', 'WindowState', 'maximized');
             plot( offset_shift, '.')
             title( sprintf('Rotation axis offset shift (zero mean)') )
@@ -754,7 +755,7 @@ if ~read_flatcor && ~read_sino
                 raw_roi = double( [pl pr] );
                 prnt( '\n vertical auto roi : [%u %u], roi threshold factor : %g', raw_roi, roi_fac )
                 
-                if visual_output(1)
+                if par.visual_output
                     f = figure('Name', 'auto ROI: raw image and cropping region', 'WindowState', 'maximized');
                     
                     subplot(1,2,1)
@@ -842,7 +843,7 @@ if ~read_flatcor && ~read_sino
     dark_med_min = min( dark(:) );
     dark_med_max = max( dark(:) );
     prnt( ' done in %.1f s', toc-t)
-    if visual_output(1)
+    if par.visual_output
         h1 = figure('Name', 'data and flat-and-dark-field correction', 'WindowState', 'maximized');
         subplot(2,3,1)
         imsc1( dark );
@@ -895,7 +896,7 @@ if ~read_flatcor && ~read_sino
             ref_rcm = mean( ref_rc(:) );
             scale_factor = 100 ./ shiftdim( ref_rc(refs_to_use), -1 );
             flat = bsxfun( @times, flat, scale_factor );
-            if visual_output(1)
+            if par.visual_output
                 hrc = figure('Name', 'ring currents', 'WindowState', 'maximized');
                 subplot(1,1,1);
                 plot( ref_rc(:), '.' )
@@ -926,7 +927,7 @@ if ~read_flatcor && ~read_sino
     nn = sum( ~refs_to_use(:) );
     num_ref_used = num_ref_used - nn;
     prnt( ' done in %.1f s', toc-t)
-    PrintVerbose( verbose && nn,'\n discarded empty refs : %u, %.2f%%', nn, 100*nn/num_ref_found )
+    PrintVerbose( par.verbose && nn,'\n discarded empty refs : %u, %.2f%%', nn, 100*nn/num_ref_found )
     if sum( num_zeros )
         prnt( '\n flat fields with zeros :' )
         % print #zeros if not all pixels are zero
@@ -942,7 +943,7 @@ if ~read_flatcor && ~read_sino
     end
     
     % Show flat field
-    if visual_output(1)
+    if par.visual_output
         if exist( 'h1' , 'var' ) && isvalid( h1 )
             figure(h1)
         else
@@ -965,7 +966,7 @@ if ~read_flatcor && ~read_sino
     img_names_mat = NameCellToMat( proj_names(proj_range) );
     
     % Display first raw image
-    if visual_output(1)
+    if par.visual_output
         if exist( 'h1' , 'var' ) && isvalid( h1 )
             figure(h1)
         else
@@ -1040,7 +1041,7 @@ if ~read_flatcor && ~read_sino
             proj = bsxfun( @times, proj, scale_factor );
             
             % Plot ring current
-            if visual_output(1)
+            if par.visual_output
                 if exist( 'hrc', 'var' ) && isvalid( hrc )
                     figure(hrc)
                 else
@@ -1077,7 +1078,7 @@ if ~read_flatcor && ~read_sino
     num_empty = sum( ~projs_to_use(:) );
     num_proj_used = num_proj_used - num_empty;
     prnt( ' done in %.1f s (%.2f min)', toc - t, ( toc - t ) / 60 )
-    PrintVerbose( verbose && num_empty,'\n discarded empty projections : %u, %.2f%%', num_empty, 100*num_empty/size(proj,3) )
+    PrintVerbose( par.verbose && num_empty,'\n discarded empty projections : %u, %.2f%%', num_empty, 100*num_empty/size(proj,3) )
     if sum( num_zeros )
         prnt( '\n projections with zeros :' )
         % print #zeros if not all pixels are zero
@@ -1106,17 +1107,14 @@ if ~read_flatcor && ~read_sino
     startS = ticBytes(gcp);
     image_correlation.im_shape_binned = im_shape_binned;
     image_correlation.flatcor_path = flatcor_path;
-    image_correlation.verbose = verbose;
-    image_correlation.visual_output = visual_output;
-    image_correlation.poolsize = poolsize;     
     image_correlation.raw_roi = raw_roi;
     image_correlation.raw_bin = raw_bin;
     image_correlation.bin_before_filtering = bin_before_filtering;
     image_correlation.proj_range = proj_range;
     image_correlation.ref_range = ref_range;
-    [proj, corr, roi] = proj_flat_correlation( proj, flat, image_correlation );
+    [proj, corr, roi] = proj_flat_correlation( proj, flat, image_correlation, par );
     toc_bytes = tocBytes(gcp,startS);
-    if visual_output
+    if par.visual_output
         f = figure('Name', 'Parallel pool data transfer during image correlation', 'WindowState', 'maximized');
         plot( toc_bytes / 1024^3, 'o-' )
         axis tight
@@ -1188,7 +1186,7 @@ if ~read_flatcor && ~read_sino
     filename = sprintf( '%ssino_middle.tif', reco_path );
     write32bitTIFfromSingle( filename, sinoc);
     
-    if visual_output(1)
+    if par.visual_output
         if exist( 'h1' , 'var' ) && isvalid( h1 )
             figure(h1)
         else
@@ -1231,7 +1229,7 @@ if ~read_flatcor && ~read_sino
     
     %% Ring artifact filter
     if ring_filter.apply && ring_filter.apply_before_stitching
-        [proj, h] = p05_filter_ring_artefacts( ring_filter, proj, angles, verbose, visual_output);
+        [proj, h] = p05_filter_ring_artefacts( ring_filter, proj, angles, par);
     end
     proj_min = min( proj(:) );
     proj_max = max( proj(:) );
@@ -1317,7 +1315,7 @@ else
         end
         
         % Plot data
-        if visual_output(1)
+        if par.visual_output
             f = figure('Name', 'projection and sinogram', 'WindowState', 'maximized');
             
             subplot(1,2,1)
@@ -1393,7 +1391,7 @@ if phase_retrieval.apply
     end
     if phase_retrieval.apply_before
         % Retrieval
-        [proj, write, tint_phase] = p05_phase_retrieval( proj, phase_retrieval, tomo, write, interactive_mode, verbose, visual_output);
+        [proj, write, tint_phase] = p05_phase_retrieval( proj, phase_retrieval, tomo, write, interactive_mode, par );
         % Post phase retrieval binning issues
         tomo.rot_axis.position = tomo.rot_axis.position / phase_bin;
         tomo.rot_axis.offset = tomo.rot_axis.offset / phase_bin;
@@ -1438,7 +1436,7 @@ if tomo.run || tomo.run_interactive_mode
         
         % ROI for correlation of projections at angles 0 & pi
         if isempty( tomo.rot_axis.corr_area1 )
-            r = tomo.rot_axis.pos / im_shape_binned1;
+            r = tomo.rot_axis.position / im_shape_binned1;
             if r < 1 / 4
                 tomo.rot_axis.corr_area1 = [0 0.25];
             elseif r > 3 / 4
@@ -1579,6 +1577,7 @@ if tomo.run || tomo.run_interactive_mode
                 % Reco parameter
                 [itomo.vol_shape, itomo.vol_size] = volshape_volsize( proj, itomo.vol_shape, itomo.vol_size, median(offset), 0);
                 itomo.offset = offset;
+                itomo.tilt = tilt;
                 %tomo.itomo = itomo; % for debugging
                 
                 % Reco
@@ -1684,15 +1683,14 @@ if tomo.run || tomo.run_interactive_mode
                             tomo.rot_axis.tilt = tilt;
                             
                         else
-                            % Reco parameters                            
-                            itomo.tilt = tilt;
-                            
                             % Reco
+                            itomo.tilt = tilt;
+                            itomo.offset = offset;
                             [vol, metrics_tilt] = find_rot_axis_tilt( itomo, proj);
                             
                             % Metric minima
-                            [~, min_pos] = min(cell2mat({metrics_tilt(:).val}));
-                            [~, max_pos] = max(cell2mat({metrics_tilt(:).val}));
+                            [~, min_pos] = min( cell2mat( {metrics_tilt(:).val} ) );
+                            [~, max_pos] = max( cell2mat( {metrics_tilt(:).val} ) );
                             
                             % Print image number and rotation axis tilt
                             fprintf( '%11s', 'image no.', 'tilt/rad', 'tilt/deg', metrics_tilt.name )
@@ -1737,7 +1735,8 @@ if tomo.run || tomo.run_interactive_mode
                         end
                         
                         if isscalar( tilt )
-                            fprintf( '\n\nRegistration of projection' )
+                            cprintf( 'RED', '\n\nDouble check tilt: ' )
+                            fprintf( 'Registration of projection' )
                             %tomo.rot_axis.tilt = tilt;
                             tomo.rot_axis.position = im_shape_binned1 / 2 + tomo.rot_axis.offset;
                             
@@ -1825,9 +1824,9 @@ if tomo.run || tomo.run_interactive_mode
     prnt( '\n rotation axis offset: %.2f', tomo.rot_axis.offset );
     prnt( '\n rotation axis position: %.2f', tomo.rot_axis.position );
     prnt( '\n rotation axis tilt: %g rad (%g deg)', tomo.rot_axis.tilt, tomo.rot_axis.tilt * 180 / pi)
-    [tomo.vol_shape, tomo.vol_size] = volshape_volsize( proj, tomo.vol_shape, tomo.vol_size, tomo.rot_axis.offset, verbose);
+    [tomo.vol_shape, tomo.vol_size] = volshape_volsize( proj, tomo.vol_shape, tomo.vol_size, tomo.rot_axis.offset, par.verbose);
     
-    if interactive_mode.rot_axis_tilt && visual_output(1)
+    if interactive_mode.rot_axis_tilt && par.visual_output
         h4 = figure('Name','Projections at 0 and pi cropped symmetrically to rotation center');
         n = 2;
         m = 2;
@@ -1930,7 +1929,7 @@ end
 
 %% Ring artifact filter %%
 if ring_filter.apply && ~ring_filter.apply_before_stitching
-    [proj, h] = p05_filter_ring_artefacts( ring_filter, proj, angles, verbose, visual_output);
+    [proj, h] = p05_filter_ring_artefacts( ring_filter, proj, angles, par );
     proj_min = min( proj(:) );
     proj_max = max( proj(:) );
 end
@@ -1995,7 +1994,7 @@ if crop_at_rot_axis(1)
             %clear projc;
         else
             % Crop relative to rot axis position if offset == 0
-            r = tomo.rot_axis.pos / im_shape_binned1;
+            r = tomo.rot_axis.position / im_shape_binned1;
             if r < 0.5
                 proj( 1:floor(tomo.rot_axis.position)-1, :, :) = [];
             else
@@ -2039,7 +2038,7 @@ end
 if phase_retrieval.apply
     if ~phase_retrieval.apply_before
         % Retrieval
-        [proj, write, tint_phase] = p05_phase_retrieval( proj, phase_retrieval, tomo, write, interactive_mode, verbose, visual_output);
+        [proj, write, tint_phase] = p05_phase_retrieval( proj, phase_retrieval, tomo, write, interactive_mode, par );
         % Post phase retrieval binning
         tomo.rot_axis.position = tomo.rot_axis.position / phase_bin;
         tomo.rot_axis.offset = tomo.rot_axis.offset / phase_bin;
@@ -2112,7 +2111,7 @@ if tomo.run
     
     % half weight pixel at rot axis pos as it is backprojected twice
     if crop_at_rot_axis(1)
-        r = tomo.rot_axis.pos / im_shape_binned1;
+        r = tomo.rot_axis.position / im_shape_binned1;
         if r < 0.5
             proj( 1, :, :) = 0.5 * proj( 1, :, :) ;
         else
@@ -2142,7 +2141,7 @@ if tomo.run
             vol_max = max( vol(:) );
             
             % Show orthogonal vol cuts
-            if visual_output(1)
+            if par.visual_output
                 
                 f = figure('Name', 'Volume cut z', 'WindowState', 'maximized');
                 nn = round( size( vol, 3 ) / 2);
@@ -2221,7 +2220,7 @@ if tomo.run
                 fclose( fid );
                 
                 % Single precision: 32-bit float tiff
-                write_volume( write.float, vol, 'float', reco_path, raw_bin, phase_bin, 1, 0, verbose, '', write.deleteFiles, write.beamtimeID);
+                write_volume( write.float, vol, 'float', reco_path, raw_bin, phase_bin, 1, 0, par.verbose, '', write.deleteFiles, write.beamtimeID);
                 
                 % Compression of dynamic range
                 if write.uint8 || write.uint8_binned || write.uint16 || write.uint16_binned
@@ -2232,10 +2231,10 @@ if tomo.run
                 end
                 
                 % 16-bit tiff
-                write_volume( write.uint16, (vol - tlow)/(thigh - tlow), 'uint16', reco_path, raw_bin, phase_bin, 1, 0, verbose, '', write.deleteFiles, write.beamtimeID);
+                write_volume( write.uint16, (vol - tlow)/(thigh - tlow), 'uint16', reco_path, raw_bin, phase_bin, 1, 0, par.verbose, '', write.deleteFiles, write.beamtimeID);
                 
                 % 8-bit tiff
-                write_volume( write.uint8, (vol - tlow)/(thigh - tlow), 'uint8', reco_path, raw_bin, phase_bin, 1, 0, verbose, '', write.deleteFiles, write.beamtimeID);
+                write_volume( write.uint8, (vol - tlow)/(thigh - tlow), 'uint8', reco_path, raw_bin, phase_bin, 1, 0, par.verbose, '', write.deleteFiles, write.beamtimeID);
                 
                 % Bin data
                 if write.float_binned || write.uint16_binned || write.uint8_binned || write.uint8_segmented
@@ -2246,18 +2245,18 @@ if tomo.run
                 end
                 
                 % Binned single precision: 32-bit float tiff
-                write_volume( write.float_binned, vol, 'float', reco_path, raw_bin, phase_bin, reco_bin, 0, verbose, '', write.deleteFiles, write.beamtimeID);
+                write_volume( write.float_binned, vol, 'float', reco_path, raw_bin, phase_bin, reco_bin, 0, par.verbose, '', write.deleteFiles, write.beamtimeID);
                 
                 % 16-bit tiff binned
-                write_volume( write.uint16_binned, (vol - tlow)/(thigh - tlow), 'uint16', reco_path, raw_bin, phase_bin, reco_bin, 0, verbose, '', write.deleteFiles, write.beamtimeID);
+                write_volume( write.uint16_binned, (vol - tlow)/(thigh - tlow), 'uint16', reco_path, raw_bin, phase_bin, reco_bin, 0, par.verbose, '', write.deleteFiles, write.beamtimeID);
                 
                 % 8-bit tiff binned
-                write_volume( write.uint8_binned, (vol - tlow)/(thigh - tlow), 'uint8', reco_path, raw_bin, phase_bin, reco_bin, 0, verbose, '', write.deleteFiles, write.beamtimeID);
+                write_volume( write.uint8_binned, (vol - tlow)/(thigh - tlow), 'uint8', reco_path, raw_bin, phase_bin, reco_bin, 0, par.verbose, '', write.deleteFiles, write.beamtimeID);
                 
                 % segmentation
                 if write.uint8_segmented
-                    [vol, out] = segment_volume(vol, 2^10, visual_output, verbose);
-                    save_path = write_volume( 1, vol/255, 'uint8', reco_path, raw_bin, phase_bin, reco_bin, 0, verbose, '_segmented', write.deleteFiles, write.beamtimeID);
+                    [vol, out] = segment_volume(vol, 2^10, par.visual_output, par.verbose);
+                    save_path = write_volume( 1, vol/255, 'uint8', reco_path, raw_bin, phase_bin, reco_bin, 0, par.verbose, '_segmented', write.deleteFiles, write.beamtimeID);
                     save( sprintf( '%ssegmentation_info.m', save_path), 'out', '-mat', '-v7.3')
                 end
             end
@@ -2301,7 +2300,7 @@ if tomo.run
                 vol_max = max( vol_max, max( vol(:) ) );
                 
                 % Show orthogonal vol cuts
-                if visual_output(1)
+                if par.visual_output
                     if sum( ind(nn) == indshow )
                         figure('Name', 'Volume slice', 'WindowState', 'maximized');
                         imsc( vol )
@@ -2486,8 +2485,8 @@ if write.reco
     prnt( '\n log file : %s', logfile_name)
     prnt( '\n reco_path : \n%s', reco_path)
 end
-PrintVerbose(verbose && interactive_mode.rot_axis_pos, '\nTime elapsed in interactive rotation axis centering mode: %g s (%.2f min)', tint, tint / 60 );
-PrintVerbose(verbose && interactive_mode.phase_retrieval, '\nTime elapsed in interactive phase retrieval mode: %g s (%.2f min)', tint_phase, tint_phase / 60 );
+PrintVerbose(par.verbose && interactive_mode.rot_axis_pos, '\nTime elapsed in interactive rotation axis centering mode: %g s (%.2f min)', tint, tint / 60 );
+PrintVerbose(par.verbose && interactive_mode.phase_retrieval, '\nTime elapsed in interactive phase retrieval mode: %g s (%.2f min)', tint_phase, tint_phase / 60 );
 prnt( '\nTime elapsed for computation: %g s (%.2f min)', toc - tint -tint_phase, (toc - tint - tint_phase) / 60 );
 prnt( '\nFINISHED: %s at %s\n', scan_name, datetime )
 if exist('fast_reco','var') && fast_reco(1)

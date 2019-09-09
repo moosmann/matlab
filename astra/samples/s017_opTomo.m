@@ -60,3 +60,5 @@ backProjection = W'*p;
 subplot(1,3,3);
 imshow(reshape(backProjection, W.vol_size), []);
 title('Backprojection');
+
+disp( 'FINISHED' )

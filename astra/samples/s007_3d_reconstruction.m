@@ -1,4 +1,4 @@
-% -----------------------------------------------------------------------
+9% -----------------------------------------------------------------------
 % This file is part of the ASTRA Toolbox
 %
 % Copyright: 2010-2018, imec Vision Lab, University of Antwerp
@@ -76,3 +76,5 @@ ainfo
 astra_mex_algorithm('delete', alg_id);
 astra_mex_data3d('delete', rec_id);
 astra_mex_data3d('delete', proj_id);
+
+disp( 'FINISHED' )

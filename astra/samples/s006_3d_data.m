@@ -60,3 +60,5 @@ astra_mex_data3d('delete', v1);
 astra_mex_data3d('delete', v2);
 astra_mex_data3d('delete', s0);
 astra_mex_data3d('delete', s1);
+
+disp( 'FINISHED' )

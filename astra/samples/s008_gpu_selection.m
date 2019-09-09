@@ -1,4 +1,4 @@
-% -----------------------------------------------------------------------
+    % -----------------------------------------------------------------------
 % This file is part of the ASTRA Toolbox
 % 
 % Copyright: 2010-2018, imec Vision Lab, University of Antwerp
@@ -35,3 +35,5 @@ rec = astra_mex_data2d('get', rec_id);
 astra_mex_algorithm('delete', alg_id);
 astra_mex_data2d('delete', rec_id);
 astra_mex_data2d('delete', sinogram_id);
+
+disp( 'FINISHED' )

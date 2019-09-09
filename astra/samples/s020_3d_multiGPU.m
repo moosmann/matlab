@@ -39,3 +39,5 @@ astra_mex_data3d('delete', proj_id);
 astra_mex_data3d('delete', bproj_id);
 
 fprintf( ' Stop\n' )
+
+disp( 'FINISHED' )
