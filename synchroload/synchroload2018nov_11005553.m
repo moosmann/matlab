@@ -136,8 +136,8 @@ write.reco_binning_factor = 2; % IF BINNED VOLUMES ARE SAVED: binning factor of 
 write.compression.method =  'outlier';'threshold';'histo';'full'; 'std'; % method to compression dynamic range into [0, 1]
 write.compression.parameter = [0.02 0.02]; % compression-method specific parameter
 %%% INTERACTION %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-verbose = 1; % print information to standard output
-visual_output = 1; % show images and plots during reconstruction
+par.verbose = 1; % print information to standard output
+par.visual_output = 1; % show images and plots during reconstruction
 interactive_mode.rot_axis_pos = 1; % reconstruct slices with dif+ferent rotation axis offsets
 interactive_mode.rot_axis_tilt = 0; % reconstruct slices with different offset AND tilts of the rotation axis
 interactive_mode.lamino = 0; % find laminography tilt instead camera rotation
@@ -145,8 +145,8 @@ interactive_mode.fixed_other_tilt = 0; % fixed other tilt
 interactive_mode.slice_number = 0.5; % default slice number. if in [0,1): relative, if in (1, N]: absolute
 interactive_mode.phase_retrieval = 0; % Interactive retrieval to determine regularization parameter
 %%% HARDWARE / SOFTWARE %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-use_cluster = 0; % if available: on MAXWELL nodes disp/nova/wga/wgs cluster computation can be used. Recommended only for large data sets since parpool creation and data transfer implies a lot of overhead.
-poolsize = 0.75; % number of workers used in a local parallel pool. if 0: use current config. if >= 1: absolute number. if 0 < poolsize < 1: relative amount of all cores to be used. if SLURM scheduling is available, a default number of workers is used.
+par.use_cluster = 0; % if available: on MAXWELL nodes disp/nova/wga/wgs cluster computation can be used. Recommended only for large data sets since parpool creation and data transfer implies a lot of overhead.
+par.poolsize = 0.75; % number of workers used in a local parallel pool. if 0: use current config. if >= 1: absolute number. if 0 < poolsize < 1: relative amount of all cores to be used. if SLURM scheduling is available, a default number of workers is used.
 tomo.astra_link_data = 1; % ASTRA data objects become references to Matlab arrays. Reduces memory issues.
 tomo.astra_gpu_index = []; % GPU Device index to use, Matlab notation: index starts from 1. default: [], uses all
 %%% EXPERIMENTAL OR NOT YET IMPLEMENTED %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -289,6 +289,7 @@ scan_path = [raw_path 'syn026_femur_55L_000']; ADD
 scan_path = [raw_path 'syn026_femur_55L_001']; ADD
 
 % good, some small local movement
+tomo.rot_axis.offset = 1.5 * 2 / raw_bin;
 scan_path = [raw_path 'syn027_20R_PEEK_4w']; ADD
 
 % quite some movement in one half of the sample
@@ -308,7 +309,8 @@ scan_path = [raw_path 'syn032_84R_Mg5Gd_4w_restart_pushed']; ADD
 
 % Good quality
 raw_bin = 3; % CMOS
-tomo.rot_axis.offset = 2.65 * 3 / raw_bin;
+%tomo.rot_axis.offset = 2.65 * 3 / raw_bin;
+tomo.rot_axis.offset = 3.5 * 2 / raw_bin;
 scan_path = [raw_path 'syn033_68R_Mg10Gd_12w']; ADD
 
 tomo.rot_axis.offset = 1.9 * 3 / raw_bin;

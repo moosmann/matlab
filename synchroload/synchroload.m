@@ -88,17 +88,33 @@ p.out_path = '';
 p.adc2force = 5.31 / 10.62*9.81; % Not needed for plotting
 p.readhdf5 = 1;
 p.scan_name = 'syn002_6L_PEEK_4w';
-%p.scan_name = 'syn003_92L_Mg10Gd_4w';
-%p.scan_name = 'syn004_84L_Mg10Gd_4w';
-%p.scan_name = 'syn005_81L_Mg5Gd_8w';
-%p.scan_name = 'syn006_75R_Mg10Gd_8w';
-%p.scan_name = 'syn007_94L_Mg10Gd_8w';
-%p.scan_name = 'syn008_76R_Mg10Gd_8w';
-%p.scan_name = 'syn009_32R_PEEK_8w';
-%p.scan_name = 'syn010_19R_PEEK_4w';
-%p.scan_name = 'syn011_14R_PEEK_4w';
-%p.scan_name = 'syn012_79L_Mg5Gd_8w';
-p05_load_force_values( p )
+p.scan_name = 'syn003_92L_Mg10Gd_4w';
+p.scan_name = 'syn004_84L_Mg10Gd_4w';
+p.scan_name = 'syn005_81L_Mg5Gd_8w';
+p.scan_name = 'syn006_75R_Mg10Gd_8w';
+p.scan_name = 'syn007_94L_Mg10Gd_8w';
+p.scan_name = 'syn008_76R_Mg10Gd_8w';
+p.scan_name = 'syn009_32R_PEEK_8w';
+p.scan_name = 'syn010_19R_PEEK_4w';
+p.scan_name = 'syn011_14R_PEEK_4w';
+p.scan_name = 'syn012_79L_Mg5Gd_8w';
+%p05_load_force_values( p )
+s = {
+'syn002_6L_PEEK_4w';
+'syn003_92L_Mg10Gd_4w';
+'syn004_84L_Mg10Gd_4w';
+'syn005_81L_Mg5Gd_8w';
+'syn006_75R_Mg10Gd_8w';
+'syn007_94L_Mg10Gd_8w';
+'syn008_76R_Mg10Gd_8w';
+'syn009_32R_PEEK_8w';
+'syn010_19R_PEEK_4w';
+'syn011_14R_PEEK_4w';
+'syn012_79L_Mg5Gd_8w';};
+for scan_name = s'
+    p.scan_name = scan_name{1};
+    p05_load_force_values( p )
+end
 
 %% 2017 Nov 23 11003288
 p.raw_path = '/asap3/petra3/gpfs/p05/2017/data/11003288/raw';

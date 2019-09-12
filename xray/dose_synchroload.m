@@ -22,7 +22,8 @@ phantom_diameter = 7e-3;
 exp_time_per_image.value = 50e-3;
 exp_time_per_image.unit = 's';
 
-font_size = 16;
+font_size = 18;
+line_width = 6;
 fig_path = '/asap3/petra3/gpfs/p05/2019/data/11006704/processed/dose/';
 CheckAndMakePath( fig_path )
 
@@ -40,7 +41,7 @@ legend( {'100 micron', '300 micron'}, 'FontSize',font_size )
 title( 'scintillator efficiency' )
 xlabel( 'energy / keV', 'FontSize',font_size )
 ylabel( 'absorption', 'FontSize',font_size )
-set( p ,'LineWidth',4)
+set( p ,'LineWidth', line_width )
 ax = gca;
 ax.FontSize = font_size; 
 axis tight
@@ -249,7 +250,7 @@ f = figure( 'Name', sprintf( 'Dose %s: Cortical bone', sample_type) );
 p = plot( energy / 1000, dose.value / 1000 );
 xlabel( 'energy / keV', 'FontSize', font_size )
 ylabel( 'dose / kGy', 'FontSize', font_size )
-set( p ,'LineWidth',4)
+set( p ,'LineWidth', line_width )
 title( sprintf('dose simulation: %s', sample_type ) , 'FontSize', font_size );
 ax = gca;
 ax.FontSize = font_size; 
@@ -276,7 +277,7 @@ p = plot( x, Y );
 xlabel( 'energy / keV', 'FontSize', font_size )
 ylabel( 'effective dose / kGy','FontSize', font_size )
 legend( {'100 micron', '300 micron'}, 'FontSize', font_size, 'Location','north' )
-set( p ,'LineWidth',4)
+set( p ,'LineWidth', line_width )
 title( sprintf('effective dose simulation: %s', sample_type ) , 'FontSize', font_size );
 ax = gca;
 ax.FontSize = font_size; 
@@ -291,7 +292,7 @@ if exist( 'dose_real', 'var' ) && exist( 'dose_phan', 'var')
     p = plot( x, Y );
     xlabel( 'energy / keV', 'FontSize', font_size )
     ylabel( 'dose / kGy', 'FontSize', font_size )
-    set( p ,'LineWidth',4)
+    set( p ,'LineWidth', line_width )
     title( sprintf('dose simulation' ) , 'FontSize', font_size );
     legend( {'cylinder', 'real'}, 'FontSize', font_size )
     ax = gca;

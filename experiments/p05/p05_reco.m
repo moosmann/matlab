@@ -1,5 +1,5 @@
 % P05 reconstruction pipeline: preprocessing, filtering, phase retrieval,
-% tomographic reconstruction, ,,,
+% tomographic reconstruction, ...
 %
 % USAGE:
 % Edit parameters in PARAMETERS / SETTINGS section below and run script.
@@ -59,7 +59,7 @@ raw_roi = []; % vertical and/or horizontal ROI; (1,1) coordinate = top left pixe
 % if < -1: Threshold is set as min(proj(:,:,[1 end])) + abs(raw_roi)*median(dark(:)). raw_roi=-1 defaults to min(proj(:,:,[1 end])) + 4*median(dark(:))
 raw_bin = 2; % projection binning factor: integer
 im_trafo = ''; % string to be evaluated after reading data in the case the image is flipped/rotated/etc due to changes at the beamline, e.g. 'rot90(im)'
-bin_before_filtering(1) = 0; % Apply binning before filtering pixel. less effective, but much faster especially for KIT camera.
+bin_before_filtering(1) = 1; % Apply binning before filtering pixel. less effective, but much faster especially for KIT camera.
 crop_at_rot_axis = 0; % for recos of scans with excentric rotation axis but WITHOUT projection stitching
 stitch_projections = 0; % for 2 pi scans: stitch projection at rotation axis position. Recommended with phase retrieval to reduce artefacts. Standard absorption contrast data should work well without stitching. Subpixel stitching not supported (non-integer rotation axis position is rounded, less/no binning before reconstruction can be used to improve precision).
 stitch_method = 'sine'; 'step';'linear'; %  ! CHECK correlation area !
@@ -100,7 +100,7 @@ ring_filter.waveletfft.sigma = 2.4; %  suppression factor for 'wavelet-fft'
 ring_filter.jm.median_width = 11; % multiple widths are applied consecutively, eg [3 11 21 31 39];
 strong_abs_thresh = 1; % if 1: does nothing, if < 1: flat-corrected values below threshold are set to one. Try with algebratic reco techniques.
 %%% PHASE RETRIEVAL %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-phase_retrieval.apply = 0; % See 'PhaseFilter' for detailed description of parameters !
+phase_retrieval.apply = 1; % See 'PhaseFilter' for detailed description of parameters !
 phase_retrieval.apply_before = 0; % before stitching, interactive mode, etc. For phase-contrast data with an excentric rotation axis phase retrieval should be done afterwards. To find the rotataion axis position use this option in a first run, and then turn it of afterwards.
 phase_retrieval.post_binning_factor = 1; % Binning factor after phase retrieval, but before tomographic reconstruction
 phase_retrieval.method = 'tie';'qp';'qpcut'; %'qp' 'ctf' 'tie' 'qp2' 'qpcut'
@@ -112,7 +112,7 @@ phase_retrieval.padding = 1; % padding of intensities before phase retrieval, 0:
 tomo.run = 1; % run tomographic reconstruction
 tomo.run_interactive_mode = 1; % if tomo.run = 0, intendet to determine rot axis positions without processing the full tomogram;
 tomo.reco_mode = '3D'; 'slice'; % slice-wise or full 3D backprojection. 'slice': volume must be centered at origin & no support of rotation axis tilt, reco binning, save compressed
-tomo.vol_size = [];%[-1 1 -1 1 -0.5 0.5];% 6-component vector [xmin xmax ymin ymax zmin zmax], for excentric rot axis pos / extended FoV;. if empty, volume is centerd within tomo.vol_shape. unit voxel size is assumed. if smaller than 10 values are interpreted as relative size w.r.t. the detector size. Take care bout minus signs! Note that if empty vol_size is dependent on the rotation axis position.
+tomo.vol_size = [-1 1 -1 1 -0.5 0.5];% 6-component vector [xmin xmax ymin ymax zmin zmax], for excentric rot axis pos / extended FoV;. if empty, volume is centerd within tomo.vol_shape. unit voxel size is assumed. if smaller than 10 values are interpreted as relative size w.r.t. the detector size. Take care bout minus signs! Note that if empty vol_size is dependent on the rotation axis position.
 tomo.vol_shape = []; %[1 1 1] shape (# voxels) of reconstruction volume. used for excentric rot axis pos. if empty, inferred from 'tomo.vol_size'. in absolute numbers of voxels or in relative number w.r.t. the default volume which is given by the detector width and height.
 tomo.rot_angle.full_range = []; % in radians. if []: full angle of rotation including additional increment, or array of angles. if empty full rotation angles is determined automatically to pi or 2 pi
 tomo.rot_angle.offset = pi; % global rotation of reconstructed volume
@@ -146,10 +146,10 @@ write.subfolder.flatcor = ''; % subfolder in 'flat_corrected'
 write.subfolder.phase_map = ''; % subfolder in 'phase_map'
 write.subfolder.sino = ''; % subfolder in 'sino'
 write.subfolder.reco = ''; % subfolder in 'reco'
-write.flatcor = 0; % save preprocessed flat corrected projections
+write.flatcor = 1; % save preprocessed flat corrected projections
 write.flatcor_shift_cropped = 0; % save lateral shift corrected projections, projections are not interpolated, but cropped to nearest integer pixel
 write.phase_map = 0; % save phase maps (if phase retrieval is not 0)
-write.sino = 0; % save sinograms (after preprocessing & before FBP filtering and phase retrieval)
+write.sino = 1; % save sinograms (after preprocessing & before FBP filtering and phase retrieval)
 write.sino_shift_cropped = 0; % save cropped sinos without lateral shift
 write.phase_sino = 0; % save sinograms of phase maps
 write.reco = 1; % save reconstructed slices (if tomo.run=1)
@@ -171,7 +171,7 @@ write.compression.parameter = [0.02 0.02]; % compression-method specific paramet
 % 'histo' : [LOW HIGH] = write.compression.parameter (100*LOW)% and (100*HIGH)% of the original histogram, e.g. [0.02 0.02]
 %%% INTERACTION %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 par.verbose = 1; % print information to standard output
-par.visual_output = 0; % show images and plots during reconstruction
+par.visual_output = 1; % show images and plots during reconstruction
 interactive_mode.rot_axis_pos = 1; % reconstruct slices with dif+ferent rotation axis offsets
 interactive_mode.rot_axis_pos_default_search_range = []; % if empty: asks for search range when entering interactive mode
 interactive_mode.rot_axis_tilt = 0; % reconstruct slices with different offset AND tilts of the rotation axis
@@ -182,7 +182,7 @@ interactive_mode.slice_number = 0.5; % default slice number. if in [0,1): relati
 interactive_mode.phase_retrieval = 1; % Interactive retrieval to determine regularization parameter
 interactive_mode.phase_retrieval_default_search_range = []; % if empty: asks for search range when entering interactive mode, otherwise directly start with given search range
 %%% HARDWARE / SOFTWARE %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-par.use_cluster = 0; % if available: on MAXWELL nodes disp/nova/wga/wgs cluster computation can be used. Recommended only for large data sets since parpool creation and data transfer implies a lot of overhead.
+par.use_cluster = 1; % if available: on MAXWELL nodes disp/nova/wga/wgs cluster computation can be used. Recommended only for large data sets since parpool creation and data transfer implies a lot of overhead.
 par.poolsize = 0.8; % number of workers used in a local parallel pool. if 0: use current config. if >= 1: absolute number. if 0 < poolsize < 1: relative amount of all cores to be used. if SLURM scheduling is available, a default number of workers is used.
 tomo.astra_link_data = 1; % ASTRA data objects become references to Matlab arrays. Reduces memory issues.
 tomo.astra_gpu_index = []; % GPU Device index to use, Matlab notation: index starts from 1. default: [], uses all
@@ -256,6 +256,7 @@ assign_default( 'write.subfolder.reco', '' )
 assign_default( 'write.subfolder.flatcor', '' )
 assign_default( 'write.subfolder.phase_map', '' )
 assign_default( 'write.subfolder.sino', '' )
+assign_default( 'write.sino_shift_cropped', 0 ) 
 assign_default( 'write.deleteFiles', 0)
 assign_default( 'write.beamtimeID', '' )
 assign_default( 'tomo.reco_mode', '3D' )
@@ -370,28 +371,26 @@ if ~read_flatcor && ~read_sino
     end
     
     % Path to flat-field corrected projections
-    if isempty( write.subfolder.flatcor )
-        flatcor_path = [write.path, filesep, 'flat_corrected', filesep];
-    else
-        flatcor_path = [write.path, filesep, 'flat_corrected', filesep, write.subfolder.flatcor, filesep];
+    flatcor_path = sprintf( '%s/flat_corrected_rawBin%u/', write.path, raw_bin );
+    if ~isempty( write.subfolder.flatcor )
+        flatcor_path =  sprintf( '%s%s/', flatcor_path, write.subfolder.flatcor );
     end
     PrintVerbose(par.verbose & write.flatcor, '\n flatcor_path: %s', flatcor_path)
     
-    % Path to retreived phase maps
-    if isempty( write.subfolder.phase_map )
-        write.phase_map_path = [write.path, filesep, 'phase_map', filesep];
-    else
-        write.phase_map_path = [write.path, filesep, 'phase_map', filesep, write.subfolder.phase_map, filesep];
+    % Path to retrieved phase maps
+    write.phase_map_path = sprintf( '%s/phase_map_rawBin%u/', write.path, raw_bin );
+    if ~isempty( write.subfolder.phase_map )
+        %write.phase_map_path = [write.path, filesep, 'phase_map', filesep, write.subfolder.phase_map, filesep];
+        write.phase_map_path = sprintf( '%s%s/',  write.phase_map_path, write.subfolder.phase_map );
     end
     PrintVerbose(par.verbose & write.phase_map, '\n phase_map_path: %s', write.phase_map_path)
     
     % Sinogram path
-    if isempty( write.subfolder.sino )
-        sino_path = [write.path, filesep, 'sino', filesep];
-        write.sino_phase_path = [write.path, filesep, 'sino_phase', filesep];
-    else
-        sino_path = [write.path, filesep, 'sino', filesep, write.subfolder.sino, filesep];
-        write.sino_phase_path = [write.path, filesep, 'sino_phase', filesep, write.subfolder.sino, filesep];
+    sino_path = sprintf( '%s/sino_rawBin%u/', write.path, raw_bin );
+    write.sino_phase_path = sprintf( '%s/sino_phase_rawBin%u/', write.path, raw_bin );
+    if ~isempty( write.subfolder.sino )
+        sino_path = sprintf( '%s%s/', sino_path, write.subfolder.sino );
+        write.sino_phase_path = sprintf( '%s%s/', write.sino_phase_path, write.subfolder.sino );
     end
     PrintVerbose(par.verbose & write.sino, '\n sino_path: %s', sino_path)
     PrintVerbose(par.verbose & phase_retrieval.apply & write.phase_sino, '\n sino_phase_path: %s', write.sino_phase_path)
@@ -1160,15 +1159,15 @@ if ~read_flatcor && ~read_sino
             angles = angles(proj_range);
         end
     elseif exist( h5log, 'file')
-        angles = s_rot.value( ~boolean( stimg_key.value(par.n_dark+1:end) ) ) * pi / 180;
+        angles = s_rot.value( ~boolean( stimg_key.value(logpar.n_dark+1:end) ) ) * pi / 180;
         angles = angles(proj_range);
     else
-        num_proj = par.num_proj;
+        num_proj = logpar.num_proj;
         switch lower( cam )
             case 'ehd'
                 angles = tomo.rot_angle.full_range * (0:num_proj - 1) / (num_proj - 1); % EHD: ok
             case 'kit'
-                angles = tomo.rot_angle.full_range * (0:num_proj - 1) / num_proj; % KIT: ok if par.projections exist
+                angles = tomo.rot_angle.full_range * (0:num_proj - 1) / num_proj; % KIT: ok if logpar.projections exist
         end
     end
     % drop angles where projections are empty
@@ -1393,7 +1392,8 @@ if phase_retrieval.apply
         % Post phase retrieval binning issues
         tomo.rot_axis.position = tomo.rot_axis.position / phase_bin;
         tomo.rot_axis.offset = tomo.rot_axis.offset / phase_bin;
-        [tomo.vol_shape, tomo.vol_size] = volshape_volsize( proj, [], [], 0);
+        %[tomo.vol_shape, tomo.vol_size] = volshape_volsize( proj, [], [], 0);
+        [tomo.vol_shape, tomo.vol_size] = volshape_volsize( proj, tomo.vol_shape, tomo.vol_size, tomo.rot_axis.offset, par.verbose);
         offset_shift = offset_shift / phase_bin;
     end
 end
@@ -2013,9 +2013,9 @@ if write.sino
     t = toc;
     prnt( '\nSave sinogram:')
     CheckAndMakePath(sino_path, write.deleteFiles, write.beamtimeID)
-    % Save cropped sinos withou lateral shift
-    if numel(offset_shift) > 1 && isfield(write, 'sino_shift_cropped') && write.sino_shift_cropped
+    if numel(offset_shift) > 1 && write.sino_shift_cropped
         parfor nn = 1:im_shape_binned2
+            % Save cropped sinos without lateral shift
             filename = sprintf( '%ssino_%06u.tif', sino_path, nn);
             sino = squeeze( proj( :, nn, :) );
             sinoc = CropShift( sino, offset_shift );
@@ -2025,7 +2025,8 @@ if write.sino
         % Save sino with lateral shift
         parfor nn = 1:im_shape_binned2
             filename = sprintf( '%ssino_%06u.tif', sino_path, nn);
-            write32bitTIFfromSingle( filename, squeeze( proj( :, nn, :) )' )
+            sino = squeeze( proj( :, nn, :) )';
+            write32bitTIFfromSingle( filename, sino )
         end
     end
     pause(0.01)
@@ -2040,7 +2041,8 @@ if phase_retrieval.apply
         % Post phase retrieval binning
         tomo.rot_axis.position = tomo.rot_axis.position / phase_bin;
         tomo.rot_axis.offset = tomo.rot_axis.offset / phase_bin;
-        [tomo.vol_shape, tomo.vol_size] = volshape_volsize( proj, [], [], 0);
+%        [tomo.vol_shape, tomo.vol_size] = volshape_volsize( proj, [], [], 0);
+        [tomo.vol_shape, tomo.vol_size] = volshape_volsize( proj, tomo.vol_shape, tomo.vol_size, tomo.rot_axis.offset, par.verbose);
         offset_shift = offset_shift / phase_bin;
     end
 end

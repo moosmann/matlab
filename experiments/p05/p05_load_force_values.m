@@ -231,6 +231,18 @@ wait_time = wait_time / 60 / 60;
 setforce_time = setforce_time / 3600 / 1e3;
 tomo_time = tomo_time / 3600 / 1e3;
 
+m = wait_time == 0;
+wait_time(m) = [];
+wait_force(m) = [];
+
+m = setforce_time == 0;
+setforce_time(m) = [];
+setforce_force(m) = [];
+
+m = tomo_time == 0;
+tomo_time(m) = [];
+tomo_force(m) = [];
+
 %% Save
 %filename = sprintf( '%s/%s_loadSequ_x%04u.gif', scan_path, scan_name, xx );
 %fprintf( '\n output file: %s', filename)
