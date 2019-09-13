@@ -171,7 +171,7 @@ write.compression.parameter = [0.02 0.02]; % compression-method specific paramet
 % 'histo' : [LOW HIGH] = write.compression.parameter (100*LOW)% and (100*HIGH)% of the original histogram, e.g. [0.02 0.02]
 %%% INTERACTION %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 par.verbose = 1; % print information to standard output
-par.visual_output = 1; % show images and plots during reconstruction
+par.visual_output = 0; % show images and plots during reconstruction
 interactive_mode.rot_axis_pos = 1; % reconstruct slices with dif+ferent rotation axis offsets
 interactive_mode.rot_axis_pos_default_search_range = []; % if empty: asks for search range when entering interactive mode
 interactive_mode.rot_axis_tilt = 0; % reconstruct slices with different offset AND tilts of the rotation axis
@@ -221,7 +221,7 @@ if exist('fast_reco','var') && fast_reco(1)
     raw_bin = 2;
     raw_roi = [0.4 0.6];
     bin_before_filtering(1) = 1;
-    proj_range = 1;
+    proj_range = 3;
     ref_range = 10;
     %image_correlation.method = 'none';
     write.to_scratch = 1;
@@ -300,7 +300,7 @@ if ~strcmp(raw_folder, 'raw') && ~read_sino && ~read_flatcor
 end
 prnt( '%s', scan_name )
 prnt( ' at %s', datetime )
-prnt( '\n scan_path:%s', scan_path )
+prnt( '\n scan_path:\n  %s', scan_path )
 
 % Memory
 prnt( '\n user :  %s', getenv( 'USER' ) );
@@ -375,7 +375,7 @@ if ~read_flatcor && ~read_sino
     if ~isempty( write.subfolder.flatcor )
         flatcor_path =  sprintf( '%s%s/', flatcor_path, write.subfolder.flatcor );
     end
-    PrintVerbose(par.verbose & write.flatcor, '\n flatcor_path: %s', flatcor_path)
+    PrintVerbose(par.verbose & write.flatcor, '\n flatcor_path:\n  %s', flatcor_path)
     
     % Path to retrieved phase maps
     write.phase_map_path = sprintf( '%s/phase_map_rawBin%u/', write.path, raw_bin );
@@ -383,7 +383,7 @@ if ~read_flatcor && ~read_sino
         %write.phase_map_path = [write.path, filesep, 'phase_map', filesep, write.subfolder.phase_map, filesep];
         write.phase_map_path = sprintf( '%s%s/',  write.phase_map_path, write.subfolder.phase_map );
     end
-    PrintVerbose(par.verbose & write.phase_map, '\n phase_map_path: %s', write.phase_map_path)
+    PrintVerbose(par.verbose & write.phase_map, '\n phase_map_path:\n  %s', write.phase_map_path)
     
     % Sinogram path
     sino_path = sprintf( '%s/sino_rawBin%u/', write.path, raw_bin );
@@ -392,7 +392,7 @@ if ~read_flatcor && ~read_sino
         sino_path = sprintf( '%s%s/', sino_path, write.subfolder.sino );
         write.sino_phase_path = sprintf( '%s%s/', write.sino_phase_path, write.subfolder.sino );
     end
-    PrintVerbose(par.verbose & write.sino, '\n sino_path: %s', sino_path)
+    PrintVerbose(par.verbose & write.sino, '\n sino_path:\n  %s', sino_path)
     PrintVerbose(par.verbose & phase_retrieval.apply & write.phase_sino, '\n sino_phase_path: %s', write.sino_phase_path)
     
     % Projection file names
@@ -604,31 +604,39 @@ if ~read_flatcor && ~read_sino
             CheckAndMakePath( fig_path )
             saveas( f, sprintf( '%s%s.png', fig_path, regexprep( f.Name, '\ |:', '_') ) );
         end
-        % rotation axis and wiggle
+        
+        % rotation axis
         s_rot.time = double( h5read( h5log, '/entry/scan/data/s_rot/time') );
         s_rot.value = h5read( h5log, '/entry/scan/data/s_rot/value');
+
+        % Read out lateral rotation axis shift form log file
         s_stage_x.time = double( h5read( h5log, '/entry/scan/data/s_stage_x/time') );
         s_stage_x.value = h5read( h5log, '/entry/scan/data/s_stage_x/value');
-        % Read out lateral rotation axis shift form log file
         offset_shift_micron = s_stage_x.value( ~boolean( stimg_key.value(logpar.n_dark+1:end) ) );
-        offset_shift_unbinned = offset_shift_micron * 1e-3 / eff_pixel_size;
-        offset_shift = offset_shift_unbinned / raw_bin;
-        offset_shift = offset_shift - mean( offset_shift );
         offset_shift_micron = offset_shift_micron(proj_range);
-        offset_shift = offset_shift(proj_range);
+        offset_shift = offset_shift_micron * 1e-3 / eff_pixel_size;
+        offset_shift = offset_shift - min( offset_shift(:) );
         % Overwrite lateral shift if offset shift is provided as parameter
         if isequal( std( offset_shift ), 0 ) && ~isempty( tomo.rot_axis.offset_shift_range )
             offset_shift = tomo.rot_axis.offset_shift_range / raw_bin * (0:num_proj_used) / num_proj_used;
-            offset_shift = offset_shift - mean( offset_shift );
         end
+        
+        % Tranform to integer pixel-wise shifts
+        tmp = offset_shift;
+        offset_shift = round( offset_shift );
+        if std( offset_shift - tmp ) > 1e-2
+            error( 'Offset shift not on integer pixel scale' )
+        end
+        
+        % Plot offset shift
         if par.visual_output && numel( offset_shift ) > 2 && abs( std( offset_shift ) ) > 0
             f = figure('Name', 'rotation axis offset shift', 'WindowState', 'maximized');
             plot( offset_shift, '.')
-            title( sprintf('Rotation axis offset shift (zero mean)') )
+            title( sprintf('Rotation axis offset shift') )
             axis equal tight
             xlabel( 'projection number' )
             ylabel( 'lateral shift / pixel' )
-            legend( sprintf( 'effective pixel binned: %.2f', eff_pixel_size_binned ) )
+            legend( sprintf( 'effective pixel binned: %.2f micron', eff_pixel_size_binned * 1e6 ) )
             drawnow
             CheckAndMakePath( fig_path )
             saveas( f, sprintf( '%s%s.png', fig_path, regexprep( f.Name, '\ |:', '_') ) );
@@ -779,9 +787,7 @@ if ~read_flatcor && ~read_sino
                     text( raw_roi(2), roi_thresh + 80, sprintf('raw roi(2)=%u', raw_roi(2) ) )
                     
                     drawnow
-                    
                     saveas( f, sprintf( '%s%s.png', fig_path, regexprep( f.Name, '\ |:', '_') ) );
-                    
                 end
             end
         end
@@ -1019,7 +1025,6 @@ if ~read_flatcor && ~read_sino
     if offset_shift ~= 0
         offset_shift(~projs_to_use) = [];
     end
-    tomo.offset_shift = offset_shift;
     
     raw_min = min( proj(:) );
     raw_max = max( proj(:) );
@@ -1132,6 +1137,30 @@ if ~read_flatcor && ~read_sino
         keyboard;
     end
     
+    %% Remove lateral offset
+    x0 = round( 1 + offset_shift' - min( offset_shift(:) ) );
+    x1 = size( proj, 1) - max( x0 ) + x0;
+    im_shape_binned1 = x1(1) - x0(1);
+    proj2 = proj;
+    tic;
+    parfor nn = 1:size( proj, 3 )
+        im = proj(:,:,nn);
+        shift_nn = -x0(nn);
+        im = circshift( im, shift_nn, 1 );
+        proj2(:,:,nn) = im;
+    end
+    toc
+    
+%     % Query grid
+%     x_left = ceil( max( offset_shift) ) + 1 ;
+%     x_right =  floor( num_pix + min( offset_shift ) ) - 0 ;
+%     x = x_left:x_right;
+%     y = 1:num_proj;
+%     [Yq, Xq] = meshgrid( y, x );
+%     Xq = Xq + offset_shift';
+%     Xq = Xq - min( Xq(:) ) + 1;
+
+    
     % Filter strong/full absorption (combine with iterative reco methods)
     if strong_abs_thresh < 1
         t = toc;
@@ -1177,11 +1206,9 @@ if ~read_flatcor && ~read_sino
     nn = round( size( proj, 2) / 2);
     sino = squeeze( proj(:,nn,:) );
     [~,m] = sort( angles );
-    % Crop lateral shift
-    sinoc = CropShift( sino(:,m), offset_shift );
     CheckAndMakePath( reco_path )
     filename = sprintf( '%ssino_middle.tif', reco_path );
-    write32bitTIFfromSingle( filename, sinoc);
+    write32bitTIFfromSingle( filename, sino);
     
     if par.visual_output
         if exist( 'h1' , 'var' ) && isvalid( h1 )
@@ -1236,27 +1263,12 @@ if ~read_flatcor && ~read_sino
         t = toc;
         prnt( '\nSave flat-corrected projections.')
         CheckAndMakePath( flatcor_path, write.deleteFiles, write.beamtimeID )
-        
-        if numel(offset_shift) > 1 && isfield(write, 'flatcor_shift_cropped') && write.flatcor_shift_cropped
-            % lateral shift corrected
-            x0 = round( 1 + offset_shift' - min( offset_shift(:) ) );
-            x1 = size( proj, 1) - max( x0 ) + x0;
-            parfor nn = 1:size( proj, 3 )
-                filename = sprintf('%sproj_%06u.tif', flatcor_path, nn );
-                im = proj(:, :, nn);
-                im = rot90( im(x0(nn):x1(nn), :) ), offset_shift;
-                write32bitTIFfromSingle(filename, im );
-            end
-        else
-            % with lateral shift
-            parfor nn = 1:size( proj, 3 )
-                filename = sprintf('%sproj_%06u.tif', flatcor_path, nn );
-                write32bitTIFfromSingle(filename, rot90( proj(:, :, nn) ) );
-            end
+        parfor nn = 1:size( proj, 3 )
+            filename = sprintf('%sproj_%06u.tif', flatcor_path, nn );
+            write32bitTIFfromSingle(filename, rot90( proj(:, :, nn) ) );
         end
         prnt( ' done in %.1f (%.2f min)', toc-t, (toc-t)/60)
     end
-    
 else
     t = toc;
     %% Read sinogram %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -1389,12 +1401,9 @@ if phase_retrieval.apply
     if phase_retrieval.apply_before
         % Retrieval
         [proj, write, tint_phase] = p05_phase_retrieval( proj, phase_retrieval, tomo, write, interactive_mode, par );
-        % Post phase retrieval binning issues
         tomo.rot_axis.position = tomo.rot_axis.position / phase_bin;
         tomo.rot_axis.offset = tomo.rot_axis.offset / phase_bin;
-        %[tomo.vol_shape, tomo.vol_size] = volshape_volsize( proj, [], [], 0);
         [tomo.vol_shape, tomo.vol_size] = volshape_volsize( proj, tomo.vol_shape, tomo.vol_size, tomo.rot_axis.offset, par.verbose);
-        offset_shift = offset_shift / phase_bin;
     end
 end
 
@@ -1445,14 +1454,8 @@ if tomo.run || tomo.run_interactive_mode
         end
         tomo.rot_axis.corr_area1 = IndexParameterToRange( tomo.rot_axis.corr_area1, im_shape_binned1 );
         tomo.rot_axis.corr_area2 = IndexParameterToRange( tomo.rot_axis.corr_area2, im_shape_binned2 );
-        
-        if numel( offset_shift ) > 1
-            corr_offset = ( offset_shift(ind1) + offset_shift(ind2) ) / 2;
-        else
-            corr_offset = 0;
-        end
-        im1c = RotAxisSymmetricCropping( proj(:,tomo.rot_axis.corr_area2,ind1), tomo.rot_axis.position + corr_offset, 1);
-        im2c = flipud(RotAxisSymmetricCropping( proj(:,tomo.rot_axis.corr_area2,ind2) , tomo.rot_axis.position + corr_offset, 1));
+        im1c = RotAxisSymmetricCropping( proj(:,tomo.rot_axis.corr_area2,ind1), tomo.rot_axis.position, 1);
+        im2c = flipud(RotAxisSymmetricCropping( proj(:,tomo.rot_axis.corr_area2,ind2) , tomo.rot_axis.position, 1));
         [optimizer, metric] = imregconfig('monomodal');
         tform_calc = imregtform(im2c, im1c, 'rigid', optimizer, metric);
         rot_axis_tilt_calc = asin( tform_calc.T(1,2) ) / 2;
@@ -1496,7 +1499,6 @@ if tomo.run || tomo.run_interactive_mode
             slice = round((im_shape_binned2 - 1) * interactive_mode.slice_number + 1 );
         end
         
-        itomo.offset_shift = offset_shift;
         itomo.offset = tomo.rot_axis.offset;
         itomo.tilt = tomo.rot_axis.tilt;
         itomo.lamino = interactive_mode.lamino;
@@ -1729,28 +1731,20 @@ if tomo.run || tomo.run_interactive_mode
                             
                             % Play
                             nimplay(vol, 1, [], 'TILT: sequence of reconstructed slices using different rotation axis tilts')
-                            
                         end
                         
                         if isscalar( tilt )
                             cprintf( 'RED', '\n\nDouble check tilt: ' )
                             fprintf( 'Registration of projection' )
-                            %tomo.rot_axis.tilt = tilt;
                             tomo.rot_axis.position = im_shape_binned1 / 2 + tomo.rot_axis.offset;
                             
                             % Compare projection at 0 pi and projection at 1 pi corrected for rotation axis tilt
-                            if numel( offset_shift ) > 1
-                                corr_offset = ( offset_shift(ind1) + offset_shift(ind2) ) / 2;
-                            else
-                                corr_offset = 0;
-                            end
-                            im1c = RotAxisSymmetricCropping( proj(:,tomo.rot_axis.corr_area2,ind1), tomo.rot_axis.position + corr_offset, 1);
-                            im2c = flipud(RotAxisSymmetricCropping( proj(:,tomo.rot_axis.corr_area2,ind2) , tomo.rot_axis.position + corr_offset, 1));
+                            im1c = RotAxisSymmetricCropping( proj(:,tomo.rot_axis.corr_area2,ind1), tomo.rot_axis.position, 1);
+                            im2c = flipud(RotAxisSymmetricCropping( proj(:,tomo.rot_axis.corr_area2,ind2) , tomo.rot_axis.position, 1));
                             [optimizer, metric] = imregconfig('monomodal');
                             tform_calc = imregtform(im2c, im1c, 'rigid', optimizer, metric);
                             rot_axis_tilt_calc = asin( tform_calc.T(1,2) ) / 2;
                             im2c_warped_calc =  imwarp(im2c, tform_calc, 'OutputView', imref2d(size(im1c)));
-                            
                             tform_int = tform_calc;
                             tform_int.T = [cos( 2 * tomo.rot_axis.tilt ) sin( 2 * tomo.rot_axis.tilt ) 0; ...
                                 -sin( 2 * tomo.rot_axis.tilt ) cos( 2 * tomo.rot_axis.tilt ) 0 ; ...
@@ -1799,7 +1793,6 @@ if tomo.run || tomo.run_interactive_mode
                                     offset = [];
                                 case {'n', 'no', 0}
                             end
-
                         end % if isscalar( tilt )
                     end % while ~isscalar( tilt )
                     tomo.rot_axis.tilt = tilt;
@@ -1870,52 +1863,44 @@ end
 if stitch_projections(1)
     t = toc;
     prnt( '\nStitch projections:')
-    switch std( offset_shift_micron ) == 0
-        case 0
-            % number of unstitched projections
-            num_proj = size( proj, 3);
-            % last projection within [0,pi)
-            [~, num_proj_sti] = min( abs(angles - pi));
-            % number of stitched projections
-            num_proj_sti = num_proj_sti - 1;
-            % index range of projections to be stitched
-            xl = 1:round(tomo.rot_axis.position);
-            xr = 1:xl(end)-1;
-            im_shape_sti1 = numel( xl ) + numel( xr );
-            % Preallocation
-            proj_sti = zeros( im_shape_sti1 , im_shape_binned2, num_proj_sti, 'single');
-            for nn = 1:num_proj_sti
-                nn2 = mod(num_proj_sti + nn - 1, num_proj) + 1;
-                im = zeros( im_shape_sti1, im_shape_binned2);
+    % last projection within [0,pi)
+    [~, num_proj_sti] = min( abs(angles - pi));
+    % number of stitched projections
+    num_proj_sti = num_proj_sti - 1;
+    % index range of projections to be stitched
+    xl = 1:round(tomo.rot_axis.position);
+    xr = 1:xl(end)-1;
+    im_shape_sti1 = numel( xl ) + numel( xr );
+    % Preallocation
+    proj_sti = zeros( im_shape_sti1 , im_shape_binned2, num_proj_sti, 'single');
+    for nn = 1:num_proj_sti
+        nn2 = mod(num_proj_sti + nn - 1, size( proj, 3) ) + 1;
+        im = zeros( im_shape_sti1, im_shape_binned2);
+        switch lower( stitch_method )
+            case 'step'
+                im = cat(1, proj(xl,:,nn), flipud( proj(xr,:,nn2) ) );
+            case {'linear', 'sine'}
+                % overlap region
+                overlap = round(2 * tomo.rot_axis.position) - im_shape_binned1 : im_shape_binned1;
+                % overlap ramp
+                x = (0:1/(numel(overlap)-1):1);
+                % 1D weight
+                w = ones(im_shape_binned1, 1);
                 switch lower( stitch_method )
-                    case 'step'
-                        im = cat(1, proj(xl,:,nn), flipud( proj(xr,:,nn2) ) );
-                    case {'linear', 'sine'}
-                        % overlap region
-                        overlap = round(2 * tomo.rot_axis.position) - im_shape_binned1 : im_shape_binned1;
-                        % overlap ramp
-                        x = (0:1/(numel(overlap)-1):1);
-                        % 1D weight
-                        w = ones(im_shape_binned1, 1);
-                        switch lower( stitch_method )
-                            case 'linear'
-                                w(overlap) = 1 - x;
-                            case 'sine'
-                                w(overlap) = 0.5 * cos(pi*x) + 0.5;
-                        end
-                        % weighted projections
-                        iml = bsxfun(@times, proj(:,:,nn), w);
-                        imr = flipud( bsxfun(@times, proj(:,:,nn2), w ) );
-                        % stitched projection
-                        im(1:im_shape_binned1,:) = iml;
-                        im(end - im_shape_binned1 + 1:end,:) = im(end - im_shape_binned1 + 1:end,:) + imr;
+                    case 'linear'
+                        w(overlap) = 1 - x;
+                    case 'sine'
+                        w(overlap) = 0.5 * cos(pi*x) + 0.5;
                 end
-                proj_sti(:,:,nn) = im;
-            end
-        case 1
-            fprintf('\n')
+                % weighted projections
+                iml = bsxfun(@times, proj(:,:,nn), w);
+                imr = flipud( bsxfun(@times, proj(:,:,nn2), w ) );
+                % stitched projection
+                im(1:im_shape_binned1,:) = iml;
+                im(end - im_shape_binned1 + 1:end,:) = im(end - im_shape_binned1 + 1:end,:) + imr;
+        end
+        proj_sti(:,:,nn) = im;
     end
-    
     pause(0.01)
     proj = proj_sti;
     clear proj_sti;
@@ -1938,74 +1923,17 @@ if crop_at_rot_axis(1)
     prnt( '\nCropping projections:')
     % Crop projections to avoid oversampling for scans with excentric rotation axis
     % and reconstruct WITHOUT stitching
-    if std( offset_shift ) > 0
-        
-        %%% To be tested %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-        if std( abs( offset_shift ) ) ~= 0
-            
-            % projection indices
-            pp = 1:size( proj, 3);
-            proj_ind_l = pp( offset_shift > 0 );
-            proj_ind_r = pp( offset_shift < 0 );
-            
-            % horizontal pixel indices
-            osl = offset_shift( offset_shift > 0 );
-            osr = offset_shift( offset_shift < 0 );
-            
-            %xl0 = round( 1 + osl' - min( osl(:) ) );
-            %xl1 = size(proj,1) - max( xl0 ) + xl0;
-            
-            xl0 = round( 1 + osl' - min( osl(:) ) );
-            xl1 = ceil( tomo.rot_axis.position ) - max( xl0 ) + xl0 + 1;
-            
-            %xr0 = round( 1 + osr' - min( osr(:) ));
-            %xr1 = size(proj,1) - max( xr0 ) + xr0;
-            
-            xr0 = round( 1 + osr' - min( osr(:) ) ) + floor( tomo.rot_axis.position ) + 1;
-            xr1 = size(proj,1) - max( xr0 ) + xr0 - 1 ;
-            
-            %for nn = 1:10,disp([xl1(nn) - xl0(nn),xr1(nn)-xr0(nn)]),end;
-            
-            if xl1 - xl0 ~= xr1 -xr0
-                error( 'Cropping indices not consistent.' )
-            end
-            
-            % Preallocation
-            projc = zeros( [ xl1(1) - xl0(1) + 1, size( proj, 2), size( proj, 3 )], 'like', proj );
-            
-            % Crop
-            for nn = 1:numel( proj_ind_l )
-                pp = proj_ind_l(nn);
-                xx = xl0(nn):xl1(nn);
-                %1:floor(tomo.rot_axis.position)-1
-                projc(:,:,pp) = proj( xx, :, pp);
-                %proj(xl1(nn):end,:,pp) = 1;
-            end
-            for nn = 1:numel( proj_ind_r )
-                pp = proj_ind_r(nn);
-                xx = xr0(nn):xr1(nn);
-                %ceil(tomo.rot_axis.position) + 1:
-                projc(:,:,pp) = proj( xx, :, pp);
-                proj(1:xl0(nn),:,pp) = 1;
-            end
-            proj = projc;
-            %clear projc;
-        else
-            % Crop relative to rot axis position if offset == 0
-            r = tomo.rot_axis.position / im_shape_binned1;
-            if r < 0.5
-                proj( 1:floor(tomo.rot_axis.position)-1, :, :) = [];
-            else
-                proj( ceil(tomo.rot_axis.position) + 1:end, :, :) = [];
-            end
-        end
-        if isempty( tomo.vol_shape )
-            tomo.vol_shape = [raw_im_shape_binned1, raw_im_shape_binned1, raw_im_shape_binned2];
-            
-        end
-        prnt( ' done in %.1f (%.2f min)', toc-t, (toc-t)/60)
-        %%% Check above %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    % Crop relative to rot axis position
+    r = tomo.rot_axis.position / im_shape_binned1;
+    if r < 0.5
+        proj( 1:floor(tomo.rot_axis.position)-1, :, :) = [];
+    else
+        proj( ceil(tomo.rot_axis.position) + 1:end, :, :) = [];
     end
+    if isempty( tomo.vol_shape )
+        tomo.vol_shape = [raw_im_shape_binned1, raw_im_shape_binned1, raw_im_shape_binned2];
+    end
+    prnt( ' done in %.1f (%.2f min)', toc-t, (toc-t)/60)
 end
 
 %% Save sinogram %%
@@ -2013,21 +1941,10 @@ if write.sino
     t = toc;
     prnt( '\nSave sinogram:')
     CheckAndMakePath(sino_path, write.deleteFiles, write.beamtimeID)
-    if numel(offset_shift) > 1 && write.sino_shift_cropped
-        parfor nn = 1:im_shape_binned2
-            % Save cropped sinos without lateral shift
-            filename = sprintf( '%ssino_%06u.tif', sino_path, nn);
-            sino = squeeze( proj( :, nn, :) );
-            sinoc = CropShift( sino, offset_shift );
-            write32bitTIFfromSingle( filename, rot90( sinoc, 1 ) )
-        end
-    else
-        % Save sino with lateral shift
-        parfor nn = 1:im_shape_binned2
-            filename = sprintf( '%ssino_%06u.tif', sino_path, nn);
-            sino = squeeze( proj( :, nn, :) )';
-            write32bitTIFfromSingle( filename, sino )
-        end
+    parfor nn = 1:im_shape_binned2
+        filename = sprintf( '%ssino_%06u.tif', sino_path, nn);
+        sino = squeeze( proj( :, nn, :) )';
+        write32bitTIFfromSingle( filename, sino )
     end
     pause(0.01)
     prnt( ' done in %.1f s (%.2f min)', toc-t, (toc-t)/60)
@@ -2041,9 +1958,7 @@ if phase_retrieval.apply
         % Post phase retrieval binning
         tomo.rot_axis.position = tomo.rot_axis.position / phase_bin;
         tomo.rot_axis.offset = tomo.rot_axis.offset / phase_bin;
-%        [tomo.vol_shape, tomo.vol_size] = volshape_volsize( proj, [], [], 0);
         [tomo.vol_shape, tomo.vol_size] = volshape_volsize( proj, tomo.vol_shape, tomo.vol_size, tomo.rot_axis.offset, par.verbose);
-        offset_shift = offset_shift / phase_bin;
     end
 end
 
@@ -2131,8 +2046,7 @@ if tomo.run
             tomo.tilt_camera = ~interactive_mode.lamino * tomo.rot_axis.tilt;
             tomo.tilt_lamino = interactive_mode.lamino * tomo.rot_axis.tilt;
             %tomo.angles = tomo.rot_angle.offset + angles;
-            %%%%%%%%% Change offset_shit addition %%%%%%%%% !!!!!!!!!!!!!!!
-            tomo.rot_axis.offset = rot_axis_offset_reco + offset_shift;
+            tomo.rot_axis.offset = rot_axis_offset_reco;
             vol = astra_parallel3D( tomo, permute( proj, [1 3 2]) );
             pause(0.01)
             prnt( ' done in %.2f min.', (toc - t2) / 60)
@@ -2281,8 +2195,7 @@ if tomo.run
             end
             
             % tomo.angles = tomo.rot_angle.offset + angles;
-            %%%%%%%%% Change offset_shit additon %%%%%%%%% !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-            tomo.rot_axis.offset = rot_axis_offset_reco + offset_shift;
+            tomo.rot_axis.offset = rot_axis_offset_reco;
             
             % Reconstruct central slices first
             [~, ind] = sort( abs( (1:size( proj, 2)) - round( size( proj, 2) / 2 ) ) );

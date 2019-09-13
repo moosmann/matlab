@@ -1,4 +1,4 @@
-%function Vq = RemoveShift( sino, offset_shift )
+function Vq = RemoveShift( sino, offset_shift )
 % Remove lateral offset shift by interpolation. First dimension: pixel,
 % second dimension: angle.
 %
@@ -14,13 +14,12 @@ y = 1:num_proj;
 [Yq, Xq] = meshgrid( y, x );
 Xq = Xq + offset_shift';
 Xq = Xq - min( Xq(:) ) + 1;
-%Xq = Xq - min( Xq ) + 1;
 
 
 % Interpolation
 V = sino;
 method = 'linear';
-Vq = interp2( V, Yq, Xq, method );l
+Vq = interp2( V, Yq, Xq, method );
 
 domain( Xq(:) )
 imsc( Vq )
