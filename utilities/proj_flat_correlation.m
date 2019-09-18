@@ -1,4 +1,4 @@
-function [proj, corr, roi] = proj_flat_correlation( proj, flat, image_correlation, par  )
+function [proj, corr] = proj_flat_correlation( proj, flat, image_correlation, par, roi_proj  )
 % Correlate all projection with all flat-field to find the best matching
 % pairs for the flat-field correction using method of choice.
 %
@@ -11,35 +11,44 @@ function [proj, corr, roi] = proj_flat_correlation( proj, flat, image_correlatio
 %
 % proj_flat_correlation( proj, flat, image_correlation, par )
 
+if nargin < 5
+    roi_proj = [];
+end
+
 %% TODO: Clean up and simplify
 
 % Parameters in struct fields
 method = image_correlation.method;
 flat_corr_area1 = image_correlation.area_width;
 flat_corr_area2 = image_correlation.area_height;
-corr_shift_max_pixelshift = image_correlation.shift.max_pixelshift;
 corr_num_flats = image_correlation.num_flats;
-decimal_round_precision = image_correlation.decimal_round_precision;
 force_calc = image_correlation.force_calc;
-im_shape_binned = image_correlation.im_shape_binned;
+im_shape_binned1 = image_correlation.im_shape_binned1;
+im_shape_binned2 = image_correlation.im_shape_binned2;
 flatcor_path = image_correlation.flatcor_path;
 verbose = par.verbose;
 visual_output = par.visual_output;
 poolsize = par.poolsize;
+x0 = par.offset_shift_x0;
+x1 = par.offset_shift_x1;
+raw_bin = par.raw_bin;
 
+im_shape_cropbin1 = size( proj, 1 );
 num_proj_used = size( proj, 3);
 num_ref_used = size( flat, 3);
 
 %% Projection / flat-field correlcation
 switch method
     
-    case {'none', ''}
+    case {'none', '', 'median'}
         % Flat field correction without correlation
         flat_median = median( flat, 3);
-        proj = bsxfun( @times, proj, 1./flat_median);
+        parfor nn = 1:num_proj_used
+            im = proj(:, :, nn);
+            flat_median_shifted = circshift( flat_median, round( -x0(nn) / raw_bin ), 1 );
+            proj(:, :, nn) = im ./ flat_median_shifted;
+        end
         corr = [];
-        roi_proj =[];
-        roi_flat = [];
         
     otherwise
         % Load previously calculated correlation matrix & check if valid
@@ -56,12 +65,10 @@ switch method
                 if exist( 'corr', 'var' )
                     force_calc = ~(...
                         isequal( corr.method, method) ...
-                        && isequal( corr.im_shape_binned, im_shape_binned ) ...
                         && isequal( corr.size.proj, size( proj ) ) ...
                         && isequal( corr.size.flat, size( flat ) ) ...
                         && isequal( corr.raw_roi, image_correlation.raw_roi ) ...
                         && isequal( corr.raw_bin, image_correlation.raw_bin ) ...
-                        && isequal( corr.bin_before_filtering, image_correlation.bin_before_filtering ) ...
                         && isequal( corr.proj_range, image_correlation.proj_range ) ...
                         && isequal( corr.ref_range, image_correlation.ref_range ) ...
                         );
@@ -72,11 +79,13 @@ switch method
         end
         
         % Correlation ROI
-        flat_corr_area1 = IndexParameterToRange(flat_corr_area1, im_shape_binned(1));
-        flat_corr_area2 = IndexParameterToRange(flat_corr_area2, im_shape_binned(2));
+        flat_corr_area1 = IndexParameterToRange(flat_corr_area1, im_shape_binned1 );
+        flat_corr_area2 = IndexParameterToRange(flat_corr_area2, im_shape_binned2 );
         
         roi_flat = flat(flat_corr_area1, flat_corr_area2, :);
-        roi_proj = proj(flat_corr_area1, flat_corr_area2, :);
+        if isempty( roi_proj )
+            roi_proj = proj(flat_corr_area1, flat_corr_area2, :);
+        end
         
         if ~force_calc
             dt = '??';
@@ -92,8 +101,6 @@ switch method
             
             % Preallocation
             foo = zeros( num_proj_used, num_ref_used);
-            c_shift_1 = foo;
-            c_shift_2 = foo;
             c_diff1_l1 = foo;
             c_diff1_l2 = foo;
             c_diff2_l1 = foo;
@@ -111,7 +118,7 @@ switch method
             c_c = foo;
             c_s = foo;
             
-            % Compute shift/correlation for each pair projection/flat-field
+            % Compute correlation for each pair projection/flat-field
             for ff = 1:num_ref_used
                 
                 % flat field
@@ -122,13 +129,7 @@ switch method
                     % projection
                     p = roi_proj(:,:,pp);
                     
-                    if sum(strcmpi( method, {'shift','all'}))
-                        % shift via image cross correlation
-                        out = ImageCorrelation( p, f, 0, 0, 0, 0, 1);
-                        c_shift_1(pp,ff) = round( out.shift1, decimal_round_precision );
-                        c_shift_2(pp,ff) = round( out.shift2, decimal_round_precision) ; % relevant shift
-                        
-                    elseif sum(strcmpi( method, {'diff','all'}))
+                    if sum(strcmpi( method, {'diff','all'}))
                         % differences
                         d1 =  abs( abs( p ) - abs( f ) ) ;
                         d2 =  sqrt( abs( p.^2 - f.^2) );
@@ -207,8 +208,6 @@ switch method
                 end
                 
                 switch method
-                    case 'shift'
-                        corr.mat = c_shift_2;
                     case 'diff'
                         corr.mat = c_diff1_l2;
                     case 'std'
@@ -230,8 +229,6 @@ switch method
                     case 'corr'
                         corr.mat = c_corr;
                     case 'all'
-                        corr.shift1 = c_shift_1;
-                        corr.shift2 = c_shift_2;
                         corr.diff1_l1 = c_diff1_l1;
                         corr.diff1_l2 = c_diff1_l2;
                         corr.diff2_l1 = c_diff2_l1;
@@ -266,13 +263,11 @@ switch method
                 % Save correlation matrix
                 %corr.mat = corr_mat;
                 corr.method = method;
-                corr.im_shape_binned = im_shape_binned;
                 corr.size.proj = size( proj );
                 corr.size.flat = size( flat );
                 corr.datetime = datetime;
                 corr.raw_roi = image_correlation.raw_roi;
                 corr.raw_bin = image_correlation.raw_bin;
-                corr.bin_before_filtering = image_correlation.bin_before_filtering;
                 corr.proj_range = image_correlation.proj_range;
                 corr.ref_range = image_correlation.ref_range;
                 CheckAndMakePath( flatcor_path )
@@ -287,23 +282,6 @@ switch method
             figure('Name', 'Correlation of projections and flat-fields');
             
             switch method
-                case 'shift'
-                    [~, flat_corr_shift_min_pos_x] =  min ( abs( c_shift_1), [], 2);
-                    [~, flat_corr_shift_min_pos_y] =  min ( abs( c_shift_2), [], 2);
-                    
-                    m = 2; n = 1;
-                    
-                    subplot(m,n,1);
-                    Y = abs(arrayfun(@(x) (c_shift_2(x,flat_corr_shift_min_pos_y(x))), 1:num_proj_used));
-                    plot(Y, '.')
-                    axis  tight
-                    title(sprintf('minimal absolute vertical shift along rotation axis'))
-                    
-                    subplot(m,n,2);
-                    plot( arrayfun(@(x) (c_shift_1(x,flat_corr_shift_min_pos_x(x))), 1:num_proj_used) ,'.')
-                    axis  tight
-                    title(sprintf('minimal absolute horizontal shift (unused)'))
-                    
                 case {'cov', 'corr', 'ssim'}
                     m = 2; n = 1;
                     subplot(m,n,1);
@@ -351,7 +329,7 @@ switch method
         %% Flat- and dark-field correction %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         PrintVerbose(verbose, '\nFlat- and dark-field correction.')
         t = toc;
-
+        
         % Memory requirement and parpool processing
         [mem_free, ~, mem_total] = free_memory;
         mem_req_tot = Bytes( proj ) + Bytes(flat) * (poolsize + 1);
@@ -365,7 +343,6 @@ switch method
         end
         
         % Reduce number of workers because of memory overhead
-        
         %         num_worker =  max( floor( 0.5 * min( mem_free/1024^3, mem_total / 1024^3 - GB(proj) - GB(flat) ) / ceil( GB(flat) ) ) - 1, 1 );
         %         if num_worker < poolsize
         %             fprintf( '\n Change pool size %u -> %u for flat field correction. (Each worker requires a full copy of flat fields).', poolsize, num_worker)
@@ -373,61 +350,6 @@ switch method
         %         end
         
         switch method
-            case 'shift'
-                % best match
-                if corr_shift_max_pixelshift == 0
-                    [~, pos] = min( abs( corr.mat ), [], 2 );
-                    
-                    if pflag
-                        parfor nn = 1:num_proj_used
-                            f = flat(:, :, pos(nn));
-                            proj(:, :, nn) = proj(:, :, nn) ./ f;
-                        end
-                    else
-                        for nn = 1:num_proj_used
-                            f = flat(:, :, pos(nn));
-                            proj(:, :, nn) = proj(:, :, nn) ./ f;
-                        end
-                    end
-                    
-                    % use all flats which are shifted less pixels than corr_shift_max_pixelshift
-                elseif corr_shift_max_pixelshift > 0
-                    nflats = zeros(1, num_proj_used);
-                    if pflag
-                        parfor nn = 1:num_proj_used
-                            vec = 1:num_ref_used;
-                            flat_ind = vec( abs( c_shift_2(nn, :) ) < corr_shift_max_pixelshift );
-                            if numel( flat_ind ) > corr_num_flats
-                                flat_ind( corr_num_flats + 1:end ) = [];
-                            end
-                            if isempty( flat_ind )
-                                [~, flat_ind] = min( abs( c_shift_2(nn, :) ) );
-                            end
-                            nflats(nn) = numel(flat_ind);
-                            f = squeeze( mean( flat(:, :, flat_ind), 3) );
-                            proj(:, :, nn) = proj(:, :, nn) ./ f;
-                        end
-                    else
-                        for nn = 1:num_proj_used
-                            vec = 1:num_ref_used;
-                            flat_ind = vec( abs( c_shift_2(nn, :) ) < corr_shift_max_pixelshift );
-                            if numel( flat_ind ) > corr_num_flats
-                                flat_ind( corr_num_flats + 1:end ) = [];
-                            end
-                            if isempty( flat_ind )
-                                [~, flat_ind] = min( abs( c_shift_2(nn, :) ) );
-                            end
-                            nflats(nn) = numel(flat_ind);
-                            f = squeeze( mean( flat(:, :, flat_ind), 3) );
-                            proj(:, :, nn) = proj(:, :, nn) ./ f;
-                        end
-                    end
-                    
-                    PrintVerbose(verbose, '\n number of flats used per projection: [mean, min, max] = [%g, %g, %g]', mean( nflats ), min( nflats ), max( nflats) )
-                else
-                    error('Value of maximum shift (%g) is not >= 0', corr_shift_max_pixelshift)
-                end
-                
             case 'all'
                 % Save correlation matrix
                 CheckAndMakePath( flatcor_path )
@@ -440,13 +362,55 @@ switch method
                 flat_ind = corr_mat_pos(:,1:corr_num_flats);
                 if pflag
                     parfor nn = 1:num_proj_used
-                        f = squeeze( mean( flat(:, :, flat_ind(nn,:)), 3) );
-                        proj(:, :, nn) = proj(:, :, nn) ./ f;
+                        % Mean over flat fields
+                        flat_mean = squeeze( mean( flat(:, :, flat_ind(nn,:)), 3) );
+                        % Binned shift
+                        shift = (x0(nn) - 1 ) / raw_bin;
+                        shift_int = floor( shift );
+                        shift_sub = shift - shift_int;
+                        % the subpixel offest is tranlate back!
+                        shift_sub = shift_sub - 1;
+                        
+                        % shift flat
+                        if mod( shift_sub, 1 ) ~= 0
+                            % crop flat at integer shift, then shift subpixel
+                            xx = shift_int + (1:im_shape_cropbin1+1);
+                            flat_mean_shifted = imtranslate( flat_mean(xx,:), [0 shift_sub], 'linear' );
+                        else
+                            xx = shift_int + (1:im_shape_cropbin1);
+                            flat_mean_shifted = flat_mean(xx,:);
+                        end
+                        
+                        % flat field correction
+                        p = proj(:, :, nn);
+                        p = p ./ flat_mean_shifted(1:im_shape_cropbin1,:) ;
+                        proj(:,:,nn) = p;
                     end
                 else
                     for nn = 1:num_proj_used
-                        f = squeeze( mean( flat(:, :, flat_ind(nn,:)), 3) );
-                        proj(:, :, nn) = proj(:, :, nn) ./ f;
+                        % Mean over flat fields
+                        flat_mean = squeeze( mean( flat(:, :, flat_ind(nn,:)), 3) );
+                        % Binned shift
+                        shift = (x0(nn) - 1 ) / raw_bin;
+                        shift_int = floor( shift );
+                        shift_sub = shift - shift_int;
+                        % the subpixel offest is tranlate back!
+                        shift_sub = shift_sub - 1;
+                        
+                        % shift flat
+                        if mod( shift_sub, 1 ) ~= 0
+                            % crop flat at integer shift, then shift subpixel
+                            xx = shift_int + (1:im_shape_cropbin1+1);
+                            flat_mean_shifted = imtranslate( flat_mean(xx,:), [0 shift_sub], 'linear' );
+                        else
+                            xx = shift_int + (1:im_shape_cropbin1);
+                            flat_mean_shifted = flat_mean(xx,:);
+                        end
+                        
+                        % flat field correction
+                        p = proj(:, :, nn);
+                        p = p ./ flat_mean_shifted(1:im_shape_cropbin1,:) ;
+                        proj(:,:,nn) = p;
                     end
                 end
                 
@@ -459,5 +423,3 @@ switch method
                 PrintVerbose(verbose, ' Time elapsed: %.1f s (%.2f min)', toc - t, ( toc - t ) / 60 )
         end
 end
-roi.proj = roi_proj;
-roi.flat = roi_flat;

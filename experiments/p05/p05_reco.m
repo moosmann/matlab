@@ -57,12 +57,11 @@ raw_roi = []; % vertical and/or horizontal ROI; (1,1) coordinate = top left pixe
 % [y0 y1 x0 x1]: vertical + horzontal ROI, each ROI as above
 % if -1: auto roi, selects vertical ROI automatically. Use only for DCM. Not working for *.raw data where images are flipped and DMM data.
 % if < -1: Threshold is set as min(proj(:,:,[1 end])) + abs(raw_roi)*median(dark(:)). raw_roi=-1 defaults to min(proj(:,:,[1 end])) + 4*median(dark(:))
-raw_bin = 2; % projection binning factor: integer
+par.raw_bin = 2; % projection binning factor: integer
 im_trafo = ''; % string to be evaluated after reading data in the case the image is flipped/rotated/etc due to changes at the beamline, e.g. 'rot90(im)'
-bin_before_filtering(1) = 1; % Apply binning before filtering pixel. less effective, but much faster especially for KIT camera.
-crop_at_rot_axis = 0; % for recos of scans with excentric rotation axis but WITHOUT projection stitching
-stitch_projections = 0; % for 2 pi scans: stitch projection at rotation axis position. Recommended with phase retrieval to reduce artefacts. Standard absorption contrast data should work well without stitching. Subpixel stitching not supported (non-integer rotation axis position is rounded, less/no binning before reconstruction can be used to improve precision).
-stitch_method = 'sine'; 'step';'linear'; %  ! CHECK correlation area !
+par.crop_at_rot_axis = 0; % for recos of scans with excentric rotation axis but WITHOUT projection stitching
+par.stitch_projections = 0; % for 2 pi scans: stitch projection at rotation axis position. Recommended with phase retrieval to reduce artefacts. Standard absorption contrast data should work well without stitching. Subpixel stitching not supported (non-integer rotation axis position is rounded, less/no binning before reconstruction can be used to improve precision).
+par.stitch_method = 'sine'; 'step';'linear'; %  ! CHECK correlation area !
 % 'step' : no interpolation, use step function
 % 'linear' : linear interpolation of overlap region
 % 'sine' : sinusoidal interpolation of overlap region
@@ -73,7 +72,7 @@ pixel_filter_threshold_flat = [0.01 0.005]; % Flat fields: threshold parameter f
 pixel_filter_threshold_proj = [0.01 0.005]; % Raw projection: threshold parameter for hot/dark pixel filter, for details see 'FilterPixel'
 pixel_filter_radius = [3 3]; % Increase only if blobs of zeros or other artefacts are expected. Can increase processing time heavily.
 ring_current_normalization = 1; % normalize flat fields and projections by ring current
-image_correlation.method = 'ssim-ml';'entropy';'diff';'shift';'ssim';'std';'cov';'corr';'cross-entropy12';'cross-entropy21';'cross-entropyx';
+image_correlation.method = 'ssim-ml';'entropy';'diff';'ssim';'std';'cov';'corr';'cross-entropy12';'cross-entropy21';'cross-entropyx';
 % Correlation of projections and flat fields. Essential for DCM data. Even
 % though less efficient for DMM data, it usually improves reconstruction quality.
 % Available methods ('ssim-ml'/'entropy' usually work best):
@@ -85,11 +84,10 @@ image_correlation.method = 'ssim-ml';'entropy';'diff';'shift';'ssim';'std';'cov'
 % 'corr' : cross correlation = normalized cross covariance
 % 'std' : standard deviation of proj over flat
 % 'diff': difference of proj and flat
-% 'shift': computes relative shift from peak of cross-correlation map
 % 'cross-entropy*' : variants of (asymmetric) cross entropy
 image_correlation.force_calc = 0; % bool. force compuation of correlation even though a (previously computed) corrlation matrix exists
 image_correlation.num_flats = 1; % number of flat fields used for average/median of flats. for 'shift'-correlation its the maximum number
-image_correlation.area_width = [0 0.01];%[0.98 1];% correlation area: index vector or relative/absolute position of [first pix, last pix]
+image_correlation.area_width = [1 100];%[0.98 1];% correlation area: index vector or relative/absolute position of [first pix, last pix]
 image_correlation.area_height = [0.3 0.7]; % correlation area: index vector or relative/absolute position of [first pix, last pix]
 ring_filter.apply = 0; % ring artifact filter (use only for scans without lateral sample movement)
 ring_filter.apply_before_stitching = 0; % ! Consider when phase retrieval is applied !
@@ -112,13 +110,13 @@ phase_retrieval.padding = 1; % padding of intensities before phase retrieval, 0:
 tomo.run = 1; % run tomographic reconstruction
 tomo.run_interactive_mode = 1; % if tomo.run = 0, intendet to determine rot axis positions without processing the full tomogram;
 tomo.reco_mode = '3D'; 'slice'; % slice-wise or full 3D backprojection. 'slice': volume must be centered at origin & no support of rotation axis tilt, reco binning, save compressed
-tomo.vol_size = [-1 1 -1 1 -0.5 0.5];% 6-component vector [xmin xmax ymin ymax zmin zmax], for excentric rot axis pos / extended FoV;. if empty, volume is centerd within tomo.vol_shape. unit voxel size is assumed. if smaller than 10 values are interpreted as relative size w.r.t. the detector size. Take care bout minus signs! Note that if empty vol_size is dependent on the rotation axis position.
+tomo.vol_size = []; %[-1 1 -1 1 -0.5 0.5];% 6-component vector [xmin xmax ymin ymax zmin zmax], for excentric rot axis pos / extended FoV;. if empty, volume is centerd within tomo.vol_shape. unit voxel size is assumed. if smaller than 10 values are interpreted as relative size w.r.t. the detector size. Take care bout minus signs! Note that if empty vol_size is dependent on the rotation axis position.
 tomo.vol_shape = []; %[1 1 1] shape (# voxels) of reconstruction volume. used for excentric rot axis pos. if empty, inferred from 'tomo.vol_size'. in absolute numbers of voxels or in relative number w.r.t. the default volume which is given by the detector width and height.
 tomo.rot_angle.full_range = []; % in radians. if []: full angle of rotation including additional increment, or array of angles. if empty full rotation angles is determined automatically to pi or 2 pi
 tomo.rot_angle.offset = pi; % global rotation of reconstructed volume
-tomo.rot_axis.offset = 0; % if empty use automatic computation
+tomo.rot_axis.offset = 0;
 tomo.rot_axis.position = []; % if empty use automatic computation. EITHER OFFSET OR POSITION MUST BE EMPTY. YOU MUST NOT USE BOTH!
-tomo.rot_axis.offset_shift_range = []; %[]; % absolute lateral movement in pixels during fly-shift-scan, overwrite lateral shift read out from hdf5 log
+tomo.rot_axis.offset_shift = []; %[]; % absolute lateral movement in pixels during fly-shift-scan, overwrite lateral shift read out from hdf5 log
 tomo.rot_axis.tilt = 0; % in rad. camera tilt w.r.t rotation axis. if empty calculate from registration of projections at 0 and pi
 tomo.rot_axis.corr_area1 = []; % ROI to correlate projections at angles 0 & pi. Use [0.75 1] or so for scans with an excentric rotation axis 
 tomo.rot_axis.corr_area2 = []; % ROI to correlate projections at angles 0 & pi 
@@ -147,10 +145,8 @@ write.subfolder.phase_map = ''; % subfolder in 'phase_map'
 write.subfolder.sino = ''; % subfolder in 'sino'
 write.subfolder.reco = ''; % subfolder in 'reco'
 write.flatcor = 1; % save preprocessed flat corrected projections
-write.flatcor_shift_cropped = 0; % save lateral shift corrected projections, projections are not interpolated, but cropped to nearest integer pixel
 write.phase_map = 0; % save phase maps (if phase retrieval is not 0)
 write.sino = 1; % save sinograms (after preprocessing & before FBP filtering and phase retrieval)
-write.sino_shift_cropped = 0; % save cropped sinos without lateral shift
 write.phase_sino = 0; % save sinograms of phase maps
 write.reco = 1; % save reconstructed slices (if tomo.run=1)
 write.float = 1; % single precision (32-bit float) tiff
@@ -195,8 +191,6 @@ write.uint8_segmented = 0; % experimental: threshold segmentaion for histograms 
 
 tic
 offset_shift = 0;
-tomo.offset_shift = offset_shift;
-eff_pixel_size_binned = raw_bin * eff_pixel_size;
 
 %%% Parameters set by reconstruction loop script 'p05_reco_loop' %%%%%%%%%%
 if exist( 'external_parameter' ,'var')
@@ -218,9 +212,8 @@ end
 
 %%% FAST RECO MODE
 if exist('fast_reco','var') && fast_reco(1)
-    raw_bin = 2;
+    par.raw_bin = 4;
     raw_roi = [0.4 0.6];
-    bin_before_filtering(1) = 1;
     proj_range = 3;
     ref_range = 10;
     %image_correlation.method = 'none';
@@ -248,8 +241,6 @@ end
 assign_default( 'tomo.rot_axis.offset', 0 )
 assign_default( 'pixel_filter_radius', [3 3] )
 assign_default( 'image_correlation.force_calc', 0 );
-assign_default( 'image_correlation.shift.max_pixelshift', 0.25 ); % maximum pixelshift allowed for 'shift'-correlation method: if 0 use the best match (i.e. the one with the least shift), if > 0 uses all flats with shifts smaller than image_correlation.shift.max_pixelshift
-assign_default( 'image_correlation.decimal_round_precision',2 ); % precision when rounding pixel shifts
 assign_default( 'write.path', '' )
 assign_default( 'write.parfolder', '' )
 assign_default( 'write.subfolder.reco', '' )
@@ -266,7 +257,12 @@ assign_default( 'interactive_mode.rot_axis_pos_default_search_range', -4:0.5:4 )
 assign_default( 'interactive_mode.rot_axis_tilt_default_search_range', -0.005:0.001:0.005 ) % radian
 assign_default( 'interactive_mode.phase_retrieval_default_search_range', [] )
 assign_default( 'tomo.rot_axis.corr_area2', [0.1 0.9] );
-        
+ 
+% Define variables from struct fields for convenience
+raw_bin = par.raw_bin;
+phase_bin = phase_retrieval.post_binning_factor; % alias for readablity
+eff_pixel_size_binned = par.raw_bin * eff_pixel_size;
+
 astra_clear % if reco was aborted, ASTRA memory is not cleared
 
 % Utility functions
@@ -615,11 +611,15 @@ if ~read_flatcor && ~read_sino
         offset_shift_micron = s_stage_x.value( ~boolean( stimg_key.value(logpar.n_dark+1:end) ) );
         offset_shift_micron = offset_shift_micron(proj_range);
         offset_shift = offset_shift_micron * 1e-3 / eff_pixel_size;
-        offset_shift = offset_shift - min( offset_shift(:) );
+        offset_shift = 1 + offset_shift - min( offset_shift(:) ) ;
+        
         % Overwrite lateral shift if offset shift is provided as parameter
-        if isequal( std( offset_shift ), 0 ) && ~isempty( tomo.rot_axis.offset_shift_range )
-            offset_shift = tomo.rot_axis.offset_shift_range / raw_bin * (0:num_proj_used) / num_proj_used;
+        if isequal( std( offset_shift ), 0 ) && ~isempty( tomo.rot_axis.offset_shift )
+            offset_shift = tomo.rot_axis.offset_shift / raw_bin * (0:num_proj_used) / num_proj_used;
         end
+        
+        % Center about 0
+        %offset_shift = offset_shift - round( mean( offset_shift(:) ) );
         
         % Tranform to integer pixel-wise shifts
         tmp = offset_shift;
@@ -794,27 +794,24 @@ if ~read_flatcor && ~read_sino
     end
     
     im_roi = read_image( filename, '', raw_roi, tif_info, im_shape_raw, dtype, im_trafo );
-    im_shape_binned = floor( size( im_roi) / raw_bin );
-    im_shape_binned1 = im_shape_binned(1);
-    im_shape_binned2 = im_shape_binned(2);
+    im_shape_roi = size( im_roi );
+    im_shape_binned1 = floor( size( im_roi, 1 ) / raw_bin );
+    im_shape_binned2 = floor( size( im_roi, 2 ) / raw_bin );
     prnt( '\n energy : %.1f keV', energy / 1e3 )
     prnt( '\n distance sample dector : %.1f mm', sample_detector_distance * 1000 )
     prnt( '\n effective pixel size unbinned : %.2f micron',  eff_pixel_size * 1e6)
     prnt( '\n effective pixel size binned: %.2f micron',  eff_pixel_size_binned * 1e6)
     prnt( '\n raw image shape : %u x %u = %.1g pixels', im_shape_raw, prod( im_shape_raw ))
-    prnt( '\n raw image shape roi : %u x %u = %.1g pixels', size( im_roi ), numel( im_roi ) )
-    numel_im_roi_binned = prod( im_shape_binned );
-    prnt( '\n raw image shape roi binned : %u x %u = %.1g pixels', im_shape_binned, numel_im_roi_binned)
+    prnt( '\n raw image shape roi : %u x %u = %.1g pixels', im_shape_roi, numel( im_roi ) )
+    numel_im_roi_binned = im_shape_binned1 * im_shape_binned2;
+    prnt( '\n raw image shape roi binned : %u x %u = %.1g pixels', im_shape_binned1, im_shape_binned2, numel_im_roi_binned)
     prnt( '\n raw binning factor : %u', raw_bin)
-    prnt( '\n raw binning before pixel filtering : %u', bin_before_filtering)
     
-    %% Read projections and start preprocessing %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    
-    %%% Dark field %%
+    %% Dark field %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     t = toc;
     prnt( '\nProcessing dark fields.')
-    darks = zeros( [im_shape_binned, num_dark], 'single');
-    prnt( ' Allocated memory: %.2f MiB,', Bytes( darks, 2 ) )
+    dark = zeros( [im_shape_roi, num_dark], 'single');
+    prnt( ' Allocated memory: %.2f MiB,', Bytes( dark, 2 ) )
     parfor nn = 1:num_dark
         filename = sprintf('%s%s', scan_path, dark_names{nn});
         im = single( read_image( filename, '', raw_roi, tif_info, im_shape_raw, dtype, im_trafo) );
@@ -826,30 +823,35 @@ if ~read_flatcor && ~read_sino
         im_mean = mean( im(:) );
         im_std = std( im(:) );
         im( im > im_mean + 4*im_std) = im_mean;
-        if bin_before_filtering
-            im = FilterPixel( Binning(im, raw_bin) / raw_bin^2, pixel_filter_threshold_dark, 0, pixel_filter_radius);
-        else
-            im = Binning( FilterPixel( im, pixel_filter_threshold_dark, 0, pixel_filter_radius ), raw_bin) / raw_bin^2;
-        end
-        darks(:, :, nn) = im;
+        im =  FilterPixel( im, pixel_filter_threshold_dark, 0, pixel_filter_radius );
+        dark(:, :, nn) = im;
     end
-    darks_min = min( darks(:) );
-    darks_max = max( darks(:) );
+    
+    darks_min = min( dark(:) );
+    darks_max = max( dark(:) );
+    
     % Reject dark images which are all zero
     darks_to_use = zeros( 1, num_dark, 'logical' );
     parfor nn = 1:num_dark
-        darks_to_use(nn) = boolean( max2( darks(:,:,nn) )  );
+        darks_to_use(nn) = boolean( max2( dark(:,:,nn) )  );
     end
+    
     % Median dark
-    dark = squeeze( median(darks(:,:,darks_to_use), 3) );
-    %clear darks
+    dark = squeeze( median(dark(:,:,darks_to_use), 3) );
     dark_med_min = min( dark(:) );
     dark_med_max = max( dark(:) );
+    
+    % Binned dark
+    dark_binned = Binning( dark, raw_bin) / raw_bin^2;
     prnt( ' done in %.1f s', toc-t)
+    prnt( '\n min/max of all darks : %g %g', darks_min, darks_max);
+    prnt( '\n min/max of median dark : %g %g', dark_med_min, dark_med_max);
+    
+    % Fig: raw + dark field
     if par.visual_output
         h1 = figure('Name', 'data and flat-and-dark-field correction', 'WindowState', 'maximized');
         subplot(2,3,1)
-        imsc1( dark );
+        imsc1( dark_binned );
         title(sprintf('median dark field'))
         colorbar
         axis equal tight
@@ -857,23 +859,32 @@ if ~read_flatcor && ~read_sino
         drawnow
     end
     
-    %%% Flat field %%%
+    %% Flat field %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     t = toc;
     prnt( '\nProcessing flat fields.')
     % Preallocation
-    flat = zeros( [im_shape_binned, num_ref_used], 'single');
+    flat = zeros( [im_shape_binned1, im_shape_binned2, num_ref_used], 'single');
     num_zeros = zeros( 1, num_ref_used );
     prnt( ' Allocated memory: %.2f GiB,', Bytes( flat, 3 ) )
     % Parallel loop
     refs_to_use = zeros( 1, size( flat,3), 'logical');
     parfor nn = 1:num_ref_used
+        
+        % Read
         filename = sprintf('%s%s', scan_path, ref_names_mat(nn,:));
-        if bin_before_filtering
-            im = FilterPixel( Binning( single( read_image( filename, '', raw_roi, tif_info, im_shape_raw, dtype, im_trafo ) ), raw_bin) / raw_bin^2, pixel_filter_threshold_flat, 0, pixel_filter_radius);
-        else
-            im = Binning( FilterPixel( read_image( filename, '', raw_roi, tif_info, im_shape_raw, dtype, im_trafo ), pixel_filter_threshold_flat, 0, pixel_filter_radius), raw_bin) / raw_bin^2;
-        end
+        im_raw = single( read_image( filename, '', raw_roi, tif_info, im_shape_raw, dtype, im_trafo ) );
+        
+        % Filter pixel
+        im_raw = FilterPixel( im_raw, pixel_filter_threshold_flat, 0, pixel_filter_radius);
+        
+        % Dark field correction
+        im_raw = im_raw - dark;
+        
+        % Binning
+        im = Binning( im_raw, raw_bin) / raw_bin^2;
+        
         flat(:, :, nn) = im;
+        
         % Check for zeros
         num_zeros(nn) =  sum( sum( flat(:,:,nn) < 1 ) );
         % Discard if any pixel is zero. Or should all pixels be zeros?
@@ -886,9 +897,6 @@ if ~read_flatcor && ~read_sino
     % min/max values before dark field subtraction and ring current normalization
     flat_min = min( flat(:) );
     flat_max = max( flat(:) );
-    
-    % Dark field correction
-    flat = bsxfun( @minus, flat, dark );
     
     % Ring current normalization
     if ring_current_normalization(1)
@@ -960,12 +968,9 @@ if ~read_flatcor && ~read_sino
         drawnow
     end
     
-    %%% Projections %%%
+    %% Projections %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     t = toc;
-    prnt( '\nProcessing projections. ')
-    % Preallocation
-    proj = zeros( im_shape_binned(1), im_shape_binned(2), num_proj_used, 'single');
-    prnt( ' Allocated memory: %.2f GiB,', Bytes( proj, 3 ) )
+    prnt( '\nProcessing projections.')
     img_names_mat = NameCellToMat( proj_names(proj_range) );
     
     % Display first raw image
@@ -1001,17 +1006,50 @@ if ~read_flatcor && ~read_sino
         DarkThresh = pixel_filter_threshold_proj(2);
     end
     
-    % Read raw projections
+    % Correlation roi area and preallocation
+    flat_corr_area1 = image_correlation.area_width;
+    flat_corr_area2 = image_correlation.area_height;
+    flat_corr_area1 = IndexParameterToRange(flat_corr_area1, im_shape_binned1);
+    flat_corr_area2 = IndexParameterToRange(flat_corr_area2, im_shape_binned2);
+    roi_proj = zeros( numel( flat_corr_area1 ), numel( flat_corr_area2 ) , num_proj_used, 'single');
+    
+    % Lateral shift indices
+    if isscalar( offset_shift )
+        x0 = ones( 1, num_proj_used );
+        x1 = im_shape_raw(1) * x0;
+    else
+        x0 = offset_shift';
+        x1 = x0 + im_shape_raw(1) - max( x0 );        
+    end
+    
+    % Preallocation
+    im_shape_cropbin1 = floor( (x1(1) - x0(1)) / raw_bin );
+    proj = zeros( im_shape_cropbin1, im_shape_binned2, num_proj_used, 'single');
+    prnt( ' Allocated memory: %.2f GiB,', Bytes( proj, 3 ) )       
     projs_to_use = zeros( 1, size( proj,3), 'logical' );
     num_zeros = zeros( 1, num_proj_used );
+    
+    prnt( '\n crop left  min/max : %u %u', min( x0 ), max( x0 ) )
+    prnt( '\n crop right min/max : %u %u', min( x1 ), max( x1 ) )
+        
     parfor nn = 1:num_proj_used
-        % Read and filter raw projection
+        
+        % Read raw projection
         filename = sprintf('%s%s', scan_path, img_names_mat(nn,:));
-        if bin_before_filtering
-            im = FilterPixel( Binning( single( read_image( filename, '', raw_roi, tif_info, im_shape_raw, dtype, im_trafo ) ), raw_bin) / raw_bin^2, [HotThresh, DarkThresh], 0, pixel_filter_radius);
-        else
-            im = Binning( FilterPixel( read_image( filename, '', raw_roi, tif_info, im_shape_raw, dtype, im_trafo ), [HotThresh, DarkThresh], 0, pixel_filter_radius), raw_bin) / raw_bin^2;
-        end
+        im_raw = single( read_image( filename, '', raw_roi, tif_info, im_shape_raw, dtype, im_trafo ) );
+        
+        % Filter pixel
+        im_raw = FilterPixel( im_raw, [HotThresh, DarkThresh], 0, pixel_filter_radius);
+        
+        % Dark field correction
+        im_raw = im_raw - dark;
+        
+        % Correlation ROI
+        roi_proj(:,:,nn) = im_raw(flat_corr_area1,flat_corr_area2 );
+
+        % Remove lateral shift & Binning
+        im = Binning( im_raw(x0(nn):x1(nn),:), raw_bin) / raw_bin^2;
+        
         % Check for zeros and reject images which are all zero
         num_zeros(nn) =  sum( sum( im < 1 ) );
         projs_to_use(nn) = ~boolean( num_zeros(nn)  );
@@ -1024,14 +1062,14 @@ if ~read_flatcor && ~read_sino
     proj(:,:,~projs_to_use) = [];
     if offset_shift ~= 0
         offset_shift(~projs_to_use) = [];
+        x0(~projs_to_use) = [];
     end
-    
+    par.offset_shift_x0 = x0;
+    par.offset_shift_x1 = x1;
+
     raw_min = min( proj(:) );
     raw_max = max( proj(:) );
-    
-    % Dark field correction
-    proj = bsxfun( @minus, proj, dark);
-    
+
     % Ring current normalization
     if ring_current_normalization(1)
         proj_ind_from_filenames = proj_nums;
@@ -1107,14 +1145,14 @@ if ~read_flatcor && ~read_sino
     %%%% STOP HERE TO CHECK FLATFIELD CORRELATION MAPPING %%%%%%%%%%%%%%%%%
     %%%% use 'proj_flat_sequ' to show results of the correlcation
     startS = ticBytes(gcp);
-    image_correlation.im_shape_binned = im_shape_binned;
+    image_correlation.im_shape_binned1 = im_shape_binned1;
+    image_correlation.im_shape_binned2 = im_shape_binned2;
     image_correlation.flatcor_path = flatcor_path;
     image_correlation.raw_roi = raw_roi;
     image_correlation.raw_bin = raw_bin;
-    image_correlation.bin_before_filtering = bin_before_filtering;
     image_correlation.proj_range = proj_range;
     image_correlation.ref_range = ref_range;
-    [proj, corr, roi] = proj_flat_correlation( proj, flat, image_correlation, par );
+    [proj, corr] = proj_flat_correlation( proj, flat, image_correlation, par );
     toc_bytes = tocBytes(gcp,startS);
     if par.visual_output
         f = figure('Name', 'Parallel pool data transfer during image correlation', 'WindowState', 'maximized');
@@ -1136,30 +1174,6 @@ if ~read_flatcor && ~read_sino
         fprintf( '\n' )
         keyboard;
     end
-    
-    %% Remove lateral offset
-    x0 = round( 1 + offset_shift' - min( offset_shift(:) ) );
-    x1 = size( proj, 1) - max( x0 ) + x0;
-    im_shape_binned1 = x1(1) - x0(1);
-    proj2 = proj;
-    tic;
-    parfor nn = 1:size( proj, 3 )
-        im = proj(:,:,nn);
-        shift_nn = -x0(nn);
-        im = circshift( im, shift_nn, 1 );
-        proj2(:,:,nn) = im;
-    end
-    toc
-    
-%     % Query grid
-%     x_left = ceil( max( offset_shift) ) + 1 ;
-%     x_right =  floor( num_pix + min( offset_shift ) ) - 0 ;
-%     x = x_left:x_right;
-%     y = 1:num_proj;
-%     [Yq, Xq] = meshgrid( y, x );
-%     Xq = Xq + offset_shift';
-%     Xq = Xq - min( Xq(:) ) + 1;
-
     
     % Filter strong/full absorption (combine with iterative reco methods)
     if strong_abs_thresh < 1
@@ -1293,11 +1307,10 @@ else
         % Preallocation
         filename = sprintf('%s%s', sino_path, sino_names_mat( round( im_shape_binned2 / 2 ), :));
         sino = read_image( filename );
-        im_shape_binned1 = size( sino, 2 );
+        im_shape_cropbin1 = size( sino, 2 );
         num_proj_read = size( sino, 1 );
-        num_proj_used = num_proj_read;
-        im_shape_binned = [ im_shape_binned1 im_shape_binned2 ];
-        proj = zeros( im_shape_binned1, im_shape_binned2, num_proj_read, 'single');
+        num_proj_used = num_proj_read;        
+        proj = zeros( im_shape_cropbin1, im_shape_binned2, num_proj_read, 'single');
         prnt( ' Allocated bytes: %.2f GiB.', Bytes( proj, 3 ) )
         
         % Angles
@@ -1317,7 +1330,7 @@ else
         end
         
         % Read sinogram
-        parfor nn = 1:im_shape_binned2
+        parfor nn = 1:size( proj, 2 )
             filename = sprintf('%s%s', sino_path, sino_names_mat(nn, :));
             sino = read_image( filename );
             proj(:, nn, :) = permute( shiftdim( sino, -1 ) , [3 1 2] );
@@ -1374,7 +1387,7 @@ else
         end
         
         % Preallocation
-        proj = zeros( im_shape_binned(1), im_shape_binned(2), num_proj_read, 'single');
+        proj = zeros( im_shape_cropbin1, im_shape_binned2, num_proj_read, 'single');
         prnt( ' Allocated bytes: %.2f GiB.', Bytes( proj, 3 ) )
         proj_names_mat = NameCellToMat( proj_names );
         
@@ -1389,7 +1402,6 @@ end
 tomo.angles = tomo.rot_angle.offset + angles;
 
 %% Phase retrieval before interactive mode %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-phase_bin = phase_retrieval.post_binning_factor; % alias for readablity
 tint_phase = 0;
 if phase_retrieval.apply
     phase_retrieval.energy = energy;
@@ -1436,14 +1448,14 @@ if tomo.run || tomo.run_interactive_mode
     [val2, ind2] = min( abs( angles - pi ));
     
     %% CHECK
-    tomo.rot_axis.position = im_shape_binned1 / 2 + tomo.rot_axis.offset;
+    tomo.rot_axis.position = im_shape_cropbin1 / 2 + tomo.rot_axis.offset;
     
     % Tilt of rotation axis
     if interactive_mode.rot_axis_tilt
         
         % ROI for correlation of projections at angles 0 & pi
         if isempty( tomo.rot_axis.corr_area1 )
-            r = tomo.rot_axis.position / im_shape_binned1;
+            r = tomo.rot_axis.position / im_shape_cropbin1;
             if r < 1 / 4
                 tomo.rot_axis.corr_area1 = [0 0.25];
             elseif r > 3 / 4
@@ -1452,7 +1464,7 @@ if tomo.run || tomo.run_interactive_mode
                 tomo.rot_axis.corr_area1 = [0.25 0.75];
             end
         end
-        tomo.rot_axis.corr_area1 = IndexParameterToRange( tomo.rot_axis.corr_area1, im_shape_binned1 );
+        tomo.rot_axis.corr_area1 = IndexParameterToRange( tomo.rot_axis.corr_area1, im_shape_cropbin1 );
         tomo.rot_axis.corr_area2 = IndexParameterToRange( tomo.rot_axis.corr_area2, im_shape_binned2 );
         im1c = RotAxisSymmetricCropping( proj(:,tomo.rot_axis.corr_area2,ind1), tomo.rot_axis.position, 1);
         im2c = flipud(RotAxisSymmetricCropping( proj(:,tomo.rot_axis.corr_area2,ind2) , tomo.rot_axis.position, 1));
@@ -1470,7 +1482,7 @@ if tomo.run || tomo.run_interactive_mode
     %     automatic_mode_fine = 'iso-grad'; % NOT IMPLEMENTED!
     %     if automatic_mode(1) % NOT IMPLEMENTED YET
     %         pts = 10;
-    %         im_center = im_shape_binned1 / 2;
+    %         im_center = im_shape_cropbin1 / 2;
     %         offset_stride = floor( im_center / pts );
     %         offset = -im_center:offset_stride:im_center;
     %     end
@@ -1496,7 +1508,7 @@ if tomo.run || tomo.run_interactive_mode
         if interactive_mode.slice_number > 1
             slice = interactive_mode.slice_number;
         elseif interactive_mode.slice_number <= 1 && interactive_mode.slice_number >= 0
-            slice = round((im_shape_binned2 - 1) * interactive_mode.slice_number + 1 );
+            slice = round((size( proj, 2 ) - 1) * interactive_mode.slice_number + 1 );
         end
         
         itomo.offset = tomo.rot_axis.offset;
@@ -1514,8 +1526,8 @@ if tomo.run || tomo.run_interactive_mode
             cprintf( 'RED', '\n\nEntering offset loop' )
             
             % Print parameters
-            fprintf( '\n\n number of pixels: %u', im_shape_binned1)
-            fprintf( '\n image center: %.1f', im_shape_binned1 / 2)
+            fprintf( '\n\n number of pixels: %u', im_shape_cropbin1)
+            fprintf( '\n image center: %.1f', im_shape_cropbin1 / 2)
             fprintf( '\n current slice : %u', slice)
             fprintf( '\n current rotation axis position : %.2f', tomo.rot_axis.position)
             cprintf( 'GREEN', '\n current rotation axis OFFSET : %.2f', tomo.rot_axis.offset )
@@ -1528,9 +1540,9 @@ if tomo.run || tomo.run_interactive_mode
             while ischar( inp )
                 switch inp
                     case 's'
-                        slice = input( sprintf( '\nENTER ABSOLUTE [1,%u] OR RELATIVE [0,1] SLICE NUMBER : ', im_shape_binned2) );
+                        slice = input( sprintf( '\nENTER ABSOLUTE [1,%u] OR RELATIVE [0,1] SLICE NUMBER : ', size( proj, 2 )) );
                         if slice <= 1 && slice >= 0
-                            slice = round((im_shape_binned2 - 1) * slice + 1 );
+                            slice = round((size( proj, 2 ) - 1) * slice + 1 );
                         end
                         fprintf( ' new slice : %u (before: %u)', slice, itomo.slice );
                         itomo.slice = slice;
@@ -1650,9 +1662,9 @@ if tomo.run || tomo.run_interactive_mode
                         while ischar( inp )
                             switch inp
                                 case 's'
-                                    slice = input( sprintf( '\nENTER ABSOLUTE [1,%u] OR RELATIVE [0,1] SLICE NUMBER : ', im_shape_binned2) );
+                                    slice = input( sprintf( '\nENTER ABSOLUTE [1,%u] OR RELATIVE [0,1] SLICE NUMBER : ', size( proj, 2 )) );
                                     if slice <= 1 && slice >= 0
-                                        slice = round((im_shape_binned2 - 1) * slice + 1 );
+                                        slice = round((size( proj, 2 ) - 1) * slice + 1 );
                                     end
                                     fprintf( ' new slice : %u (before: %u)', slice, itomo.slice );
                                     itomo.slice = slice;
@@ -1736,7 +1748,7 @@ if tomo.run || tomo.run_interactive_mode
                         if isscalar( tilt )
                             cprintf( 'RED', '\n\nDouble check tilt: ' )
                             fprintf( 'Registration of projection' )
-                            tomo.rot_axis.position = im_shape_binned1 / 2 + tomo.rot_axis.offset;
+                            tomo.rot_axis.position = im_shape_cropbin1 / 2 + tomo.rot_axis.offset;
                             
                             % Compare projection at 0 pi and projection at 1 pi corrected for rotation axis tilt
                             im1c = RotAxisSymmetricCropping( proj(:,tomo.rot_axis.corr_area2,ind1), tomo.rot_axis.position, 1);
@@ -1800,7 +1812,7 @@ if tomo.run || tomo.run_interactive_mode
             end % if isscalar( offset )
         end % while ~isscalar( offset )
         tomo.rot_axis.offset = offset;
-        tomo.rot_axis.position = im_shape_binned1 / 2 + tomo.rot_axis.offset;
+        tomo.rot_axis.position = im_shape_cropbin1 / 2 + tomo.rot_axis.offset;
         
         % Save last sequence
         if exist( 'vol', 'var' )
@@ -1860,7 +1872,7 @@ if tomo.run || tomo.run_interactive_mode
 end
 
 %% Stitch projections
-if stitch_projections(1)
+if par.stitch_projections
     t = toc;
     prnt( '\nStitch projections:')
     % last projection within [0,pi)
@@ -1872,21 +1884,21 @@ if stitch_projections(1)
     xr = 1:xl(end)-1;
     im_shape_sti1 = numel( xl ) + numel( xr );
     % Preallocation
-    proj_sti = zeros( im_shape_sti1 , im_shape_binned2, num_proj_sti, 'single');
+    proj_sti = zeros( im_shape_sti1 , size( proj, 2 ), num_proj_sti, 'single');
     for nn = 1:num_proj_sti
         nn2 = mod(num_proj_sti + nn - 1, size( proj, 3) ) + 1;
-        im = zeros( im_shape_sti1, im_shape_binned2);
-        switch lower( stitch_method )
+        im = zeros( im_shape_sti1, size( proj, 2 ));
+        switch lower( par.stitch_method )
             case 'step'
                 im = cat(1, proj(xl,:,nn), flipud( proj(xr,:,nn2) ) );
             case {'linear', 'sine'}
                 % overlap region
-                overlap = round(2 * tomo.rot_axis.position) - im_shape_binned1 : im_shape_binned1;
+                overlap = round(2 * tomo.rot_axis.position) - im_shape_cropbin1 : im_shape_cropbin1;
                 % overlap ramp
                 x = (0:1/(numel(overlap)-1):1);
                 % 1D weight
-                w = ones(im_shape_binned1, 1);
-                switch lower( stitch_method )
+                w = ones(im_shape_cropbin1, 1);
+                switch lower( par.stitch_method )
                     case 'linear'
                         w(overlap) = 1 - x;
                     case 'sine'
@@ -1896,8 +1908,8 @@ if stitch_projections(1)
                 iml = bsxfun(@times, proj(:,:,nn), w);
                 imr = flipud( bsxfun(@times, proj(:,:,nn2), w ) );
                 % stitched projection
-                im(1:im_shape_binned1,:) = iml;
-                im(end - im_shape_binned1 + 1:end,:) = im(end - im_shape_binned1 + 1:end,:) + imr;
+                im(1:im_shape_cropbin1,:) = iml;
+                im(end - im_shape_cropbin1 + 1:end,:) = im(end - im_shape_cropbin1 + 1:end,:) + imr;
         end
         proj_sti(:,:,nn) = im;
     end
@@ -1918,13 +1930,13 @@ if ring_filter.apply && ~ring_filter.apply_before_stitching
 end
 
 %% Crop projections at rotation axis position %%
-if crop_at_rot_axis(1)
+if par.crop_at_rot_axis
     t = toc;
     prnt( '\nCropping projections:')
     % Crop projections to avoid oversampling for scans with excentric rotation axis
     % and reconstruct WITHOUT stitching
     % Crop relative to rot axis position
-    r = tomo.rot_axis.position / im_shape_binned1;
+    r = tomo.rot_axis.position / im_shape_cropbin1;
     if r < 0.5
         proj( 1:floor(tomo.rot_axis.position)-1, :, :) = [];
     else
@@ -1941,7 +1953,7 @@ if write.sino
     t = toc;
     prnt( '\nSave sinogram:')
     CheckAndMakePath(sino_path, write.deleteFiles, write.beamtimeID)
-    parfor nn = 1:im_shape_binned2
+    parfor nn = 1:size( proj, 2 )
         filename = sprintf( '%ssino_%06u.tif', sino_path, nn);
         sino = squeeze( proj( :, nn, :) )';
         write32bitTIFfromSingle( filename, sino )
@@ -1978,9 +1990,9 @@ if tomo.run
         fprintf( '\nSwitch to slice-wise reco (tomo.reco_mode = ''%s'') due to limited memory ( avail : %.1f GiB, vol : %.1f GiB) .', tomo.reco_mode, mem_avail / 1024^3, vol_mem / 1024^3 )
     end
     
-    if stitch_projections(1)
+    if par.stitch_projections
         rot_axis_offset_reco = 0;
-    elseif crop_at_rot_axis(1)
+    elseif par.crop_at_rot_axis
         rot_axis_offset_reco = tomo.rot_axis.position - size( proj, 1) / 2;
     else
         rot_axis_offset_reco = tomo.rot_axis.offset;
@@ -2025,8 +2037,8 @@ if tomo.run
     end
     
     % half weight pixel at rot axis pos as it is backprojected twice
-    if crop_at_rot_axis(1)
-        r = tomo.rot_axis.position / im_shape_binned1;
+    if par.crop_at_rot_axis
+        r = tomo.rot_axis.position / im_shape_cropbin1;
         if r < 0.5
             proj( 1, :, :) = 0.5 * proj( 1, :, :) ;
         else
@@ -2290,7 +2302,6 @@ if write.reco
         fprintf(fid, 'image_shape_roi : %u %u\n', size( im_roi ));
         fprintf(fid, 'image_shape_roi_binned : %u %u\n', im_shape_binned);
         fprintf(fid, 'raw_binning_factor : %u\n', raw_bin);
-        fprintf(fid, 'bin_before_filtering : %u\n', bin_before_filtering);
         fprintf(fid, 'ring_current_normalization : %u\n', ring_current_normalization);
         fprintf(fid, 'image_correlation.method : %s\n', image_correlation.method);
         fprintf(fid, 'image_correlation.num_flats : %u\n', image_correlation.num_flats);
@@ -2322,9 +2333,9 @@ if write.reco
         fprintf(fid, 'tomo.vol_shape : %u %u %u\n', tomo.vol_shape(1), tomo.vol_shape(2), tomo.vol_shape(3));
         fprintf(fid, 'tomo.vol_size : %f %f %f %f %f %f\n', tomo.vol_size(1), tomo.vol_size(2), tomo.vol_size(3), tomo.vol_size(4), tomo.vol_size(5), tomo.vol_size(6));
         % Rotation
-        fprintf(fid, 'crop_at_rot_axis : %u\n', crop_at_rot_axis);
-        fprintf(fid, 'stitch_projections : %u\n', stitch_projections);
-        fprintf(fid, 'stitch_method : %s\n', stitch_method );
+        fprintf(fid, 'crop_at_rot_axis : %u\n', par.crop_at_rot_axis);
+        fprintf(fid, 'par.stitch_projections : %u\n', par.stitch_projections);
+        fprintf(fid, 'par.stitch_method : %s\n', par.stitch_method );
         fprintf(fid, 'tomo.reco_mode : %s\n', tomo.reco_mode);
         fprintf(fid, 'tomo.rot_angle.full_range : %f * pi rad\n', tomo.rot_angle.full_range / pi);
         fprintf(fid, 'tomo.rot_angle.offset : %f * pi rad\n', tomo.rot_angle.offset / pi);
@@ -2333,7 +2344,7 @@ if write.reco
         fprintf(fid, 'tomo.rot_axis.position : %f\n', tomo.rot_axis.position);
         fprintf(fid, 'rotation_axis_tilt_calculated : %f\n', rot_axis_tilt_calc);
         fprintf(fid, 'tomo.rot_axis.tilt : %f\n', tomo.rot_axis.tilt);
-        fprintf(fid, 'raw_image_binned_center : %f\n', im_shape_binned1 / 2);
+        fprintf(fid, 'raw_image_binned_center : %f\n', im_shape_cropbin1 / 2);
         fprintf(fid, 'interactive_mode.rot_axis_pos : %u\n', interactive_mode.rot_axis_pos);
         fprintf(fid, 'interactive_mode.phase_retrieval : %u\n', interactive_mode.phase_retrieval);
         % Ring filter
