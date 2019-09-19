@@ -6,10 +6,11 @@ function [proj, corr] = proj_flat_correlation( proj, flat, image_correlation, pa
 % flat : stack of flat field
 % image_correlation : struct, required fields see below
 % par : struct, required fields see below
+% roi_proj : ROI for correlation when offset shift is corrected
 %
 % Written by Julian Moosmann.
 %
-% proj_flat_correlation( proj, flat, image_correlation, par )
+% proj_flat_correlation( proj, flat, image_correlation, par, roi_proj )
 
 if nargin < 5
     roi_proj = [];
@@ -30,14 +31,14 @@ verbose = par.verbose;
 visual_output = par.visual_output;
 poolsize = par.poolsize;
 x0 = par.offset_shift_x0;
-x1 = par.offset_shift_x1;
+%x1 = par.offset_shift_x1;
 raw_bin = par.raw_bin;
 
 im_shape_cropbin1 = size( proj, 1 );
 num_proj_used = size( proj, 3);
 num_ref_used = size( flat, 3);
 
-%% Projection / flat-field correlcation
+%% CORRELATION %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 switch method
     
     case {'none', '', 'median'}
@@ -119,12 +120,29 @@ switch method
             c_s = foo;
             
             % Compute correlation for each pair projection/flat-field
+            
+            if strcmpi( method, 'ssim-g' )
+                radius = 1.5;
+                filtRadius = ceil(radius*3); % 3 Standard deviations include >99% of the area.
+                filtSize = 2*filtRadius + 1;
+                gaussFilterFcn = @(X)imgaussfilt(X, radius, 'FilterSize', filtSize, 'Padding','replicate');
+            end
+            
             for ff = 1:num_ref_used
                 
                 % flat field
                 f = roi_flat(:,:,ff);
                 
-                parfor pp = 1:num_proj_used
+                if  sum(strcmpi( method, {'cov', 'corr', 'ssim','ssim-g', 'all'}))
+                    f_mean = mean2( f );
+                    f_std = std2( f );
+                end
+                if strcmpi( method, 'ssim-g' )
+                    f = gaussFilterFcn( f );
+                end
+                
+                %parfor pp = 1:num_proj_used
+                for pp = 1:num_proj_used
                     
                     % projection
                     p = roi_proj(:,:,pp);
@@ -165,12 +183,13 @@ switch method
                         c_cross_entropy21(pp,ff) = - sum( p2 .* log( p1 ) );
                         c_cross_entropyx(pp,ff) = sum( p2 .* log2( p1 ) - p1 .* log2( p2 ) );
                         
-                    elseif sum(strcmpi( method, {'cov', 'corr', 'ssim','all'}))
+                    elseif sum(strcmpi( method, {'cov', 'corr', 'ssim','ssim-g','all'}))
                         % input
+                        if strcmpi( method, 'ssim-g' )
+                            p = gaussFilterFcn( p );
+                        end
                         p_mean = mean2( p );
                         p_std = std2( p );
-                        f_mean = mean2( f );
-                        f_std = std2( f );
                         cov_pf = mean2( ( p - p_mean ) .* (f - f_mean ) );
                         
                         % cov : cross covariance
@@ -203,7 +222,7 @@ switch method
                         
                     elseif sum(strcmpi( method, {'ssim-ml','all'}))
                         % Matlab's structural similarity index (SSIM)
-                        c_ssim_ml(pp,ff) = - ssim( roi_proj(:,:,pp), f ); %'DynamicRange', 'uint16'
+                        c_ssim_ml(pp,ff) = - ssim( p, f ); %'DynamicRange', 'uint16'
                     end
                 end
                 
@@ -221,6 +240,8 @@ switch method
                     case 'cross-entropyx'
                         corr.mat = c_cross_entropyx;
                     case 'ssim'
+                        corr.mat = c_ssim;
+                    case 'ssim-g'
                         corr.mat = c_ssim;
                     case 'ssim-ml'
                         corr.mat = c_ssim_ml;
@@ -274,7 +295,7 @@ switch method
                 save( sprintf( '%scorr.mat', flatcor_path), 'corr' )
                 
             end
-            PrintVerbose(verbose, ' Time elapsed: %.1f s (%.2f min)', toc - t, ( toc - t ) / 60 )
+            PrintVerbose(verbose, ' Done in %.1f s (%.2f min)', toc - t, ( toc - t ) / 60 )
         end
         
         %% Visual output %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -282,7 +303,7 @@ switch method
             figure('Name', 'Correlation of projections and flat-fields');
             
             switch method
-                case {'cov', 'corr', 'ssim'}
+                case {'cov', 'corr', 'ssim', 'ssim-g'}
                     m = 2; n = 1;
                     subplot(m,n,1);
                     f = @(x) normat(x(1,:))';
@@ -326,7 +347,7 @@ switch method
             drawnow
         end
         
-        %% Flat- and dark-field correction %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+        %% CORRECTION %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         PrintVerbose(verbose, '\nFlat- and dark-field correction.')
         t = toc;
         
@@ -361,21 +382,20 @@ switch method
                 % Flat field correction
                 flat_ind = corr_mat_pos(:,1:corr_num_flats);
                 if pflag
-                    parfor nn = 1:num_proj_used
+                    %parfor nn = 1:num_proj_used
+                    for nn = 1:num_proj_used
                         % Mean over flat fields
                         flat_mean = squeeze( mean( flat(:, :, flat_ind(nn,:)), 3) );
-                        % Binned shift
+                        % Binned shift (shift not first pixel)
                         shift = (x0(nn) - 1 ) / raw_bin;
                         shift_int = floor( shift );
                         shift_sub = shift - shift_int;
-                        % the subpixel offest is tranlate back!
-                        shift_sub = shift_sub - 1;
                         
                         % shift flat
                         if mod( shift_sub, 1 ) ~= 0
                             % crop flat at integer shift, then shift subpixel
                             xx = shift_int + (1:im_shape_cropbin1+1);
-                            flat_mean_shifted = imtranslate( flat_mean(xx,:), [0 shift_sub], 'linear' );
+                            flat_mean_shifted = imtranslate( flat_mean(xx,:), [0 -shift_sub], 'linear' );
                         else
                             xx = shift_int + (1:im_shape_cropbin1);
                             flat_mean_shifted = flat_mean(xx,:);
@@ -385,6 +405,7 @@ switch method
                         p = proj(:, :, nn);
                         p = p ./ flat_mean_shifted(1:im_shape_cropbin1,:) ;
                         proj(:,:,nn) = p;
+                        %imsc( p(1:200,:) ),axis equal tight
                     end
                 else
                     for nn = 1:num_proj_used
@@ -420,6 +441,6 @@ switch method
                 %             OpenParpool( poolsize, 0, [beamtime_path filesep 'scratch_cc']);
                 %         end
                 
-                PrintVerbose(verbose, ' Time elapsed: %.1f s (%.2f min)', toc - t, ( toc - t ) / 60 )
+                PrintVerbose(verbose, ' Done in %.1f s (%.2f min)', toc - t, ( toc - t ) / 60 )
         end
 end

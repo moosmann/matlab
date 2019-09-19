@@ -58,8 +58,8 @@ end
 %% If name exists, check if empty
 name_is_empty = 0;
 if name_exists && assign_if_empty
-    expr = sprintf( 'isempty( ''%s'')', name );
-    name_is_empty = ~evalin( 'caller', expr );
+    expr = sprintf( 'isempty( %s )', name );
+    name_is_empty = evalin( 'caller', expr );
 end
 
 %% Assignment via temp variable

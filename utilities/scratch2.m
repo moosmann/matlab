@@ -10,11 +10,12 @@ disp( b )
 assign_default( 'b', 4 )
 disp( b )
 
+c = 0;
 assign_default( 'c', [] )
 disp( c )
 assign_default( 'c',5 )
 disp( c )
 
-assign_default( 'c',5, 1 )
+assign_default( 'c',6, 1 )
 disp( c )
 

@@ -74,7 +74,7 @@ if exist( 'interactive_mode', 'var' ) && isfield( interactive_mode, 'phase_retri
         vol_size(6) = 0.5;
     end
     tomo.vol_size = vol_size;
-    tomo.rot_axis.offset = tomo.rot_axis.offset + tomo.offset_shift + eps;
+    %tomo.rot_axis.offset = tomo.rot_axis.offset + tomo.offset_shift + eps;
     
     if strcmpi( tomo.algorithm, 'fbp' )
         % Ramp filter
