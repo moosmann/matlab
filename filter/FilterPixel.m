@@ -84,11 +84,6 @@ if filterInfsAndNans(2)
     NumNan = sum(mask(:)) - NumInf;
 end
 
-%% Median filterd image
-% set Infs and Nans to zero before computation of median filtered map
-im(mask) = 0;
-imMedian = medfilt2(im, medianFilterRadius, 'symmetric');
-
 %% Dead pixel mask
 if filterDeadPixel > 0
     mask = mask | im <= 0;
@@ -97,6 +92,14 @@ if filterDeadPixel > 0
         return
     end
 end
+
+% Replace Infs, Nans, and deads before median filter
+if filterInfsAndNans(1) || filterInfsAndNans(2) || filterDeadPixel
+    im(mask) = mean2( im(~mask) );
+end
+
+%% Median filterd image
+imMedian = medfilt2(im, medianFilterRadius, 'symmetric');
 
 %% Ratio of image and median filtered image
 R = im./imMedian;
@@ -128,6 +131,11 @@ if DarkThresh > 0
     mask = mask | R < DarkThresh;
     NumDark = sum(mask(:)) - NumDead - NumHot;
 end
+% % Filter corners
+% mask(1:1,1:2) = 1;
+% mask(1:2,end-1:end) = 1;
+% mask(end-1:end,1:2) = 1;
+% mask(end-1:end,end-1:end) = 1;
 %% Replace dead, hot, and dark pixels by median values
 im(mask) = imMedian(mask);
 %% Print info
@@ -158,5 +166,3 @@ end
 HotPixPercent = NumHot/NumPix;
 DeadPixPercent = NumDead/NumPix;
 DarkPixPercent = NumDark/NumPix;
-%%% END OF CODE %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-end

@@ -35,9 +35,9 @@ close all hidden % close all open windows
 %% PARAMETERS / SETTINGS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-fast_reco = 1; % !!! OVERWRITES SOME PARAMETERS SET BELOW !!!
-stop_after_data_reading(1) = 0; % for data analysis, before flat field correlation
-stop_after_proj_flat_correlation(1) = 0; % for data analysis, after flat field correlation
+fast_reco = 0; % !!! OVERWRITES SOME PARAMETERS SET BELOW !!!
+stop.after_data_reading = 1; % for data analysis, before flat field correlation
+stop.after_proj_flat_correlation = 0; % for data analysis, after flat field correlation
 
 %%% SCAN %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 scan_path = '/asap3/petra3/gpfs/p05/2018/data/11005553/raw/syn033_68R_Mg10Gd_12w';
@@ -180,7 +180,7 @@ interactive_mode.phase_retrieval = 0; % Interactive retrieval to determine regul
 interactive_mode.phase_retrieval_default_search_range = []; % if empty: asks for search range when entering interactive mode, otherwise directly start with given search range
 %%% HARDWARE / SOFTWARE %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 par.use_cluster = 1; % if available: on MAXWELL nodes disp/nova/wga/wgs cluster computation can be used. Recommended only for large data sets since parpool creation and data transfer implies a lot of overhead.
-par.poolsize = 0.8; % number of workers used in a local parallel pool. if 0: use current config. if >= 1: absolute number. if 0 < poolsize < 1: relative amount of all cores to be used. if SLURM scheduling is available, a default number of workers is used.
+par.poolsize = 0.3; % number of workers used in a local parallel pool. if 0: use current config. if >= 1: absolute number. if 0 < poolsize < 1: relative amount of all cores to be used. if SLURM scheduling is available, a default number of workers is used.
 tomo.astra_link_data = 1; % ASTRA data objects become references to Matlab arrays. Reduces memory issues.
 tomo.astra_gpu_index = []; % GPU Device index to use, Matlab notation: index starts from 1. default: [], uses all
 %%% EXPERIMENTAL OR NOT YET IMPLEMENTED %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -199,8 +199,8 @@ if exist( 'external_parameter' ,'var')
     dbstop if error
     interactive_mode.rot_axis_pos = 0;
     fast_reco = 0;
-    stop_after_data_reading(1) = 0;
-    stop_after_proj_flat_correlation(1) = 0;
+    stop.after_data_reading(1) = 0;
+    stop.after_proj_flat_correlation(1) = 0;
     fn = fieldnames( external_parameter );
     for nn = 1:numel( fn )
         var_name = fn{nn};
@@ -260,7 +260,7 @@ assign_default( 'interactive_mode.phase_retrieval_default_search_range', [] )
 assign_default( 'tomo.rot_axis.corr_area2', [0.1 0.9] );
  
 % Define variables from struct fields for convenience
-raw_bin = par.raw_bin;
+raw_bin = single( par.raw_bin );
 phase_bin = phase_retrieval.post_binning_factor; % alias for readablity
 eff_pixel_size_binned = par.raw_bin * eff_pixel_size;
 
@@ -307,9 +307,14 @@ prnt( '\n system memory: free, available, total : %.0f GiB, %.0f GiB, %.0f GiB',
 if isempty( tomo.astra_gpu_index )
     tomo.astra_gpu_index = 1:gpuDeviceCount;
 end
-for nn = tomo.astra_gpu_index
-    gpu = parallel.gpu.GPUDevice.getDevice( nn );
-    prnt( '\n gpu %u memory : available, total, percent = %.3g GiB, %.3g GiB, %.2f%%', nn, gpu.AvailableMemory/1024^3, gpu.TotalMemory/1024^3, 100*gpu.AvailableMemory/gpu.TotalMemory)
+for mm = numel( tomo.astra_gpu_index ):-1:1
+    nn = tomo.astra_gpu_index(mm);
+    %gpu(nn) = parallel.gpu.GPUDevice.getDevice( nn );
+    gpu(nn) = gpuDevice(nn);
+    gpu(nn).reset;
+    mem_avail =  gpu(nn).AvailableMemory/1024^3;
+    mem_total = gpu(nn).TotalMemory/1024^3;
+    prnt( '\n gpu %u memory available : %.3g GiB (%.2f%%) of %.3g GiB', nn, mem_avail, 100*mem_avail/mem_total, mem_total )
 end
 
 % Start parallel CPU pool %%%
@@ -808,21 +813,34 @@ if ~read_flatcor && ~read_sino
     %% Dark field %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     t = toc;
     prnt( '\nProcessing %u dark fields.', num_dark)
-    dark = zeros( [im_shape_roi, num_dark], 'single');
+    dark = zeros( [im_shape_roi, num_dark], 'uint16');
     prnt( ' Allocated memory: %.2f MiB,', Bytes( dark, 2 ) )
+    filt_pix_par.threshold_hot = pixel_filter_threshold_dark(1);
+    filt_pix_par.threshold_dark = pixel_filter_threshold_dark(2);
+    filt_pix_par.medfilt_neighboorhood = pixel_filter_radius;
+    filt_pix_par.filter_dead_pixel = 1;
+    filt_pix_par.filter_Inf = 1;
+    filt_pix_par.filter_NaN = 1;
+    filt_pix_par.verbose = 0;
+    
     parfor nn = 1:num_dark
         filename = sprintf('%s%s', scan_path, dark_names{nn});
-        im = single( read_image( filename, '', raw_roi, tif_info, im_shape_raw, dtype, im_trafo) );
+        im_int = read_image( filename, '', raw_roi, tif_info, im_shape_raw, dtype, im_trafo);
+        %im_raw = single( im_int );
+        
         % Remove large outliers. Assume Poisson distribtion at large lambda
         % is approximately a Gaussian distribution and set all value above
         % mean + 4 * std (99.994 of values lie within 4 std). Due to
         % outliers 4*std will contain much more values and is a good
         % estimate
-        im_mean = mean( im(:) );
-        im_std = std( im(:) );
-        im( im > im_mean + 4*im_std) = im_mean;
-        im =  FilterPixel( im, pixel_filter_threshold_dark, 0, pixel_filter_radius );
-        dark(:, :, nn) = im;
+        im_float = single( im_int(:) );
+        im_mean = mean( im_float );
+        im_std = std( im_float );
+        im_int( im_int > im_mean + 4*im_std) = uint16( im_mean);
+        
+        % Filter pixels
+        im_int = FilterPixelGPU( im_int, filt_pix_par);
+        dark(:, :, nn) = im_int;
     end
     
     darks_min = min( dark(:) );
@@ -864,29 +882,36 @@ if ~read_flatcor && ~read_sino
     flat = zeros( [im_shape_binned1, im_shape_binned2, num_ref_used], 'single');
     num_zeros = zeros( 1, num_ref_used );
     prnt( ' Allocated memory: %.2f GiB,', Bytes( flat, 3 ) )
-    % Parallel loop
     refs_to_use = zeros( 1, size( flat,3), 'logical');
+    filt_pix_par.threshold_hot = pixel_filter_threshold_flat(1);
+    filt_pix_par.threshold_dark = pixel_filter_threshold_flat(2);
+    % Parallel loop
     parfor nn = 1:num_ref_used
-        
+       
         % Read
         filename = sprintf('%s%s', scan_path, ref_names_mat(nn,:));
-        im_raw = single( read_image( filename, '', raw_roi, tif_info, im_shape_raw, dtype, im_trafo ) );
+        im_int = read_image( filename, '', raw_roi, tif_info, im_shape_raw, dtype, im_trafo );
+        %im_raw = single( im_int );
         
         % Filter pixel
-        im_raw = FilterPixel( im_raw, pixel_filter_threshold_flat, 0, pixel_filter_radius);
+        %im_raw = FilterPixelGPU( im_raw, filt_pix_par);
+        im_int = FilterPixelGPU( im_int, filt_pix_par);
         
         % Dark field correction
-        im_raw = im_raw - dark;
+        %im_raw = im_raw - dark;
+        im_int = im_int - dark;
         
         % Binning
-        im = Binning( im_raw, raw_bin) / raw_bin^2;
+        im_float_binned = Binning( im_int, raw_bin) / raw_bin^2;        
         
-        flat(:, :, nn) = im;
+        % Count for zeros
+        num_zeros(nn) =  sum( im_float_binned(:) < 1  );
         
-        % Check for zeros
-        num_zeros(nn) =  sum( sum( flat(:,:,nn) < 1 ) );
-        % Discard if any pixel is zero. Or should all pixels be zeros?
+        % Discard if any pixel is zero.
         refs_to_use(nn) = ~boolean( num_zeros(nn)  );
+        
+        % Assign image to stack
+        flat(:, :, nn) = im_float_binned;
     end
     
     % Delete empty refs
@@ -974,6 +999,9 @@ if ~read_flatcor && ~read_sino
     prnt( '\nProcessing %u projections.', num_proj_used )
     img_names_mat = NameCellToMat( proj_names(proj_range) );
     
+    filt_pix_par.threshold_hot = pixel_filter_threshold_proj(1);
+    filt_pix_par.threshold_dark = pixel_filter_threshold_proj(2);
+    
     % Display first raw image
     if par.visual_output
         if exist( 'h1' , 'var' ) && isvalid( h1 )
@@ -982,7 +1010,10 @@ if ~read_flatcor && ~read_sino
             h1 = figure('Name', 'data and flat-and-dark-field correction', 'WindowState', 'maximized');
         end
         filename = sprintf('%s%s', scan_path, img_names_mat(1, :));
-        raw1 = Binning( FilterPixel( read_image( filename, '', raw_roi, tif_info, im_shape_raw, dtype, im_trafo ), pixel_filter_threshold_proj, 0, pixel_filter_radius), raw_bin) / raw_bin^2;
+        im_int = read_image( filename, '', raw_roi, tif_info, im_shape_raw, dtype, im_trafo );
+        %im_int = FilterPixel( im_int, pixel_filter_threshold_proj, 0, pixel_filter_radius);
+        im_int = FilterPixelGPU( im_int, filt_pix_par );
+        raw1 = Binning( im_int, raw_bin) / raw_bin^2;
         subplot(2,3,3)
         imsc1( raw1 )
         title(sprintf('raw proj #1'))
@@ -993,18 +1024,21 @@ if ~read_flatcor && ~read_sino
     
     % Get absolut filter thresholds from percentage-wise pixel filtering
     % of 1st, middle, and last projection to speed up processing
-    if pixel_filter_threshold_proj(1) < 1 || pixel_filter_threshold_proj(2) < 0.5
+    if filt_pix_par.threshold_hot  < 1 || filt_pix_par.threshold_dark < 0.5
         filename = sprintf('%s%s', scan_path, img_names_mat(num_proj_used, :));
-        [~, ht(3), dt(3)] = FilterPixel( read_image( filename, '', raw_roi, tif_info, im_shape_raw, dtype, im_trafo ), pixel_filter_threshold_proj, 0, pixel_filter_radius);
+        im_int = read_image( filename, '', raw_roi, tif_info, im_shape_raw, dtype, im_trafo );
+        [~, ht(3), dt(3)] = FilterPixelGPU( im_int, filt_pix_par );
+        %[~, ht(3), dt(3)] = FilterPixel( read_image( filename, '', raw_roi, tif_info, im_shape_raw, dtype, im_trafo ), pixel_filter_threshold_proj, 0, pixel_filter_radius);
         filename = sprintf('%s%s', scan_path, img_names_mat(1, :));
-        [~, ht(2), dt(2)] = FilterPixel( read_image( filename, '', raw_roi, tif_info, im_shape_raw, dtype, im_trafo ), pixel_filter_threshold_proj, 0, pixel_filter_radius);
+        im_int = read_image( filename, '', raw_roi, tif_info, im_shape_raw, dtype, im_trafo );
+        [~, ht(2), dt(2)] = FilterPixelGPU( im_int, filt_pix_par );
+        %[~, ht(2), dt(2)] = FilterPixel( read_image( filename, '', raw_roi, tif_info, im_shape_raw, dtype, im_trafo ), pixel_filter_threshold_proj, 0, pixel_filter_radius);
         filename = sprintf('%s%s', scan_path, img_names_mat(round(num_proj_used/2), :));
-        [~, ht(1), dt(1)] = FilterPixel( read_image( filename, '', raw_roi, tif_info, im_shape_raw, dtype, im_trafo ), pixel_filter_threshold_proj, 0, pixel_filter_radius);
-        HotThresh = median( ht );
-        DarkThresh = median( dt );
-    else
-        HotThresh = pixel_filter_threshold_proj(1);
-        DarkThresh = pixel_filter_threshold_proj(2);
+         im_int = read_image( filename, '', raw_roi, tif_info, im_shape_raw, dtype, im_trafo );
+        [~, ht(1), dt(1)] = FilterPixelGPU( im_int, filt_pix_par );
+        %[~, ht(1), dt(1)] = FilterPixel( read_image( filename, '', raw_roi, tif_info, im_shape_raw, dtype, im_trafo ), pixel_filter_threshold_proj, 0, pixel_filter_radius);
+        filt_pix_par.threshold_hot  = median( ht );
+        filt_pix_par.threshold_dark = median( dt );
     end
     
     % Correlation roi area and preallocation
@@ -1030,33 +1064,35 @@ if ~read_flatcor && ~read_sino
     projs_to_use = zeros( 1, size( proj,3), 'logical' );
     num_zeros = zeros( 1, num_proj_used );
     
-   
-        
     parfor nn = 1:num_proj_used
         
-        % Read raw projection
+        % Read projection
         filename = sprintf('%s%s', scan_path, img_names_mat(nn,:));
-        im_raw = single( read_image( filename, '', raw_roi, tif_info, im_shape_raw, dtype, im_trafo ) );
+        im_int = read_image( filename, '', raw_roi, tif_info, im_shape_raw, dtype, im_trafo );
         
         % Filter pixel
-        im_raw = FilterPixel( im_raw, [HotThresh, DarkThresh], 0, pixel_filter_radius);
+        im_int = FilterPixelGPU( im_int, filt_pix_par);
         
         % Dark field correction
-        im_raw = im_raw - dark;
+        im_int = im_int - dark;
         
         % Correlation ROI
-        roi_proj(:,:,nn) = im_raw(flat_corr_area1,flat_corr_area2 );
+        roi_proj(:,:,nn) = im_int(flat_corr_area1,flat_corr_area2 );
 
         % Remove lateral shift & Binning
         xx = x0(nn):x1(nn);
-        im = Binning( im_raw(xx,:), raw_bin) / raw_bin^2;
+        im_float_binned = Binning( im_int(xx,:), raw_bin) / raw_bin^2;
         
-        % Check for zeros and reject images which are all zero
-        num_zeros(nn) =  sum( sum( im < 1 ) );
+        % Count zeros
+        num_zeros(nn) =   sum( im_float_binned(:) < 1 );
+        
+        % Reject image if any pixel is zero
         projs_to_use(nn) = ~boolean( num_zeros(nn)  );
-        if projs_to_use(nn)
-            proj(:, :, nn) = im;
-        end
+        
+        % Assign image to stack
+        %if projs_to_use(nn)
+        proj(:, :, nn) = im_float_binned;
+        %end
     end
     
     % Delete empty projections
@@ -1136,11 +1172,11 @@ if ~read_flatcor && ~read_sino
             end
         end
     end
-    prnt( '\n hot- / dark-pixel filter threshold : %f, %f', HotThresh, DarkThresh )
+    prnt( '\n hot- / dark-pixel filter threshold : %f, %f', filt_pix_par.threshold_hot, filt_pix_par.threshold_hot )
     prnt( '\n global min/max of projs after filtering and binning:  %6g %6g', raw_min, raw_max)
     prnt( '\n global min/max of projs after dark-field correction and ring current normalization:  %6g %6g', raw_min2, raw_max2)
     
-    if stop_after_data_reading
+    if stop.after_data_reading
         fprintf( '\n' )
         keyboard;
     end
@@ -1174,7 +1210,7 @@ if ~read_flatcor && ~read_sino
     proj_min0 = min( proj(:) );
     proj_max0 = max( proj(:) );
     prnt( '\n global min/max after flat-field corrected:  %6g %6g', proj_min0, proj_max0);
-    if stop_after_proj_flat_correlation
+    if stop.after_proj_flat_correlation
         fprintf( '\n' )
         keyboard;
     end
