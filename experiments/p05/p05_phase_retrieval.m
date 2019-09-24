@@ -34,7 +34,7 @@ if exist( 'interactive_mode', 'var' ) && isfield( interactive_mode, 'phase_retri
         proj_mean = mean( proj, 3);
     end
     
-    fprintf( '\n\nENTER INTERACTIVE PHASE RETRIEVAL MODE' )
+    cprintf( 'RED', '\n\nENTER INTERACTIVE PHASE RETRIEVAL MODE' );
     if ~isempty( interactive_mode.phase_retrieval_default_search_range )
         reg_par_def_range = interactive_mode.phase_retrieval_default_search_range;
     else
@@ -272,9 +272,10 @@ if exist( 'interactive_mode', 'var' ) && isfield( interactive_mode, 'phase_retri
             ax1 = gca;            
             ax2 = axes( 'Position', ax1.Position, 'XAxisLocation', 'top', 'YAxisLocation', 'right', 'Color', 'none');
             line(1:numel( reg_par ), 0, 'Parent', ax2 )
-            xlabel( 'index (image no.)' )
+            xlabel( 'index (image no.)' )            
             set( ax1, 'YTick', [] ) % 'XTickMode', 'auto', 'XMinorTick', 'on')
             set( ax2, 'YTick', [] )
+            ylabel( 'metric' )
             title(sprintf('rotation axis: metrics VS regularization parameter'))
             drawnow
             
@@ -290,7 +291,19 @@ if exist( 'interactive_mode', 'var' ) && isfield( interactive_mode, 'phase_retri
         % Input
         reg_par = '';
         while ischar( reg_par )
-            reg_par = input( '\n\nENTER REG_PAR OR A RANGE OF REG_PAR (if empty: use default range, scalar: use value & exit loop, ''s'': change slice number,\n ''m'':change method, ''b'': binary filter threshold, ''c'': change cut-off frequency, ''p'': padding, ''d'': debug mode): ');
+            cprintf( 'RED', '\n\nENTER REGULARIZATION PARAMETER(S):' )
+            txt = [...                
+                '\n(if empty: use default range,'...
+                '\n if scalar: use value & EXIT loop,'...
+                '\n if ''s'': change slice number,'...
+                '\n if ''m'': change method,'...
+                '\n if ''edp'': change [energy,distance,pixelsize],'...
+                '\n if ''b'': change binary filter threshold,'...
+                '\n if ''c'': change cut-off frequency,'...
+                '\n if ''p'': change padding factor,'...
+                '\n if ''d'': enter debug mode): '...
+                '\n '                ];
+            reg_par = input( txt );
             if isempty( reg_par )
                 reg_par = reg_par_def_range;
             else
@@ -310,7 +323,9 @@ if exist( 'interactive_mode', 'var' ) && isfield( interactive_mode, 'phase_retri
                             end
                             fprintf( ' \n new slice : %u', slice );
                         case 'edp'
-                            edp = input( '\n\nENTER [energy/keV, distance/m, pixelsize/m] : ' );
+                            while ~isequal( size( edp ), [1 3] )
+                                edp = input( '\n\nENTER [energy/keV, distance/m, pixelsize/m] : ' );
+                            end
                         case 'm'
                             method = input( '\n\nENTER METHOD (''tie'',''qp'',''qp2'',''ctf'',''qpcut'') : ' );
                         case 'c'
