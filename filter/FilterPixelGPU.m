@@ -45,6 +45,8 @@ if verbose
     im_mean = mean( im_int(:) );
     im_std  = std( single( im_int(:) ) );
     inp_class = class( im_int );
+    gpu = parallel.gpu.GPUDevice.current;
+    mem0 = gpu.AvailableMemory;
 end
 threshold_hot = assign_from_struct( par, 'threshold_hot', 0.01 );
 threshold_dark = assign_from_struct( par, 'threshold_dark', 0, 1 );
@@ -54,6 +56,9 @@ filter_Inf = assign_from_struct( par, 'filter_Inf', 1 );
 filter_NaN = assign_from_struct( par, 'filter_NaN', 1 );
 
 %% Main %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%gpu = parallel.gpu.GPUDevice.current;
+%fprintf( ' %u', gpu.Index );
 
 mfnh1 = medfilt_neighboorhood(1);
 mfnh2 = medfilt_neighboorhood(2);
@@ -173,6 +178,12 @@ if verbose
     end
     fprintf( '\n before filter: [Min Max Mean Std] = [%9g %9g %9g %9g]', im_min, im_max, im_mean, im_std );
     fprintf( '\n after filter : [Min Max Mean Std] = [%9g %9g %9g %9g]', im_filt_min, im_filt_max, im_filt_mean, im_filt_std );
+    mem1 = gpu.AvailableMemory;
+    memt = gpu.TotalMemory;
+    fprintf( '\n gpu index : %u', gpu.Index )
+    fprintf( '\n gpu memory at start: %f (%g)', mem0 / 1024^2, mem0 / memt )
+    fprintf( '\n gpu memory at end  : %f (%g)', mem1 / 1024^2, mem1 / memt )
+    fprintf( '\n gpu memory diff.   : %f (%g)', (mem0 - mem1) / 1024^2, (mem0 - mem1) / memt )
     fprintf( '\n Elapsed time : %g s', t  )
     fprintf( '\n' )
 end

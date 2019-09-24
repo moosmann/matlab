@@ -1,4 +1,4 @@
-function [proj, corr] = proj_flat_correlation( proj, flat, image_correlation, par, roi_proj  )
+function [proj, corr, toc_bytes] = proj_flat_correlation( proj, flat, image_correlation, par, roi_proj  )
 % Correlate all projection with all flat-field to find the best matching
 % pairs for the flat-field correction using method of choice.
 %
@@ -128,6 +128,7 @@ switch method
                 gaussFilterFcn = @(X)imgaussfilt(X, radius, 'FilterSize', filtSize, 'Padding','replicate');
             end
             
+            %% Loop over flat fields
             for ff = 1:num_ref_used
                 
                 % flat field
@@ -141,16 +142,18 @@ switch method
                     f = gaussFilterFcn( f );
                 end
                 
-                %parfor pp = 1:num_proj_used
-                for pp = 1:num_proj_used
-                    
-                    % projection
-                    p = roi_proj(:,:,pp);
-                    
-                    if sum(strcmpi( method, {'diff','all'}))
+                startS = ticBytes( gcp );
+                fp = parallel.pool.Constant( f );
+                
+                %% Loop over projections
+                if sum(strcmpi( method, {'diff','all'}))
+                    parfor pp = 1:num_proj_used
+                        % projection
+                        p = roi_proj(:,:,pp);
+                        
                         % differences
-                        d1 =  abs( abs( p ) - abs( f ) ) ;
-                        d2 =  sqrt( abs( p.^2 - f.^2) );
+                        d1 =  abs( abs( p ) - abs( fp.Value ) ) ;
+                        d2 =  sqrt( abs( p.^2 - fp.Value.^2) );
                         
                         % anisotropic grad sum L1
                         c_diff1_l1(pp,ff) = norm( d1(:), 1);
@@ -163,34 +166,51 @@ switch method
                         
                         % isotropic grad sum L2
                         c_diff2_l2(pp,ff) = norm( d2(:), 2);
-                        
-                    elseif sum(strcmpi( method, {'std','all'}))
+                    end
+                    
+                elseif sum(strcmpi( method, {'std','all'}))
+                    parfor pp = 1:num_proj_used
+                        % projection
+                        p = roi_proj(:,:,pp);
                         % std : standard deviation of ratio of p and f
-                        c_std(pp,ff) = std2( p ./ f );
-                        
-                    elseif sum(strcmpi( method, {'entropy','all'}))
+                        c_std(pp,ff) = std2( p ./ fp.Value );
+                    end
+                    
+                elseif sum(strcmpi( method, {'entropy','all'}))
+                    parfor pp = 1:num_proj_used
+                        % projection
+                        p = roi_proj(:,:,pp);
                         % entropy : entropy of ratio of p and f
-                        c_ent(pp,ff) = entropy( double( p ./ f ) );
-                        
-                    elseif sum(strcmpi( method, {'cross-entropy12', 'cross-entropy21', 'cross-entropyx','all'}))
+                        c_ent(pp,ff) = entropy( double( p ./ fp.Value ) );
+                    end
+                    
+                elseif sum(strcmpi( method, {'cross-entropy12', 'cross-entropy21', 'cross-entropyx','all'}))
+                    parfor pp = 1:num_proj_used
+                        % projection
+                        p = roi_proj(:,:,pp);
                         % cross entropy of proj and flat
                         p1 = imhist( normat( p(:) ) ) ./ numel( p );
-                        p2 = imhist( normat( f(:) ), numel( p1 ) ) ./ numel( f );
+                        p2 = imhist( normat( fp.Value(:) ), numel( p1 ) ) ./ numel( fp.Value );
                         m = boolean( (p1 == 0) + (p2 == 0) );
                         p1(m) = [];
                         p2(m) = [];
                         c_cross_entropy12(pp,ff) = - sum( p1 .* log( p2 ) );
                         c_cross_entropy21(pp,ff) = - sum( p2 .* log( p1 ) );
                         c_cross_entropyx(pp,ff) = sum( p2 .* log2( p1 ) - p1 .* log2( p2 ) );
+                    end
+                    
+                elseif sum(strcmpi( method, {'cov', 'corr', 'ssim','ssim-g','all'}))
+                    parfor pp = 1:num_proj_used
+                        % projection
+                        p = roi_proj(:,:,pp);
                         
-                    elseif sum(strcmpi( method, {'cov', 'corr', 'ssim','ssim-g','all'}))
                         % input
                         if strcmpi( method, 'ssim-g' )
                             p = gaussFilterFcn( p );
                         end
                         p_mean = mean2( p );
                         p_std = std2( p );
-                        cov_pf = mean2( ( p - p_mean ) .* (f - f_mean ) );
+                        cov_pf = mean2( ( p - p_mean ) .* (fp.Value - f_mean ) );
                         
                         % cov : cross covariance
                         c_cov(pp,ff) = - cov_pf;
@@ -219,12 +239,18 @@ switch method
                         c_c(pp,ff) = ( 2 * p_std * f_std + c2 ) / ( p_std^2 + f_std^2 + c2 );
                         c_s(pp,ff) = ( cov_pf + c3) / ( p_std * f_std + c3 );
                         c_ssim(pp,ff) = - c_l(pp,ff) * c_c(pp,ff) * c_s(pp,ff);
-                        
-                    elseif sum(strcmpi( method, {'ssim-ml','all'}))
-                        % Matlab's structural similarity index (SSIM)
-                        c_ssim_ml(pp,ff) = - ssim( p, f ); %'DynamicRange', 'uint16'
                     end
+                    
+                elseif sum(strcmpi( method, {'ssim-ml','all'}))
+                    parfor pp = 1:num_proj_used
+                        % projection
+                        p = roi_proj(:,:,pp);
+                        % Matlab's structural similarity index (SSIM)
+                        c_ssim_ml(pp,ff) = - ssim( p, fp.Value ); %'DynamicRange', 'uint16'
+                    end
+                    
                 end
+                toc_bytes.correlation = tocBytes( gcp, startS );
                 
                 switch method
                     case 'diff'
@@ -382,8 +408,10 @@ switch method
                 % Flat field correction
                 flat_ind = corr_mat_pos(:,1:corr_num_flats);
                 if pflag
-                    %parfor nn = 1:num_proj_used
-                    for nn = 1:num_proj_used
+                    
+                    startS = ticBytes( gcp );
+                    parfor nn = 1:num_proj_used
+                        %for nn = 1:num_proj_used
                         % Mean over flat fields
                         flat_mean = squeeze( mean( flat(:, :, flat_ind(nn,:)), 3) );
                         % Binned shift (shift not first pixel)
@@ -407,6 +435,8 @@ switch method
                         proj(:,:,nn) = p;
                         %imsc( p(1:200,:) ),axis equal tight
                     end
+                    toc_bytes.correction = tocBytes( gcp, startS );
+                    
                 else
                     for nn = 1:num_proj_used
                         % Mean over flat fields

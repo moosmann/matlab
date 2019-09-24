@@ -31,7 +31,8 @@ end
 CheckAndMakePath( tmp_folder )
 
 if poolsize < 1 && poolsize > 0
-    poolsize = max( floor( poolsize * feature('numCores') ), 1 );
+    numCores = feature('numCores');
+    poolsize = max( floor( poolsize * numCores ), 1 );
 end
 
 % check if more than 1 worker is desired

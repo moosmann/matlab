@@ -35,8 +35,8 @@ close all hidden % close all open windows
 %% PARAMETERS / SETTINGS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-fast_reco = 0; % !!! OVERWRITES SOME PARAMETERS SET BELOW !!!
-stop.after_data_reading = 1; % for data analysis, before flat field correlation
+fast_reco = 1; % !!! OVERWRITES SOME PARAMETERS SET BELOW !!!
+stop.after_data_reading = 0; % for data analysis, before flat field correlation
 stop.after_proj_flat_correlation = 0; % for data analysis, after flat field correlation
 
 %%% SCAN %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -99,7 +99,7 @@ ring_filter.waveletfft.sigma = 2.4; %  suppression factor for 'wavelet-fft'
 ring_filter.jm.median_width = 11; % multiple widths are applied consecutively, eg [3 11 21 31 39];
 strong_abs_thresh = 1; % if 1: does nothing, if < 1: flat-corrected values below threshold are set to one. Try with algebratic reco techniques.
 %%% PHASE RETRIEVAL %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-phase_retrieval.apply = 0; % See 'PhaseFilter' for detailed description of parameters !
+phase_retrieval.apply = 1; % See 'PhaseFilter' for detailed description of parameters !
 phase_retrieval.apply_before = 0; % before stitching, interactive mode, etc. For phase-contrast data with an excentric rotation axis phase retrieval should be done afterwards. To find the rotataion axis position use this option in a first run, and then turn it of afterwards.
 phase_retrieval.post_binning_factor = 1; % Binning factor after phase retrieval, but before tomographic reconstruction
 phase_retrieval.method = 'tie';'qp';'qpcut'; %'qp' 'ctf' 'tie' 'qp2' 'qpcut'
@@ -168,19 +168,19 @@ write.compression.parameter = [0.02 0.02]; % compression-method specific paramet
 % 'histo' : [LOW HIGH] = write.compression.parameter (100*LOW)% and (100*HIGH)% of the original histogram, e.g. [0.02 0.02]
 %%% INTERACTION %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 par.verbose = 1; % print information to standard output
-par.visual_output = 0; % show images and plots during reconstruction
-interactive_mode.rot_axis_pos = 0; % reconstruct slices with dif+ferent rotation axis offsets
+par.visual_output = 1; % show images and plots during reconstruction
+interactive_mode.rot_axis_pos = 1; % reconstruct slices with dif+ferent rotation axis offsets
 interactive_mode.rot_axis_pos_default_search_range = []; % if empty: asks for search range when entering interactive mode
-interactive_mode.rot_axis_tilt = 0; % reconstruct slices with different offset AND tilts of the rotation axis
+interactive_mode.rot_axis_tilt = 1; % reconstruct slices with different offset AND tilts of the rotation axis
 interactive_mode.rot_axis_tilt_default_search_range = []; % if empty: asks for search range when entering interactive mode
 interactive_mode.lamino = 0; % find laminography tilt instead camera rotation
 interactive_mode.fixed_other_tilt = 0; % fixed other tilt
 interactive_mode.slice_number = 0.5; % default slice number. if in [0,1): relative, if in (1, N]: absolute
-interactive_mode.phase_retrieval = 0; % Interactive retrieval to determine regularization parameter
+interactive_mode.phase_retrieval = 1; % Interactive retrieval to determine regularization parameter
 interactive_mode.phase_retrieval_default_search_range = []; % if empty: asks for search range when entering interactive mode, otherwise directly start with given search range
 %%% HARDWARE / SOFTWARE %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 par.use_cluster = 1; % if available: on MAXWELL nodes disp/nova/wga/wgs cluster computation can be used. Recommended only for large data sets since parpool creation and data transfer implies a lot of overhead.
-par.poolsize = 0.3; % number of workers used in a local parallel pool. if 0: use current config. if >= 1: absolute number. if 0 < poolsize < 1: relative amount of all cores to be used. if SLURM scheduling is available, a default number of workers is used.
+par.poolsize = 0.5; % number of workers used in a local parallel pool. if 0: use current config. if >= 1: absolute number. if 0 < poolsize < 1: relative amount of all cores to be used. if SLURM scheduling is available, a default number of workers is used.
 tomo.astra_link_data = 1; % ASTRA data objects become references to Matlab arrays. Reduces memory issues.
 tomo.astra_gpu_index = []; % GPU Device index to use, Matlab notation: index starts from 1. default: [], uses all
 %%% EXPERIMENTAL OR NOT YET IMPLEMENTED %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -311,7 +311,7 @@ for mm = numel( tomo.astra_gpu_index ):-1:1
     nn = tomo.astra_gpu_index(mm);
     %gpu(nn) = parallel.gpu.GPUDevice.getDevice( nn );
     gpu(nn) = gpuDevice(nn);
-    gpu(nn).reset;
+    %gpu(nn).reset;
     mem_avail =  gpu(nn).AvailableMemory/1024^3;
     mem_total = gpu(nn).TotalMemory/1024^3;
     prnt( '\n gpu %u memory available : %.3g GiB (%.2f%%) of %.3g GiB', nn, mem_avail, 100*mem_avail/mem_total, mem_total )
@@ -320,7 +320,7 @@ end
 % Start parallel CPU pool %%%
 t = toc;
 [poolobj, par.poolsize] = OpenParpool( par.poolsize, par.use_cluster, [beamtime_path filesep 'scratch_cc']);
-PrintVerbose( par.verbose && (par.poolsize > 1), '\nParpool opened on %s using %u workers. ', poolobj.Cluster.Profile, poolobj.Cluster.NumWorkers)
+PrintVerbose( par.verbose && (par.poolsize > 1), '\nParpool opened on %s using %u of %u workers. ', poolobj.Cluster.Profile, poolobj.NumWorkers, poolobj.Cluster.NumWorkers )
 PrintVerbose( par.verbose && (par.poolsize > 1), ' done in %.1f s (%.2f min)', toc - t, ( toc - t ) / 60 );
 
 % Save scan path to file
@@ -548,12 +548,16 @@ if ~read_flatcor && ~read_sino
         switch lower( cam )
             %%% CHECK h5 entry of camera1 / camera2 !!
             case 'ehd'
-                energy = double(h5read( h5log, '/entry/hardware/camera1/calibration/energy') );
+                if isempty( energy )
+                    energy = double(h5read( h5log, '/entry/hardware/camera1/calibration/energy') );
+                end
                 exposure_time = double(h5read( h5log, '/entry/hardware/camera1/calibration/exptime') );
                 %im_shape_raw = [3056 3056];
                 dtype = 'uint16';
             case 'kit'
-                energy = double(h5read( h5log, '/entry/hardware/camera2/calibration/energy') );
+                if isempty( energy )
+                    energy = double(h5read( h5log, '/entry/hardware/camera2/calibration/energy') );
+                end
                 exposure_time = double(h5read( h5log, '/entry/hardware/camera2/calibration/exptime') );
                 %im_shape_raw = [5120 3840];
                 dtype = 'uint16';
@@ -823,10 +827,12 @@ if ~read_flatcor && ~read_sino
     filt_pix_par.filter_NaN = 1;
     filt_pix_par.verbose = 0;
     
+    filt_pix_parp = parallel.pool.Constant( filt_pix_par );
     parfor nn = 1:num_dark
+        
+        % Read image
         filename = sprintf('%s%s', scan_path, dark_names{nn});
         im_int = read_image( filename, '', raw_roi, tif_info, im_shape_raw, dtype, im_trafo);
-        %im_raw = single( im_int );
         
         % Remove large outliers. Assume Poisson distribtion at large lambda
         % is approximately a Gaussian distribution and set all value above
@@ -839,7 +845,9 @@ if ~read_flatcor && ~read_sino
         im_int( im_int > im_mean + 4*im_std) = uint16( im_mean);
         
         % Filter pixels
-        im_int = FilterPixelGPU( im_int, filt_pix_par);
+        im_int = FilterPixelGPU( im_int, filt_pix_parp.Value);
+        
+        % Assign image to stack
         dark(:, :, nn) = im_int;
     end
     
@@ -885,9 +893,12 @@ if ~read_flatcor && ~read_sino
     refs_to_use = zeros( 1, size( flat,3), 'logical');
     filt_pix_par.threshold_hot = pixel_filter_threshold_flat(1);
     filt_pix_par.threshold_dark = pixel_filter_threshold_flat(2);
+    
     % Parallel loop
+    darkp = parallel.pool.Constant( dark );
+    filt_pix_parp = parallel.pool.Constant( filt_pix_par );
     parfor nn = 1:num_ref_used
-       
+               
         % Read
         filename = sprintf('%s%s', scan_path, ref_names_mat(nn,:));
         im_int = read_image( filename, '', raw_roi, tif_info, im_shape_raw, dtype, im_trafo );
@@ -895,11 +906,11 @@ if ~read_flatcor && ~read_sino
         
         % Filter pixel
         %im_raw = FilterPixelGPU( im_raw, filt_pix_par);
-        im_int = FilterPixelGPU( im_int, filt_pix_par);
+        im_int = FilterPixelGPU( im_int, filt_pix_parp.Value);
         
         % Dark field correction
         %im_raw = im_raw - dark;
-        im_int = im_int - dark;
+        im_int = im_int - darkp.Value;
         
         % Binning
         im_float_binned = Binning( im_int, raw_bin) / raw_bin^2;        
@@ -1064,6 +1075,7 @@ if ~read_flatcor && ~read_sino
     projs_to_use = zeros( 1, size( proj,3), 'logical' );
     num_zeros = zeros( 1, num_proj_used );
     
+    filt_pix_parp = parallel.pool.Constant( filt_pix_par );
     parfor nn = 1:num_proj_used
         
         % Read projection
@@ -1071,10 +1083,10 @@ if ~read_flatcor && ~read_sino
         im_int = read_image( filename, '', raw_roi, tif_info, im_shape_raw, dtype, im_trafo );
         
         % Filter pixel
-        im_int = FilterPixelGPU( im_int, filt_pix_par);
+        im_int = FilterPixelGPU( im_int, filt_pix_parp.Value);
         
         % Dark field correction
-        im_int = im_int - dark;
+        im_int = im_int - darkp.Value;
         
         % Correlation ROI
         roi_proj(:,:,nn) = im_int(flat_corr_area1,flat_corr_area2 );
@@ -1090,9 +1102,7 @@ if ~read_flatcor && ~read_sino
         projs_to_use(nn) = ~boolean( num_zeros(nn)  );
         
         % Assign image to stack
-        %if projs_to_use(nn)
         proj(:, :, nn) = im_float_binned;
-        %end
     end
     
     % Delete empty projections
@@ -1184,7 +1194,6 @@ if ~read_flatcor && ~read_sino
     %% Projection/flat field correlation and flat field correction %%%%%%%%
     %%%% STOP HERE TO CHECK FLATFIELD CORRELATION MAPPING %%%%%%%%%%%%%%%%%
     %%%% use 'proj_flat_sequ' to show results of the correlation
-    startS = ticBytes(gcp);
     image_correlation.im_shape_binned1 = im_shape_binned1;
     image_correlation.im_shape_binned2 = im_shape_binned2;
     image_correlation.flatcor_path = flatcor_path;
@@ -1192,16 +1201,28 @@ if ~read_flatcor && ~read_sino
     image_correlation.raw_bin = raw_bin;
     image_correlation.proj_range = proj_range;
     image_correlation.ref_range = ref_range;
-    [proj, corr] = proj_flat_correlation( proj, flat, image_correlation, par );
-    toc_bytes = tocBytes(gcp,startS);
-    if par.visual_output
+    [proj, corr, toc_bytes] = proj_flat_correlation( proj, flat, image_correlation, par, roi_proj  );
+    if par.visual_output && ( isfield( toc_bytes, 'correlation') || isfield( toc_bytes, 'correction') )
+        toc_bytes.sum = [0 0];
         f = figure('Name', 'Parallel pool data transfer during image correlation', 'WindowState', 'maximized');
-        plot( toc_bytes / 1024^3, 'o-' )
+        Y = [];
+        str = {};
+        if isfield( toc_bytes, 'correlation')
+            Y = cat(2, Y, toc_bytes.correlation );
+            toc_bytes.sum = toc_bytes.sum + sum( toc_bytes.correlation );
+            str = cat(2, str, {'correlation: to', 'correlation: from'} );
+        end
+        if isfield( toc_bytes, 'correction')
+            Y = cat(2, Y, toc_bytes.correction );
+            toc_bytes.sum = toc_bytes.sum + sum( toc_bytes.correction );
+            str = cat(2, str, {'correction: to', 'correction: from'} );
+        end
+        plot( Y / 1024^3, 'o-' )
         axis tight
-        title( sprintf( 'Data transfer of workers in parpool. Total: %.1f GiB (to), %.1f GiB (from)', sum( toc_bytes ) / 1024^3 ) )
+        title( sprintf( 'Data transfer of workers in parpool. Total: %.1f GiB (to), %.1f GiB (from)', toc_bytes.sum / 1024^3 ) )        
         xlabel( 'worker no.' )
         ylabel( 'transferred data / GiB' )
-        legend( {'to', 'from'} )
+        legend( str )
         drawnow
         pause( 0.1 )
         CheckAndMakePath( fig_path )
@@ -1872,7 +1893,7 @@ if tomo.run || tomo.run_interactive_mode
     [tomo.vol_shape, tomo.vol_size] = volshape_volsize( proj, tomo.vol_shape, tomo.vol_size, tomo.rot_axis.offset, par.verbose);
     
     if interactive_mode.rot_axis_tilt && par.visual_output
-        h4 = figure('Name','Projections at 0 and pi cropped symmetrically to rotation center');
+        h4 = figure('Name','TILT: Projections at 0 and pi cropped symmetrically to rotation center');
         n = 2;
         m = 2;
         
@@ -1895,7 +1916,7 @@ if tomo.run || tomo.run_interactive_mode
         subplot(m, n, 3)
         imsc1( abs( im1c(xt:end-xt,xt:end-xt) - im2c(xt:end-xt,xt:end-xt) ) )
         axis equal tight
-        title(sprintf('difference before'))
+        title(sprintf('difference: original projections'))
         colorbar
         
         subplot(m, n, 4)
@@ -1906,7 +1927,7 @@ if tomo.run || tomo.run_interactive_mode
         im2c_warped_int =  imwarp(im2c, tform_int, 'OutputView',imref2d(size(im1c)));
         imsc1( abs( im1c(xt:end-xt,xt:end-xt) - im2c_warped_int(xt:end-xt,xt:end-xt) ) )
         axis equal tight
-        title(sprintf('difference corrected'))
+        title(sprintf('difference: registred projections'))
         colorbar
         
         drawnow
