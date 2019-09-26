@@ -1,4 +1,4 @@
-function [proj, corr, toc_bytes] = proj_flat_correlation( proj, flat, image_correlation, par, roi_proj  )
+function [proj, corr] = proj_flat_correlation_old( proj, flat, image_correlation, par, roi_proj  )
 % Correlate all projection with all flat-field to find the best matching
 % pairs for the flat-field correction using method of choice.
 %

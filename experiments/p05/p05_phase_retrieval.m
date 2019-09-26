@@ -34,7 +34,7 @@ if exist( 'interactive_mode', 'var' ) && isfield( interactive_mode, 'phase_retri
         proj_mean = mean( proj, 3);
     end
     
-    cprintf( 'RED', '\n\nENTER INTERACTIVE PHASE RETRIEVAL MODE' );
+    cprintf( 'RED', '\n\nENTERING INTERACTIVE PHASE RETRIEVAL MODE' );
     if ~isempty( interactive_mode.phase_retrieval_default_search_range )
         reg_par_def_range = interactive_mode.phase_retrieval_default_search_range;
     else
@@ -291,7 +291,7 @@ if exist( 'interactive_mode', 'var' ) && isfield( interactive_mode, 'phase_retri
         % Input
         reg_par = '';
         while ischar( reg_par )
-            cprintf( 'RED', '\n\nENTER REGULARIZATION PARAMETER(S):' )
+            fprintf( '\n\nENTER REGULARIZATION PARAMETER(S):' )
             txt = [...                
                 '\n(if empty: use default range,'...
                 '\n if scalar: use value & EXIT loop,'...

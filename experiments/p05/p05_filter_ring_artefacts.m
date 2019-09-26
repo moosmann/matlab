@@ -32,7 +32,7 @@ switch lower( ring_filter.method )
         PrintVerbose( par.verbose, ' done in %.1f s (%.2f min)', toc-t, (toc-t)/60)
         
         if par.visual_output
-            h = figure('Name', 'Sinogram and ring filter');
+            figure('Name', 'Sinogram and ring filter', 'WindowState', 'maximized');
             
             subplot(3,1,1)
             imsc( sino_unfilt )
@@ -84,7 +84,7 @@ switch lower( ring_filter.method )
         PrintVerbose( par.verbose, '\n ring filter mask min/max: %f, %f', min( mask(:) ), max( mask(:) ) )
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         if par.visual_output
-            h = figure('Name', 'Sinogram and ring filter');
+            figure('Name', 'Sinogram and ring filter', 'WindowState', 'maximized');
             
             subplot(2,2,1)
             imsc( sino_unfilt )
