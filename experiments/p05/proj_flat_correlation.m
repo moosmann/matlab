@@ -1,4 +1,4 @@
-function [proj, corr] = proj_flat_correlation( proj, flat, image_correlation, par, roi_proj, roi_flat )
+function [proj, corr, toc_bytes] = proj_flat_correlation( proj, flat, image_correlation, par, roi_proj, roi_flat, toc_bytes )
 % Correlate all projection with all flat-field to find the best matching
 % pairs for the flat-field correction using method of choice.
 %
@@ -39,7 +39,6 @@ im_shape_binned1 = image_correlation.im_shape_binned1;
 im_shape_binned2 = image_correlation.im_shape_binned2;
 flatcor_path = image_correlation.flatcor_path;
 verbose = par.verbose;
-poolsize = par.poolsize;
 x0 = par.offset_shift_x0;
 %x1 = par.offset_shift_x1;
 raw_bin = par.raw_bin;
@@ -54,7 +53,6 @@ switch method
     case {'none', '', 'median'}
         fprintf( 'No correlation.' )
         corr = [];
-        toc_bytes = [];
         
     otherwise
         
@@ -426,32 +424,4 @@ switch method
         %            toc_bytes.correction = tocBytes( gcp, startS );
         
         PrintVerbose( verbose, ' Done in %.1f s (%.2f min)', toc - t, ( toc - t ) / 60 )
-end
-
-%% Plot data transfer from/to workers
-if par.visual_output && ( isfield( toc_bytes, 'correlation') || isfield( toc_bytes, 'correction') )
-    toc_bytes.sum = [0 0];
-    f = figure('Name', 'Parallel pool data transfer during image correlation', 'WindowState', 'maximized');
-    Y = [];
-    str = {};
-    if isfield( toc_bytes, 'correlation')
-        Y = cat(2, Y, toc_bytes.correlation );
-        toc_bytes.sum = toc_bytes.sum + sum( toc_bytes.correlation );
-        str = cat(2, str, {'correlation: to', 'correlation: from'} );
-    end
-    if isfield( toc_bytes, 'correction')
-        Y = cat(2, Y, toc_bytes.correction );
-        toc_bytes.sum = toc_bytes.sum + sum( toc_bytes.correction );
-        str = cat(2, str, {'correction: to', 'correction: from'} );
-    end
-    plot( Y / 1024^3, 'o-' )
-    axis tight
-    title( sprintf( 'Data transfer of workers in parpool. Total: %.1f GiB (to), %.1f GiB (from)', toc_bytes.sum / 1024^3 ) )
-    xlabel( 'worker no.' )
-    ylabel( 'transferred data / GiB' )
-    legend( str )
-    drawnow
-    pause( 0.1 )
-    CheckAndMakePath( fig_path )
-    saveas( f, sprintf( '%s%s.png', fig_path, regexprep( f.Name, '\ |:', '_') ) );
 end

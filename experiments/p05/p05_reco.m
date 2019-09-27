@@ -821,6 +821,7 @@ if ~read_flatcor && ~read_sino
     filt_pix_par.filter_NaN = 1;
     filt_pix_par.verbose = 0;
     
+    %startS = ticBytes( gcp );
     parfor nn = 1:num_dark
         
         % Read image
@@ -843,6 +844,7 @@ if ~read_flatcor && ~read_sino
         % Assign image to stack
         dark(:, :, nn) = im_int;
     end
+    %toc_bytes.read_dark = tocBytes( gcp, startS );
     
     darks_min = min( dark(:) );
     darks_max = max( dark(:) );
@@ -894,6 +896,7 @@ if ~read_flatcor && ~read_sino
     filt_pix_par.threshold_dark = pixel_filter_threshold_flat(2);
     
     % Parallel loop
+    startS = ticBytes( gcp );
     parfor nn = 1:num_ref_used
                
         % Read
@@ -921,6 +924,7 @@ if ~read_flatcor && ~read_sino
         % Assign image to stack
         flat(:, :, nn) = im_float_binned;
     end
+    toc_bytes.read_flat = tocBytes( gcp, startS );
     
     % Delete empty refs
     zz = ~refs_to_use;
@@ -1072,6 +1076,7 @@ if ~read_flatcor && ~read_sino
     projs_to_use = zeros( 1, size( proj,3), 'logical' );
     num_zeros = zeros( 1, num_proj_used );
     
+    startS = ticBytes( gcp );
     parfor nn = 1:num_proj_used
         
         % Read projection
@@ -1100,6 +1105,7 @@ if ~read_flatcor && ~read_sino
         % Assign image to stack
         proj(:, :, nn) = im_float_binned;
     end
+    toc_bytes.read_proj = tocBytes( gcp, startS );
     
     % Delete empty projections
     zz = ~projs_to_use;
@@ -1201,14 +1207,54 @@ if ~read_flatcor && ~read_sino
     image_correlation.raw_bin = raw_bin;
     image_correlation.proj_range = proj_range;
     image_correlation.ref_range = ref_range;
-    [proj, corr] = proj_flat_correlation( proj, flat, image_correlation, par, roi_proj, roi_flat  );
-        
+    [proj, corr, toc_bytes] = proj_flat_correlation( proj, flat, image_correlation, par, roi_proj, roi_flat, toc_bytes );
+            
     proj_min0 = min( proj(:) );
     proj_max0 = max( proj(:) );
     prnt( '\n global min/max after flat-field corrected:  %6g %6g', proj_min0, proj_max0);
     if stop.after_proj_flat_correlation
         fprintf( '\n' )
         keyboard;
+    end
+    
+    %% Plot data transfer from/to workers
+    if 1%par.visual_output 
+        %( isfield( toc_bytes, 'correlation') || isfield( toc_bytes, 'correction') )
+        bytes_sum = [0 0];
+        f = figure('Name', 'Parallel pool data transfer during image correlation', 'WindowState', 'maximized');
+        Y = [];
+        str = {};
+        
+        fn = fieldnames( toc_bytes );
+        for nn = 1:numel( fn )
+            fnn = fn{nn};
+            X = toc_bytes.(fnn );
+            Y = cat(2, Y, X );
+            bytes_sum = bytes_sum + sum( X );
+            fnn = regexprep( fnn, '_', ' ' );
+            str = cat(2, str, { sprintf( '%s: to', fnn ), sprintf( '%s: from', fnn ) } );
+        end
+%         
+%         if isfield( toc_bytes, 'correlation')
+%             Y = cat(2, Y, toc_bytes.correlation );
+%             bytes_sum = bytes_sum + sum( toc_bytes.correlation );
+%             str = cat(2, str, {'correlation: to', 'correlation: from'} );
+%         end
+%         if isfield( toc_bytes, 'correction')
+%             Y = cat(2, Y, toc_bytes.correction );
+%             bytes_sum = bytes_sum + sum( toc_bytes.correction );
+%             str = cat(2, str, {'correction: to', 'correction: from'} );
+%         end
+        plot( Y / 1024^3, 'o-' )
+        axis tight
+        title( sprintf( 'Data transfer of workers in parpool. Total: %.1f GiB (to), %.1f GiB (from)', bytes_sum / 1024^3 ) )
+        xlabel( 'worker no.' )
+        ylabel( 'transferred data / GiB' )
+        legend( str )
+        drawnow
+        pause( 0.1 )
+        CheckAndMakePath( fig_path )
+        saveas( f, sprintf( '%s%s.png', fig_path, regexprep( f.Name, '\ |:', '_') ) );
     end
     
     %% Filter strong/full absorption (combine with iterative reco methods)
