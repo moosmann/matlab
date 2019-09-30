@@ -418,7 +418,7 @@ if tomo.run || tomo.run_interactive_mode
     fprintf( '\n rotation axis offset: %.2f', tomo.rot_axis.offset );
     fprintf( '\n rotation axis position: %.2f', tomo.rot_axis.position );
     fprintf( '\n rotation axis tilt: %g rad (%g deg)', tomo.rot_axis.tilt, tomo.rot_axis.tilt * 180 / pi)
-    [tomo.vol_shape, tomo.vol_size] = volshape_volsize( proj, tomo.vol_shape, tomo.vol_size, tomo.rot_axis.offset, fprintf);
+    [tomo.vol_shape, tomo.vol_size] = volshape_volsize( proj, tomo.vol_shape, tomo.vol_size, tomo.rot_axis.offset, 1);
     
     %% Display 0/pi projection: original and registered with tilt
     if interactive_mode.rot_axis_tilt && par.visual_output

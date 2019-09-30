@@ -17,14 +17,11 @@ end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 
-fast_reco = 0; % !!! OVERWRITES SOME PARAMETERS SET BELOW !!!
+fast_reco = 1; % !!! OVERWRITES SOME PARAMETERS SET BELOW !!!
 stop.after_data_reading = 0; % for data analysis, before flat field correlation
 stop.after_proj_flat_correlation = 0; % for data analysis, after flat field correlation
 
 %%% SCAN %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-scan_path = '/asap3/petra3/gpfs/p05/2018/data/11005553/raw/syn033_68R_Mg10Gd_12w';
-    pwd; % string/pwd. pwd: change to directory of the scan to be reconstructed, sting: absolute scan path
-    '/asap3/spec.instruments/gpfs/nanotom/2019/data/11008012/processed/hzg_bw2_desy2010b/bmc01';
 read_flatcor = 0; % read preprocessed flatfield-corrected projections. CHECK if negative log has to be taken!
 read_flatcor_path = ''; % subfolder of 'flat_corrected' containing projections
 read_sino = 0; % read preprocessed sinograms. CHECK if negative log has to be taken!

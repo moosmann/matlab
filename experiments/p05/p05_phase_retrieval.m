@@ -3,7 +3,7 @@ function [proj, write, tint] = p05_phase_retrieval( proj, phase_retrieval, tomo,
 %
 % Written by Julian Moosmann, 2018-01-11, last version: 2018-07-27
 %
-% [proj, write] = p05_phase_retrieval( proj, phase_retrieval, tomo, write, interactive_mode, par.verbose, par.visual_output)
+% [proj, write, tint] = p05_phase_retrieval( proj, phase_retrieval, tomo, write, interactive_mode, par )
 
 %% Main %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 t = toc;

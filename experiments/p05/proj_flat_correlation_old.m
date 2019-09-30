@@ -27,7 +27,6 @@ force_calc = image_correlation.force_calc;
 im_shape_binned1 = image_correlation.im_shape_binned1;
 im_shape_binned2 = image_correlation.im_shape_binned2;
 flatcor_path = image_correlation.flatcor_path;
-verbose = par.verbose;
 visual_output = par.visual_output;
 poolsize = par.poolsize;
 x0 = par.offset_shift_x0;
@@ -93,7 +92,7 @@ switch method
             if isfield( corr, 'datetime' )
                 dt = corr.datetime;
             end
-            PrintVerbose( verbose, '\nLoading correlation computed on %s!', dt )
+            fprintf( '\nLoading correlation computed on %s!', dt )
         else
             
             % Correlate flat fields
