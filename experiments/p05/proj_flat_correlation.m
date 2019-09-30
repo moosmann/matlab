@@ -1,4 +1,4 @@
-function [proj, corr, toc_bytes] = proj_flat_correlation( proj, flat, image_correlation, par, roi_proj, roi_flat, toc_bytes )
+function [proj, corr, toc_bytes] = proj_flat_correlation( proj, flat, image_correlation, par, write, roi_proj, roi_flat, toc_bytes )
 % Correlate all projection with all flat-field to find the best matching
 % pairs for the flat-field correction using method of choice.
 %
@@ -9,15 +9,20 @@ function [proj, corr, toc_bytes] = proj_flat_correlation( proj, flat, image_corr
 % par : struct, required fields see below
 % roi_proj : projection ROI for correlation when offset shift is corrected
 % roi_flat : reference ROI for correlation when offset shift is corrected
-% 
+% toc_bytes : struct with data transfers during parpool jobs
+%
 % RETURNS
 % proj : flat-field corrected projections
 % corr : struct with correlation information
+% toc_bytes : struct with data transfers during parpool jobs
 %
 % Written by Julian Moosmann.
 %
 % [proj, corr] = proj_flat_correlation( proj, flat, image_correlation, par, roi_proj, roi_flat )
 
+%% To do
+% Combine structs found at different locations and check what happens when
+% different
 
 %% Default arguments %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 if nargin < 5
@@ -30,22 +35,17 @@ end
 %% Parameters %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % Parameters in struct fields
+force_calc = image_correlation.force_calc;
 method = image_correlation.method;
+raw_bin = par.raw_bin;
 flat_corr_area1 = image_correlation.area_width;
 flat_corr_area2 = image_correlation.area_height;
 corr_num_flats = image_correlation.num_flats;
-force_calc = image_correlation.force_calc;
-im_shape_binned1 = image_correlation.im_shape_binned1;
-im_shape_binned2 = image_correlation.im_shape_binned2;
-flatcor_path = image_correlation.flatcor_path;
-verbose = par.verbose;
+[im_shape_cropbin1, im_shape_binned2, num_proj_used] = size( proj );
+[im_shape_binned1,~,num_ref_used] = size( flat );
 x0 = par.offset_shift_x0;
 %x1 = par.offset_shift_x1;
-raw_bin = par.raw_bin;
-
-im_shape_cropbin1 = size( proj, 1 );
-num_proj_used = size( proj, 3);
-num_ref_used = size( flat, 3);
+reco_path = write.reco_path;
 
 %% CORRELATION %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 switch method
@@ -56,44 +56,82 @@ switch method
         
     otherwise
         
-        %% Load previously calculated correlation matrix & check if valid
-        if ~force_calc
-            % Loop over processed and scratch_cc
-            filename_scra = sprintf( '%scorr.mat', flatcor_path);
-            filename_proc = regexprep( filename_scra, 'scratch_cc', 'processed' );
-            for filename = { filename_proc, filename_scra }
-                % Load correlation matrix if exists
-                if exist( filename{1} , 'file' )
-                    load( filename{1},  'corr' );
-                end
-                % Check reco paramaters
-                if exist( 'corr', 'var' )
-                    force_calc = ~(...
-                        isequal( corr.method, method) ...
-                        && isequal( corr.size.proj, size( proj ) ) ...
-                        && isequal( corr.size.flat, size( flat ) ) ...
-                        && isequal( corr.raw_roi, image_correlation.raw_roi ) ...
-                        && isequal( corr.raw_bin, image_correlation.raw_bin ) ...
-                        && isequal( corr.proj_range, image_correlation.proj_range ) ...
-                        && isequal( corr.ref_range, image_correlation.ref_range ) ...
-                        );
-                else
-                    force_calc = 1;
-                end
+        % Create corr struct from current parameters
+        corr_curr.datetime = datetime;
+        corr_curr.par.method = method;
+        corr_curr.par.raw_roi = par.raw_roi;
+        corr_curr.par.raw_bin = raw_bin;
+        corr_curr.par.ref_range = par.ref_range;
+        corr_curr.par.proj_range = par.proj_range;
+        corr_curr.par.size.proj = size( proj );
+        corr_curr.par.size.flat = size( flat );
+        corr_curr.par.flat_corr_area1 = flat_corr_area1;
+        corr_curr.par.flat_corr_area2 = flat_corr_area2;
+        
+        %% Search for previously calculated correlation matrix
+        % Loop over processed and scratch_cc
+        match = 0;
+        filename = sprintf( '%scorr.mat', reco_path);
+        if regexp( 'processed', filename )
+            filename_proc = filename;
+            filename_scra = regexprep( filename, 'processed', 'scratch_cc' );
+        else
+            filename_proc = regexprep( filename, 'scratch_cc', 'processed' );
+            filename_scra = filename;
+        end
+        
+        % Check for file in both directories
+        for filename = { filename_proc, filename_scra }
+            
+            % Load correlation matrix if exists, otherwise break iteration
+            if exist( filename{1} , 'file' )
+                load( filename{1},  'corr' );
+            else
+                continue
+            end
+            
+            % Check reco paramaters
+            if exist( 'corr', 'var' )
+                
+                % Loop over structs
+                for nn = 1:numel( corr )
+                    
+                    % Compare current and found parameters
+                    match = isequal( corr(nn).par, corr_curr.par );
+                    %fprintf( '\n file: %s, struc_ind: %u, match: %u', filename{1}, nn, match )
+                    
+                    % exit loop over found structs if match
+                    if match
+                        match_ind = nn;
+                        %fprintf( '\n Match: exit struct loop ' )
+                        break
+                    end
+                end % for nn = 1:numel( corr )
+            end % if exist( 'corr', 'var' )
+            
+            % Exit file loop if match
+            if match
+                %fprintf( '\n Match: Exit file loop' )
+                break
             end
         end
         
-        % Correlate or not?
-        if ~force_calc
-            %% No correlation
-            dt = '??';
-            if isfield( corr, 'datetime' )
-                dt = corr.datetime;
-            end
-            PrintVerbose( verbose, '\nLoading correlation computed on %s!', dt )
-            
-        else
-            %% Correlate
+        % Correlation matrix found -> run correlation not necessary
+        run_corr = ~match;
+        
+        % Force run correlation
+        if force_calc
+            run_corr = 1;
+        end
+        
+        % Print info
+        if match && ~force_calc
+            fprintf( '\nLoading correlation computed on %s!', corr(match_ind).datetime )
+            corr_mat = corr(match_ind).mat;
+        end
+        
+        %% Correlate
+        if run_corr
             
             % Correlation ROI
             flat_corr_area1 = IndexParameterToRange( flat_corr_area1, im_shape_binned1 );
@@ -106,7 +144,7 @@ switch method
             end
             
             % Correlate flat fields: Compute correlation for each pair projection/flat-field
-            PrintVerbose( verbose, '\nCorrelate projections & flat-fields. Method: %s.', method)
+            fprintf( '\nCorrelate projections & flat-fields. Method: %s.', method )
             t = toc;
             
             % Preallocation
@@ -320,20 +358,25 @@ switch method
             end % switch lower( method )
             toc_bytes.correlation = tocBytes( gcp, startS );
             
-            % Save correlation matrix
-            corr.mat = corr_mat;
-            corr.method = method;
-            corr.size.proj = size( proj );
-            corr.size.flat = size( flat );
-            corr.datetime = datetime;
-            corr.raw_roi = image_correlation.raw_roi;
-            corr.raw_bin = image_correlation.raw_bin;
-            corr.proj_range = image_correlation.proj_range;
-            corr.ref_range = image_correlation.ref_range;
-            CheckAndMakePath( flatcor_path )
-            save( sprintf( '%scorr.mat', flatcor_path), 'corr' )
+            % Add calculated matrix to current struct
+            corr_curr.mat = corr_mat;
             
-            PrintVerbose( verbose, ' Done in %.1f s (%.2f min)', toc - t, ( toc - t ) / 60 )
+            % Append current correlation struct to found struct
+            if ~exist( 'corr', 'var' )
+                corr(1) = corr_curr;
+            else
+                if match
+                    corr(match_ind) = corr_curr;
+                else
+                    corr(numel( corr ) + 1) = corr_curr;
+                end
+            end
+            
+            % Save correlation matrix
+            CheckAndMakePath( reco_path )
+            save( sprintf( '%scorr.mat', reco_path), 'corr' )
+            
+            fprintf( ' Done in %.1f s (%.2f min)', toc - t, ( toc - t ) / 60 )
             
         end %  if ~force_calc
         
@@ -344,7 +387,7 @@ if par.visual_output
     figure( 'Name', 'Correlation of projections and flat-fields');
     mid = round( num_proj_used / 2 );
     f = @(mat,pp) mat(pp,:)';
-    Y = [ f( corr.mat, 1), f( corr.mat, mid), f( corr.mat, num_proj_used) ];
+    Y = [ f( corr_mat, 1), f( corr_mat, mid), f( corr_mat, num_proj_used) ];
     plot( Y, '.' )
     legend( 'first proj', 'mid proj', 'last proj' )
     axis tight
@@ -359,7 +402,7 @@ switch method
     case {'none', '', 'median'}
         
         % Flat field correction without correlation
-        PrintVerbose(verbose, '\nFlat-field correction w/o correlation.')
+        fprintf( '\nFlat-field correction w/o correlation.')
         
         flat_median = median( flat, 3);
         parfor nn = 1:num_proj_used
@@ -369,30 +412,13 @@ switch method
         end
         
     otherwise
-        PrintVerbose(verbose, '\nFlat-field correction with correlation.')
+        fprintf( '\nFlat-field correction using %u best match(es).', corr_num_flats)
         t = toc;
         
-        %         % Memory requirement and parpool processing
-        %         [mem_free, ~, mem_total] = free_memory;
-        %         mem_req_tot = Bytes( proj ) + Bytes(flat) * (poolsize + 1);
-        %         mem_req_par = Bytes(flat) * poolsize;
-        %         if mem_req_tot < 0.75 * mem_total && mem_req_par < mem_free
-        %             pflag = 1;
-        %             fprintf( ' Use parpool.' )
-        %         else
-        %             pflag = 0;
-        %             fprintf( ' No parpool.' )
-        %        end
-        
-        [~, corr_mat_pos] = sort( normat( corr.mat ), 2);
-        % Flat field correction
+        [~, corr_mat_pos] = sort( normat( corr_mat ), 2);
         flat_ind = corr_mat_pos(:,1:corr_num_flats);
         
-        %         if pflag
-        %
-        %             %% prallel
-        %             startS = ticBytes( gcp );
-        
+        %        startS = ticBytes( gcp );
         for nn = 1:num_proj_used
             
             % Mean over flat fields
@@ -421,7 +447,8 @@ switch method
             %imsc( p(1:200,:) ),axis equal tight
             
         end
-        %            toc_bytes.correction = tocBytes( gcp, startS );
+        %toc_bytes.correction = tocBytes( gcp, startS );
         
-        PrintVerbose( verbose, ' Done in %.1f s (%.2f min)', toc - t, ( toc - t ) / 60 )
+        fprintf( ' Done in %.1f s (%.2f min)', toc - t, ( toc - t ) / 60 )
 end
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
