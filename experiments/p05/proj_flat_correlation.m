@@ -45,7 +45,7 @@ corr_num_flats = image_correlation.num_flats;
 [im_shape_binned1,~,num_ref_used] = size( flat );
 x0 = par.offset_shift_x0;
 %x1 = par.offset_shift_x1;
-reco_path = write.reco_path;
+outpath = write.parpath;
 
 %% CORRELATION %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 switch method
@@ -71,7 +71,7 @@ switch method
         %% Search for previously calculated correlation matrix
         % Loop over processed and scratch_cc
         match = 0;
-        filename = sprintf( '%scorr.mat', reco_path);
+        filename = sprintf( '%scorr.mat', outpath);
         if regexp( 'processed', filename )
             filename_proc = filename;
             filename_scra = regexprep( filename, 'processed', 'scratch_cc' );
@@ -373,10 +373,12 @@ switch method
             end
             
             % Save correlation matrix
-            CheckAndMakePath( reco_path )
-            save( sprintf( '%scorr.mat', reco_path), 'corr' )
+            CheckAndMakePath( outpath )
+            filename = sprintf( '%scorr.mat', outpath);
+            save( filename, 'corr' )
             
             fprintf( ' Done in %.1f s (%.2f min)', toc - t, ( toc - t ) / 60 )
+            fprintf( '\n correlation matrix path :\n  %s', filename )
             
         end %  if ~force_calc
         

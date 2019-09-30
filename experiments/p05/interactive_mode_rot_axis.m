@@ -11,8 +11,8 @@ function [tomo, tint] = interactive_mode_rot_axis( par, logpar, phase_retrieval,
 
 tint = 0;
 if tomo.run || tomo.run_interactive_mode
-    prnt = @(varargin) PrintVerbose( par.verbose, varargin{:});
-    prnt( '\nTomography:')
+    
+    fprintf( '\nTomography:')
 
     % Full rotation angle
     if isempty( tomo.rot_angle.full_range )
@@ -27,7 +27,7 @@ if tomo.run || tomo.run_interactive_mode
     if isempty( tomo.rot_angle.full_range )
         tomo.rot_angle.full_range = max( angles(:) ) - min( angles(:) );
     end
-    prnt( '\n full rotation angle: %g * pi', tomo.rot_angle.full_range / pi)
+    fprintf( '\n full rotation angle: %g * pi', tomo.rot_angle.full_range / pi)
     if numel( angles ) ~= size( proj, 3 )
         error('Number of elements in array of angles (%g) unequal number of projections read (%g)', numel( angles ), size( proj, 3))
     end
@@ -415,10 +415,10 @@ if tomo.run || tomo.run_interactive_mode
         cprintf( 'RED', '\nEND OF INTERACTIVE MODE\n' )
     end % if interactive_mode.rot_axis_pos
     
-    prnt( '\n rotation axis offset: %.2f', tomo.rot_axis.offset );
-    prnt( '\n rotation axis position: %.2f', tomo.rot_axis.position );
-    prnt( '\n rotation axis tilt: %g rad (%g deg)', tomo.rot_axis.tilt, tomo.rot_axis.tilt * 180 / pi)
-    [tomo.vol_shape, tomo.vol_size] = volshape_volsize( proj, tomo.vol_shape, tomo.vol_size, tomo.rot_axis.offset, par.verbose);
+    fprintf( '\n rotation axis offset: %.2f', tomo.rot_axis.offset );
+    fprintf( '\n rotation axis position: %.2f', tomo.rot_axis.position );
+    fprintf( '\n rotation axis tilt: %g rad (%g deg)', tomo.rot_axis.tilt, tomo.rot_axis.tilt * 180 / pi)
+    [tomo.vol_shape, tomo.vol_size] = volshape_volsize( proj, tomo.vol_shape, tomo.vol_size, tomo.rot_axis.offset, fprintf);
     
     %% Display 0/pi projection: original and registered with tilt
     if interactive_mode.rot_axis_tilt && par.visual_output
