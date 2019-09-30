@@ -1,12 +1,12 @@
 %% TODO list for P05 reconstruction pipeline 'p05_reco'
 
+%% TODO: memory management for GPU and parpool
+%% TODO: Combine GPU/CPU Pixel filter
 %% TODO: check vol size consistency
 %% Interactive/feedback loop for iterative methods
-%% Interactive/feedback loop for phase retrievalInteractive/feedback loop for iterative methods
 %% TODO: WHY EPS for rao in astra_parallel3d!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 %% TODO: save reco loop script under current user directory
 % TOOD: log git commit version
-% TODO: 
 % TODO: help on FBP filters
 % TODO: update log file paameters
 % TODO: check missing proj mod for stitching etc

@@ -1,4 +1,4 @@
-function [poolobj, poolsize] = OpenParpool( poolsize, use_cluster, tmp_folder, enforce_poolsize)
+function [poolobj, poolsize] = OpenParpool( poolsize, use_cluster, tmp_folder, enforce_poolsize, poolsize_max)
 % Open pool of parallel worker if it doesn't exist or if it is smaller than
 % the desired pool size.
 %
@@ -21,8 +21,12 @@ end
 if nargin < 4
     enforce_poolsize = 0;
 end
+if nargin < 5
+    poolsize_max = [];
+end
 
 %% Main %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+t = toc;
 cluster_poolsize = 250; % max 256
 
 if isempty( tmp_folder )  
@@ -30,9 +34,15 @@ if isempty( tmp_folder )
 end
 CheckAndMakePath( tmp_folder )
 
+% Desired poolsize
 if poolsize < 1 && poolsize > 0
     numCores = feature('numCores');
     poolsize = max( floor( poolsize * numCores ), 1 );
+end
+
+% Max poolsize
+if ~isempty( poolsize_max )
+    poolsize = min( poolsize, poolsize_max );
 end
 
 % check if more than 1 worker is desired
@@ -83,4 +93,9 @@ if poolsize > 1
     end
     
     cd( cpath );
+end
+
+if poolsize > 1
+    fprintf( '\nParpool opened on %s using %u of %u workers', poolobj.Cluster.Profile, poolobj.NumWorkers, poolobj.Cluster.NumWorkers )
+    fprintf( ' in %.1f s (%.2f min)', toc - t, ( toc - t ) / 60 )
 end

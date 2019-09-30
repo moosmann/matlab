@@ -180,7 +180,7 @@ if verbose
     fprintf( '\n after filter : [Min Max Mean Std] = [%9g %9g %9g %9g]', im_filt_min, im_filt_max, im_filt_mean, im_filt_std );
     mem1 = gpu.AvailableMemory;
     memt = gpu.TotalMemory;
-    fprintf( '\n gpu index : %u', gpu.Index )
+    fprintf( '\n gpu device index : %u', gpu.Index )
     fprintf( '\n gpu memory at start: %f (%g)', mem0 / 1024^2, mem0 / memt )
     fprintf( '\n gpu memory at end  : %f (%g)', mem1 / 1024^2, mem1 / memt )
     fprintf( '\n gpu memory diff.   : %f (%g)', (mem0 - mem1) / 1024^2, (mem0 - mem1) / memt )
