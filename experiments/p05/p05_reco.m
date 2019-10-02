@@ -35,11 +35,12 @@ close all hidden % close all open windows
 %% PARAMETERS / SETTINGS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-fast_reco = 0; % !!! OVERWRITES SOME PARAMETERS SET BELOW !!!
+fast_reco = 1; % !!! OVERWRITES SOME PARAMETERS SET BELOW !!!
 stop.after_data_reading = 0; % for data analysis, before flat field correlation
 stop.after_proj_flat_correlation = 0; % for data analysis, after flat field correlation
 
 %%% SCAN %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+fly_scan = 0;
 scan_path = pwd; % string/pwd. pwd: change to directory of the scan to be reconstructed, sting: absolute scan path
     '/asap3/petra3/gpfs/p05/2018/data/11005553/raw/syn033_68R_Mg10Gd_12w';
     '/asap3/spec.instruments/gpfs/nanotom/2019/data/11008012/processed/hzg_bw2_desy2010b/bmc01';
@@ -115,7 +116,7 @@ tomo.vol_size = []; %[-1 1 -1 1 -0.5 0.5];% 6-component vector [xmin xmax ymin y
 tomo.vol_shape = []; %[1 1 1] shape (# voxels) of reconstruction volume. used for excentric rot axis pos. if empty, inferred from 'tomo.vol_size'. in absolute numbers of voxels or in relative number w.r.t. the default volume which is given by the detector width and height.
 tomo.rot_angle.full_range = []; % in radians. if []: full angle of rotation including additional increment, or array of angles. if empty full rotation angles is determined automatically to pi or 2 pi
 tomo.rot_angle.offset = pi; % global rotation of reconstructed volume
-tomo.rot_axis.offset = [];
+tomo.rot_axis.offset = []; 
 tomo.rot_axis.position = []; % if empty use automatic computation. EITHER OFFSET OR POSITION MUST BE EMPTY. YOU MUST NOT USE BOTH!
 tomo.rot_axis.offset_shift = []; %[]; % absolute lateral movement in pixels during fly-shift-scan, overwrite lateral shift read out from hdf5 log
 tomo.rot_axis.tilt = 0; % in rad. camera tilt w.r.t rotation axis. if empty calculate from registration of projections at 0 and pi
@@ -136,7 +137,7 @@ tomo.sirt.MinConstraint = []; % If specified, all values below MinConstraint wil
 tomo.sirt.MaxConstraint = []; % If specified, all values above MaxConstraint will be set to MaxConstraint.
 %%% OUTPUT %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 write.path = ''; %'/gpfs/petra3/scratch/moosmanj'; % absolute path were output data will be stored. !!overwrites the write.to_scratch flag. if empty uses the beamtime directory and either 'processed' or 'scratch_cc'
-write.to_scratch = 1; % write to 'scratch_cc' instead of 'processed'
+write.to_scratch = 0; % write to 'scratch_cc' instead of 'processed'
 write.deleteFiles = 0; % delete files already existing in output folders. Useful if number or names of files differ when reprocessing.
 write.beamtimeID = ''; % string (regexp),typically beamtime ID, mandatory if 'write.deleteFiles' is true (safety check)
 write.scan_name_appendix = ''; % appendix to the output folder name which defaults to the scan name
@@ -599,46 +600,52 @@ if ~read_flatcor && ~read_sino
             axis tight
             drawnow
             CheckAndMakePath( fig_path )
-            saveas( f, sprintf( '%s%s.png', fig_path, regexprep( f.Name, '\ |:', '_') ) );
+            fig_filename = sprintf( '%s%s.png', fig_path, regexprep( f.Name, '\ |:', '_') ) ;
+            saveas( f, fig_filename );
         end
         
         % rotation axis
         s_rot.time = double( h5read( h5log, '/entry/scan/data/s_rot/time') );
         s_rot.value = h5read( h5log, '/entry/scan/data/s_rot/value');
-
-        % Read out lateral rotation axis shift form log file
-        s_stage_x.time = double( h5read( h5log, '/entry/scan/data/s_stage_x/time') );
-        s_stage_x.value = h5read( h5log, '/entry/scan/data/s_stage_x/value');
-        offset_shift_micron = s_stage_x.value( ~boolean( stimg_key.value(logpar.n_dark+1:end) ) );
-        offset_shift_micron = offset_shift_micron(proj_range);
-        offset_shift = offset_shift_micron * 1e-3 / eff_pixel_size;
-        offset_shift = 1 + offset_shift - min( offset_shift(:) ) ;
         
-        % Overwrite lateral shift if offset shift is provided as parameter
-        if isequal( std( offset_shift ), 0 ) && ~isempty( tomo.rot_axis.offset_shift )
-            offset_shift = tomo.rot_axis.offset_shift / raw_bin * (0:num_proj_used) / num_proj_used;
+        % Lateral shift
+        if ~fly_scan
+            % Read out lateral rotation axis shift form log file
+            s_stage_x.time = double( h5read( h5log, '/entry/scan/data/s_stage_x/time') );
+            s_stage_x.value = h5read( h5log, '/entry/scan/data/s_stage_x/value');
+            offset_shift_micron = s_stage_x.value( ~boolean( stimg_key.value(logpar.n_dark+1:end) ) );
+            offset_shift_micron = offset_shift_micron(proj_range);
+            offset_shift = offset_shift_micron * 1e-3 / eff_pixel_size;
+            offset_shift = 1 + offset_shift - min( offset_shift(:) ) ;
+            
+            % Overwrite lateral shift if offset shift is provided as parameter
+            if isequal( std( offset_shift ), 0 ) && ~isempty( tomo.rot_axis.offset_shift )
+                offset_shift = tomo.rot_axis.offset_shift / raw_bin * (0:num_proj_used) / num_proj_used;
+            end
+            
+            % Tranform to integer pixel-wise shifts
+            tmp = offset_shift;
+            offset_shift = round( offset_shift );
+            if std( offset_shift - tmp ) > 1e-2
+                error( 'Offset shift not on integer pixel scale' )
+            end
+            
+            % Plot offset shift
+            if par.visual_output && numel( offset_shift ) > 2 && abs( std( offset_shift ) ) > 0
+                f = figure( 'Name', 'rotation axis offset shift', 'WindowState', 'maximized');
+                plot( offset_shift, '.')
+                title( sprintf('Rotation axis offset shift') )
+                axis equal tight
+                xlabel( 'projection number' )
+                ylabel( 'lateral shift / pixel' )
+                legend( sprintf( 'effective pixel size binned: %.2f micron', eff_pixel_size_binned * 1e6 ) )
+                drawnow
+                CheckAndMakePath( fig_path )
+                saveas( f, sprintf( '%s%s.png', fig_path, regexprep( f.Name, '\ |:', '_') ) );
+            end
+            
         end
         
-        % Tranform to integer pixel-wise shifts
-        tmp = offset_shift;
-        offset_shift = round( offset_shift );
-        if std( offset_shift - tmp ) > 1e-2
-            error( 'Offset shift not on integer pixel scale' )
-        end
-        
-        % Plot offset shift
-        if par.visual_output && numel( offset_shift ) > 2 && abs( std( offset_shift ) ) > 0
-            f = figure( 'Name', 'rotation axis offset shift', 'WindowState', 'maximized');
-            plot( offset_shift, '.')
-            title( sprintf('Rotation axis offset shift') )
-            axis equal tight
-            xlabel( 'projection number' )
-            ylabel( 'lateral shift / pixel' )
-            legend( sprintf( 'effective pixel size binned: %.2f micron', eff_pixel_size_binned * 1e6 ) )
-            drawnow
-            CheckAndMakePath( fig_path )
-            saveas( f, sprintf( '%s%s.png', fig_path, regexprep( f.Name, '\ |:', '_') ) );
-        end
         % ring current
         X = double( petra.time(2:end) ); % first value is zero
         V = double( petra.current(2:end) ); % first value is zero
@@ -668,8 +675,9 @@ if ~read_flatcor && ~read_sino
                     cur.proj(nn).ind = str2double(cur.proj(nn).name(end-7:end-4));
             end
         end
-    end
+    end % if ~fly_scan
     
+    % Raw ROI
     if ~isempty( raw_roi ) % else AUTO ROI
         if numel( raw_roi ) > 1
             % relative indexing

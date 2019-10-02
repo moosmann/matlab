@@ -17,7 +17,7 @@ end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 
-fast_reco = 1; % !!! OVERWRITES SOME PARAMETERS SET BELOW !!!
+fast_reco = 0; % !!! OVERWRITES SOME PARAMETERS SET BELOW !!!
 stop.after_data_reading = 0; % for data analysis, before flat field correlation
 stop.after_proj_flat_correlation = 0; % for data analysis, after flat field correlation
 
@@ -132,7 +132,6 @@ write.reco = 1; % save reconstructed slices (if tomo.run=1)
 write.float = 1; % single precision (32-bit float) tiff
 write.uint16 = 0; % save 16bit unsigned integer tiff using 'write.compression.method'
 write.uint8 = 0; % save binned 8bit unsigned integer tiff using 'write.compression.method'
-% Optionally save binned reconstructions, only works in '3D' reco_mode
 write.float_binned = 0; % save binned single precision (32-bit float) tiff
 write.uint16_binned = 0; % save binned 16bit unsigned integer tiff using 'write.compression.method'
 write.uint8_binned = 0; % save binned 8bit unsigned integer tiff using 'wwrite.compression.method'
@@ -221,7 +220,6 @@ scan_path = [raw_path 'syn013_105L_Mg5Gd_4w_007']; ADD
 scan_path = [raw_path 'syn013_105L_Mg5Gd_4w_008']; ADD
 scan_path = [raw_path 'syn013_105L_Mg5Gd_4w_009']; ADD
 
-interactive_mode.rot_axis_pos = 1;
 tomo.rot_axis.offset = 1 * 2 / raw_bin;
 scan_path = [raw_path 'syn014_105R_Mg10Gd_4w_000']; ADD
 tomo.rot_axis.offset = -1.1 * 2 / raw_bin;
@@ -324,13 +322,23 @@ scan_path = [raw_path 'syn033_68R_Mg10Gd_12w']; ADD
 
 % Test section
 write.to_scratch = 1;
+interactive_mode.rot_axis_pos = 0;
+tomo.rot_axis.offset = 2.25 * 2 / raw_bin;
 
 image_correlation.method = 'ssim-ml';
-write.subfolder.reco = image_correlation.method;
+write.parfolder = ['corr_' image_correlation.method];
 scan_path = [raw_path 'syn033_68R_Mg10Gd_12w']; ADD
 
 image_correlation.method = 'entropy';
-write.subfolder.reco = image_correlation.method;
+write.parfolder = ['corr_' image_correlation.method];
+scan_path = [raw_path 'syn033_68R_Mg10Gd_12w']; ADD
+
+image_correlation.method = 'ssim';
+write.parfolder = ['corr_' image_correlation.method];
+scan_path = [raw_path 'syn033_68R_Mg10Gd_12w']; ADD
+
+image_correlation.method = 'ssim-g';
+write.parfolder = ['corr_' image_correlation.method];
 scan_path = [raw_path 'syn033_68R_Mg10Gd_12w']; ADD
 
 write.to_scratch = 0;
