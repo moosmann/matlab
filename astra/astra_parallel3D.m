@@ -1,4 +1,4 @@
-function vol = astra_parallel3D(par, sino)
+function vol = astra_parallel3D( par, sino)
 % Parallel backprojection of 2D or 3D sinograms using ASTRA's
 % parallel 3D geometry with vector notation. 
 %
@@ -53,6 +53,7 @@ algorithm = assign_from_struct( par, 'algorithm', 'fbp' );
 iterations = assign_from_struct( par, 'iterations', 100);
 MinConstraint = assign_from_struct( par.sirt, 'MinConstraint', [] );
 MaxConstraint = assign_from_struct( par.sirt, 'MaxConstraint', [] );
+vert_shift = assign_from_struct( par, 'vert_shift', [] );
  
 %% Main %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -87,22 +88,31 @@ vectors = zeros( numel(angles), 12);
 for nn = 1:num_proj
     
     theta = angles( nn ) + angle_offset;
+    
+    % Lateral shift
     if isequal( numel( rotation_axis_offset ), 1 )
         rao = rotation_axis_offset;
     else
         rao = rotation_axis_offset(nn);
     end    
 
+    % vertical shift
+    if isempty( vert_shift )
+        z = 0;
+    else
+        z = vert_shift(nn);
+    end
+
     % source / ray direction
     %% CHECK
     vectors(nn,1) =  sin( theta );
     vectors(nn,2) = -cos( theta );
-    vectors(nn,3) = -sin(tilt_lamino);
+    vectors(nn,3) = z - sin(tilt_lamino);
 
     % center of detector
     vectors(nn,4) = -rao * cos( theta );
     vectors(nn,5) = -rao * sin( theta );
-    vectors(nn,6) = sin( tilt_lamino );
+    vectors(nn,6) = z + sin( tilt_lamino );
 
     % vector from detector pixel (0,0) to (0,1)
     vectors(nn,7) = cos( tilt ) * cos( theta ) * DetectorSpacingX;

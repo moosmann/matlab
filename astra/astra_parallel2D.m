@@ -1,4 +1,4 @@
-function vol = astra_parallel2D(par, sino)
+function vol = astra_parallel2D( par, sino)
 % Slicewise parallel backprojection of 2D or 3D sinograms using ASTRA.
 %
 % sino: 2D-or-3D array.
@@ -53,7 +53,10 @@ rotation_axis_offset = assign_from_struct( par.rot_axis, 'offset', 0);
 angle_offset = assign_from_struct( par.rot_angle, 'offset', 0 );
 MinConstraint = assign_from_struct( par.sirt, 'MinConstraint', [] );
 MaxConstraint = assign_from_struct( par.sirt, 'MaxConstraint', [] );
+vert_shift = assign_from_struct( par, 'vert_shift', [] );
  
+%% TODO: Spiral CT using interpolation
+
 %% Main %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 if tilt ~= 0
@@ -89,15 +92,17 @@ vectors = zeros( numel(angles), 6);
 for nn = 1:num_proj
     
     theta = angles( nn ) + angle_offset;
+    
+    % lateral shift
     if isequal( numel( rotation_axis_offset ), 1 )
         rao = rotation_axis_offset;
     else
         rao = rotation_axis_offset(nn);
-    end    
+    end
 
     % source / ray direction
     %% CHECK
-    vectors(nn,1) =  sin( theta );
+    vectors(nn,1) = + sin( theta );
     vectors(nn,2) = -cos( theta );
 
     % center of detector
