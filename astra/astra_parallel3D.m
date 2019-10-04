@@ -97,21 +97,22 @@ for nn = 1:num_proj
     end    
 
     % vertical shift
-    if isempty( vert_shift )
+    if numel( vert_shift ) <= 1
         z = 0;
     else
         z = vert_shift(nn);
     end
 
     % source / ray direction
-    %% CHECK
     vectors(nn,1) =  sin( theta );
     vectors(nn,2) = -cos( theta );
-    vectors(nn,3) = z - sin(tilt_lamino);
+    vectors(nn,3) = - sin(tilt_lamino);
 
     % center of detector
     vectors(nn,4) = -rao * cos( theta );
+    %vectors(nn,4) = -rao * sin( theta );
     vectors(nn,5) = -rao * sin( theta );
+    %vectors(nn,5) = rao * cos( theta );
     vectors(nn,6) = z + sin( tilt_lamino );
 
     % vector from detector pixel (0,0) to (0,1)

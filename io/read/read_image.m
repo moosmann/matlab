@@ -66,7 +66,9 @@ switch lower( filetype )
                 if numel( roi ) > 3
                     error( 'Horizontal ROI not yet implemented for TIFF orientation case 4' )
                 end
-                im = rot90( imread( filename, 'tif', 'PixelRegion', {[x0 x1 ], [y0 y1]} ), 2);
+                %im = rot90( imread( filename, 'tif', 'PixelRegion', {[x0 x1 ], [y0 y1]} ), 2);
+                %% MOD: 2019-10-04 Ximea camera
+                im = fliplr( rot90( imread( filename, 'tif', 'PixelRegion', {[x0 x1 ], [y0 y1]} ), 1 ) );
                                 
             case 3
                 %% Check vert/hor ROI

@@ -39,7 +39,7 @@ z_range_mm =  vol_width_mm / 3;
 z_range =  z_range_mm / voxel_width_mm ;
 
 %% Phantom
-data = Ball(num_voxel_vec,[0.35 0.35 0.5],0.1) + Ball(num_voxel_vec,[0.65 0.65 0.5],0.15);
+data = PhantomBall(num_voxel_vec,[0.35 0.35 0.5],0.1) + PhantomBall(num_voxel_vec,[0.65 0.65 0.5],0.15);
 %data = cat( 3, zeros(num_voxel_vec), data, zeros(num_voxel_vec) );
 
 %% Data

@@ -36,8 +36,6 @@ close all hidden % close all open windows
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 fast_reco = 0; % !!! OVERWRITES SOME PARAMETERS SET BELOW !!!
-stop.after_data_reading = 0; % for data analysis, before flat field correlation
-stop.after_proj_flat_correlation = 0; % for data analysis, after flat field correlation
 
 %%% SCAN %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 scan_path = pwd; % string/pwd. pwd: change to directory of the scan to be reconstructed, sting: absolute scan path
@@ -50,7 +48,7 @@ read_sino_folder = ''; % subfolder to scan path
 energy = []; % in eV! if empty: read from log file
 sample_detector_distance = []; % in m. if empty: read from log file
 eff_pixel_size = []; % in m. if empty: read from log lfile. effective pixel size =  detector pixel size / magnification
-pix_scaling = 1; % to account for beam divergence if pixel size was determined (via MTF) at the wrong distance
+pixel_scaling = 1; % to account for beam divergence if pixel size was determined (via MTF) at the wrong distance
 %%% PREPROCESSING %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 raw_roi = []; % vertical and/or horizontal ROI; (1,1) coordinate = top left pixel; supports absolute, relative, negative, and mixed indexing.
 % []: use full image;
@@ -58,8 +56,8 @@ raw_roi = []; % vertical and/or horizontal ROI; (1,1) coordinate = top left pixe
 % [y0 y1 x0 x1]: vertical + horzontal ROI, each ROI as above
 % if -1: auto roi, selects vertical ROI automatically. Use only for DCM. Not working for *.raw data where images are flipped and DMM data.
 % if < -1: Threshold is set as min(proj(:,:,[1 end])) + abs(raw_roi)*median(dark(:)). raw_roi=-1 defaults to min(proj(:,:,[1 end])) + 4*median(dark(:))
-raw_bin = 2; % projection binning factor: integer
-im_trafo = 'rot90(im)'; % string to be evaluated after reading data in the case the image is flipped/rotated/etc due to changes at the beamline, e.g. 'rot90(im)'
+raw_bin = 4; % projection binning factor: integer
+im_trafo = '' ;%'rot90(im,-1)'; % string to be evaluated after reading data in the case the image is flipped/rotated/etc due to changes at the beamline, e.g. 'rot90(im)'
 par.crop_at_rot_axis = 0; % for recos of scans with excentric rotation axis but WITHOUT projection stitching
 par.stitch_projections = 0; % for 2 pi scans: stitch projection at rotation axis position. Recommended with phase retrieval to reduce artefacts. Standard absorption contrast data should work well without stitching. Subpixel stitching not supported (non-integer rotation axis position is rounded, less/no binning before reconstruction can be used to improve precision).
 par.stitch_method = 'sine'; 'step';'linear'; %  ! CHECK correlation area !
@@ -503,8 +501,8 @@ if ~read_flatcor && ~read_sino
         eff_pixel_size = logpar.eff_pixel_size;
     end
     % Scaling of pixel size if MTF is wrong. Important for lateral shift scans
-    if exist( 'pix_scaling', 'var' ) && ~isempty( pix_scaling )
-        eff_pixel_size = pix_scaling * eff_pixel_size;
+    if exist( 'pixel_scaling', 'var' ) && ~isempty( pixel_scaling )
+        eff_pixel_size = pixel_scaling * eff_pixel_size;
     end
     eff_pixel_size_binned = raw_bin * eff_pixel_size;
     exposure_time = logpar.exposure_time;
@@ -659,26 +657,40 @@ if ~read_flatcor && ~read_sino
             s_stage_z.value = h5read( h5log, '/entry/scan/data/s_stage_z/value');
             
             % Static or shift?
-            if numel( s_stage_z.value )
-                vert_shift_micron = s_stage_z.value( ~boolean( stimg_key.value(logpar.n_dark+1:end) ) );
+            if numel( s_stage_z.value ) % is not empty
+                switch numel( s_stage_z.value )
+                    case num_proj_found
+                         vert_shift_micron = s_stage_z.value;
+                    case num_proj_found + num_dark + num_ref_found
+                        m = stimg_key.value == 0 ;
+                        vert_shift_micron = s_stage_z.value( m );
+                    case num_proj_found + num_ref_found
+                        m = stimg_key.value(logpar.n_dark + 1:end) == 0 ;
+                end
                 if std( vert_shift_micron )
                     vert_shift_micron = vert_shift_micron(proj_range);
                     
                     % Check
-                    vert_shift = vert_shift_micron * 1e-3 / eff_pixel_size;
-                    vert_shift = SubtractMean( vert_shift );
-                    
-                    tomo.vert_shift = vert_shift;
+                    vert_shift = vert_shift_micron * 1e-3 / eff_pixel_size_binned;
+                    vert_shift = SubtractMean( vert_shift );                                       
+                   
+                    fprintf( '\n vertical shift absolute / micron : [%g %g]', min( vert_shift_micron ), max( vert_shift_micron ) )
+                    fprintf( '\n vertical shift relative / binned pixel : [%g %g] ', min( vert_shift), max( vert_shift) )
+                    dz_micron = max( vert_shift_micron ) - min(vert_shift_micron);
+                    dz = max( vert_shift ) - min(vert_shift );
+                    fprintf( '\n vertical shift diff : %g micron, %g binned pixel', dz_micron, dz )
+                    fprintf( '\n vertical shift / #proj / unbinned pixel : %g', dz / num_proj_found * raw_bin );
                     
                     % Plot vertical shift
                     if par.visual_output
-                        f = figure( 'Name', 'sprical scan: vertical shift', 'WindowState', 'maximized');
+                        name = 'spiral scan: vertical shift';
+                        f = figure( 'Name', name, 'WindowState', 'maximized');
                         plot( vert_shift, '.')
-                        title( sprintf('spircal scan: vertical shift') )
+                        title( name )
                         axis equal tight
                         xlabel( 'projection number' )
                         ylabel( 'vertical / pixel' )
-                        legend( sprintf( 'effective pixel size binned: %.2f micron', eff_pixel_size_binned * 1e6 ) )
+                        legend( sprintf( 'shift / #proj / pixel %f', dz / num_proj_found ) )
                         drawnow
                         CheckAndMakePath( fig_path )
                         saveas( f, sprintf( '%s%s.png', fig_path, regexprep( f.Name, '\ |:', '_') ) );
@@ -689,6 +701,8 @@ if ~read_flatcor && ~read_sino
                 else
                     vert_shift = 0;
                 end % if std( vert_shift_micron )
+            else
+                vert_shift = 0;
             end % if numel( s_stage_z.value )
         end %if sum( strcmp('/entry/scan/data/s_stage_z',{a.Groups.Name}))
         
@@ -874,6 +888,10 @@ if ~read_flatcor && ~read_sino
     fprintf( ' \n GPU poolsize limit factor : %g', par.poolsize_gpu_limit_factor )
     fprintf( ' \n GPU memory induced maximum poolsize : %u', poolsize_max )
     
+    % Start parallel CPU pool
+    parpool_tmp_folder = [beamtime_path filesep 'scratch_cc'];
+    [poolobj, par.poolsize] = OpenParpool( par.poolsize, par.use_cluster, parpool_tmp_folder, 0, poolsize_max );
+    
     %% Dark field %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     t = toc;
     fprintf( '\nProcessing %u dark fields.', num_dark)
@@ -887,10 +905,6 @@ if ~read_flatcor && ~read_sino
     filt_pix_par.filter_NaN = 1;
     filt_pix_par.verbose = 0;
     
-    % Start parallel CPU pool
-    parpool_tmp_folder = [beamtime_path filesep 'scratch_cc'];
-    [poolobj, par.poolsize] = OpenParpool( par.poolsize, par.use_cluster, parpool_tmp_folder, 0, poolsize_max );
-
     %startS = ticBytes( gcp );
     parfor nn = 1:num_dark
         
@@ -1183,7 +1197,11 @@ if ~read_flatcor && ~read_sino
     end
     par.offset_shift_x0 = x0;
     par.offset_shift_x1 = x1;
-
+    if vert_shift ~= 0
+        vert_shift(~projs_to_use) = [];
+    end
+    tomo.vert_shift = vert_shift;
+    
     raw_min = min( proj(:) );
     raw_max = max( proj(:) );
 
@@ -1246,11 +1264,6 @@ if ~read_flatcor && ~read_sino
     fprintf( '\n global min/max of projs after filtering and binning:  %6g %6g', raw_min, raw_max)
     fprintf( '\n global min/max of projs after dark-field correction and ring current normalization:  %6g %6g', raw_min2, raw_max2)
     
-    if stop.after_data_reading
-        fprintf( '\n' )
-        keyboard;
-    end
-    
     %% Projection/flat field correlation and flat field correction %%%%%%%%
     %%%% STOP HERE TO CHECK FLATFIELD CORRELATION MAPPING %%%%%%%%%%%%%%%%%
     %%%% use 'proj_flat_sequ' to show results of the correlation
@@ -1262,10 +1275,6 @@ if ~read_flatcor && ~read_sino
     proj_min0 = min( proj(:) );
     proj_max0 = max( proj(:) );
     fprintf( '\n global min/max after flat-field corrected:  %6g %6g', proj_min0, proj_max0);
-    if stop.after_proj_flat_correlation
-        fprintf( '\n' )
-        keyboard;
-    end
     
     %% Plot data transfer from/to workers
     if par.visual_output 
@@ -1335,9 +1344,17 @@ if ~read_flatcor && ~read_sino
     % drop angles where projections are empty
     angles(~projs_to_use) = [];
     
-    % Prepare a single sino slice for figure and saving
+    %% Display and save sino slice
     nn = round( size( proj, 2) / 2);
-    sino = squeeze( proj(:,nn,:) );
+    if numel( vert_shift ) < 2
+        sino = squeeze( proj(:,nn,:) );
+    else
+        y = round( nn + vert_shift );
+        for mm = size( proj, 3 ):-1:1
+            sino(:,mm) = proj(:,y(mm),mm);
+        end
+    end
+    
     CheckAndMakePath( reco_path )
     filename = sprintf( '%ssino_middle.tif', reco_path );
     write32bitTIFfromSingle( filename, sino);
