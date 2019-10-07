@@ -80,6 +80,11 @@ if poolsize > 1
             pflag = 1;
         end
         
+        % if number of worker of current pool is larger than poolsize_max
+        if strcmp( clust, 'local' )  && poolobj.NumWorkers > poolsize_max
+            pflag = 1;
+        end
+        
         if enforce_poolsize
             pflag = 1;
         end
