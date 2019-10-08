@@ -476,8 +476,20 @@ par.visual_output = 0; % show images and plots during reconstruction
 interactive_mode.rot_axis_pos = 1; 
 
 scan_path = [raw_path 'wood_018_kit']; ADD
+
+write.flatcor = 1; 
+
+% 2x binned reco
+raw_bin = 2;
 tomo.rot_axis.offset = -2 * 3 / raw_bin;
-scan_path = [raw_path 'wood_019_kit_spiral']; ADD
+scan_path = [raw_path 'wood_019_kit_spiral'];
+ADD
+
+% Unbinned reco, 2x binned saving
+raw_bin = 1;
+write.float = 0; 
+write.float_binned = 1; 
+ADD
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
