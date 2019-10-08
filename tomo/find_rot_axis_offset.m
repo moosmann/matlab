@@ -121,7 +121,8 @@ for nn = 1:numel( offset )
         case 'slice'
             im = astra_parallel2D( tomo, permute( sino, [3 1 2]) );
     end
-    vol(:,:,nn) = FilterHisto(im, number_of_stds, filter_histo_roi);
+    %vol(:,:,nn) = FilterHisto(im, number_of_stds, filter_histo_roi);
+    vol(:,:,nn) = FilterOutlier( im, 0.01 );
     
     %% Metrics    
     im = double( MaskingDisc( im, mask_rad, mask_val) ) * 2^16;

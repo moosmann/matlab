@@ -220,270 +220,71 @@ SET_DEFAULT
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 raw_path = '/asap3/petra3/gpfs/p05/2019/data/11007889/raw/';
 
-scan_path = [raw_path '0000_B_9_ac_20K']; ADD
-
-scan_path = [raw_path '0000_cont_test']; ADD
-
-scan_path = [raw_path '0001_B_9_ac_20K']; ADD
-
-scan_path = [raw_path '0001_cont_test']; ADD
-
-scan_path = [raw_path '0002_B_9_ac_20K']; ADD
-
-scan_path = [raw_path '0002_cont_test']; ADD
-
-scan_path = [raw_path '0003_B_9_ac_20K']; ADD
-
-scan_path = [raw_path '0003_cont_test']; ADD
-
-scan_path = [raw_path '0004_B_9_ac_20K']; ADD
-
-scan_path = [raw_path '0004_cont_test']; ADD
-
-scan_path = [raw_path '0005_B_9_ac_20K']; ADD
-
-scan_path = [raw_path '0005_cont_test']; ADD
-
-scan_path = [raw_path '0006_B_9_ac_20K']; ADD
-
-scan_path = [raw_path '0006_cont_test']; ADD
-
-scan_path = [raw_path '0007_B_9_ac_20K']; ADD
-
-scan_path = [raw_path '0007_cont_test']; ADD
-
-scan_path = [raw_path '0008_B_9_ac_20K']; ADD
-
-scan_path = [raw_path '0008_cont_test']; ADD
-
-scan_path = [raw_path '0009_B_9_ac_20K']; ADD
-
-scan_path = [raw_path '0009_cont_test']; ADD
-
-scan_path = [raw_path '0010_B_9_ac_20K']; ADD
-
-scan_path = [raw_path '0011_B_9_ac_20K']; ADD
-
-scan_path = [raw_path '0012_B_9_ac_20K']; ADD
-
-scan_path = [raw_path '0013_B_9_ac_20K']; ADD
-
-scan_path = [raw_path '0014_B_9_ac_20K']; ADD
-
-scan_path = [raw_path '0015_B_9_ac_20K']; ADD
-
-scan_path = [raw_path '0016_B_9_ac_20K']; ADD
-
-scan_path = [raw_path '0017_B_9_ac_20K']; ADD
-
-scan_path = [raw_path '0018_B_9_ac_20K']; ADD
-
-scan_path = [raw_path '0019_B_9_ac_20K']; ADD
-
-scan_path = [raw_path '0020_B_9_ac_20K']; ADD
-
-scan_path = [raw_path '0021_B_9_ac_20K']; ADD
-
-scan_path = [raw_path '0022_B_9_ac_20K']; ADD
-
-scan_path = [raw_path '0023_B_9_ac_20K']; ADD
-
-scan_path = [raw_path '0024_B_9_ac_20K']; ADD
-
-scan_path = [raw_path '0025_B_9_ac_20K']; ADD
-
-scan_path = [raw_path '0026_B_9_ac_20K']; ADD
-
-scan_path = [raw_path '0027_B_9_ac_20K']; ADD
-
-scan_path = [raw_path '0028_B_9_ac_20K']; ADD
-
-scan_path = [raw_path '0029_B_9_ac_20K']; ADD
-
-scan_path = [raw_path '032_al_ximea_bin2']; ADD
-
-scan_path = [raw_path '033_al_ximea_bin2']; ADD
-
-scan_path = [raw_path '034_al_ximea_bin2']; ADD
-
-scan_path = [raw_path '035_al_ximea_bin2']; ADD
-
-scan_path = [raw_path '036_al_ximea_bin2']; ADD
-
-scan_path = [raw_path '037_al_ximea_bin2']; ADD
-
-scan_path = [raw_path '038_al_ximea_bin2']; ADD
-
-scan_path = [raw_path '039_al_ximea_bin2']; ADD
-
-scan_path = [raw_path '040_al_ximea_bin2']; ADD
-
-scan_path = [raw_path '041_al_ximea_bin2']; ADD
-
-scan_path = [raw_path '042_al_ximea_bin2']; ADD
-
-scan_path = [raw_path '043_al_ximea_bin2']; ADD
-
-scan_path = [raw_path '044_al_ximea_bin2']; ADD
-
-scan_path = [raw_path '045_al_ximea_bin2']; ADD
-
-scan_path = [raw_path '046_al_ximea_bin2']; ADD
-
-scan_path = [raw_path '047_al_ximea_bin2']; ADD
-
-scan_path = [raw_path '048_al_ximea_bin2']; ADD
-
-scan_path = [raw_path '049_al_ximea_bin2']; ADD
-
-scan_path = [raw_path '050_B_9_ac_test']; ADD
-
-scan_path = [raw_path '051_B_9_ac_test']; ADD
-
-scan_path = [raw_path '052_B_9_ac_test']; ADD
-
-scan_path = [raw_path '053_B_9_ac_test']; ADD
-
-scan_path = [raw_path '054_B_9_ac_test']; ADD
-
-scan_path = [raw_path '055_B_9_ac_test']; ADD
-
-scan_path = [raw_path '056_B_9_ac_test']; ADD
-
-scan_path = [raw_path '057_B_9_ac_test']; ADD
-
-scan_path = [raw_path '058_B_9_ac_test']; ADD
-
-scan_path = [raw_path '059_B_9_ac_test']; ADD
-
-scan_path = [raw_path '060_B_9_ac_test']; ADD
-
-scan_path = [raw_path '061_B_9_ac_test']; ADD
-
-scan_path = [raw_path '062_B_9_ac_test']; ADD
-
-scan_path = [raw_path '063_B_9_ac_test']; ADD
-
-scan_path = [raw_path '064_B_9_ac_test']; ADD
-
-scan_path = [raw_path '065_B_9_ac_test']; ADD
-
-scan_path = [raw_path '066_B_9_ac_test']; ADD
-
-scan_path = [raw_path '067_B_9_ac_test']; ADD
-
-scan_path = [raw_path '068_B_9_ac_test_nolog']; ADD
-
-scan_path = [raw_path '069_B_9_ac_test_nolog']; ADD
-
-scan_path = [raw_path '070_B_9_ac_test_nolog']; ADD
-
-scan_path = [raw_path '071_B_9_ac_test']; ADD
-
-scan_path = [raw_path '072_B_9_ac_test']; ADD
-
-scan_path = [raw_path '073_B_9_ac_test']; ADD
-
-scan_path = [raw_path '074_B_9_ac_test']; ADD
-
-scan_path = [raw_path '075_B_9_ac_test']; ADD
-
-scan_path = [raw_path '076_B_9_ac_test']; ADD
-
-scan_path = [raw_path '077_B_9_ac_test']; ADD
-
-scan_path = [raw_path '078_B_9_ac_test']; ADD
-
-scan_path = [raw_path '079_B_9_ac_test']; ADD
-
-scan_path = [raw_path '080_B_9_ac_test']; ADD
-
-scan_path = [raw_path '081_B_9_ac_test']; ADD
-
-scan_path = [raw_path '082_B_9_ac_test']; ADD
-
-scan_path = [raw_path '083_B_9_ac_test']; ADD
-
-scan_path = [raw_path '084_B_9_ac_test']; ADD
-
-scan_path = [raw_path '085_B_9_ac_test']; ADD
-
-scan_path = [raw_path '086_B_9_ac_test']; ADD
-
-scan_path = [raw_path '087_B_9_ac_test']; ADD
-
-scan_path = [raw_path '088_B_9_ac_test']; ADD
-
-scan_path = [raw_path '089_B_9_ac_test']; ADD
-
-scan_path = [raw_path '090_B_9_ac_test']; ADD
-
-scan_path = [raw_path 'mtf']; ADD
-
-scan_path = [raw_path 'wood_001']; ADD
-
-scan_path = [raw_path 'wood_002']; ADD
-
-scan_path = [raw_path 'wood_003']; ADD
-
-scan_path = [raw_path 'wood_004']; ADD
-
-scan_path = [raw_path 'wood_005']; ADD
-
-scan_path = [raw_path 'wood_006']; ADD
-
-scan_path = [raw_path 'wood_008']; ADD
-
-scan_path = [raw_path 'wood_009_hidra']; ADD
-
-scan_path = [raw_path 'wood_010_kit']; ADD
-
-scan_path = [raw_path 'wood_011_kit']; ADD
-
-scan_path = [raw_path 'wood_012_kit']; ADD
-
-scan_path = [raw_path 'wood_013_kit']; ADD
-
-scan_path = [raw_path 'wood_016_kit']; ADD
-
-scan_path = [raw_path 'wood_017_kit']; ADD
-
-scan_path = [raw_path 'wood_020_kit']; ADD
-
-scan_path = [raw_path 'wood_021_kit_sprial']; ADD
-
-scan_path = [raw_path 'wood_022_kit']; ADD
-
-scan_path = [raw_path 'wood_023_kit_spiral']; ADD
-
-scan_path = [raw_path 'wood_025_ximea']; ADD
-
-scan_path = [raw_path 'wood_026_ximea_hidra']; ADD
+% scan_path = [raw_path '0000_B_9_ac_20K']; ADD
+% scan_path = [raw_path '0000_cont_test']; ADD
+% scan_path = [raw_path '0001_B_9_ac_20K']; ADD
+% scan_path = [raw_path '0001_cont_test']; ADD
+% scan_path = [raw_path '0002_B_9_ac_20K']; ADD
+% scan_path = [raw_path '0002_cont_test']; ADD
+% scan_path = [raw_path '0003_B_9_ac_20K']; ADD
+% scan_path = [raw_path '0003_cont_test']; ADD
+% scan_path = [raw_path '0004_B_9_ac_20K']; ADD
+% scan_path = [raw_path '0004_cont_test']; ADD
+% scan_path = [raw_path '0005_B_9_ac_20K']; ADD
+% scan_path = [raw_path '0005_cont_test']; ADD
+% scan_path = [raw_path '0006_B_9_ac_20K']; ADD
+% scan_path = [raw_path '0006_cont_test']; ADD
+% scan_path = [raw_path '0007_B_9_ac_20K']; ADD
+% scan_path = [raw_path '0007_cont_test']; ADD
+% scan_path = [raw_path '0008_B_9_ac_20K']; ADD
+% scan_path = [raw_path '0008_cont_test']; ADD
+% scan_path = [raw_path '0009_B_9_ac_20K']; ADD
+% scan_path = [raw_path '0009_cont_test']; ADD
+% scan_path = [raw_path '0010_B_9_ac_20K']; ADD
+% scan_path = [raw_path '0011_B_9_ac_20K']; ADD
+% scan_path = [raw_path '0012_B_9_ac_20K']; ADD
+% scan_path = [raw_path '0013_B_9_ac_20K']; ADD
+% scan_path = [raw_path '0014_B_9_ac_20K']; ADD
+% scan_path = [raw_path '0015_B_9_ac_20K']; ADD
+% scan_path = [raw_path '0016_B_9_ac_20K']; ADD
+% scan_path = [raw_path '0017_B_9_ac_20K']; ADD
+% scan_path = [raw_path '0018_B_9_ac_20K']; ADD
+% scan_path = [raw_path '0019_B_9_ac_20K']; ADD
+% scan_path = [raw_path '0020_B_9_ac_20K']; ADD
+% scan_path = [raw_path '0021_B_9_ac_20K']; ADD
+% scan_path = [raw_path '0022_B_9_ac_20K']; ADD
+% scan_path = [raw_path '0023_B_9_ac_20K']; ADD
+% scan_path = [raw_path '0024_B_9_ac_20K']; ADD
+% scan_path = [raw_path '0025_B_9_ac_20K']; ADD
+% scan_path = [raw_path '0026_B_9_ac_20K']; ADD
+% scan_path = [raw_path '0027_B_9_ac_20K']; ADD
+% scan_path = [raw_path '0028_B_9_ac_20K']; ADD
+% scan_path = [raw_path '0029_B_9_ac_20K']; ADD
+% 
+% scan_path = [raw_path '049_al_ximea_bin2']; ADD
+% scan_path = [raw_path '090_B_9_ac_test']; ADD
+% scan_path = [raw_path 'wood_025_ximea']; ADD
+% scan_path = [raw_path 'wood_026_ximea_hidra']; ADD
+% scan_path = [raw_path 'wood_028_ximea_hidra']; ADD
+% scan_path = [raw_path 'wood_029_ximea_hidra']; ADD
+% scan_path = [raw_path 'wood_030_ximea_hidra']; ADD
+% scan_path = [raw_path 'wood_031_ximea_hidra']; ADD
+% scan_path = [raw_path 'wood_spiral_007']; ADD
 
 scan_path = [raw_path 'wood_027_ximea__spiral_hidra']; ADD
 
-scan_path = [raw_path 'wood_028_ximea_hidra']; ADD
-
-scan_path = [raw_path 'wood_029_ximea_hidra']; ADD
-
-scan_path = [raw_path 'wood_030_ximea_hidra']; ADD
-
-scan_path = [raw_path 'wood_031_ximea_hidra']; ADD
-
-scan_path = [raw_path 'wood_spiral_007']; ADD
-
-
-par.visual_output = 0; 
+par.visual_output = 1; 
 interactive_mode.rot_axis_pos = 1; 
-tomo.vol_size = [-0.8 0.8 -0.8 0.8 -0.5 0.5];
+tomo.vol_size = [-0.3 0.3 -0.3 0.3 -0.5 0.5];
 write.flatcor = 0; 
+raw_bin = 2;
 
-scan_path = [raw_path 'wood_018_kit']; ADD
+tomo.rot_axis.offset = -3.25 * 2 / raw_bin;
+scan_path = [raw_path 'wood_022_kit']; ADD
 
 % 2x binned reco
-raw_bin = 2;
 tomo.rot_axis.offset = -3.5 * 2 / raw_bin;
-scan_path = [raw_path 'wood_019_kit_spiral'];
+scan_path = [raw_path 'wood_023_kit_spiral'];
 ADD
 
 % Unbinned reco, 2x binned saving

@@ -1,4 +1,4 @@
-function [proj, write, tint] = p05_phase_retrieval( proj, phase_retrieval, tomo, write, interactive_mode, par )
+function [proj, write, tint] = phase_retrieval_func( proj, phase_retrieval, tomo, write, interactive_mode, par )
 % Phase retrieval for P05 data.
 %
 % Written by Julian Moosmann, 2018-01-11, last version: 2018-07-27
@@ -125,7 +125,7 @@ if exist( 'interactive_mode', 'var' ) && isfield( interactive_mode, 'phase_retri
         if plot_ctf_mask
             % FFT
             epsilon = 0;
-            fun = @(im) Binning( FilterHisto(fftshift(log( 10^(-epsilon) + abs( fft2( padarray( im , padding*size(im ), 'symmetric', 'post' ) ) ) ) ), 3), 2*padding);
+            fun = @(im) Binning( FilterHisto(fftshift(log( 10^(-epsilon) + abs( fft2( padarray( im , padding*size(im ), 'symmetric', 'post' ) ) ) ) ), 3 ), 2*padding);
             proj1_fft = fun( proj1 );
             proj_mean_fft = fun( proj_mean );
             
@@ -291,9 +291,9 @@ if exist( 'interactive_mode', 'var' ) && isfield( interactive_mode, 'phase_retri
         % Input
         reg_par = '';
         while ischar( reg_par )
-            fprintf( '\n\nENTER REGULARIZATION PARAMETER(S):' )
+            fprintf( '\n\nENTER (RANGE OF) REGULARIZATION PARAMETER(S):' )
             txt = [...                
-                '\n(if empty: use default range,'...
+                '\nif empty: use default range,'...
                 '\n if scalar: use value & EXIT loop,'...
                 '\n if ''s'': change slice number,'...
                 '\n if ''m'': change method,'...
@@ -301,8 +301,8 @@ if exist( 'interactive_mode', 'var' ) && isfield( interactive_mode, 'phase_retri
                 '\n if ''b'': change binary filter threshold,'...
                 '\n if ''c'': change cut-off frequency,'...
                 '\n if ''p'': change padding factor,'...
-                '\n if ''d'': enter debug mode): '...
-                '\n '                ];
+                '\n if ''d'': enter debug mode, '...
+                '\n :'                ];
             reg_par = input( txt );
             if isempty( reg_par )
                 reg_par = reg_par_def_range;

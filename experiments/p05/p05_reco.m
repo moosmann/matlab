@@ -70,7 +70,7 @@ pixel_filter_threshold_flat = [0.01 0.005]; % Flat fields: threshold parameter f
 pixel_filter_threshold_proj = [0.01 0.005]; % Raw projection: threshold parameter for hot/dark pixel filter, for details see 'FilterPixel'
 pixel_filter_radius = [3 3]; % Increase only if blobs of zeros or other artefacts are expected. Can increase processing time heavily.
 ring_current_normalization = 1; % normalize flat fields and projections by ring current
-image_correlation.method = 'ssim';'entropy';'ssim-ml';'ssim-g';'std';'cov';'corr';'diff1-l1';'diff1-l2';'diff2-l1';'diff2-l2';'cross-entropy-12';'cross-entropy-21';'cross-entropy-x';
+image_correlation.method = 'ssim-ml';'entropy';'ssim';'ssim-g';'std';'cov';'corr';'diff1-l1';'diff1-l2';'diff2-l1';'diff2-l2';'cross-entropy-12';'cross-entropy-21';'cross-entropy-x';
 % Correlation of projections and flat fields. Essential for DCM data. Typically improves reconstruction quality of DMM data, too.
 % Available methods ('ssim-ml'/'entropy' usually work best):
 % 'none' : no correlation, uses median flat, for fast recos
@@ -189,7 +189,9 @@ write.uint8_segmented = 0; % experimental: threshold segmentaion for histograms 
 
 tic
 verbose = 1; % lecacy parameter
-
+vert_shift = 0;
+offset_shift = 0;
+                
 %%% Parameters set by reconstruction loop script 'p05_reco_loop' %%%%%%%%%%
 if exist( 'external_parameter' ,'var')
     par.visual_output = 0;
@@ -366,14 +368,14 @@ if ~read_flatcor && ~read_sino
     end
     
     % Path to flat-field corrected projections
-    flatcor_path = sprintf( '%s/flat_corrected_rawBin%u/', write.path, raw_bin );
+    flatcor_path = sprintf( '%s/flat_corrected/rawBin%u/', write.path, raw_bin );
     if ~isempty( write.subfolder.flatcor )
         flatcor_path =  sprintf( '%s%s/', flatcor_path, write.subfolder.flatcor );
     end
     PrintVerbose( write.flatcor, '\n flatcor_path:\n  %s', flatcor_path)
     
     % Path to retrieved phase maps
-    write.phase_map_path = sprintf( '%s/phase_map_rawBin%u/', write.path, raw_bin );
+    write.phase_map_path = sprintf( '%s/phase_map/rawBin%u/', write.path, raw_bin );
     if ~isempty( write.subfolder.phase_map )
         %write.phase_map_path = [write.path, filesep, 'phase_map', filesep, write.subfolder.phase_map, filesep];
         write.phase_map_path = sprintf( '%s%s/',  write.phase_map_path, write.subfolder.phase_map );
@@ -381,8 +383,8 @@ if ~read_flatcor && ~read_sino
     PrintVerbose( write.phase_map, '\n phase_map_path:\n  %s', write.phase_map_path)
     
     % Sinogram path
-    sino_path = sprintf( '%s/sino_rawBin%u/', write.path, raw_bin );
-    write.sino_phase_path = sprintf( '%s/sino_phase_rawBin%u/', write.path, raw_bin );
+    sino_path = sprintf( '%s/sino/rawBin%u/', write.path, raw_bin );
+    write.sino_phase_path = sprintf( '%s/sino_phase/rawBin%u/', write.path, raw_bin );
     if ~isempty( write.subfolder.sino )
         sino_path = sprintf( '%s%s/', sino_path, write.subfolder.sino );
         write.sino_phase_path = sprintf( '%s%s/', write.sino_phase_path, write.subfolder.sino );
@@ -644,8 +646,6 @@ if ~read_flatcor && ~read_sino
                         saveas( f, sprintf( '%s%s.png', fig_path, regexprep( f.Name, '\ |:', '_') ) );
                     end
                 end % if std( offset_shift_micron )
-            else
-                offset_shift = 0;
             end % if numel( s_stage_x.value )
         end
         
@@ -694,11 +694,7 @@ if ~read_flatcor && ~read_sino
                         CheckAndMakePath( fig_path )
                         saveas( f, sprintf( '%s%s.png', fig_path, regexprep( f.Name, '\ |:', '_') ) );
                     end
-                else
-                    vert_shift = 0;
                 end % if std( vert_shift_micron )
-            else
-                vert_shift = 0;
             end % if numel( s_stage_z.value )
         end %if sum( strcmp('/entry/scan/data/s_stage_z',{a.Groups.Name}))
         
@@ -779,8 +775,8 @@ if ~read_flatcor && ~read_sino
     filt_pix_par.threshold_dark = pixel_filter_threshold_dark(2);
     filt_pix_par.medfilt_neighboorhood = pixel_filter_radius;
     filt_pix_par.filter_dead_pixel = 1;
-    filt_pix_par.filter_Inf = 1;
-    filt_pix_par.filter_NaN = 1;
+    filt_pix_par.filter_Inf = 0;
+    filt_pix_par.filter_NaN = 0;
     filt_pix_par.verbose = 0;
     
     %startS = ticBytes( gcp );
@@ -1222,7 +1218,7 @@ if ~read_flatcor && ~read_sino
     % drop angles where projections are empty
     angles(~projs_to_use) = [];
     
-    %% Display and save sino slice
+    %% Figure & Save: sino slice
     nn = round( size( proj, 2) / 2);
     if numel( vert_shift ) < 2
         sino = squeeze( proj(:,nn,:) );
@@ -1245,7 +1241,7 @@ if ~read_flatcor && ~read_sino
         end
         
         subplot(2,3,4)
-        imsc1( proj(:,:,1))
+        imsc1( FilterOutlier( proj(:,:,1), 0.01 ) )
         xticks([])
         yticks([])
         title(sprintf('intensity: first proj'))
@@ -1253,7 +1249,7 @@ if ~read_flatcor && ~read_sino
         axis equal tight
         
         subplot(2,3,5)
-        imsc1( proj(:,:,round(size(proj,3)/2)))
+        imsc1( FilterOutlier( proj(:,:,round(size(proj,3)/2)), 0.01 ) )
         xticks([])
         yticks([])
         title(sprintf('intensity: middle proj'))
@@ -1261,7 +1257,7 @@ if ~read_flatcor && ~read_sino
         axis equal tight
         
         subplot(2,3,6)
-        imsc1( proj(:,:,end))
+        imsc1( FilterOutlier( proj(:,:,end), 0.01 ) )
         xticks([])
         yticks([])
         title(sprintf('intensity: last proj'))
@@ -1431,7 +1427,7 @@ if phase_retrieval.apply
     end
     if phase_retrieval.apply_before
         % Retrieval
-        [proj, write, tint_phase] = p05_phase_retrieval( proj, phase_retrieval, tomo, write, interactive_mode, par );
+        [proj, write, tint_phase] = phase_retrieval_func( proj, phase_retrieval, tomo, write, interactive_mode, par );
         tomo.rot_axis.position = tomo.rot_axis.position / phase_bin;
         tomo.rot_axis.offset = tomo.rot_axis.offset / phase_bin;
         [tomo.vol_shape, tomo.vol_size] = volshape_volsize( proj, tomo.vol_shape, tomo.vol_size, tomo.rot_axis.offset, verbose );
@@ -1536,7 +1532,7 @@ end
 if phase_retrieval.apply
     if ~phase_retrieval.apply_before
         % Retrieval
-        [proj, write, tint_phase] = p05_phase_retrieval( proj, phase_retrieval, tomo, write, interactive_mode, par );
+        [proj, write, tint_phase] = phase_retrieval_func( proj, phase_retrieval, tomo, write, interactive_mode, par );
         % Post phase retrieval binning
         tomo.rot_axis.position = tomo.rot_axis.position / phase_bin;
         tomo.rot_axis.offset = tomo.rot_axis.offset / phase_bin;

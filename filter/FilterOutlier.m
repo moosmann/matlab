@@ -24,7 +24,7 @@ if nargin < 4
     return_threshs_only = 0;
 end
 if nargin < 5
-    verbose = 1;
+    verbose = 0;
 end
 
 %% Thresholds
