@@ -2,31 +2,41 @@ function vol = astra_parallel3D( par, sino)
 % Parallel backprojection of 2D or 3D sinograms using ASTRA's
 % parallel 3D geometry with vector notation. 
 %
+% ARGUMENTS
+% par : parameter struct with fields:
+%   angles: scalar or vector. Default: pi. If calar it is the angular range
+%       covered during one tomogram and the angles are computed as angles * (0:num_proj-1) /
+%       num_proj. If vector it is the angles of the projections. If scalar the 
+%   rotation_axis_offset: scalar. Default: 0. Offset to the position of the
+%       rotation axis. The rotation axis position is assumed to be the detector
+%       center, size(sino,1)/2, shifted  by the rotation axis offset.
+%   vert_shift : vector of vertical shifts for sprial CT, default: []
+%   angle_offet : scalar, global angular offset to the reconstruction
+%   vol_shape: shape of  reconstructed volume. Default: horizontal and
+%       vertical number of voxel is given by the number of pixels of sinogram
+%       along the first and second direction, respectively.
+%   vol_size: size of reconstructed volume, default: [], then inferred from
+%       vol_shape.
+%   pixel_size: scalar or 2-component vector. Default: 1. Size of a detector
+%       pixel. If scalar square pixels are assumed.
+%   tilt: scalar, tilt of rotation axis perpendicular to the beam. this accounts for
+%       a rotation of the camera
+%   tilt_lamino : scalar, default: 0. tilt of rotation axis towards forward
+%       beam direction in radians.
+%   algorithm : string, see p05_reco
+%   iterations : scalar, number of iteration for iterative methods,
+%      default: 100
+%   MinConstraint : scalar, for 
+%   MaxConstraint : scalar, for    
+%   gpu_index: scalar, MATLAB index of GPU device to use. default: [], uses
+%       all available GPUs. Matlab index notation starts from 1, ASTRA index
+%       starts from 0. Here, MATLAB index notation is used.
+%   link_data: boolean. Default: 0. If 0 ASTRA and MATLAB use their own
+%       memory. If 1 ASTRA's data objects are references to MATLAB arrays.
+%       Changes by ASTRA are visible to MATLAB. Changes by MATLAB creates a copy
+%       of the data object and are not visible to the data object. Take care if 
+%       using data links.
 % sino: 2D-or-3D array.
-% angles: scalar or vector. Default: pi. If calar it is the angular range
-%   covered during one tomogram and the angles are computed as angles * (0:num_proj-1) /
-%   num_proj. If vector it is the angles of the projections. If scalar the 
-% rotation_axis_offset: scalar. Default: 0. Offset to the position of the
-%   rotation axis. The rotation axis position is assumed to be the detector
-%   center, size(sino,1)/2, shifted  by the rotation axis offset.
-% vol_shape: shape of the reconstructed volume. Default: horizontal and
-%   vertical number of voxel is given by the number of pixels of sinogram
-%   along the first and second direction, respectively.
-% vol_size: size of the reconstructed volume
-% pixel_size: scalar or 2-component vector. Default: 1. Size of a detector
-%   pixel. If scalar square pixels are assumed.
-% link_data: boolean. Default: 0. If 0 ASTRA and MATLAB use their own
-%   memory. If 1 ASTRA's data objects are references to MATLAB arrays.
-%   Changes by ASTRA are visible to MATLAB. Changes by MATLAB creates a copy
-%   of the data object and are not visible to the data object. Take care if 
-%   using data links.
-% tilt: scalar, tilt of rotation axis perpendicular to the beam. this accounts for
-%   a rotation of the camera
-% gpu_index: scalar, MATLAB index of GPU device to use. default: [], uses
-%   all available GPUs. Matlab index notation starts from 1, ASTRA index
-%   starts from 0. Here, MATLAB index notation is used.
-% tilt_lamino : scalar, default: 0. tilt of rotation axis towards forward
-%   beam direction in radians.
 %
 % For GPUs the only interpolation method available in ASTRA is the Josehp
 % kernel.
@@ -41,19 +51,19 @@ function vol = astra_parallel3D( par, sino)
 %% Default arguments %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 angles = assign_from_struct( par, 'angles', pi );
 rotation_axis_offset = assign_from_struct( par.rot_axis, 'offset', 0);
+vert_shift = assign_from_struct( par, 'vert_shift', [] );
 angle_offset = assign_from_struct( par.rot_angle, 'offset', 0 );
 vol_shape = assign_from_struct( par, 'vol_shape', [size( sino, 1), size( sino, 1), size(sino, 3) ] );
 vol_size = assign_from_struct( par, 'vol_size', [] );
 pixel_size = assign_from_struct( par, 'astra_pixel_size', [1 1] );
 tilt = assign_from_struct( par, 'tilt_camera', 0 );
 tilt_lamino = assign_from_struct( par, 'tilt_lamino', 0 );
-link_data = assign_from_struct( par, 'astra_link_data', 0 );
-gpu_index = assign_from_struct( par, 'astra_gpu_index', [] );
 algorithm = assign_from_struct( par, 'algorithm', 'fbp' );
 iterations = assign_from_struct( par, 'iterations', 100);
 MinConstraint = assign_from_struct( par.sirt, 'MinConstraint', [] );
 MaxConstraint = assign_from_struct( par.sirt, 'MaxConstraint', [] );
-vert_shift = assign_from_struct( par, 'vert_shift', [] );
+gpu_index = assign_from_struct( par, 'astra_gpu_index', [] );
+link_data = assign_from_struct( par, 'astra_link_data', 0 );
  
 %% Main %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -91,16 +101,16 @@ for nn = 1:num_proj
     
     % Lateral shift
     if isequal( numel( rotation_axis_offset ), 1 )
-        rao = rotation_axis_offset;
+        rao = - rotation_axis_offset;
     else
-        rao = rotation_axis_offset(nn);
+        rao = - rotation_axis_offset(nn);
     end    
 
     % vertical shift
     if numel( vert_shift ) <= 1
         z = 0;
     else
-        z = vert_shift(nn);
+        z = - vert_shift(nn);
     end
 
     % source / ray direction
@@ -109,9 +119,9 @@ for nn = 1:num_proj
     vectors(nn,3) = - sin(tilt_lamino);
 
     % center of detector
-    vectors(nn,4) = -rao * cos( theta );
-    %vectors(nn,4) = -rao * sin( theta );
-    vectors(nn,5) = -rao * sin( theta );
+    vectors(nn,4) = rao * cos( theta );
+    %vectors(nn,4) = rao * sin( theta );
+    vectors(nn,5) = rao * sin( theta );
     %vectors(nn,5) = rao * cos( theta );
     vectors(nn,6) = z + sin( tilt_lamino );
 

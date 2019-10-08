@@ -40,7 +40,6 @@ fast_reco = 0; % !!! OVERWRITES SOME PARAMETERS SET BELOW !!!
 %%% SCAN %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 scan_path = pwd; % string/pwd. pwd: change to directory of the scan to be reconstructed, sting: absolute scan path
     '/asap3/petra3/gpfs/p05/2018/data/11005553/raw/syn033_68R_Mg10Gd_12w';
-    '/asap3/spec.instruments/gpfs/nanotom/2019/data/11008012/processed/hzg_bw2_desy2010b/bmc01';
 read_flatcor = 0; % read preprocessed flatfield-corrected projections. CHECK if negative log has to be taken!
 read_flatcor_path = ''; % subfolder of 'flat_corrected' containing projections
 read_sino = 0; % read preprocessed sinograms. CHECK if negative log has to be taken!
@@ -56,7 +55,7 @@ raw_roi = []; % vertical and/or horizontal ROI; (1,1) coordinate = top left pixe
 % [y0 y1 x0 x1]: vertical + horzontal ROI, each ROI as above
 % if -1: auto roi, selects vertical ROI automatically. Use only for DCM. Not working for *.raw data where images are flipped and DMM data.
 % if < -1: Threshold is set as min(proj(:,:,[1 end])) + abs(raw_roi)*median(dark(:)). raw_roi=-1 defaults to min(proj(:,:,[1 end])) + 4*median(dark(:))
-raw_bin = 3; % projection binning factor: integer
+raw_bin = 2; % projection binning factor: integer
 im_trafo = '' ;%'rot90(im,-1)'; % string to be evaluated after reading data in the case the image is flipped/rotated/etc due to changes at the beamline, e.g. 'rot90(im)'
 par.crop_at_rot_axis = 0; % for recos of scans with excentric rotation axis but WITHOUT projection stitching
 par.stitch_projections = 0; % for 2 pi scans: stitch projection at rotation axis position. Recommended with phase retrieval to reduce artefacts. Standard absorption contrast data should work well without stitching. Subpixel stitching not supported (non-integer rotation axis position is rounded, less/no binning before reconstruction can be used to improve precision).
@@ -197,8 +196,6 @@ if exist( 'external_parameter' ,'var')
     dbstop if error
     interactive_mode.rot_axis_pos = 0;
     fast_reco = 0;
-    stop.after_data_reading(1) = 0;
-    stop.after_proj_flat_correlation(1) = 0;
     fn = fieldnames( external_parameter );
     for nn = 1:numel( fn )
         var_name = fn{nn};
@@ -276,23 +273,43 @@ warning( 'off', 'MATLAB:hg:AutoSoftwareOpenGL' );
 fprintf( 'START RECONSTRUCTION: ')
 
 %% Folders
+
+% Scan path
 while scan_path(end) == filesep
     scan_path(end) = [];
 end
 [raw_path, scan_name] = fileparts(scan_path);
-
-% Save raw path to file for shell short cut
-filename = [userpath, filesep, 'experiments/p05/path_to_latest_raw'];
-fid = fopen( filename , 'w' );
-fprintf( fid, '%s', raw_path );
-fclose( fid );
-% Scan path
 scan_path = [scan_path, filesep];
 [beamtime_path, raw_folder] = fileparts(raw_path);
 [~, beamtime_id] = fileparts(beamtime_path);
 if ~strcmp(raw_folder, 'raw') && ~read_sino && ~read_flatcor
     error('Given path does not contain a ''raw'' folder: %s', raw_folder)
 end
+
+% Output path and folder
+out_folder = 'processed';
+if write.to_scratch
+    out_folder = 'scratch_cc';
+end
+if isempty( write.path )
+    write.path = [beamtime_path, filesep, out_folder, filesep, scan_name];
+else
+    write.path = [write.path, filesep, scan_name];
+end
+if ~isempty( write.scan_name_appendix )
+    write.path = [ write.path '_' write.scan_name_appendix ];
+end
+write.parpath = [write.path filesep ];
+if ~isempty(write.parfolder)
+    write.path = [write.path, filesep, write.parfolder];
+end
+
+% Save raw path to file for shell short cut
+filename = [userpath, filesep, 'experiments/p05/path_to_latest_raw'];
+fid = fopen( filename , 'w' );
+fprintf( fid, '%s', raw_path );
+fclose( fid );
+
 fprintf( '%s', scan_name )
 fprintf( ' at %s', datetime )
 fprintf( '\n scan_path:\n  %s', scan_path )
@@ -320,24 +337,6 @@ filename = [userpath, filesep, 'experiments/p05/path_to_latest_scan'];
 fid = fopen( filename , 'w' );
 fprintf( fid, '%s', scan_path );
 fclose( fid );
-
-% Output path and folder
-out_folder = 'processed';
-if write.to_scratch
-    out_folder = 'scratch_cc';
-end
-if isempty( write.path )
-    write.path = [beamtime_path, filesep, out_folder, filesep, scan_name];
-else
-    write.path = [write.path, filesep, scan_name];
-end
-if ~isempty( write.scan_name_appendix )
-    write.path = [ write.path '_' write.scan_name_appendix ];
-end
-write.parpath = [write.path filesep ];
-if ~isempty(write.parfolder)
-    write.path = [write.path, filesep, write.parfolder];
-end
 
 % Reco path
 if isempty( write.subfolder.reco )
@@ -695,9 +694,6 @@ if ~read_flatcor && ~read_sino
                         CheckAndMakePath( fig_path )
                         saveas( f, sprintf( '%s%s.png', fig_path, regexprep( f.Name, '\ |:', '_') ) );
                     end
-                    
-                    % Spiral CT only support 3D reco mode
-                    tomo.reco_mode = '3D';
                 else
                     vert_shift = 0;
                 end % if std( vert_shift_micron )
@@ -738,128 +734,9 @@ if ~read_flatcor && ~read_sino
     end % if ~exist( h5log, 'file')
     
     %% Raw ROI
-    if ~isempty( raw_roi ) % else AUTO ROI
-        if numel( raw_roi ) > 1
-            % relative indexing
-            for nn = numel( raw_roi ):-1:1
-                x = raw_roi(nn);
-                if x >= -1 && x <= 1
-                    switch nn
-                        case 1
-                            if x < 1
-                                x = round( ( im_shape_raw(2) - 1) * x + 1, -1 ) + 1;
-                            end
-                        case 2
-                            if x < 0
-                                x = 1 + x;
-                            end
-                            x = round( ( im_shape_raw(2) - 1) * x + 1, -1 );
-                        case 3
-                            if x < 1
-                                x = round( ( im_shape_raw(1) - 1) * x + 1, -1 ) + 1;
-                            end
-                        case 4
-                            if x < 0
-                                x = 1 + x;
-                            end
-                            x = round( ( im_shape_raw(1) - 1) * x + 1, -1 );
-                    end
-                end
-                raw_roi(nn) = x;
-            end
-            
-            if raw_roi(2) <= 0 % negative index counting from the end
-                raw_roi(2) = im_shape_raw(2) + raw_roi(2);
-            end
-            
-            if numel( raw_roi ) == 4
-                if raw_roi(4) <= 0 % negative index counting from the end
-                    raw_roi(4) = im_shape_raw(1) + raw_roi(4);
-                end
-            end
-        else
-            if raw_roi(1) < 1 % indicate AUTO ROI
-                % Make roi_fac dependent on dark field
-                if raw_roi(1) == -1
-                    roi_fac = 4;
-                elseif raw_roi(1) < -1
-                    roi_fac = abs( raw_roi );
-                end
-                % Read first non-zero flat
-                mm = 1;
-                while mean2( im_raw ) == 0
-                    mm = mm + 1;
-                    filename = sprintf('%s%s', scan_path, ref_names{mm});
-                    im_raw = read_image( filename, '', [], tif_info, im_shape_raw, dtype, im_trafo );
-                end
-                % Read last non-zero flat
-                mm = num_ref_found;
-                filename = sprintf('%s%s', scan_path, ref_names{mm});
-                im_raw2 = read_image( filename, '', [], tif_info, im_shape_raw, dtype, im_trafo );
-                while mean2( im_raw2 ) == 0
-                    mm = mm - 1;
-                    filename = sprintf('%s%s', scan_path, ref_names{mm});
-                    im_raw2 = read_image( filename, '', [], tif_info, im_shape_raw, dtype, im_trafo );
-                end
-                % Read non-zero dark
-                mm = 1;
-                im_raw_dark = 0;
-                while mean2( im_raw_dark ) == 0
-                    mm = mm + 1;
-                    filename = sprintf('%s%s', scan_path, dark_names{mm});
-                    im_raw_dark = read_image( filename, '', [], tif_info, im_shape_raw, dtype, im_trafo );
-                end
-                % Threshold
-                im_raw_line = median( im_raw / 2 + im_raw2 / 2, 1);
-                roi_thresh = double( min( im_raw_line ) + roi_fac * median( im_raw_dark(:) ) );
-                % Crop indices
-                pl = 1;
-                while im_raw_line(pl) < roi_thresh && pl < im_shape_raw(2) / 2 - 100
-                    pl = pl + 1;
-                end
-                pl = 10 * ceil( pl / 10 );
-                pr = im_shape_raw(2);
-                while im_raw_line(pr) < roi_thresh && pr > im_shape_raw(2) / 2 + 100
-                    pr = pr - 1;
-                end
-                pr = 10 * floor( pr / 10 );
-                raw_roi = double( [pl pr] );
-                fprintf( '\n vertical auto roi : [%u %u], roi threshold factor : %g', raw_roi, roi_fac )
-               
-                %% Plot auto ROI
-                if par.visual_output
-                    f = figure( 'Name', 'auto ROI: raw image and cropping region', 'WindowState', 'maximized');
-                    
-                    subplot(1,2,1)
-                    im = (single(im_raw) + single(im_raw2) ) / 2;
-                    pll = max( 1, pl - 20 );
-                    prr = min( im_shape_raw(2), pr + 20);
-                    im(:,[pll:pl, pr:prr] ) = max( im(:) );
-                    imsc(im);
-                    title(sprintf('raw flat field: first + last'))
-                    axis equal tight
-                    xticks('auto'),yticks('auto')
-                    camroll(90)
-                    
-                    subplot(1,2,2)
-                    plot( [im_raw_line' repmat( roi_thresh, [numel(im_raw_line) 1]) ] )
-                    camroll(90)
-                    title(sprintf('horizontal projection and cut level\nthreshold factor: %g', roi_fac ))
-                    axis tight
-                    ax = gca;
-                    ax.YAxisLocation = 'right';
-                    ax.XDir = 'reverse';
-                    ax.YDir = 'normal';
-                    text( raw_roi(1), roi_thresh + 80, sprintf('raw roi(1)=%u', raw_roi(1) ) )
-                    text( raw_roi(2), roi_thresh + 80, sprintf('raw roi(2)=%u', raw_roi(2) ) )
-                    
-                    drawnow
-                    saveas( f, sprintf( '%s%s.png', fig_path, regexprep( f.Name, '\ |:', '_') ) );
-                end % if par.visual_output Plot auto ROI
-            end
-        end
-    end
+    raw_roi = set_raw_roi( raw_roi, par, im_shape_raw, im_raw, tif_info, dtype, im_trafo, scan_path, fig_path, ref_names, dark_names );
     
+    %% Print info
     im_roi = read_image( filename, '', raw_roi, tif_info, im_shape_raw, dtype, im_trafo );
     im_shape_roi = size( im_roi );
     im_shape_binned1 = floor( size( im_roi, 1 ) / raw_bin );
@@ -868,6 +745,7 @@ if ~read_flatcor && ~read_sino
     fprintf( '\n distance sample dector : %.1f mm', sample_detector_distance * 1000 )
     fprintf( '\n effective pixel size unbinned : %.2f micron',  eff_pixel_size * 1e6)
     fprintf( '\n effective pixel size binned: %.2f micron',  eff_pixel_size_binned * 1e6)
+    fprintf( '\n image size : %.2f mm x %.2f mm', im_shape_raw * eff_pixel_size *1e3 )
     fprintf( '\n image shape : %u x %u = %.1g pixels', im_shape_raw, prod( im_shape_raw ))
     fprintf( '\n image shape roi : %u x %u = %.1g pixels', im_shape_roi, numel( im_roi ) )
     numel_im_roi_binned = im_shape_binned1 * im_shape_binned2;
@@ -1265,12 +1143,12 @@ if ~read_flatcor && ~read_sino
     fprintf( '\n global min/max of projs after dark-field correction and ring current normalization:  %6g %6g', raw_min2, raw_max2)
     
     %% Projection/flat field correlation and flat field correction %%%%%%%%
-    %%%% STOP HERE TO CHECK FLATFIELD CORRELATION MAPPING %%%%%%%%%%%%%%%%%
-    %%%% use 'proj_flat_sequ' to show results of the correlation
     par.raw_roi = raw_roi;
     par.proj_range = proj_range;
     par.ref_range = ref_range;
     [proj, corr, toc_bytes] = proj_flat_correlation( proj, flat, image_correlation, par, write, roi_proj, roi_flat, toc_bytes );
+    %%%% STOP HERE TO CHECK FLATFIELD CORRELATION MAPPING %%%%%%%%%%%%%%%%%
+    %%%% use 'proj_flat_sequ' to show results of the correlation
             
     proj_min0 = min( proj(:) );
     proj_max0 = max( proj(:) );
@@ -1903,6 +1781,13 @@ if tomo.run
             
             % Reconstruct central slices first
             [~, ind] = sort( abs( (1:size( proj, 2)) - round( size( proj, 2) / 2 ) ) );
+            
+            % Remove vertical shift for spiral CT
+            if vert_shift
+                parfor nn = 1:size( proj, 3 )
+                    proj(:,:,nn) = imtranslate( proj(:,:,nn), [vert_shift(nn) 0], 'linear' );
+                end
+            end
             
             % Loop over slices
             vol_min = Inf;
