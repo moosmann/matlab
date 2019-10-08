@@ -472,15 +472,15 @@ scan_path = [raw_path 'wood_031_ximea_hidra']; ADD
 
 scan_path = [raw_path 'wood_spiral_007']; ADD
 
-par.visual_output = 0; % show images and plots during reconstruction
+
+par.visual_output = 0; 
 interactive_mode.rot_axis_pos = 1; 
+tomo.vol_size = [-0.8 0.8 -0.8 0.8 -0.5 0.5];
+write.flatcor = 0; 
 
 scan_path = [raw_path 'wood_018_kit']; ADD
 
-write.flatcor = 1; 
-
 % 2x binned reco
-tomo.vol_size = [-0.5 0.5 -0.5 0.5 -0.5 0.5];% 6-component vector [xmin xmax ymin ymax zmin zmax], for excentric rot axis pos / extended FoV;. if empty, volume is centerd within tomo.vol_shape. unit voxel size is assumed. if smaller than 10 values are interpreted as relative size w.r.t. the detector size. Take care bout minus signs! Note that if empty vol_size is dependent on the rotation axis position.
 raw_bin = 2;
 tomo.rot_axis.offset = -3.5 * 2 / raw_bin;
 scan_path = [raw_path 'wood_019_kit_spiral'];

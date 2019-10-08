@@ -1636,12 +1636,14 @@ if tomo.run
             vol_min = min( vol(:) );
             vol_max = max( vol(:) );
             
-            % Show orthogonal vol cuts
+            %% Show orthogonal vol cuts
             if par.visual_output
                 
                 f = figure( 'Name', 'Volume cut z', 'WindowState', 'maximized');
                 nn = round( size( vol, 3 ) / 2);
-                imsc( squeeze( vol(:,:,nn) ) )
+                im = squeeze( vol(:,:,nn) );
+                im =  FilterOutlier( im, 0.01);
+                imsc( im )
                 axis equal tight
                 title( sprintf( 'vol z = %u', nn ) )
                 colorbar
@@ -1650,6 +1652,7 @@ if tomo.run
                 f = figure( 'Name', 'Volume cut y', 'WindowState', 'maximized');
                 nn = round( size( vol, 2 ) / 2);
                 im = rot90( squeeze( vol(:,nn,:) ), -2);
+                im = FilterOutlier( im, 0.01 );
                 if size( im , 1) < size( im , 2)
                     imsc( im )
                     title( sprintf( 'vol y = %u', nn ) )
@@ -1664,6 +1667,7 @@ if tomo.run
                 f = figure( 'Name', 'Volume cut x', 'WindowState', 'maximized');
                 nn = round( size( vol, 1 ) / 2);
                 im = flipud( squeeze( vol(nn,:,:) ) );
+                im =  FilterOutlier( im, 0.01);
                 if size( im , 1) < size( im , 2)
                     imsc( im )
                     title( sprintf( 'vol x = %u', nn ) )
@@ -1682,6 +1686,8 @@ if tomo.run
                 reco_path = write.reco_phase_path;
             end
             CheckAndMakePath( reco_path, 0 )
+            
+            %% Save ortho slices
             
             % Save ortho slices x
             nn = round( size( vol, 1 ) / 2);
@@ -1759,6 +1765,19 @@ if tomo.run
             
         case {'slice', '2d'}
             %% Slicewise backprojection %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+            
+              % Remove vertical shift for spiral CT
+            if vert_shift
+                t2 = toc;
+                fprintf( '\n Remove vertical shift:' )
+                parfor nn = 1:size( proj, 3 )
+                    im = proj(:,:,nn);
+                    imt = imtranslate( im, [vert_shift(nn) 0], 'linear' );
+                    proj(:,:,nn) = imt;
+                end
+                fprintf( ' done in %.1f s (%.2f min)', toc-t2, (toc-t2)/60 )
+            end
+            
             fprintf( '\n Backproject and save slices:')
             t2 = toc;
             
@@ -1781,15 +1800,6 @@ if tomo.run
             
             % Reconstruct central slices first
             [~, ind] = sort( abs( (1:size( proj, 2)) - round( size( proj, 2) / 2 ) ) );
-            
-            % Remove vertical shift for spiral CT
-            if vert_shift
-                parfor nn = 1:size( proj, 3 )
-                    im = proj(:,:,nn);
-                    imt = imtranslate( im, [vert_shift(nn) 0], 'linear' );
-                    proj(:,:,nn) = imt;
-                end
-            end
             
             % Loop over slices
             vol_min = Inf;
