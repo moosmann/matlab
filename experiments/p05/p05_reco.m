@@ -1785,7 +1785,9 @@ if tomo.run
             % Remove vertical shift for spiral CT
             if vert_shift
                 parfor nn = 1:size( proj, 3 )
-                    proj(:,:,nn) = imtranslate( proj(:,:,nn), [vert_shift(nn) 0], 'linear' );
+                    im = proj(:,:,nn);
+                    imt = imtranslate( im, [vert_shift(nn) 0], 'linear' );
+                    proj(:,:,nn) = imt;
                 end
             end
             

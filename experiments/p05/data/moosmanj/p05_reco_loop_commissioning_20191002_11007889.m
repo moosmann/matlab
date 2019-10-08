@@ -163,7 +163,7 @@ tomo.sirt.MaxConstraint = []; % If specified, all values above MaxConstraint wil
 write.path = ''; %'/gpfs/petra3/scratch/moosmanj'; % absolute path were output data will be stored. !!overwrites the write.to_scratch flag. if empty uses the beamtime directory and either 'processed' or 'scratch_cc'
 write.to_scratch = 0; % write to 'scratch_cc' instead of 'processed'
 write.deleteFiles = 0; % delete files already existing in output folders. Useful if number or names of files differ when reprocessing.
-write.beamtimeID = ''; % string (regexp),typically beamtime ID, mandatory if 'write.deleteFiles' is true (safety check)
+write.beamtimeID = '11007889'; % string (regexp),typically beamtime ID, only for, but mandatory when 'write.deleteFiles' is true (safety check)
 write.scan_name_appendix = ''; % appendix to the output folder name which defaults to the scan name
 write.parfolder = '';% parent folder to 'reco', 'sino', 'phase', and 'flat_corrected'
 write.subfolder.flatcor = ''; % subfolder in 'flat_corrected'
@@ -480,8 +480,9 @@ scan_path = [raw_path 'wood_018_kit']; ADD
 write.flatcor = 1; 
 
 % 2x binned reco
+tomo.vol_size = [-0.5 0.5 -0.5 0.5 -0.5 0.5];% 6-component vector [xmin xmax ymin ymax zmin zmax], for excentric rot axis pos / extended FoV;. if empty, volume is centerd within tomo.vol_shape. unit voxel size is assumed. if smaller than 10 values are interpreted as relative size w.r.t. the detector size. Take care bout minus signs! Note that if empty vol_size is dependent on the rotation axis position.
 raw_bin = 2;
-tomo.rot_axis.offset = -2 * 3 / raw_bin;
+tomo.rot_axis.offset = -3.5 * 2 / raw_bin;
 scan_path = [raw_path 'wood_019_kit_spiral'];
 ADD
 
