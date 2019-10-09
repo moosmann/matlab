@@ -9,20 +9,25 @@ function [tomo, tint] = interactive_mode_rot_axis( par, logpar, phase_retrieval,
 %
 % [tomo, tint] = interactive_mode_rot_axis( par, logpar, phase_retrieval, tomo, write, interactive_mode, proj, angles)
 
+tomo.angle_scaling = 1;
+angle_scaling = [];
+
 imsc1 = @(im) imsc( rot90( im ) );
 tint = 0;
 if tomo.run || tomo.run_interactive_mode
     
     fprintf( '\nTomography:')
-
+    
     % Full rotation angle
     if isempty( tomo.rot_angle.full_range )
-        if isfield( logpar, 'rotation')
-            % From log file
-            tomo.rot_angle.full_range = logpar.rotation / 180 * pi;
-        elseif exist('cur', 'var') && isfield(cur, 'proj') && isfield( cur.proj, 'angle')
-            % from beam current log
-            tomo.rot_angle.full_range = (cur.proj(end).angle - cur.proj(1).angle) * pi /180; % KIT: , EHD: ok
+        if ~isempty( logpar )
+            if isfield( logpar, 'rotation')
+                % From log file
+                tomo.rot_angle.full_range = logpar.rotation / 180 * pi;
+            elseif exist('cur', 'var') && isfield(cur, 'proj') && isfield( cur.proj, 'angle')
+                % from beam current log
+                tomo.rot_angle.full_range = (cur.proj(end).angle - cur.proj(1).angle) * pi /180; % KIT: , EHD: ok
+            end
         end
     end
     if isempty( tomo.rot_angle.full_range )
@@ -107,6 +112,7 @@ if tomo.run || tomo.run_interactive_mode
         itomo.lamino = interactive_mode.lamino;
         itomo.fixed_tilt = interactive_mode.fixed_other_tilt;
         itomo.slice = slice;
+        itomo.angle_scaling = angle_scaling;
         
         offset = [];
         tilt = [];
@@ -175,13 +181,28 @@ if tomo.run || tomo.run_interactive_mode
                     end
                 end %  if ~isempty( tilt )
                 
+                 % Loop over angles again?
+                if ~isempty( angle_scaling )
+                    inp = '';
+                    while isempty( inp )
+                        inp = input( '\n\nENTER ANGLE SCALING LOOP AGAIN? (''y''/1,''n''/0) ');
+                    end
+                    switch lower( inp )
+                        case {'y', 'yes', 1}
+                            tilt = [];
+                        case {'n', 'no', 0}
+                    end
+                end %  if ~isempty( tilt )
+                
             else % when a range is given
                 
                 % Reco parameter
                 [itomo.vol_shape, itomo.vol_size] = volshape_volsize( proj, itomo.vol_shape, itomo.vol_size, median(offset), 0);
                 itomo.offset = offset;
                 itomo.tilt = tilt;
-                %tomo.itomo = itomo; % for debugging
+                if isscalar( angle_scaling )
+                    itomo.angles = angle_scaling * angles;
+                end
                 
                 % Reco
                 [vol, metrics_offset] = find_rot_axis_offset( itomo, proj );
@@ -195,7 +216,7 @@ if tomo.run || tomo.run_interactive_mode
                 fprintf( '%11s', 'offset', metrics_offset.name)
                 for nn = 1:numel(offset)
                     if offset(nn) == tomo.rot_axis.offset
-                        cprintf( 'Green', sprintf('\n%4u%11.3f', nn, offset(nn)))
+                        cprintf( 'Magenta', sprintf('\n%4u%11.3f', nn, offset(nn)))
                     else
                         cprintf( 'Black', '\n%4u%11.3f', nn, offset(nn))
                     end
@@ -236,7 +257,7 @@ if tomo.run || tomo.run_interactive_mode
             
             if isscalar( offset )
                 
-                % TILT %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+                %% TILT %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
                 if interactive_mode.rot_axis_tilt
                     
                     cprintf( 'RED', '\n\nEntering tilt loop:' )
@@ -290,6 +311,9 @@ if tomo.run || tomo.run_interactive_mode
                             % Reco
                             itomo.tilt = tilt;
                             itomo.offset = offset;
+                            if isscalar( angle_scaling )
+                                itomo.angles = angle_scaling * angles;
+                            end
                             [vol, metrics_tilt] = find_rot_axis_tilt( itomo, proj);
                             
                             % Metric minima
@@ -301,7 +325,7 @@ if tomo.run || tomo.run_interactive_mode
                             fprintf( '%11s', 'tilt/rad', 'tilt/deg', metrics_tilt.name )
                             for nn = 1:numel(tilt)
                                 if tilt(nn) == tomo.rot_axis.tilt
-                                    cprintf( 'Green', sprintf( '\n%4u%11g%11g', nn, tilt(nn), tilt(nn)/pi*180 ) )
+                                    cprintf( 'Magenta', sprintf( '\n%4u%11g%11g', nn, tilt(nn), tilt(nn)/pi*180 ) )
                                 else
                                     cprintf( 'Black', sprintf( '\n%4u%11g%11g', nn, tilt(nn), tilt(nn)/pi*180 ) )
                                 end
@@ -401,6 +425,141 @@ if tomo.run || tomo.run_interactive_mode
                     end % while ~isscalar( tilt )
                     tomo.rot_axis.tilt = tilt;
                 end % if interactive_mode.rot_axis_tilt
+                
+                
+                %% ANGLES
+                if interactive_mode.angles
+                     
+                    cprintf( 'RED', '\n\nEntering angle loop:' )
+                    ang_min = min( angles );
+                    ang_max = max( angles );
+                    ang_stride = mean( angles(2:end) - angles(1:end-1)  );
+                    rel_ang_stride = ang_stride / ang_max;
+                    if isempty( interactive_mode.angle_scaling_default_search_range )
+                        r = 1 + rel_ang_stride*(-5:5);
+                        interactive_mode.angle_scaling_default_search_range = r;
+                    end
+                    fprintf( '\n\n default angles : [min, max, average stride] = [%g %g %g]', ang_min, ang_max, ang_stride  )
+                    fprintf( '\n default stride / max : %g', rel_ang_stride )
+                    fprintf( '\n default scaling range : ' )
+                    fprintf( ' %g', r )
+                    
+                    % Loop over angle_scalings
+                    while ~isscalar( angle_scaling )
+                        
+                        % Query parameters
+                        inp = '';
+                        while ischar( inp )
+                            switch inp
+                                case 's'
+                                    slice = input( sprintf( '\nENTER ABSOLUTE [1,%u] OR RELATIVE [0,1] SLICE NUMBER : ', size( proj, 2 )) );
+                                    if slice <= 1 && slice >= 0
+                                        slice = round((size( proj, 2 ) - 1) * slice + 1 );
+                                    end
+                                    fprintf( ' new slice : %u (before: %u)', slice, itomo.slice );
+                                    itomo.slice = slice;
+                                case 'd'
+                                    cprintf( 'RED', 'ENTERING DEBUG MODE. Continue with F5.' )
+                                    keyboard
+                            end % switch inp
+                            
+                            % Query parameters text
+                            txt = [...
+                                '\n\nENTER (RANGE OF) ANGLE SCALING(S)'...
+                                '\n if empty: use default range, '...
+                                '\n if scalar: use value & end interactive mode, '...
+                                '\n if ''s'': change slice, '...
+                                '\n if ''d'': enter debug mode, '...
+                                '\n: '];
+                            inp = input( txt );
+                        end % while ischar( inp )
+                        if isempty( inp )
+                            angle_scaling = interactive_mode.angle_scaling_default_search_range;
+                        else
+                            angle_scaling = inp;
+                        end % isempty( inp )
+                        
+                        % Set angles
+                        if isscalar( angle_scaling )
+                            fprintf( ' new angle scaling : %.2f (before: %.2f)', angle_scaling, tomo.angle_scaling )
+                            itomo.angle_scaling = angle_scaling;
+                            
+                        else
+                            % Reco
+                            itomo.offset = offset;
+                            itomo.tilt = tilt;
+                            %itomo.angles = angle_scaling * (tomo.angles - tomo.rot_angle.offset ) + tomo.rot_angle.offset;
+                            itomo.angle_scaling = angle_scaling;
+                            [vol, metrics_angle_scaling] = find_angle_scaling( itomo, proj );
+                            
+                            % Metric minima
+                            [~, min_pos] = min( cell2mat( {metrics_angle_scaling(:).val} ) );
+                            [~, max_pos] = max( cell2mat( {metrics_angle_scaling(:).val} ) );
+                            
+                            % Print image number and angle_scaling
+                            fprintf( ' no.' )
+                            fprintf( '%11s', 'angle scaling', metrics_angle_scaling.name )
+                            for nn = 1:numel(angle_scaling)
+                                if angle_scaling(nn) == tomo.angle_scaling
+                                    cprintf( 'Magenta', sprintf( '\n%4u%11g%11g', nn, angle_scaling(nn) ) )
+                                else
+                                    cprintf( 'Black', sprintf( '\n%4u%11g%11g', nn, angle_scaling(nn) ) )
+                                end
+                                for mm = 1:numel(metrics_angle_scaling)
+                                    if min_pos(mm) == nn
+                                        cprintf( 'Red', '%11.3g', metrics_angle_scaling(mm).val(nn) )
+                                    elseif max_pos(mm) == nn
+                                        cprintf( 'Blue', '%11.3g', metrics_angle_scaling(mm).val(nn) )
+                                    else
+                                        cprintf( 'Black', '%11.3g', metrics_angle_scaling(mm).val(nn) )
+                                    end
+                                end
+                            end
+                            
+                            % Plot metrics
+                            h_rot_angle_scaling = figure('Name', 'ANGLES: metrics', 'WindowState', 'maximized');
+                            x = 6:7;
+                            Y = cell2mat({metrics_angle_scaling(x).val});
+                            plot( angle_scaling, Y, '-+');
+                            axis tight
+                            xlabel( 'angle scaling' )
+                            legend( metrics_angle_scaling(x).name)
+                            ax1 = gca;
+                            set( ax1, 'YTick', [] )
+                            ax2 = axes( 'Position', ax1.Position, 'XAxisLocation', 'top', 'YAxisLocation', 'right', 'Color', 'none');
+                            line(1:numel( offset ), 0, 'Parent', ax2 )
+                            xlabel( 'index (image no.)' )
+                            set( ax2, 'YTick', [] )
+                            title(sprintf('angles: metrics VS angle_scaling'))
+                            drawnow
+                            saveas( h_rot_angle_scaling, sprintf( '%s%s.png', write.fig_path, regexprep( h_rot_angle_scaling.Name, '\ |:', '_') ) );
+                            
+                            % Play
+                            nimplay(vol, 1, [], 'ANGLES: sequence of reconstructed slices using different angle scalings')
+                        end
+                        
+                        if isscalar( angle_scaling )
+                            % Loop over offsets again?
+                            inp = [];
+                            while isempty( inp )
+                                inp = input( '\nENTER OFFSET LOOP AGAIN? (''y''/1,''n''/0) ');
+                            end
+                            switch lower( inp )
+                                case {'y', 'yes', 1}
+                                    offset = [];
+                                case {'n', 'no', 0}
+                            end
+                        end % if isscalar( angle_scaling )
+                        
+                    end % while ~isscalar( angle_scaling )
+                    %itomo.angle_scaling = angle_scaling;
+                    tomo.angles = angle_scaling * angles;
+                    
+                end % if interactive_mode.angles
+
+                
+                
+                
             end % if isscalar( offset )
         end % while ~isscalar( offset )
         tomo.rot_axis.offset = offset;

@@ -171,6 +171,8 @@ interactive_mode.rot_axis_tilt = 0; % reconstruct slices with different offset A
 interactive_mode.rot_axis_tilt_default_search_range = []; % if empty: asks for search range when entering interactive mode
 interactive_mode.lamino = 0; % find laminography tilt instead camera rotation
 interactive_mode.fixed_other_tilt = 0; % fixed other tilt
+interactive_mode.angles =  1; % reconstruct slices with different scalings of angles
+interactive_mode.angle_scaling_default_search_range = []; % if empty: use a variaton of -/+5 * (angle increment / maximum angle)
 interactive_mode.slice_number = 0.5; % default slice number. if in [0,1): relative, if in (1, N]: absolute
 interactive_mode.phase_retrieval = 1; % Interactive retrieval to determine regularization parameter
 interactive_mode.phase_retrieval_default_search_range = []; % if empty: asks for search range when entering interactive mode, otherwise directly start with given search range
@@ -191,6 +193,7 @@ tic
 verbose = 1; % lecacy parameter
 vert_shift = 0;
 offset_shift = 0;
+logpar = [];
                 
 %%% Parameters set by reconstruction loop script 'p05_reco_loop' %%%%%%%%%%
 if exist( 'external_parameter' ,'var')
@@ -254,6 +257,9 @@ assign_default( 'write.scan_name_appendix', '' )
 assign_default( 'interactive_mode.rot_axis_pos_default_search_range', -4:0.5:4 ) % binned pixel
 assign_default( 'interactive_mode.rot_axis_tilt_default_search_range', -0.005:0.001:0.005 ) % radian
 assign_default( 'interactive_mode.phase_retrieval_default_search_range', [] )
+assign_default( 'interactive_mode.angles', 0 );
+assign_default( 'interactive_mode.angle_scaling_default_search_range', [] );
+
 assign_default( 'tomo.rot_axis.corr_area2', [0.1 0.9] );
  
 % Define variables from struct fields for convenience
@@ -1241,7 +1247,7 @@ if ~read_flatcor && ~read_sino
         end
         
         subplot(2,3,4)
-        imsc1( FilterOutlier( proj(:,:,1), 0.01 ) )
+        imsc1( FilterOutlier( proj(:,:,1), 0.005 ) )
         xticks([])
         yticks([])
         title(sprintf('intensity: first proj'))
@@ -1249,7 +1255,7 @@ if ~read_flatcor && ~read_sino
         axis equal tight
         
         subplot(2,3,5)
-        imsc1( FilterOutlier( proj(:,:,round(size(proj,3)/2)), 0.01 ) )
+        imsc1( FilterOutlier( proj(:,:,round(size(proj,3)/2)), 0.005 ) )
         xticks([])
         yticks([])
         title(sprintf('intensity: middle proj'))
@@ -1257,7 +1263,7 @@ if ~read_flatcor && ~read_sino
         axis equal tight
         
         subplot(2,3,6)
-        imsc1( FilterOutlier( proj(:,:,end), 0.01 ) )
+        imsc1( FilterOutlier( proj(:,:,end), 0.005 ) )
         xticks([])
         yticks([])
         title(sprintf('intensity: last proj'))
