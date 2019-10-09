@@ -127,7 +127,7 @@ if tomo.run || tomo.run_interactive_mode
             fprintf( '\n image center: %.1f', im_shape_cropbin1 / 2)
             fprintf( '\n current slice : %u', slice)
             fprintf( '\n current rotation axis position : %.2f', tomo.rot_axis.position)
-            cprintf( 'GREEN', '\n current rotation axis OFFSET : %.2f', tomo.rot_axis.offset )
+            cprintf( 'Magenta', '\n current rotation axis OFFSET : %.2f', tomo.rot_axis.offset )
             fprintf( '\n default offset range : current OFFSET + [')
             fprintf( ' %.2g', interactive_mode.rot_axis_pos_default_search_range )
             fprintf( ']' )
@@ -189,7 +189,7 @@ if tomo.run || tomo.run_interactive_mode
                     end
                     switch lower( inp )
                         case {'y', 'yes', 1}
-                            tilt = [];
+                            angle_scaling = [];
                         case {'n', 'no', 0}
                     end
                 end %  if ~isempty( tilt )
@@ -261,7 +261,7 @@ if tomo.run || tomo.run_interactive_mode
                 if interactive_mode.rot_axis_tilt
                     
                     cprintf( 'RED', '\n\nEntering tilt loop:' )
-                    cprintf( 'GREEN', '\n current rotation axis TILT : %g rad = %g deg', tomo.rot_axis.tilt, tomo.rot_axis.tilt * 180 / pi)
+                    cprintf( 'Magenta', '\n current rotation axis TILT : %g rad = %g deg', tomo.rot_axis.tilt, tomo.rot_axis.tilt * 180 / pi)
                     fprintf( '\n calcul. rotation axis TILT : %g rad = %g deg', rot_axis_tilt_calc, rot_axis_tilt_calc * 180 / pi)
                     fprintf( '\n default tilt range : current TILT + [')
                     fprintf( ' %.2g', interactive_mode.rot_axis_tilt_default_search_range )
@@ -498,12 +498,12 @@ if tomo.run || tomo.run_interactive_mode
                             
                             % Print image number and angle_scaling
                             fprintf( ' no.' )
-                            fprintf( '%11s', 'angle scaling', metrics_angle_scaling.name )
+                            fprintf( '%11s', 'scaling', metrics_angle_scaling.name )
                             for nn = 1:numel(angle_scaling)
                                 if angle_scaling(nn) == tomo.angle_scaling
-                                    cprintf( 'Magenta', sprintf( '\n%4u%11g%11g', nn, angle_scaling(nn) ) )
+                                    cprintf( 'Magenta', sprintf( '\n%4u%11f', nn, angle_scaling(nn) ) )
                                 else
-                                    cprintf( 'Black', sprintf( '\n%4u%11g%11g', nn, angle_scaling(nn) ) )
+                                    cprintf( 'Black', sprintf( '\n%4u%11f', nn, angle_scaling(nn) ) )
                                 end
                                 for mm = 1:numel(metrics_angle_scaling)
                                     if min_pos(mm) == nn
@@ -518,7 +518,7 @@ if tomo.run || tomo.run_interactive_mode
                             
                             % Plot metrics
                             h_rot_angle_scaling = figure('Name', 'ANGLES: metrics', 'WindowState', 'maximized');
-                            x = 6:7;
+                            x = 1:7;
                             Y = cell2mat({metrics_angle_scaling(x).val});
                             plot( angle_scaling, Y, '-+');
                             axis tight
@@ -527,7 +527,7 @@ if tomo.run || tomo.run_interactive_mode
                             ax1 = gca;
                             set( ax1, 'YTick', [] )
                             ax2 = axes( 'Position', ax1.Position, 'XAxisLocation', 'top', 'YAxisLocation', 'right', 'Color', 'none');
-                            line(1:numel( offset ), 0, 'Parent', ax2 )
+                            line(1:numel( angle_scaling ), 0, 'Parent', ax2 )
                             xlabel( 'index (image no.)' )
                             set( ax2, 'YTick', [] )
                             title(sprintf('angles: metrics VS angle_scaling'))
@@ -556,12 +556,11 @@ if tomo.run || tomo.run_interactive_mode
                     tomo.angles = angle_scaling * angles;
                     
                 end % if interactive_mode.angles
-
-                
-                
                 
             end % if isscalar( offset )
+            
         end % while ~isscalar( offset )
+        
         tomo.rot_axis.offset = offset;
         tomo.rot_axis.position = im_shape_cropbin1 / 2 + tomo.rot_axis.offset;
         
