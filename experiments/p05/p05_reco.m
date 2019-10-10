@@ -1333,12 +1333,7 @@ else
         im_shape_cropbin1 = size( sino, 2 );
         num_proj_read = size( sino, 1 );
         num_proj_used = num_proj_read;        
-        
-        % Preallocation
-        fprintf( '\n Read sinograms.')
-        proj = zeros( im_shape_cropbin1, im_shape_binned2, num_proj_read, 'single');
-        fprintf( ' Allocated bytes: %.2f GiB.', Bytes( proj, 3 ) )
-        
+
         % Angles
         if  ~exist( 'angles', 'var' )
             if isempty( tomo.rot_angle.full_range )
@@ -1354,7 +1349,12 @@ else
                 error( 'Number of angles (%u) entered not consistent with sinogram (%u) read.', numel( angles), num_proj_read )
             end
         end
-
+        
+        % Preallocation
+        fprintf( '\n Read sinograms.')
+        proj = zeros( im_shape_cropbin1, im_shape_binned2, num_proj_read, 'single');
+        fprintf( ' Allocated bytes: %.2f GiB.', Bytes( proj, 3 ) )
+        
         % Read sinogram
         parfor nn = 1:size( proj, 2 )
             filename = sprintf('%s%s', sino_path, sino_names_mat(nn, :));
