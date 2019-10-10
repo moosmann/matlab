@@ -38,17 +38,18 @@ close all hidden % close all open windows
 fast_reco = 0; % !!! OVERWRITES SOME PARAMETERS SET BELOW !!!
 
 %%% SCAN %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-scan_path = '/asap3/petra3/gpfs/p05/2019/data/11007885/processed/pnl_001_ramisyllis';%pwd; % string/pwd. pwd: change to directory of the scan to be reconstructed, sting: absolute scan path
+scan_path = pwd; % string/pwd. pwd: change to directory of the scan to be reconstructed, sting: absolute scan path
+    '/asap3/petra3/gpfs/p05/2019/data/11007885/processed/pnl_001_ramisyllis';   
     '/asap3/petra3/gpfs/p05/2018/data/11005553/raw/syn033_68R_Mg10Gd_12w';
 read_flatcor = 0; % read preprocessed flatfield-corrected projections. CHECK if negative log has to be taken!
 read_flatcor_path = ''; % subfolder of 'flat_corrected' containing projections
 read_flatcor_trafo = @(im) fliplr( im ); %  % anonymous function applied to the image read in e.g. @(x) rot90(x)
-read_sino = 1; % read preprocessed sinograms. CHECK if negative log has to be taken!
+read_sino = 0; % read preprocessed sinograms. CHECK if negative log has to be taken!
 read_sino_folder = 'trans04'; % subfolder to scan path
 read_sino_trafo = @(x) rot90(x); % anonymous function applied to the image read in e.g. @(x) rot90(x)
-energy = 35e3;[]; % in eV! if empty: read from log file
-sample_detector_distance = 0.2;[]; % in m. if empty: read from log file
-eff_pixel_size = 1.24e-6;[]; % in m. if empty: read from log lfile. effective pixel size =  detector pixel size / magnification
+energy = []; %35e3;[]; % in eV! if empty: read from log file
+sample_detector_distance = [];%0.2;[]; % in m. if empty: read from log file
+eff_pixel_size = [];%1.24e-6;[]; % in m. if empty: read from log lfile. effective pixel size =  detector pixel size / magnification
 pixel_scaling = 1; % to account for beam divergence if pixel size was determined (via MTF) at the wrong distance
 %%% PREPROCESSING %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 raw_roi = []; % vertical and/or horizontal ROI; (1,1) coordinate = top left pixel; supports absolute, relative, negative, and mixed indexing.
