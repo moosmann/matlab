@@ -38,15 +38,17 @@ close all hidden % close all open windows
 fast_reco = 0; % !!! OVERWRITES SOME PARAMETERS SET BELOW !!!
 
 %%% SCAN %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-scan_path = pwd; % string/pwd. pwd: change to directory of the scan to be reconstructed, sting: absolute scan path
+scan_path = '/asap3/petra3/gpfs/p05/2019/data/11007885/processed/pnl_001_ramisyllis';%pwd; % string/pwd. pwd: change to directory of the scan to be reconstructed, sting: absolute scan path
     '/asap3/petra3/gpfs/p05/2018/data/11005553/raw/syn033_68R_Mg10Gd_12w';
 read_flatcor = 0; % read preprocessed flatfield-corrected projections. CHECK if negative log has to be taken!
 read_flatcor_path = ''; % subfolder of 'flat_corrected' containing projections
-read_sino = 0; % read preprocessed sinograms. CHECK if negative log has to be taken!
-read_sino_folder = ''; % subfolder to scan path
-energy = []; % in eV! if empty: read from log file
-sample_detector_distance = []; % in m. if empty: read from log file
-eff_pixel_size = []; % in m. if empty: read from log lfile. effective pixel size =  detector pixel size / magnification
+read_flatcor_trafo = @(im) fliplr( im ); %  % anonymous function applied to the image read in e.g. @(x) rot90(x)
+read_sino = 1; % read preprocessed sinograms. CHECK if negative log has to be taken!
+read_sino_folder = 'trans04'; % subfolder to scan path
+read_sino_trafo = @(x) rot90(x); % anonymous function applied to the image read in e.g. @(x) rot90(x)
+energy = 35e3;[]; % in eV! if empty: read from log file
+sample_detector_distance = 0.2;[]; % in m. if empty: read from log file
+eff_pixel_size = 1.24e-6;[]; % in m. if empty: read from log lfile. effective pixel size =  detector pixel size / magnification
 pixel_scaling = 1; % to account for beam divergence if pixel size was determined (via MTF) at the wrong distance
 %%% PREPROCESSING %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 raw_roi = []; % vertical and/or horizontal ROI; (1,1) coordinate = top left pixel; supports absolute, relative, negative, and mixed indexing.
@@ -55,7 +57,7 @@ raw_roi = []; % vertical and/or horizontal ROI; (1,1) coordinate = top left pixe
 % [y0 y1 x0 x1]: vertical + horzontal ROI, each ROI as above
 % if -1: auto roi, selects vertical ROI automatically. Use only for DCM. Not working for *.raw data where images are flipped and DMM data.
 % if < -1: Threshold is set as min(proj(:,:,[1 end])) + abs(raw_roi)*median(dark(:)). raw_roi=-1 defaults to min(proj(:,:,[1 end])) + 4*median(dark(:))
-raw_bin = 2; % projection binning factor: integer
+raw_bin = 4; % projection binning factor: integer
 im_trafo = '' ;%'rot90(im,-1)'; % string to be evaluated after reading data in the case the image is flipped/rotated/etc due to changes at the beamline, e.g. 'rot90(im)'
 par.crop_at_rot_axis = 0; % for recos of scans with excentric rotation axis but WITHOUT projection stitching
 par.stitch_projections = 0; % for 2 pi scans: stitch projection at rotation axis position. Recommended with phase retrieval to reduce artefacts. Standard absorption contrast data should work well without stitching. Subpixel stitching not supported (non-integer rotation axis position is rounded, less/no binning before reconstruction can be used to improve precision).
@@ -96,11 +98,11 @@ ring_filter.waveletfft.sigma = 2.4; %  suppression factor for 'wavelet-fft'
 ring_filter.jm.median_width = 11; % multiple widths are applied consecutively, eg [3 11 21 31 39];
 strong_abs_thresh = 1; % if 1: does nothing, if < 1: flat-corrected values below threshold are set to one. Try with algebratic reco techniques.
 %%% PHASE RETRIEVAL %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-phase_retrieval.apply = 0; % See 'PhaseFilter' for detailed description of parameters !
+phase_retrieval.apply = 1; % See 'PhaseFilter' for detailed description of parameters !
 phase_retrieval.apply_before = 0; % before stitching, interactive mode, etc. For phase-contrast data with an excentric rotation axis phase retrieval should be done afterwards. To find the rotataion axis position use this option in a first run, and then turn it of afterwards.
 phase_retrieval.post_binning_factor = 1; % Binning factor after phase retrieval, but before tomographic reconstruction
 phase_retrieval.method = 'tie';'qp';'qpcut'; %'qp' 'ctf' 'tie' 'qp2' 'qpcut'
-phase_retrieval.reg_par = 0.5; % regularization parameter. larger values tend to blurrier images. smaller values tend to original data.
+phase_retrieval.reg_par = 1.7; % regularization parameter. larger values tend to blurrier images. smaller values tend to original data.
 phase_retrieval.bin_filt = 0.1; % threshold for quasiparticle retrieval 'qp', 'qp2'
 phase_retrieval.cutoff_frequ = 2 * pi; % in radian. frequency cutoff in Fourier space for 'qpcut' phase retrieval
 phase_retrieval.padding = 1; % padding of intensities before phase retrieval, 0: no padding
@@ -190,7 +192,7 @@ write.uint8_segmented = 0; % experimental: threshold segmentaion for histograms 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 tic
-verbose = 1; % lecacy parameter
+verbose = 1;
 vert_shift = 0;
 offset_shift = 0;
 logpar = [];
@@ -1324,16 +1326,7 @@ else
         end
         sino_names_mat = NameCellToMat( sino_names );
         fprintf( '\n Read sinograms.')
-        
-        % Preallocation
-        filename = sprintf('%s%s', sino_path, sino_names_mat( round( im_shape_binned2 / 2 ), :));
-        sino = read_image( filename );
-        im_shape_cropbin1 = size( sino, 2 );
-        num_proj_read = size( sino, 1 );
-        num_proj_used = num_proj_read;        
-        proj = zeros( im_shape_cropbin1, im_shape_binned2, num_proj_read, 'single');
-        fprintf( ' Allocated bytes: %.2f GiB.', Bytes( proj, 3 ) )
-        
+
         % Angles
         if  ~exist( 'angles', 'var' )
             if isempty( tomo.rot_angle.full_range )
@@ -1350,10 +1343,21 @@ else
             end
         end
         
+        % Preallocation
+        filename = sprintf('%s%s', sino_path, sino_names_mat( round( im_shape_binned2 / 2 ), :));
+        sino = read_image( filename );
+        sino = read_sino_trafo( sino );
+        im_shape_cropbin1 = size( sino, 2 );
+        num_proj_read = size( sino, 1 );
+        num_proj_used = num_proj_read;        
+        proj = zeros( im_shape_cropbin1, im_shape_binned2, num_proj_read, 'single');
+        fprintf( ' Allocated bytes: %.2f GiB.', Bytes( proj, 3 ) )
+
         % Read sinogram
         parfor nn = 1:size( proj, 2 )
             filename = sprintf('%s%s', sino_path, sino_names_mat(nn, :));
             sino = read_image( filename );
+            sino = read_sino_trafo( sino );
             proj(:, nn, :) = permute( shiftdim( sino, -1 ) , [3 1 2] );
         end
         
@@ -1370,6 +1374,7 @@ else
             subplot(1,2,2)
             nn = round( size( proj, 2) / 2);
             sino = squeeze( proj(:,nn,:) );
+            sino = FilterOutlier( sino );
             imsc1( sino )
             title(sprintf('sinogram: proj(:,%u,:)', nn))
             colorbar
@@ -1415,7 +1420,9 @@ else
         % Read flat corrected projections
         parfor nn = 1:num_proj_read
             filename = sprintf('%s%s', flatcor_path, proj_names_mat(nn, :));
-            proj(:, :, nn) = fliplr( read_image( filename ) );
+            im = read_image( filename );
+            im = read_flatcor_trafo( im );
+            proj(:, :, nn) = im;
         end
     end
     fprintf( ' done in %.1f s (%.2f min)', toc - t, ( toc - t ) / 60 )

@@ -81,7 +81,7 @@ if poolsize > 1
         end
         
         % if number of worker of current pool is larger than poolsize_max
-        if strcmp( clust, 'local' )  && poolobj.NumWorkers > poolsize_max
+        if strcmp( clust, 'local' )  && ~isempty( poolsize_max) && poolobj.NumWorkers > poolsize_max
             pflag = 1;
         end
         

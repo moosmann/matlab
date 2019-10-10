@@ -25,7 +25,7 @@ fixed_tilt = assign_from_struct( tomo, 'fixed_tilt', 0 );
 take_neg_log = assign_from_struct( tomo, 'take_neg_log', 1 );
 number_of_stds = assign_from_struct( tomo, 'number_of_stds', 4 );
 butterworth_filtering = assign_from_struct( tomo.butterworth_filter, 'apply', 0 );
-
+vert_shift = assign_from_struct( tomo, 'vert_shift', 0 );
 mask_rad = 0.95;
 mask_val = 0;
 filter_histo_roi = 0.25;
@@ -59,7 +59,7 @@ if slice - dz < 0 || slice + dz > num_row
     fprintf( '\nWARNING: Inclination of reconstruction plane, slice %u, exceeds sinogram volume. Better choose a more central slice or a smaller tilts.', slice)
 end
 % Calculate required slab size: Spiral CT condition
-if numel( tomo.vert_shift ) > 1
+if numel( vert_shift ) > 1
    dz = dz + floor( max( abs( tomo.vert_shift ) ) );
 end
 if slice - dz < 0 || slice + dz > num_row

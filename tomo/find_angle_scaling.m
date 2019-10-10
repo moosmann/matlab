@@ -25,6 +25,7 @@ take_neg_log = assign_from_struct( tomo, 'take_neg_log', 1 );
 number_of_stds = assign_from_struct( tomo, 'number_of_stds', 4 );
 butterworth_filtering = assign_from_struct( tomo.butterworth_filter, 'apply', 0 );
 angle_scaling = assign_from_struct( tomo, 'angle_scaling', 1 );
+vert_shift = assign_from_struct( tomo, 'vert_shift', 0 );
 
 mask_rad = 0.95;
 mask_val = 0;
