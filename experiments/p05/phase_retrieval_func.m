@@ -7,7 +7,6 @@ function [proj, write, tint] = phase_retrieval_func( proj, phase_retrieval, tomo
 
 %% Main %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 t = toc;
-fprintf( '\nPhase retrieval: ')
 
 method = phase_retrieval.method;
 padding = phase_retrieval.padding;
@@ -362,7 +361,7 @@ if exist( 'interactive_mode', 'var' ) && isfield( interactive_mode, 'phase_retri
         filename = sprintf( '%sphase_retrieval__reg_par_sequence.gif', write.fig_path );
         write_gif( pha, filename )
     end
-    fprintf( '\nEND OF INTERACTIVE MODE' )  
+    cprintf( 'red', '\nEND OF INTERACTIVE MODE' )  
 end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -388,6 +387,7 @@ fprintf( '\n phase retrieval method : %s', method)
 fprintf( '\n reco_phase_path : %s', write.reco_phase_path)
 
 %% Retrieval
+fprintf( '\nPhase retrieval: ')
 parfor nn = 1:size(proj, 3)
     im = padarray( proj(:,:,nn), padding * im_shape, 'symmetric', 'post' );
     im = -real( ifft2( phase_filter .* fft2( im ) ) );
@@ -398,9 +398,6 @@ parfor nn = 1:size(proj, 3)
 end
 pause(0.01)
 fprintf( '\n done in %g s (%.2f min)', toc-t-tint, (toc-t-tint)/60)
-
-if par.visual_output
-end
 
 %% Post phase retrieval binning
 phase_bin = phase_retrieval.post_binning_factor; % alias for readablity
