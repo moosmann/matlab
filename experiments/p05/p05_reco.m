@@ -38,17 +38,18 @@ close all hidden % close all open windows
 fast_reco = 0; % !!! OVERWRITES SOME PARAMETERS SET BELOW !!!
 
 %%% SCAN %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-scan_path = '/asap3/petra3/gpfs/p05/2019/data/11007885/processed/pnl_001_ramisyllis';   %pwd; % string/pwd. pwd: change to directory of the scan to be reconstructed, sting: absolute scan path
+scan_path = pwd; % string/pwd. pwd: change to directory of the scan to be reconstructed, sting: absolute scan path
+    '/asap3/petra3/gpfs/p05/2019/data/11007885/processed/pnl_001_ramisyllis';
     '/asap3/petra3/gpfs/p05/2018/data/11005553/raw/syn033_68R_Mg10Gd_12w';
 read_flatcor = 0; % read preprocessed flatfield-corrected projections. CHECK if negative log has to be taken!
 read_flatcor_path = ''; % subfolder of 'flat_corrected' containing projections
 read_flatcor_trafo = @(im) fliplr( im ); %  % anonymous function applied to the image read in e.g. @(x) rot90(x)
-read_sino = 1; % read preprocessed sinograms. CHECK if negative log has to be taken!
-read_sino_folder = 'trans04'; % subfolder to scan path
+read_sino = 0; % read preprocessed sinograms. CHECK if negative log has to be taken!
+read_sino_folder = ''; % subfolder to scan path
 read_sino_trafo = @(x) rot90(x); % anonymous function applied to the image read in e.g. @(x) rot90(x)
-energy = 35e3;[]; % in eV! if empty: read from log file
-sample_detector_distance = 0.2;[]; % in m. if empty: read from log file
-eff_pixel_size = 1.24e-6;[]; % in m. if empty: read from log lfile. effective pixel size =  detector pixel size / magnification
+energy = []; % in eV! if empty: read from log file
+sample_detector_distance = []; % in m. if empty: read from log file
+eff_pixel_size = []; % in m. if empty: read from log lfile. effective pixel size =  detector pixel size / magnification
 pixel_scaling = 1; % to account for beam divergence if pixel size was determined (via MTF) at the wrong distance
 %%% PREPROCESSING %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 raw_roi = []; % vertical and/or horizontal ROI; (1,1) coordinate = top left pixel; supports absolute, relative, negative, and mixed indexing.
@@ -57,7 +58,7 @@ raw_roi = []; % vertical and/or horizontal ROI; (1,1) coordinate = top left pixe
 % [y0 y1 x0 x1]: vertical + horzontal ROI, each ROI as above
 % if -1: auto roi, selects vertical ROI automatically. Use only for DCM. Not working for *.raw data where images are flipped and DMM data.
 % if < -1: Threshold is set as min(proj(:,:,[1 end])) + abs(raw_roi)*median(dark(:)). raw_roi=-1 defaults to min(proj(:,:,[1 end])) + 4*median(dark(:))
-raw_bin = 4; % projection binning factor: integer
+raw_bin = 2; % projection binning factor: integer
 im_trafo = '' ;%'rot90(im,-1)'; % string to be evaluated after reading data in the case the image is flipped/rotated/etc due to changes at the beamline, e.g. 'rot90(im)'
 par.crop_at_rot_axis = 0; % for recos of scans with excentric rotation axis but WITHOUT projection stitching
 par.stitch_projections = 0; % for 2 pi scans: stitch projection at rotation axis position. Recommended with phase retrieval to reduce artefacts. Standard absorption contrast data should work well without stitching. Subpixel stitching not supported (non-integer rotation axis position is rounded, less/no binning before reconstruction can be used to improve precision).
