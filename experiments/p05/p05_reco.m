@@ -99,7 +99,7 @@ ring_filter.waveletfft.sigma = 2.4; %  suppression factor for 'wavelet-fft'
 ring_filter.jm.median_width = 11; % multiple widths are applied consecutively, eg [3 11 21 31 39];
 strong_abs_thresh = 1; % if 1: does nothing, if < 1: flat-corrected values below threshold are set to one. Try with algebratic reco techniques.
 %%% PHASE RETRIEVAL %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-phase_retrieval.apply = 1; % See 'PhaseFilter' for detailed description of parameters !
+phase_retrieval.apply = 0; % See 'PhaseFilter' for detailed description of parameters !
 phase_retrieval.apply_before = 0; % before stitching, interactive mode, etc. For phase-contrast data with an excentric rotation axis phase retrieval should be done afterwards. To find the rotataion axis position use this option in a first run, and then turn it of afterwards.
 phase_retrieval.post_binning_factor = 1; % Binning factor after phase retrieval, but before tomographic reconstruction
 phase_retrieval.method = 'tie';'qp';'qpcut'; %'qp' 'ctf' 'tie' 'qp2' 'qpcut'
@@ -174,10 +174,10 @@ interactive_mode.rot_axis_tilt = 0; % reconstruct slices with different offset A
 interactive_mode.rot_axis_tilt_default_search_range = []; % if empty: asks for search range when entering interactive mode
 interactive_mode.lamino = 0; % find laminography tilt instead camera rotation
 interactive_mode.fixed_other_tilt = 0; % fixed other tilt
-interactive_mode.angles =  0; % reconstruct slices with different scalings of angles
+interactive_mode.angles = 1; % reconstruct slices with different scalings of angles
 interactive_mode.angle_scaling_default_search_range = []; % if empty: use a variaton of -/+5 * (angle increment / maximum angle)
 interactive_mode.slice_number = 0.5; % default slice number. if in [0,1): relative, if in (1, N]: absolute
-interactive_mode.phase_retrieval = 1; % Interactive retrieval to determine regularization parameter
+interactive_mode.phase_retrieval = 0; % Interactive retrieval to determine regularization parameter
 interactive_mode.phase_retrieval_default_search_range = []; % if empty: asks for search range when entering interactive mode, otherwise directly start with given search range
 %%% HARDWARE / SOFTWARE %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 par.use_cluster = 1; % if available: on MAXWELL nodes disp/nova/wga/wgs cluster computation can be used. Recommended only for large data sets since parpool creation and data transfer implies a lot of overhead.
@@ -447,12 +447,13 @@ if ~read_flatcor && ~read_sino
         ref_range = 1:ref_range:num_ref_found;
     end
     % position of running index
-    if strcmpi( ref_names{1}(end-6:end-4), 'ref' )
-        imtype_str_flag = 0;
+    re = regexp( ref_names{1}, '\d{6,6}');
+    if numel( re ) == 1
+        imtype_str_flag = re;
+    elseif strcmpi( ref_names{1}(end-6:end-4), 'ref' )
+        imtype_str_flag = '64'; % 0
     elseif strcmpi( ref_names{1}(end-11:end-9), 'ref' )
-        imtype_str_flag = 1;
-    else
-        imtype_str_flag = -1;
+        imtype_str_flag = '119'; % 1
     end
     num_ref_used = numel( ref_range );
     ref_names_mat = NameCellToMat( ref_names(ref_range) );
@@ -674,6 +675,7 @@ if ~read_flatcor && ~read_sino
                         vert_shift_micron = s_stage_z.value( m );
                     case num_proj_found + num_ref_found
                         m = stimg_key.value(logpar.n_dark + 1:end) == 0 ;
+                        vert_shift_micron = s_stage_z.value( m );
                 end
                 if std( vert_shift_micron )
                     vert_shift_micron = vert_shift_micron(proj_range);
@@ -714,14 +716,23 @@ if ~read_flatcor && ~read_sino
         stimg_name.current = (interp1( X, V, Xq, 'next', 100) + interp1( X, V, Xq + exposure_time, 'previous', 100) ) / 2;
         cur_ref_val = stimg_name.current( stimg_key.value == 1 );
         cur_ref_name = stimg_name.value( stimg_key.value == 1 );
+        re = regexp( cur_ref_name{1}, '\d{6,6}');
+        if numel( re ) == 1
+            imtype_str_flag = re;
+        elseif strcmpi( ref_names{1}(end-6:end-4), 'ref' )
+            imtype_str_flag = '64'; % 0
+        elseif strcmpi( ref_names{1}(end-11:end-9), 'ref' )
+            imtype_str_flag = '119'; % 1
+        end
         for nn = numel( cur_ref_name ):-1:1
             cur.ref(nn).val = cur_ref_val(nn);
             cur.ref(nn).name = cur_ref_name{nn};
-            switch imtype_str_flag
-                case 0
-                    cur.ref(nn).ind = str2double(cur.ref(nn).name(end-12:end-8));
-                case 1
-                    cur.ref(nn).ind = str2double(cur.ref(nn).name(end-7:end-4));
+            if imtype_str_flag >= 0
+                cur.ref(nn).ind = str2double(cur.ref(nn).name(imtype_str_flag + (0:5)));
+            elseif imtype_str_flag == -1
+                cur.ref(nn).ind = str2double(cur.ref(nn).name(end-12:end-8));
+            elseif imtype_str_flag == -2
+                cur.ref(nn).ind = str2double(cur.ref(nn).name(end-7:end-4));
             end
         end
         cur_proj_val = stimg_name.current( stimg_key.value == 0);
@@ -729,11 +740,12 @@ if ~read_flatcor && ~read_sino
         for nn = numel( cur_proj_name ):-1:1
             cur.proj(nn).val = cur_proj_val(nn);
             cur.proj(nn).name = cur_proj_name{nn};
-            switch imtype_str_flag
-                case 0
-                    cur.proj(nn).ind = str2double(cur.proj(nn).name(end-12:end-8));
-                case 1
-                    cur.proj(nn).ind = str2double(cur.proj(nn).name(end-7:end-4));
+            if imtype_str_flag >= 0
+                cur.proj(nn).ind = str2double(cur.proj(nn).name(imtype_str_flag + (0:5)));
+            elseif imtype_str_flag == -1
+                cur.proj(nn).ind = str2double(cur.proj(nn).name(end-12:end-8));
+            elseif imtype_str_flag == -2
+                cur.proj(nn).ind = str2double(cur.proj(nn).name(end-7:end-4));
             end
         end
     end % if ~exist( h5log, 'file')
@@ -1430,7 +1442,6 @@ else
     end
     fprintf( ' done in %.1f s (%.2f min)', toc - t, ( toc - t ) / 60 )
 end
-tomo.angles = tomo.rot_angle.offset + angles;
 
 %% Phase retrieval before interactive mode %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 tint_phase = 0;
@@ -1451,7 +1462,7 @@ if phase_retrieval.apply
 end
 
 %% TOMOGRAPHY: interactive mode to find rotation axis offset and tilt %%%%%
-[tomo, tint] = interactive_mode_rot_axis( par, logpar, phase_retrieval, tomo, write, interactive_mode, proj, angles);
+[tomo, angles, tint] = interactive_mode_rot_axis( par, logpar, phase_retrieval, tomo, write, interactive_mode, proj, angles);
 
 %% Stitch projections
 if par.stitch_projections
@@ -1560,6 +1571,8 @@ end
 if tomo.run
     fprintf( '\nTomographic reconstruction:')
     fprintf( '\n method : %s', tomo.algorithm )
+    fprintf( '\n angle scaling : %g', tomo.angle_scaling )
+    fprintf( '\n angles [first last]/pi : [%g %g]', angles( [1 end] ) / pi )
     fprintf( '\n volume shape : [%g, %g, %g]', tomo.vol_shape )
     vol_mem = prod( tomo.vol_shape ) * 4;
     fprintf( '\n volume memory : %.2f GiB', vol_mem / 1024^3 )

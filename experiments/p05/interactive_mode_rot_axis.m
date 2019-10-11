@@ -1,4 +1,4 @@
-function [tomo, tint] = interactive_mode_rot_axis( par, logpar, phase_retrieval, tomo, write, interactive_mode, proj, angles)
+function [tomo, angles, tint] = interactive_mode_rot_axis( par, logpar, phase_retrieval, tomo, write, interactive_mode, proj, angles)
 % Interactive mode to determine the position and tilt (optionally) of the
 % rotation axis. When position and tilt are searched for, two intertwined
 % loops are used alternating the determination of the position and the tilt
@@ -10,7 +10,6 @@ function [tomo, tint] = interactive_mode_rot_axis( par, logpar, phase_retrieval,
 % [tomo, tint] = interactive_mode_rot_axis( par, logpar, phase_retrieval, tomo, write, interactive_mode, proj, angles)
 
 tomo.angle_scaling = 1;
-angle_scaling = [];
 
 imsc1 = @(im) imsc( rot90( im ) );
 tint = 0;
@@ -112,13 +111,13 @@ if tomo.run || tomo.run_interactive_mode
         itomo.lamino = interactive_mode.lamino;
         itomo.fixed_tilt = interactive_mode.fixed_other_tilt;
         itomo.slice = slice;
-        itomo.angle_scaling = angle_scaling;
         
         offset = [];
         tilt = [];
+        angle_scaling = [];
         
         % Loop over offsets
-        while ~isscalar( offset )
+         while ~isscalar( offset )
             
             cprintf( 'RED', '\n\nEntering offset loop' )
             
@@ -159,6 +158,7 @@ if tomo.run || tomo.run_interactive_mode
             end % while ischar( inp )
             if isempty( inp )
                 offset = itomo.rot_axis.offset + interactive_mode.rot_axis_pos_default_search_range;
+                fprintf( 'using default range' )
             else
                 offset = inp;
             end  % isempty( inp )
@@ -201,7 +201,7 @@ if tomo.run || tomo.run_interactive_mode
                 itomo.offset = offset;
                 itomo.tilt = tilt;
                 if isscalar( angle_scaling )
-                    itomo.angles = angle_scaling * angles;
+                    itomo.angles = angle_scaling * angles + tomo.rot_angle.offset;
                 end
                 
                 % Reco
@@ -298,6 +298,7 @@ if tomo.run || tomo.run_interactive_mode
                         end % while ischar( inp )
                         if isempty( inp )
                             tilt = tomo.rot_axis.tilt + interactive_mode.rot_axis_tilt_default_search_range;
+                            fprintf( 'using default range' )
                         else
                             tilt = inp;
                         end % isempty( inp )
@@ -312,7 +313,7 @@ if tomo.run || tomo.run_interactive_mode
                             itomo.tilt = tilt;
                             itomo.offset = offset;
                             if isscalar( angle_scaling )
-                                itomo.angles = angle_scaling * angles;
+                                itomo.angles = angle_scaling * angles + tomo.rot_angle.offset;
                             end
                             [vol, metrics_tilt] = find_rot_axis_tilt( itomo, proj);
                             
@@ -425,8 +426,7 @@ if tomo.run || tomo.run_interactive_mode
                     end % while ~isscalar( tilt )
                     tomo.rot_axis.tilt = tilt;
                 end % if interactive_mode.rot_axis_tilt
-                
-                
+                      
                 %% ANGLES
                 if interactive_mode.angles
                      
@@ -475,6 +475,7 @@ if tomo.run || tomo.run_interactive_mode
                         end % while ischar( inp )
                         if isempty( inp )
                             angle_scaling = interactive_mode.angle_scaling_default_search_range;
+                            fprintf( 'using default range' )
                         else
                             angle_scaling = inp;
                         end % isempty( inp )
@@ -488,9 +489,8 @@ if tomo.run || tomo.run_interactive_mode
                             % Reco
                             itomo.offset = offset;
                             itomo.tilt = tilt;
-                            %itomo.angles = angle_scaling * (tomo.angles - tomo.rot_angle.offset ) + tomo.rot_angle.offset;
                             itomo.angle_scaling = angle_scaling;
-                            [vol, metrics_angle_scaling] = find_angle_scaling( itomo, proj );
+                            [vol, metrics_angle_scaling] = find_angle_scaling( itomo, proj, angles );
                             
                             % Metric minima
                             [~, min_pos] = min( cell2mat( {metrics_angle_scaling(:).val} ) );
@@ -552,8 +552,8 @@ if tomo.run || tomo.run_interactive_mode
                         end % if isscalar( angle_scaling )
                         
                     end % while ~isscalar( angle_scaling )
-                    %itomo.angle_scaling = angle_scaling;
-                    tomo.angles = angle_scaling * angles;
+                    tomo.angle_scaling = angle_scaling;
+                    %tomo.angles = angle_scaling * angles + tomo.rot_angle.offset;
                     
                 end % if interactive_mode.angles
                 
@@ -573,6 +573,10 @@ if tomo.run || tomo.run_interactive_mode
         tint = toc - tint;
         cprintf( 'RED', '\nEND OF INTERACTIVE MODE\n' )
     end % if interactive_mode.rot_axis_pos
+    
+    if isscalar( angle_scaling )
+        angles = angle_scaling * angles;
+    end
     
     fprintf( '\n rotation axis offset: %.2f', tomo.rot_axis.offset );
     fprintf( '\n rotation axis position: %.2f', tomo.rot_axis.position );

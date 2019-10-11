@@ -1,4 +1,4 @@
-function [vol, reco_metric] = find_angle_scaling( tomo, proj )
+function [vol, reco_metric] = find_angle_scaling( tomo, proj, angles )
 % Reconstruct slices from sinogram for a range of factors varying the
 % absolute angular range
 %
@@ -112,10 +112,9 @@ else
 end
 
 % Backprojection
-angles_org = tomo.angles - tomo.rot_angle.offset;
 for nn = 1:numel( angle_scaling )
     
-    tomo.angles = tomo.rot_angle.offset + angle_scaling(nn) * angles_org;
+    tomo.angles = tomo.rot_angle.offset + angle_scaling(nn) * angles;
     
     %% Reco
     switch lower( tomo.reco_mode )

@@ -17,21 +17,23 @@ format = cc{1}(end-2:end);
 %% KIT camera: tiff
 if strcmp( format, 'tif' )
     for nn = numel( cc ):-1:1
-         switch imtype_str_flag
-            case 0
+    if imtype_str_flag >= 0
+            vec(nn) = str2double( cc{nn}(imtype_str_flag + (0:5)) );                
+        elseif imtype_str_flag == -1
                 vec(nn) = str2double( cc{nn}(end-12:end-8) );                
-            case 1
+        elseif imtype_str_flag == -2
                 vec(nn) = str2double( cc{nn}(end-7:end-4) );                
-        end  
+        end        
     end
     
     %% KIT camera: raw
 elseif strcmp( format, 'raw' )
     for nn = numel( cc ):-1:1
-        switch imtype_str_flag
-            case 0
+        if imtype_str_flag >= 0
+            vec(nn) = str2double( cc{nn}(imtype_str_flag + (0:5)) );                
+        elseif imtype_str_flag == -1
                 vec(nn) = str2double( cc{nn}(end-12:end-8) );                
-            case 1
+        elseif imtype_str_flag == -2
                 vec(nn) = str2double( cc{nn}(end-7:end-4) );                
         end        
     end
