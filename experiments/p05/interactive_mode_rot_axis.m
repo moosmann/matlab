@@ -13,6 +13,8 @@ tomo.angle_scaling = 1;
 tomo.angles = tomo.rot_angle.offset + angles;
 imsc1 = @(im) imsc( rot90( im ) );
 tint = 0;
+angle_scaling = [];
+
 if tomo.run || tomo.run_interactive_mode
     
     fprintf( '\nTomography:')

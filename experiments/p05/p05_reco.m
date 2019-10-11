@@ -118,7 +118,7 @@ tomo.rot_angle.offset = pi; % global rotation of reconstructed volume
 tomo.rot_axis.offset = []; 
 tomo.rot_axis.position = []; % if empty use automatic computation. EITHER OFFSET OR POSITION MUST BE EMPTY. YOU MUST NOT USE BOTH!
 tomo.rot_axis.offset_shift = []; %[]; % absolute lateral movement in pixels during fly-shift-scan, overwrite lateral shift read out from hdf5 log
-tomo.rot_axis.tilt = 0; % in rad. camera tilt w.r.t rotation axis. if empty calculate from registration of projections at 0 and pi
+tomo.rot_axis.tilt = -0.0017; % in rad. camera tilt w.r.t rotation axis. if empty calculate from registration of projections at 0 and pi
 tomo.rot_axis.corr_area1 = []; % ROI to correlate projections at angles 0 & pi. Use [0.75 1] or so for scans with an excentric rotation axis 
 tomo.rot_axis.corr_area2 = []; % ROI to correlate projections at angles 0 & pi 
 tomo.fbp_filter.type = 'Ram-Lak';'linear'; % see iradonDesignFilter for more options. Ram-Lak according to Kak/Slaney
@@ -140,7 +140,7 @@ write.to_scratch = 0; % write to 'scratch_cc' instead of 'processed'
 write.deleteFiles = 0; % delete files already existing in output folders. Useful if number or names of files differ when reprocessing.
 write.beamtimeID = ''; % string (regexp),typically beamtime ID, mandatory if 'write.deleteFiles' is true (safety check)
 write.scan_name_appendix = ''; % appendix to the output folder name which defaults to the scan name
-write.parfolder = '';% parent folder to 'reco', 'sino', 'phase', and 'flat_corrected'
+write.parfolder = 'tilt_m0p0017';% parent folder to 'reco', 'sino', 'phase', and 'flat_corrected'
 write.subfolder.flatcor = ''; % subfolder in 'flat_corrected'
 write.subfolder.phase_map = ''; % subfolder in 'phase_map'
 write.subfolder.sino = ''; % subfolder in 'sino'
@@ -168,13 +168,13 @@ write.compression.parameter = [0.02 0.02]; % compression-method specific paramet
 % 'histo' : [LOW HIGH] = write.compression.parameter (100*LOW)% and (100*HIGH)% of the original histogram, e.g. [0.02 0.02]
 %%% INTERACTION %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 par.visual_output = 1; % show images and plots during reconstruction
-interactive_mode.rot_axis_pos = 1; % reconstruct slices with dif+ferent rotation axis offsets
+interactive_mode.rot_axis_pos = 0; % reconstruct slices with dif+ferent rotation axis offsets
 interactive_mode.rot_axis_pos_default_search_range = []; % if empty: asks for search range when entering interactive mode
 interactive_mode.rot_axis_tilt = 0; % reconstruct slices with different offset AND tilts of the rotation axis
 interactive_mode.rot_axis_tilt_default_search_range = []; % if empty: asks for search range when entering interactive mode
 interactive_mode.lamino = 0; % find laminography tilt instead camera rotation
 interactive_mode.fixed_other_tilt = 0; % fixed other tilt
-interactive_mode.angles = 1; % reconstruct slices with different scalings of angles
+interactive_mode.angles = 0; % reconstruct slices with different scalings of angles
 interactive_mode.angle_scaling_default_search_range = []; % if empty: use a variaton of -/+5 * (angle increment / maximum angle)
 interactive_mode.slice_number = 0.5; % default slice number. if in [0,1): relative, if in (1, N]: absolute
 interactive_mode.phase_retrieval = 0; % Interactive retrieval to determine regularization parameter
@@ -597,13 +597,14 @@ if ~read_flatcor && ~read_sino
         petra.current = h5read( h5log,'/entry/hardware/beam_current/current/value');
         petra.current = petra.current(index);
         if par.visual_output
-            f = figure( 'Name', 'PETRA beam current from status server', 'WindowState', 'maximized');
+            name = 'PETRA beam current from status server';
+            f = figure( 'Name', name, 'WindowState', 'maximized');
             x = double(petra.time(2:1:end)-petra.time(2)) / 1000 / 60;
             y = petra.current(2:1:end);
             plot( x, y, '.' )
             xlabel( 'time / min' )
             ylabel( 'current / mA' )
-            title(sprintf('PETRA beam current from status server') )
+            title( name )
             axis tight
             drawnow
             CheckAndMakePath( fig_path )
@@ -1112,17 +1113,18 @@ if ~read_flatcor && ~read_sino
             
             % Plot ring current
             if par.visual_output
+                name = 'PETRA III beam current: Interpolation at image time stamps';
                 if exist( 'hrc', 'var' ) && isvalid( hrc )
                     figure(hrc)
                 else
-                    hrc = figure( 'Name', 'PETRA III beam current: Interpolation at image time stamps', 'WindowState', 'maximized');
+                    hrc = figure( 'Name', name, 'WindowState', 'maximized');
                 end
                 subplot(1,1,1);
                 plot( ref_nums, ref_rc(:), '.',proj_nums, proj_rc(:), '.' )
                 axis tight
                 xlabel( 'image no.' )
                 ylabel( 'current / mA' )
-                title(sprintf('ring currents'))
+                title( name )
                 legend( sprintf( 'flats, mean: %.2f mA', ref_rcm), sprintf( 'projs, mean: %.2f mA', proj_rcm) )
                 drawnow
                 CheckAndMakePath( fig_path )
