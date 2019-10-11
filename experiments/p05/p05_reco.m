@@ -597,13 +597,13 @@ if ~read_flatcor && ~read_sino
         petra.current = h5read( h5log,'/entry/hardware/beam_current/current/value');
         petra.current = petra.current(index);
         if par.visual_output
-            f = figure( 'Name', 'PETRA beam current', 'WindowState', 'maximized');
+            f = figure( 'Name', 'PETRA beam current from status server', 'WindowState', 'maximized');
             x = double(petra.time(2:1:end)-petra.time(2)) / 1000 / 60;
             y = petra.current(2:1:end);
             plot( x, y, '.' )
             xlabel( 'time / min' )
             ylabel( 'current / mA' )
-            title(sprintf('PETRA beam current during scan') )
+            title(sprintf('PETRA beam current from status server') )
             axis tight
             drawnow
             CheckAndMakePath( fig_path )
@@ -926,7 +926,7 @@ if ~read_flatcor && ~read_sino
             scale_factor = 100 ./ shiftdim( ref_rc(refs_to_use), -1 );
             flat = bsxfun( @times, flat, scale_factor );
             if par.visual_output
-                hrc = figure( 'Name', 'ring currents', 'WindowState', 'maximized');
+                hrc = figure( 'Name', 'PETRA III beam current: Interpolation at image time stamps', 'WindowState', 'maximized');
                 subplot(1,1,1);
                 plot( ref_rc(:), '.' )
                 axis tight
@@ -1115,7 +1115,7 @@ if ~read_flatcor && ~read_sino
                 if exist( 'hrc', 'var' ) && isvalid( hrc )
                     figure(hrc)
                 else
-                    hrc = figure( 'Name', 'ring currents', 'WindowState', 'maximized');
+                    hrc = figure( 'Name', 'PETRA III beam current: Interpolation at image time stamps', 'WindowState', 'maximized');
                 end
                 subplot(1,1,1);
                 plot( ref_nums, ref_rc(:), '.',proj_nums, proj_rc(:), '.' )
