@@ -13,7 +13,7 @@ function array_binned = Binning( array, bin )
 %
 % Written by Julian Moosmann.
 %
-% array = Binning(array, bin)
+% array_binned = Binning( array, bin)
 
 %% Default arguments %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 if nargin < 2
@@ -22,7 +22,8 @@ end
 
 %% Main %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-if isempty( bin ) || prod(bin) == 0 || prod(bin) == 1
+if prod(bin) == 1 || isempty( bin ) || prod(bin) == 0
+    array_binned = array;
     return
 else
     switch ndims( array )
