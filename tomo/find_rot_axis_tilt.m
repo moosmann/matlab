@@ -116,8 +116,8 @@ for nn = 1:numel( tilt )
     
     %% Reco
     im = astra_parallel3D( tomo, permute( sino, [1 3 2]) );
-    vol(:,:,nn) = FilterHisto(im, number_of_stds, filter_histo_roi);
-    %vol(:,:,nn) = FilterOutlier( im, 0.01 );
+    %vol(:,:,nn) = FilterHisto(im, number_of_stds, filter_histo_roi);
+    vol(:,:,nn) = FilterOutlier( im, 0.01 );
     
     %% Metrics        
     im = double( MaskingDisc( im, mask_rad, mask_val) ) * 2^16;

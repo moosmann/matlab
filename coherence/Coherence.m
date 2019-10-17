@@ -11,14 +11,14 @@ if nargin < 3
     SourceSize_micron = sigma_to_FWHM(89.4); % PETRA III horizontal
 end
 if nargin < 4
-    SampleDetector_m = 0.5;1;0.235;
+    SampleDetector_m = 0.25;1;0.235;
 end
 if nargin < 5
    Bandwidth = 10^-4;
 end
 if nargin < 6
     %PixelSize_micron = 1.68 ; % micron CMOS 5 x
-    PixelSize_micron = 2 * 0.64 ; % micron, CMOS 10x
+    PixelSize_micron = 1 * 0.64 ; % micron, CMOS 10x
 end
 
 %% Beamline parameters

@@ -322,9 +322,7 @@ if exist( 'interactive_mode', 'var' ) && isfield( interactive_mode, 'phase_retri
                             end
                             fprintf( ' \n new slice : %u', slice );
                         case 'edp'
-                            while ~isequal( size( edp ), [1 3] )
-                                edp = input( '\n\nENTER [energy/keV, distance/m, pixelsize/m] : ' );
-                            end
+                            edp = input( '\n\nENTER [energy/eV, distance/m, pixelsize/m] : ' );
                         case 'm'
                             method = input( '\n\nENTER METHOD (''tie'',''qp'',''qp2'',''ctf'',''qpcut'') : ' );
                         case 'c'
