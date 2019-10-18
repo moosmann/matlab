@@ -51,13 +51,13 @@ sample_detector_distance = []; % in m. if empty: read from log file
 eff_pixel_size = []; % in m. if empty: read from log lfile. effective pixel size =  detector pixel size / magnification
 pixel_scaling = 1; % to account for beam divergence if pixel size was determined (via MTF) at the wrong distance
 %%% PREPROCESSING %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-raw_roi = -1;[]; % vertical and/or horizontal ROI; (1,1) coordinate = top left pixel; supports absolute, relative, negative, and mixed indexing.
+raw_roi = [0.4 0.6]; % vertical and/or horizontal ROI; (1,1) coordinate = top left pixel; supports absolute, relative, negative, and mixed indexing.
 % []: use full image;
 % [y0 y1]: vertical ROI, skips first raw_roi(1)-1 lines, reads until raw_roi(2); if raw_roi(2) < 0 reads until end - |raw_roi(2)|; relative indexing similar.
 % [y0 y1 x0 x1]: vertical + horzontal ROI, each ROI as above
 % if -1: auto roi, selects vertical ROI automatically. Use only for DCM. Not working for *.raw data where images are flipped and DMM data.
 % if < -1: Threshold is set as min(proj(:,:,[1 end])) + abs(raw_roi)*median(dark(:)). raw_roi=-1 defaults to min(proj(:,:,[1 end])) + 4*median(dark(:))
-raw_bin = 2; % projection binning factor: integer
+raw_bin = 1; % projection binning factor: integer
 im_trafo = '' ;%'rot90(im,-1)'; % string to be evaluated after reading data in the case the image is flipped/rotated/etc due to changes at the beamline, e.g. 'rot90(im)'
 par.crop_at_rot_axis = 0; % for recos of scans with excentric rotation axis but WITHOUT projection stitching
 par.stitch_projections = 0; % for 2 pi scans: stitch projection at rotation axis position. Recommended with phase retrieval to reduce artefacts. Standard absorption contrast data should work well without stitching. Subpixel stitching not supported (non-integer rotation axis position is rounded, less/no binning before reconstruction can be used to improve precision).
@@ -213,10 +213,10 @@ if exist( 'external_parameter' ,'var')
     dbstop if error
 end
 
-%%% FAST RECO MODE
+%%% FAST RECO MODE %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 if exist('fast_reco','var') && fast_reco(1)
     raw_bin = 4;
-    raw_roi = [0.4 0.6];
+    raw_roi = [0.4 0.8];
     proj_range = 4;
     ref_range = 10;
     %image_correlation.method = 'none';
@@ -843,7 +843,7 @@ if ~read_flatcor && ~read_sino
     dark_med_max = max( dark(:) );
     
     % Binned dark
-    dark_binned = Binning( dark, raw_bin) / raw_bin^2;
+    dark_binned = 1 / raw_bin^2 * single( Binning( dark, raw_bin) );
     fprintf( ' done in %.1f s', toc-t)
     fprintf( '\n min/max of all darks : %g %g', darks_min, darks_max);
     fprintf( '\n min/max of median dark : %g %g', dark_med_min, dark_med_max);
