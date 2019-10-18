@@ -627,7 +627,7 @@ if ~read_flatcor && ~read_sino
                 % Shift or static position
                 if std( offset_shift_micron )
                     offset_shift_micron = offset_shift_micron(proj_range);
-                    offset_shift = offset_shift_micron * 1e-3 / eff_pixel_size;
+                    offset_shift = 1e-3 / eff_pixel_size * offset_shift_micron;
                     offset_shift = 1 + offset_shift - min( offset_shift(:) ) ;
                     
                     % Overwrite lateral shift if offset shift is provided as parameter
@@ -843,7 +843,7 @@ if ~read_flatcor && ~read_sino
     dark_med_max = max( dark(:) );
     
     % Binned dark
-    dark_binned = 1 / raw_bin^2 * single( Binning( dark, raw_bin) );
+    dark_binned = 1 / raw_bin^2 * Binning( dark, raw_bin);
     fprintf( ' done in %.1f s', toc-t)
     fprintf( '\n min/max of all darks : %g %g', darks_min, darks_max);
     fprintf( '\n min/max of median dark : %g %g', dark_med_min, dark_med_max);
@@ -955,7 +955,7 @@ if ~read_flatcor && ~read_sino
     fprintf( '\n min/max of all flats : %6g %6g', flat_min, flat_max);
     fprintf( '\n min/max of all corrected flats : %6g %6g', flat_min2, flat_max2);
     
-    PrintVerbose( nn,'\n discarded empty refs : %u, %.2f%%', nn, 100*nn/num_ref_found )
+    PrintVerbose( nn,'\n discarded empty refs : %u, %.2f%%', nn, 100 * nn / num_ref_found )
     if sum( num_zeros )
         fprintf( '\n flat fields with zeros :' )
         % print #zeros if not all pixels are zero

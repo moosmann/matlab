@@ -23,7 +23,7 @@ end
 %% Main %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 if prod(bin) == 1 || isempty( bin ) || prod(bin) == 0
-    array_binned = array;
+    array_binned = single( array );
     return
 else
     switch ndims( array )
@@ -56,7 +56,7 @@ else
             f = @(n,m) array(n:bin1:last1,m:bin2:last2);
             
             % Binning
-            array_binned = 0;
+            array_binned = single( 0 );
             for xx = 1:bin1
                 for yy = 1:bin2
                     %array_binned = array_binned + f(xx,yy);
@@ -86,7 +86,7 @@ else
             % Generic 3D bin functions
             f = @(n,m,k) array(n:bin1:last1,m:bin2:last2,k:bin3:last3);
             
-            array_binned = 0;
+            array_binned = single( 0 );
             for xx = 1:bin1
                 for yy = 1:bin2
                     for zz = 1:bin3
