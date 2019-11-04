@@ -42,11 +42,11 @@ fast_reco = 0; % !!! OVERWRITES SOME PARAMETERS SET BELOW !!!
 scan_path = pwd; % string/pwd. pwd: change to directory of the scan to be reconstructed, sting: absolute scan path
 read_flatcor = 0; % read preprocessed flatfield-corrected projections. CHECK if negative log has to be taken!
 read_flatcor_path = ''; % subfolder of 'flat_corrected' containing projections
-read_flatcor_trafo = @(im) fliplr( im ); %  % anonymous function applied to the image read in e.g. @(x) rot90(x)
+read_flatcor_trafo = @(im) fliplr( im ); % anonymous function applied to the image which is read e.g. @(x) rot90(x)
 read_sino = 0; % read preprocessed sinograms. CHECK if negative log has to be taken!
 read_sino_folder = ''; % subfolder to scan path
-read_sino_trafo = @(x) rot90(x); % anonymous function applied to the image read in e.g. @(x) rot90(x)
-energy = 30000;%[]; % in eV! if empty: read from log file
+read_sino_trafo = @(x) rot90(x); % anonymous function applied to the image which is read e.g. @(x) rot90(x)
+energy = []; % in eV! if empty: read from log file
 sample_detector_distance = []; % in m. if empty: read from log file
 eff_pixel_size = []; % in m. if empty: read from log lfile. effective pixel size =  detector pixel size / magnification
 pixel_scaling = 1; % to account for beam divergence if pixel size was determined (via MTF) at the wrong distance
@@ -109,8 +109,8 @@ phase_retrieval.padding = 1; % padding of intensities before phase retrieval, 0:
 %%% TOMOGRAPHY %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 tomo.run = 1; % run tomographic reconstruction
 tomo.run_interactive_mode = 1; % if tomo.run = 0, use to determine rot axis positions without processing the full tomogram;
-tomo.reco_mode =  'slice';'3D'; % slice-wise or full 3D backprojection. 'slice': volume must be centered at origin & no support of rotation axis tilt, reco binning, save compressed
-tomo.vol_size = []; %[-1 1 -1 1 -0.5 0.5];% 6-component vector [xmin xmax ymin ymax zmin zmax], for excentric rot axis pos / extended FoV;. if empty, volume is centerd within tomo.vol_shape. unit voxel size is assumed. if smaller than 10 values are interpreted as relative size w.r.t. the detector size. Take care bout minus signs! Note that if empty vol_size is dependent on the rotation axis position.
+tomo.reco_mode =  '3D';'slice'; % slice-wise or full 3D backprojection. 'slice': volume must be centered at origin & no support of rotation axis tilt, reco binning, save compressed
+tomo.vol_size = []; %[-.5 .5 -.5 .5 -0.5 0.5];% 6-component vector [xmin xmax ymin ymax zmin zmax], for excentric rot axis pos / extended FoV;. if empty, volume is centerd within tomo.vol_shape. unit voxel size is assumed. if smaller than 10 values are interpreted as relative size w.r.t. the detector size. Take care bout minus signs! Note that if empty vol_size is dependent on the rotation axis position.
 tomo.vol_shape = []; %[1 1 1] shape (# voxels) of reconstruction volume. used for excentric rot axis pos. if empty, inferred from 'tomo.vol_size'. in absolute numbers of voxels or in relative number w.r.t. the default volume which is given by the detector width and height.
 tomo.rot_angle.full_range = []; % in radians. if []: full angle of rotation including additional increment, or array of angles. if empty full rotation angles is determined automatically to pi or 2 pi
 tomo.rot_angle.offset = pi; % global rotation of reconstructed volume
@@ -166,7 +166,7 @@ write.compression.parameter = [0.02 0.02]; % compression-method specific paramet
 % 'std' : NUM = write.compression.parameter, mean +/- NUM*std, dynamic range is rescaled to within -/+ NUM standard deviations around the mean value
 % 'histo' : [LOW HIGH] = write.compression.parameter (100*LOW)% and (100*HIGH)% of the original histogram, e.g. [0.02 0.02]
 %%% INTERACTION %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-par.visual_output = 1; % show images and plots during reconstruction
+par.visual_output = 0; % show images and plots during reconstruction
 interactive_mode.rot_axis_pos = 1; % reconstruct slices with dif+ferent rotation axis offsets
 interactive_mode.rot_axis_pos_default_search_range = []; % if empty: asks for search range when entering interactive mode
 interactive_mode.rot_axis_tilt = 0; % reconstruct slices with different offset AND tilts of the rotation axis
@@ -195,6 +195,7 @@ tic
 verbose = 1;
 vert_shift = 0;
 offset_shift = 0;
+scan_position = [];
 logpar = [];
                 
 %%% Parameters set by reconstruction loop script 'p05_reco_loop' %%%%%%%%%%
@@ -216,7 +217,7 @@ end
 %%% FAST RECO MODE %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 if exist('fast_reco','var') && fast_reco(1)
     raw_bin = 4;
-    raw_roi = [0.4 0.8];
+    raw_roi = [0.4 0.6];
     proj_range = 4;
     ref_range = 10;
     %image_correlation.method = 'none';
@@ -655,6 +656,34 @@ if ~read_flatcor && ~read_sino
                         CheckAndMakePath( fig_path )
                         saveas( f, sprintf( '%s%s.png', fig_path, regexprep( f.Name, '\ |:', '_') ) );
                     end
+                    
+                    % Lateral scanning
+                    % Position index extracted by jump in offset_shift
+                    scan_position_index = zeros( size( offset_shift ) );
+                    pos = 1;
+                    scan_position_index(1) = pos;
+                    for nn = 2:numel( offset_shift )
+                        if abs( offset_shift(nn) - offset_shift(nn-1) ) > 201
+                            pos = pos + 1;
+                        end
+                        scan_position_index(nn) = pos;
+                    end
+                    % Absolute scan position without lateral offset
+                    scan_position = zeros( size( offset_shift ) );
+                    for nn = 1:pos
+                        m = scan_position_index == nn;
+                        scan_position(m) = min( offset_shift(m) ) - 1;
+                    end
+                    offset_shift = offset_shift - scan_position;
+                    
+                    % Scale position because of binning for tomo reco
+                    scan_position = scan_position + mean( scan_position );
+                    scan_position = 1 / raw_bin * scan_position;
+                    
+%                     Y = [ normat( scan_position_index ), normat(offset_shift )];
+%                     plot( Y, '.' )
+%                     axis tight
+
                 end % if std( offset_shift_micron )
             end % if numel( s_stage_x.value )
         end
@@ -1099,6 +1128,10 @@ if ~read_flatcor && ~read_sino
         vert_shift(~projs_to_use) = [];
     end
     tomo.vert_shift = vert_shift;
+    if ~isempty( scan_position )
+        scan_position(~projs_to_use) = [];
+    end
+    tomo.scan_position = scan_position;
     
     raw_min = min( proj(:) );
     raw_max = max( proj(:) );
@@ -1159,7 +1192,7 @@ if ~read_flatcor && ~read_sino
             end
         end
     end
-    fprintf( '\n hot- / dark-pixel filter threshold : %f, %f', filt_pix_par.threshold_hot, filt_pix_par.threshold_hot )
+    fprintf( '\n hot- / dark-pixel filter threshold : %f, %f', filt_pix_par.threshold_hot, filt_pix_par.threshold_dark )
     fprintf( '\n global min/max of projs after filtering and binning:  %6g %6g', raw_min, raw_max)
     fprintf( '\n global min/max of projs after dark-field correction and ring current normalization:  %6g %6g', raw_min2, raw_max2)
     
@@ -1959,7 +1992,6 @@ if write.reco
         fprintf(fid, 'tomo.rot_angle.full_range : %f * pi rad\n', tomo.rot_angle.full_range / pi);
         fprintf(fid, 'tomo.rot_angle.offset : %f * pi rad\n', tomo.rot_angle.offset / pi);
         fprintf(fid, 'rot_axis_offset_reco : %f\n', rot_axis_offset_reco);
-        fprintf(fid, 'rotation_axis_offset_reco : %f\n', rot_axis_offset_reco);
         fprintf(fid, 'tomo.rot_axis.position : %f\n', tomo.rot_axis.position);
         fprintf(fid, 'tomo.rot_axis.tilt : %f\n', tomo.rot_axis.tilt);
         fprintf(fid, 'raw_image_binned_center : %f\n', im_shape_cropbin1 / 2);

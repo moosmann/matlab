@@ -1,8 +1,8 @@
-function vol = astra_parallel2D( par, sino)
+function vol = astra_parallel2D( tomo, sino)
 % Slicewise parallel backprojection of 2D or 3D sinograms using ASTRA.
 %
 % ARGUMENTS
-% par : parameter struct with fields:
+% tomo : parameter struct with fields:
 %   angles: scalar or vector. Default: pi. If calar it is the angular range
 %       covered during one tomogram and the angles are computed as angles * (0:num_proj-1) /
 %       num_proj. If vector it is the angles of the projections. If scalar the 
@@ -48,19 +48,20 @@ function vol = astra_parallel2D( par, sino)
 % Written by Julian Moosmann
 
 %% Default arguments %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-angles = assign_from_struct( par, 'angles', pi );
-vol_shape = assign_from_struct( par, 'vol_shape', [size( sino, 1), size( sino, 1), size(sino, 3) ] );
-vol_size = assign_from_struct( par, 'vol_size', [] );
-pixel_size = assign_from_struct( par, 'astra_pixel_size', 1 );
-tilt = assign_from_struct( par, 'tilt_camera', 0 );
-gpu_index = assign_from_struct( par, 'astra_gpu_index', [] );
-algorithm = assign_from_struct( par, 'algorithm', 'fbp' );
-iterations = assign_from_struct( par, 'iterations', 100);
-rotation_axis_offset = assign_from_struct( par.rot_axis, 'offset', 0);
-angle_offset = assign_from_struct( par.rot_angle, 'offset', 0 );
-MinConstraint = assign_from_struct( par.sirt, 'MinConstraint', [] );
-MaxConstraint = assign_from_struct( par.sirt, 'MaxConstraint', [] );
-%vert_shift = assign_from_struct( par, 'vert_shift', [] );
+angles = assign_from_struct( tomo, 'angles', pi );
+vol_shape = assign_from_struct( tomo, 'vol_shape', [size( sino, 1), size( sino, 1), size(sino, 3) ] );
+vol_size = assign_from_struct( tomo, 'vol_size', [] );
+pixel_size = assign_from_struct( tomo, 'astra_pixel_size', 1 );
+tilt = assign_from_struct( tomo, 'tilt_camera', 0 );
+gpu_index = assign_from_struct( tomo, 'astra_gpu_index', [] );
+algorithm = assign_from_struct( tomo, 'algorithm', 'fbp' );
+iterations = assign_from_struct( tomo, 'iterations', 100);
+rotation_axis_offset = assign_from_struct( tomo.rot_axis, 'offset', 0);
+scan_position = assign_from_struct( tomo, 'scan_position', 0);
+angle_offset = assign_from_struct( tomo.rot_angle, 'offset', 0 );
+MinConstraint = assign_from_struct( tomo.sirt, 'MinConstraint', [] );
+MaxConstraint = assign_from_struct( tomo.sirt, 'MaxConstraint', [] );
+%vert_shift = assign_from_struct( tomo, 'vert_shift', [] );
  
 %% TODO: Spiral CT using interpolation
 
@@ -107,10 +108,15 @@ for nn = 1:num_proj
         rao = rotation_axis_offset(nn);
     end
 
+    % Scan position
+    if ~isscalar( scan_position )
+        rao = rao + scan_position(nn);
+    end
+    
     % source / ray direction
     %% CHECK
     vectors(nn,1) = + sin( theta );
-    vectors(nn,2) = -cos( theta );
+    vectors(nn,2) = - cos( theta );
 
     % center of detector
     vectors(nn,3) = -rao * cos( theta );

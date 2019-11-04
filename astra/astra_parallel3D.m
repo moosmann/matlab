@@ -1,9 +1,9 @@
-function vol = astra_parallel3D( par, sino)
+function vol = astra_parallel3D( tomo, sino)
 % Parallel backprojection of 2D or 3D sinograms using ASTRA's
 % parallel 3D geometry with vector notation. 
 %
 % ARGUMENTS
-% par : parameter struct with fields:
+% tomo : parameter struct with fields:
 %   angles: scalar or vector. Default: pi. If calar it is the angular range
 %       covered during one tomogram and the angles are computed as angles * (0:num_proj-1) /
 %       num_proj. If vector it is the angles of the projections. If scalar the 
@@ -49,21 +49,22 @@ function vol = astra_parallel3D( par, sino)
 %% TODO: check normalization factor pi / (2 * # angles)
 
 %% Default arguments %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-angles = assign_from_struct( par, 'angles', pi );
-rotation_axis_offset = assign_from_struct( par.rot_axis, 'offset', 0);
-vert_shift = assign_from_struct( par, 'vert_shift', [] );
-angle_offset = assign_from_struct( par.rot_angle, 'offset', 0 );
-vol_shape = assign_from_struct( par, 'vol_shape', [size( sino, 1), size( sino, 1), size(sino, 3) ] );
-vol_size = assign_from_struct( par, 'vol_size', [] );
-pixel_size = assign_from_struct( par, 'astra_pixel_size', [1 1] );
-tilt = assign_from_struct( par, 'tilt_camera', 0 );
-tilt_lamino = assign_from_struct( par, 'tilt_lamino', 0 );
-algorithm = assign_from_struct( par, 'algorithm', 'fbp' );
-iterations = assign_from_struct( par, 'iterations', 100);
-MinConstraint = assign_from_struct( par.sirt, 'MinConstraint', [] );
-MaxConstraint = assign_from_struct( par.sirt, 'MaxConstraint', [] );
-gpu_index = assign_from_struct( par, 'astra_gpu_index', [] );
-link_data = assign_from_struct( par, 'astra_link_data', 0 );
+angles = assign_from_struct( tomo, 'angles', pi );
+rotation_axis_offset = assign_from_struct( tomo.rot_axis, 'offset', 0);
+scan_position = assign_from_struct( tomo, 'scan_position', 0);
+vert_shift = assign_from_struct( tomo, 'vert_shift', [] );
+angle_offset = assign_from_struct( tomo.rot_angle, 'offset', 0 );
+vol_shape = assign_from_struct( tomo, 'vol_shape', [size( sino, 1), size( sino, 1), size(sino, 3) ] );
+vol_size = assign_from_struct( tomo, 'vol_size', [] );
+pixel_size = assign_from_struct( tomo, 'astra_pixel_size', [1 1] );
+tilt = assign_from_struct( tomo, 'tilt_camera', 0 );
+tilt_lamino = assign_from_struct( tomo, 'tilt_lamino', 0 );
+algorithm = assign_from_struct( tomo, 'algorithm', 'fbp' );
+iterations = assign_from_struct( tomo, 'iterations', 100);
+MinConstraint = assign_from_struct( tomo.sirt, 'MinConstraint', [] );
+MaxConstraint = assign_from_struct( tomo.sirt, 'MaxConstraint', [] );
+gpu_index = assign_from_struct( tomo, 'astra_gpu_index', [] );
+link_data = assign_from_struct( tomo, 'astra_link_data', 0 );
  
 %% Main %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -104,7 +105,12 @@ for nn = 1:num_proj
         rao = - rotation_axis_offset;
     else
         rao = - rotation_axis_offset(nn);
-    end    
+    end
+    
+    % Scan position
+    if ~isscalar( scan_position )
+        rao = rao + scan_position(nn);
+    end
 
     % vertical shift
     if numel( vert_shift ) <= 1
@@ -114,25 +120,23 @@ for nn = 1:num_proj
     end
 
     % source / ray direction
-    vectors(nn,1) =  sin( theta );
-    vectors(nn,2) = -cos( theta );
-    vectors(nn,3) = - sin(tilt_lamino);
+    vectors(nn,1) = + sin( theta );
+    vectors(nn,2) = - cos( theta );
+    vectors(nn,3) = - sin( tilt_lamino );
 
     % center of detector
     vectors(nn,4) = rao * cos( theta );
-    %vectors(nn,4) = rao * sin( theta );
     vectors(nn,5) = rao * sin( theta );
-    %vectors(nn,5) = rao * cos( theta );
     vectors(nn,6) = z + sin( tilt_lamino );
 
     % vector from detector pixel (0,0) to (0,1)
     vectors(nn,7) = cos( tilt ) * cos( theta ) * DetectorSpacingX;
-    vectors(nn,8) = cos( tilt) * sin( theta ) * DetectorSpacingX;
+    vectors(nn,8) = cos( tilt ) * sin( theta ) * DetectorSpacingX;
     vectors(nn,9) = cos( tilt_lamino ) * sin( tilt ) * DetectorSpacingX;
 
     % vector from detector pixel (0,0) to (1,0)
-    vectors(nn,10) = -sin( tilt) * cos( theta ) * DetectorSpacingY;
-    vectors(nn,11) = -sin( tilt) * sin( theta ) * DetectorSpacingY;
+    vectors(nn,10) = -sin( tilt ) * cos( theta ) * DetectorSpacingY;
+    vectors(nn,11) = -sin( tilt ) * sin( theta ) * DetectorSpacingY;
     vectors(nn,12) = cos( tilt_lamino) * cos(tilt) * DetectorSpacingY;
 
 end
