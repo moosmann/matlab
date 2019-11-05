@@ -30,13 +30,21 @@ if ~exist( 'external_parameter' ,'var')
 end
 close all hidden % close all open windows
 %dbstop if error
-%% TODO: fix energy read out from  log file
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% PARAMETERS / SETTINGS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-fast_reco = 0; % !!! OVERWRITES SOME PARAMETERS SET BELOW !!!
+% !!! FAST RECO MODE PARAMTERS !!! OVERWRITES SOME PARAMETERS SET BELOW !!!
+fast_reco.run = 1; 
+fast_reco.raw_bin = 4;
+fast_reco.raw_roi = [];[0.4 0.6];
+fast_reco.proj_range = 4;
+fast_reco.ref_range = 10;
+%fast_reco.image_correlation.method = 'none';
+fast_reco.write.to_scratch = 1;
+fast_reco.pixel_filter_radius  = [3 3];
+% END OF FAST MODE PARAMTER SECTION %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %%% SCAN %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 scan_path = pwd; % string/pwd. pwd: change to directory of the scan to be reconstructed, sting: absolute scan path
@@ -51,13 +59,13 @@ sample_detector_distance = []; % in m. if empty: read from log file
 eff_pixel_size = []; % in m. if empty: read from log lfile. effective pixel size =  detector pixel size / magnification
 pixel_scaling = 1; % to account for beam divergence if pixel size was determined (via MTF) at the wrong distance
 %%% PREPROCESSING %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-raw_roi = [0.4 0.6]; % vertical and/or horizontal ROI; (1,1) coordinate = top left pixel; supports absolute, relative, negative, and mixed indexing.
+raw_roi = []; % vertical and/or horizontal ROI; (1,1) coordinate = top left pixel; supports absolute, relative, negative, and mixed indexing.
 % []: use full image;
 % [y0 y1]: vertical ROI, skips first raw_roi(1)-1 lines, reads until raw_roi(2); if raw_roi(2) < 0 reads until end - |raw_roi(2)|; relative indexing similar.
 % [y0 y1 x0 x1]: vertical + horzontal ROI, each ROI as above
 % if -1: auto roi, selects vertical ROI automatically. Use only for DCM. Not working for *.raw data where images are flipped and DMM data.
 % if < -1: Threshold is set as min(proj(:,:,[1 end])) + abs(raw_roi)*median(dark(:)). raw_roi=-1 defaults to min(proj(:,:,[1 end])) + 4*median(dark(:))
-raw_bin = 1; % projection binning factor: integer
+raw_bin = 2; % projection binning factor: integer
 im_trafo = '' ;%'rot90(im,-1)'; % string to be evaluated after reading data in the case the image is flipped/rotated/etc due to changes at the beamline, e.g. 'rot90(im)'
 par.crop_at_rot_axis = 0; % for recos of scans with excentric rotation axis but WITHOUT projection stitching
 par.stitch_projections = 0; % for 2 pi scans: stitch projection at rotation axis position. Recommended with phase retrieval to reduce artefacts. Standard absorption contrast data should work well without stitching. Subpixel stitching not supported (non-integer rotation axis position is rounded, less/no binning before reconstruction can be used to improve precision).
@@ -72,7 +80,7 @@ pixel_filter_threshold_flat = [0.01 0.005]; % Flat fields: threshold parameter f
 pixel_filter_threshold_proj = [0.01 0.005]; % Raw projection: threshold parameter for hot/dark pixel filter, for details see 'FilterPixel'
 pixel_filter_radius = [3 3]; % Increase only if blobs of zeros or other artefacts are expected. Can increase processing time heavily.
 ring_current_normalization = 0; % normalize flat fields and projections by ring current
-image_correlation.method = 'entropy';'ssim-ml';'ssim';'ssim-g';'std';'cov';'corr';'diff1-l1';'diff1-l2';'diff2-l1';'diff2-l2';'cross-entropy-12';'cross-entropy-21';'cross-entropy-x';
+image_correlation.method = 'ssim-ml';'entropy';'ssim';'ssim-g';'std';'cov';'corr';'diff1-l1';'diff1-l2';'diff2-l1';'diff2-l2';'cross-entropy-12';'cross-entropy-21';'cross-entropy-x';
 % Correlation of projections and flat fields. Essential for DCM data. Typically improves reconstruction quality of DMM data, too.
 % Available methods ('ssim-ml'/'entropy' usually work best):
 % 'none' : no correlation, uses median flat, for fast recos
@@ -144,7 +152,7 @@ write.subfolder.flatcor = ''; % subfolder in 'flat_corrected'
 write.subfolder.phase_map = ''; % subfolder in 'phase_map'
 write.subfolder.sino = ''; % subfolder in 'sino'
 write.subfolder.reco = ''; % subfolder in 'reco'
-write.flatcor = 0; % save preprocessed flat corrected projections
+write.flatcor = 1; % save preprocessed flat corrected projections
 write.phase_map = 0; % save phase maps (if phase retrieval is not 0)
 write.sino = 0; % save sinograms (after preprocessing & before FBP filtering and phase retrieval)
 write.phase_sino = 0; % save sinograms of phase maps
@@ -214,17 +222,19 @@ if exist( 'external_parameter' ,'var')
     dbstop if error
 end
 
-%%% FAST RECO MODE %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-if exist('fast_reco','var') && fast_reco(1)
-    raw_bin = 4;
-    raw_roi = [0.4 0.6];
-    proj_range = 4;
-    ref_range = 10;
-    %image_correlation.method = 'none';
-    write.to_scratch = 1;
-    pixel_filter_radius  = [3 3];
+%% % FAST RECO MODE %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+if exist( 'fast_reco', 'var') && fast_reco.run
+    fn = fieldnames( fast_reco );
+    for nn = 1:numel( fn )
+        name = fn{nn};
+        if ~strcmp( name, 'run' )
+           val = fast_reco.(name);
+           assign_default( name, val, 1 );
+        end
+    end
     cprintf( 'Red', '\nATTENTION: fast reco mode is turned on!\n\n' )
 end
+%%
 
 % Parameter checks
 if ~phase_retrieval.apply
@@ -1278,10 +1288,12 @@ if ~read_flatcor && ~read_sino
     
     %% Figure & Save: sino slice
     nn = round( size( proj, 2) / 2);
-    if numel( vert_shift ) < 2
+    if isscalar( vert_shift )
         sino = squeeze( proj(:,nn,:) );
     else
         y = round( nn + vert_shift );
+        y( y < 1 ) = 1;
+        y( y > size( proj, 2) ) = size( proj, 2);
         for mm = size( proj, 3 ):-1:1
             sino(:,mm) = proj(:,y(mm),mm);
         end

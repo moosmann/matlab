@@ -127,7 +127,6 @@ for nn = 1:num_proj
     vectors(nn,6) = sin( theta ) * DetectorSpacingX;
 end
 
-
 %% Projection geometry
 proj_geom = astra_create_proj_geom('parallel_vec', det_col_count, vectors);
 
