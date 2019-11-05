@@ -38,7 +38,7 @@ close all hidden % close all open windows
 % !!! FAST RECO MODE PARAMTERS !!! OVERWRITES SOME PARAMETERS SET BELOW !!!
 fast_reco.run = 1; 
 fast_reco.raw_bin = 4;
-fast_reco.raw_roi = [];%[0.4 0.6];
+fast_reco.raw_roi = [0.4 0.6];
 fast_reco.proj_range = 4;
 fast_reco.ref_range = 10;
 %fast_reco.image_correlation.method = 'none';
@@ -229,7 +229,7 @@ if exist( 'fast_reco', 'var') && fast_reco.run
         name = fn{nn};
         if ~strcmp( name, 'run' )
            val = fast_reco.(name);
-           assign_default( name, val, 1 );
+           assign_variable( name, val );
         end
     end
     cprintf( 'Red', '\nATTENTION: fast reco mode is turned on!\n\n' )

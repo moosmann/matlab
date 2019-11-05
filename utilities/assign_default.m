@@ -1,4 +1,4 @@
-function assign_default( name, default_value, assign_if_empty )
+function assign_default( name, default_value, assign_if_empty, force_assign )
 % Assign a default value of a variable or struct in the caller workspace if
 % it does not exist.
 %
@@ -17,6 +17,9 @@ if nargin < 2
 end
 if nargin < 3
     assign_if_empty = 1;
+end
+if nargin < 4
+    force_assign = 0;
 end
 
 %% Variable or struct with fields
@@ -63,7 +66,7 @@ if name_exists && assign_if_empty
 end
 
 %% Assignment via temp variable
-if ~name_exists || (name_exists && assign_if_empty && name_is_empty)
+if ~name_exists || (name_exists && assign_if_empty && name_is_empty) || force_assign
     assignin( 'caller', 'assign_tmp', default_value )
     expr = sprintf( '%s = assign_tmp;', name  );
     evalin( 'caller', expr );
