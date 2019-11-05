@@ -38,7 +38,7 @@ close all hidden % close all open windows
 % !!! FAST RECO MODE PARAMTERS !!! OVERWRITES SOME PARAMETERS SET BELOW !!!
 fast_reco.run = 1; 
 fast_reco.raw_bin = 4;
-fast_reco.raw_roi = [];[0.4 0.6];
+fast_reco.raw_roi = [];%[0.4 0.6];
 fast_reco.proj_range = 4;
 fast_reco.ref_range = 10;
 %fast_reco.image_correlation.method = 'none';
@@ -2075,7 +2075,7 @@ PrintVerbose( interactive_mode.rot_axis_pos, '\nTime elapsed in interactive rota
 PrintVerbose( interactive_mode.phase_retrieval, '\nTime elapsed in interactive phase retrieval mode: %g s (%.2f min)', tint_phase, tint_phase / 60 );
 fprintf( '\nTime elapsed for computation: %g s (%.2f min)', toc - tint -tint_phase, (toc - tint - tint_phase) / 60 );
 fprintf( '\nFINISHED: %s at %s\n', scan_name, datetime )
-if exist('fast_reco','var') && fast_reco(1)
+if exist('fast_reco','var') && fast_reco.run
     cprintf( 'Red', '\nATTENTION: fast reco mode was turned on!\n' )
 end
 fprintf( '\n')
