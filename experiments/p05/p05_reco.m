@@ -39,9 +39,9 @@ close all hidden % close all open windows
 fast_reco.run = 1; 
 fast_reco.raw_bin = 4;
 fast_reco.raw_roi = [0.4 0.6];
-fast_reco.proj_range = 4;
+fast_reco.proj_range = 1;
 fast_reco.ref_range = 10;
-%fast_reco.image_correlation.method = 'none';
+fast_reco.image_correlation.method = 'ssim';
 fast_reco.write.to_scratch = 1;
 fast_reco.pixel_filter_radius  = [3 3];
 % END OF FAST MODE PARAMTER SECTION %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -177,7 +177,7 @@ write.compression.parameter = [0.02 0.02]; % compression-method specific paramet
 par.visual_output = 0; % show images and plots during reconstruction
 interactive_mode.rot_axis_pos = 1; % reconstruct slices with dif+ferent rotation axis offsets
 interactive_mode.rot_axis_pos_default_search_range = []; % if empty: asks for search range when entering interactive mode
-interactive_mode.rot_axis_tilt = 0; % reconstruct slices with different offset AND tilts of the rotation axis
+interactive_mode.rot_axis_tilt = 1; % reconstruct slices with different offset AND tilts of the rotation axis
 interactive_mode.rot_axis_tilt_default_search_range = []; % if empty: asks for search range when entering interactive mode
 interactive_mode.lamino = 0; % find laminography tilt instead camera rotation
 interactive_mode.fixed_other_tilt = 0; % fixed other tilt
@@ -187,7 +187,7 @@ interactive_mode.slice_number = 0.5; % default slice number. if in [0,1): relati
 interactive_mode.phase_retrieval = 1; % Interactive retrieval to determine regularization parameter
 interactive_mode.phase_retrieval_default_search_range = []; % if empty: asks for search range when entering interactive mode, otherwise directly start with given search range
 %%% HARDWARE / SOFTWARE %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-par.use_cluster = 1; % if available: on MAXWELL nodes disp/nova/wga/wgs cluster computation can be used. Recommended only for large data sets since parpool creation and data transfer implies a lot of overhead.
+par.use_cluster = 0; % if available: on MAXWELL nodes disp/nova/wga/wgs cluster computation can be used. Recommended only for large data sets since parpool creation and data transfer implies a lot of overhead.
 par.poolsize = 0.6; % number of workers used in a local parallel pool. if 0: use current config. if >= 1: absolute number. if 0 < poolsize < 1: relative amount of all cores to be used. if SLURM scheduling is available, a default number of workers is used.
 par.poolsize_gpu_limit_factor = 0.7; % Relative amount of GPU memory used for preprocessing during parloop. High values speed up Proprocessing, but increases out-of-memory failure
 tomo.astra_link_data = 1; % ASTRA data objects become references to Matlab arrays. Reduces memory issues.
@@ -1517,48 +1517,59 @@ end
 if par.stitch_projections
     t = toc;
     fprintf( '\nStitch projections:')
-    % last projection within [0,pi)
-    [~, num_proj_sti] = min( abs(angles - pi));
-    % number of stitched projections
-    num_proj_sti = num_proj_sti - 1;
-    % index range of projections to be stitched
-    xl = 1:round(tomo.rot_axis.position);
-    xr = 1:xl(end)-1;
-    im_shape_sti1 = numel( xl ) + numel( xr );
-    % Preallocation
-    proj_sti = zeros( im_shape_sti1 , size( proj, 2 ), num_proj_sti, 'single');
-    for nn = 1:num_proj_sti
-        nn2 = mod(num_proj_sti + nn - 1, size( proj, 3) ) + 1;
-        im = zeros( im_shape_sti1, size( proj, 2 ));
-        switch lower( par.stitch_method )
-            case 'step'
-                im = cat(1, proj(xl,:,nn), flipud( proj(xr,:,nn2) ) );
-            case {'linear', 'sine'}
-                % overlap region
-                overlap = round(2 * tomo.rot_axis.position) - im_shape_cropbin1 : im_shape_cropbin1;
-                % overlap ramp
-                x = (0:1/(numel(overlap)-1):1);
-                % 1D weight
-                w = ones(im_shape_cropbin1, 1);
-                switch lower( par.stitch_method )
-                    case 'linear'
-                        w(overlap) = 1 - x;
-                    case 'sine'
-                        w(overlap) = 0.5 * cos(pi*x) + 0.5;
-                end
-                % weighted projections
-                iml = bsxfun(@times, proj(:,:,nn), w);
-                imr = flipud( bsxfun(@times, proj(:,:,nn2), w ) );
-                % stitched projection
-                im(1:im_shape_cropbin1,:) = iml;
-                im(end - im_shape_cropbin1 + 1:end,:) = im(end - im_shape_cropbin1 + 1:end,:) + imr;
+    num_scan_pos = max( scan_position_index );
+    if ~isscalar( offset_shift ) && num_scan_pos > 1
+        error( 'Not yet implemented' )
+%         for nn = num_scan_pos:-1:1
+%             s(nn).angles = angles( scan_position_index == nn );
+%         end
+%         
+%         proj_sti = 
+    else
+        
+        % last projection within [0,pi)
+        [~, num_proj_sti] = min( abs(angles - pi));
+        % number of stitched projections
+        num_proj_sti = num_proj_sti - 1;
+        % index range of projections to be stitched
+        xl = 1:round(tomo.rot_axis.position);
+        xr = 1:xl(end)-1;
+        im_shape_sti1 = numel( xl ) + numel( xr );
+        % Preallocation
+        proj_sti = zeros( im_shape_sti1 , size( proj, 2 ), num_proj_sti, 'single');
+        for nn = 1:num_proj_sti
+            nn2 = mod(num_proj_sti + nn - 1, size( proj, 3) ) + 1;
+            im = zeros( im_shape_sti1, size( proj, 2 ));
+            switch lower( par.stitch_method )
+                case 'step'
+                    im = cat(1, proj(xl,:,nn), flipud( proj(xr,:,nn2) ) );
+                case {'linear', 'sine'}
+                    % overlap region
+                    overlap = round(2 * tomo.rot_axis.position) - im_shape_cropbin1 : im_shape_cropbin1;
+                    % overlap ramp
+                    x = (0:1/(numel(overlap)-1):1);
+                    % 1D weight
+                    w = ones(im_shape_cropbin1, 1);
+                    switch lower( par.stitch_method )
+                        case 'linear'
+                            w(overlap) = 1 - x;
+                        case 'sine'
+                            w(overlap) = 0.5 * cos(pi*x) + 0.5;
+                    end
+                    % weighted projections
+                    iml = bsxfun(@times, proj(:,:,nn), w);
+                    imr = flipud( bsxfun(@times, proj(:,:,nn2), w ) );
+                    % stitched projection
+                    im(1:im_shape_cropbin1,:) = iml;
+                    im(end - im_shape_cropbin1 + 1:end,:) = im(end - im_shape_cropbin1 + 1:end,:) + imr;
+            end
+            proj_sti(:,:,nn) = im;
         end
-        proj_sti(:,:,nn) = im;
+        pause(0.01)
+        proj = proj_sti;
+        clear proj_sti;
+        angles = angles(1:num_proj_sti);
     end
-    pause(0.01)
-    proj = proj_sti;
-    clear proj_sti;
-    angles = angles(1:num_proj_sti);
     fprintf( ' done in %.1f (%.2f min)', toc-t, (toc-t)/60)
     fprintf( '\n shape of stitched projections : %u %u %u', size( proj ) )
     fprintf( '\n memory allocated : %.2f GiB', Bytes( proj, 3 ) )

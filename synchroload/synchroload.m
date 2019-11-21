@@ -31,6 +31,10 @@ edit stitch_volumes.m
 edit dose_synchroload.m
 edit dose_bone_test.m
 
+%% Segmentation
+% High quality
+'/asap3/petra3/gpfs/external/2019/data/50000258/processed/resampled/113734/segmentation_hanna';
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Load force value: create figure %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

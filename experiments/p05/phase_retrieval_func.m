@@ -17,6 +17,24 @@ edp = [phase_retrieval.energy, phase_retrieval.sample_detector_distance, phase_r
 if edp(1) <= 0
     error( 'Energy is zero!' );
 end
+
+N = size( proj, 1);
+energy = edp(1);
+lambda = E_to_lambda(energy);
+k = 2 * pi / lambda;
+z = edp(2);
+pixelsize = edp(3);
+b = N * edp(3);
+NF = b^2 / lambda / z;
+fprintf( '\n energy : %g keV', energy / 1000 );
+fprintf( '\n lambda : %f pm', lambda*1e12 )
+fprintf( '\n k : %g 1/nm', k*1e-9 )
+fprintf( '\n propagation distance : %f m', z );
+fprintf( '\n effective pixel size binned : %g micron', pixelsize * 1e6);
+fprintf( '\n characteristic length (detector width) b : %f mm', b * 1000 )
+fprintf( '\n Fresnel number = b^2 / lambda / z: %g', NF )
+
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Interactive mode %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 tint = 0;
