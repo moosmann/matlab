@@ -1,10 +1,10 @@
-function out = cadmium_tungstate( energy, thickness_m )
+function out = cadmium_tungstate( energy_eV, thickness_m )
 % Return material constants for cadmium tungstate (CdWO4).
 %
 % Writen by J. Moosmann
 
 if nargin < 1
-    energy = [20 30 40] * 1e3;
+    energy_eV = [20 30 40] * 1e3;
 end
 if nargin < 2
     thickness_m = 50e-6;
@@ -23,11 +23,11 @@ out.molar_mass.unit = 'g / mol';
 
 energy_min = min( [energy_Cd' energy_W' energy_O'] );
 energy_max = max( [energy_Cd' energy_W' energy_O'] );
-if min( energy ) < energy_min
-    error( 'lowest queried energy, %g eV, must be above %g eV!', min( energy ), energy_min )
+if min( energy_eV ) < energy_min
+    error( 'lowest queried energy_eV, %g eV, must be above %g eV!', min( energy_eV ), energy_min )
 end
-if max( energy ) > energy_max
-    error( 'highest queried energy, %g eV, must be below %g eV!', max( energy ), energy_max )
+if max( energy_eV ) > energy_max
+    error( 'highest queried energy_eV, %g eV, must be below %g eV!', max( energy_eV ), energy_max )
 end
 
 % weight percentage
@@ -42,15 +42,13 @@ w_Cd = 1 * molar_mass_Cd.value / molar_mass_total;
 w_W = 1 * molar_mass_W.value / molar_mass_total;
 w_O = 4 * molar_mass_O.value / molar_mass_total;
 
-
-
 % Compound coefficient obtained by additivity with mass weight wi
-out.energy.value = energy;
-out.energy.unit = 'eV';
+out.energy_eV.value = energy_eV;
+out.energy_eV.unit = 'eV';
 out.mass_att_coeff.value = ...
-    w_Cd * interp1( energy_Cd, mass_att_coeff_Cd, energy ) ...
-    + w_W * interp1( energy_W, mass_att_coeff_W, energy ) ...
-    + w_O * interp1( energy_O, mass_att_coeff_O, energy );
+    w_Cd * interp1( energy_Cd, mass_att_coeff_Cd, energy_eV ) ...
+    + w_W * interp1( energy_W, mass_att_coeff_W, energy_eV ) ...
+    + w_O * interp1( energy_O, mass_att_coeff_O, energy_eV );
 out.mass_att_coeff.unit = 'm^2 / kg';
 
 out.transmission.value = exp( - out.mass_att_coeff.value * out.density.value * thickness_m );
