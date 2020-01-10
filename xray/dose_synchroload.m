@@ -6,14 +6,14 @@
 ca
 %clear all
 sample_type = 'real';
-sample_type = 'cylinder';
+%sample_type = 'cylinder';
 num_proj_phan = 1200;
 %scintillator_factor = cdwo300.absorption.value;
 
 eV_to_J = 1 / 6.24e18;
 
 bin = 4;
-energy = 30000:1000:120000;
+energy = 30000:1000:80000;
 fprintf( ' energy: min : %g keV, max : %g keV, steps : %u', min( energy )/1000, max( energy )/1000, numel( energy ) )
 voxel_size.value = bin * 2 * 3.115e-6;
 voxel_size.unit = 'm';

@@ -1,42 +1,701 @@
+%% making figures for felix
+% % vis vs aperture
+% first scinti: cdwo4
+prefix_list = {'ximea_cdwo4_08_028ms','ximea_cdwo4_07_038ms',...
+    'ximea_cdwo4_06_050ms','ximea_cdwo4_05_072ms',...
+    'ximea_cdwo4_04_102ms','ximea_cdwo4_03_148ms',...
+    'ximea_cdwo4_02_255ms','ximea_cdwo4_01_520ms'};
+datadir = '/asap3/petra3/gpfs/p07/2019/data/11007902/raw/';
+roi = [3450,3750,1300,1600]; % XIMEA % cropping roi [x1,x2,y1,y2]
+vis_roi = [1,roi(2)-roi(1)+1,1,roi(4)-roi(3)+1]; % XIMEA
+ims = zeros(roi(4)-roi(3)+1,roi(2)-roi(1)+1,length(prefix_list),nps);
+tic
+parfor ap = 1:length(prefix_list)
+    prefix = prefix_list{ap};
+    innerloop = dir([datadir prefix '/*img*']);
+    darkname = dir([datadir prefix '/*dar*']);
+    dark = imread([datadir prefix '/' darkname.name],...
+            'PixelRegion',{[roi(3) roi(4)],[roi(1) roi(2)]});
+    for ps = 1:nps
+        this_im = imread([datadir prefix '/' innerloop(ps).name],...
+            'PixelRegion',{[roi(3) roi(4)],[roi(1) roi(2)]});
+        ims(:,:,ap,ps) = double(this_im)-double(dark);
+    end
+end
+fprintf([num2str(length(prefix_list)*nps) ' images loaded, '])
+toc
+% get exposure time
+apsize = zeros(1,length(prefix_list));
+for ap = 1:length(prefix_list)
+    prefix = prefix_list{ap};
+    apsize(ap) = str2double(prefix(13:14));
+end
+exptime = zeros(1,length(prefix_list));
+for et = 1:length(prefix_list)
+    prefix = prefix_list{et};
+    exptime(et) = str2double(prefix(16:18));
+end
+meancounts = zeros(1,length(prefix_list));
+for ap = 1:length(prefix_list)
+    these_ims = squeeze(ims(:,:,ap,:));
+    tmp = these_ims(vis_roi(3):vis_roi(4),vis_roi(1):vis_roi(2),:);
+    meancounts(ap) = mean(tmp(:));
+end
+countspers = meancounts./exptime;
+% calculate visibility
+vis_map = zeros(roi(4)-roi(3)+1,roi(2)-roi(1)+1,length(prefix_list));
+for ap = 1:length(prefix_list)
+    imsteps = squeeze(ims(:,:,ap,:));
+    ft_imsteps = fft(imsteps,[],3);
+    vis_map(:,:,ap) = 2*abs(ft_imsteps(:,:,2))./abs(ft_imsteps(:,:,1));
+end
+for ap = 1:length(prefix_list)
+    vis_map(:,:,ap) = medfilt2(squeeze(vis_map(:,:,ap)),[5 5]);
+end
+vis_apsize = squeeze(mean(mean(vis_map(vis_roi(3):vis_roi(4),...
+    vis_roi(1):vis_roi(2),:),1),2));
+apsize_cdwo4 = apsize;
+vis_apsize_cdwo4 = vis_apsize;
+countspers_cdwo4 = countspers;
+% scinti 2: luag
+prefix_list = {'ximea_luag_08_57ms','ximea_luag_07_73ms',...
+    'ximea_luag_06_100ms','ximea_luag_05_140ms',...
+    'ximea_luag_04_195ms','ximea_luag_03_290ms',...
+    'ximea_luag_02_500ms','ximea_luag_01_1000ms'};
+datadir = '/asap3/petra3/gpfs/p07/2019/data/11007902/raw/';
+roi = [3450,3750,1300,1600]; % XIMEA % cropping roi [x1,x2,y1,y2]
+vis_roi = [1,roi(2)-roi(1)+1,1,roi(4)-roi(3)+1]; % XIMEA
+ims = zeros(roi(4)-roi(3)+1,roi(2)-roi(1)+1,length(prefix_list),nps);
+tic
+parfor ap = 1:length(prefix_list)
+    prefix = prefix_list{ap};
+    innerloop = dir([datadir prefix '/*img*']);
+    darkname = dir([datadir prefix '/*dar*']);
+    dark = imread([datadir prefix '/' darkname.name],...
+            'PixelRegion',{[roi(3) roi(4)],[roi(1) roi(2)]});
+    for ps = 1:nps
+        this_im = imread([datadir prefix '/' innerloop(ps).name],...
+            'PixelRegion',{[roi(3) roi(4)],[roi(1) roi(2)]});
+        ims(:,:,ap,ps) = double(this_im)-double(dark);
+    end
+end
+fprintf([num2str(length(prefix_list)*nps) ' images loaded, '])
+toc
+% get exposure time
+apsize = zeros(1,length(prefix_list));
+for ap = 1:length(prefix_list)
+    prefix = prefix_list{ap};
+    apsize(ap) = str2double(prefix(12:13));
+end
+exptime = zeros(1,length(prefix_list));
+for et = 1:length(prefix_list)
+    prefix = prefix_list{et};
+%     exptime(et) = str2double(prefix(16:18));
+    if isnan(str2double(prefix(18)))
+        if isnan(str2double(prefix(17)))
+            exptime(et) = str2double(prefix(15:16));
+        else
+            exptime(et) = str2double(prefix(15:17));
+        end
+    else
+        exptime(et) = str2double(prefix(15:18));
+    end
+end
+meancounts = zeros(1,length(prefix_list));
+for ap = 1:length(prefix_list)
+    these_ims = squeeze(ims(:,:,ap,:));
+    tmp = these_ims(vis_roi(3):vis_roi(4),vis_roi(1):vis_roi(2),:);
+    meancounts(ap) = mean(tmp(:));
+end
+countspers = meancounts./exptime;
+% calculate visibility
+vis_map = zeros(roi(4)-roi(3)+1,roi(2)-roi(1)+1,length(prefix_list));
+for ap = 1:length(prefix_list)
+    imsteps = squeeze(ims(:,:,ap,:));
+    ft_imsteps = fft(imsteps,[],3);
+    vis_map(:,:,ap) = 2*abs(ft_imsteps(:,:,2))./abs(ft_imsteps(:,:,1));
+end
+for ap = 1:length(prefix_list)
+    vis_map(:,:,ap) = medfilt2(squeeze(vis_map(:,:,ap)),[5 5]);
+end
+vis_apsize = squeeze(mean(mean(vis_map(vis_roi(3):vis_roi(4),...
+    vis_roi(1):vis_roi(2),:),1),2));
+apsize_luag = apsize;
+vis_apsize_luag = vis_apsize;
+countspers_luag = countspers;
+exptime_luag = exptime;
+% plots
+figure, plot(apsize_luag*0.1,vis_apsize_luag,'.-')
+hold on
+plot(apsize_cdwo4*0.1,vis_apsize_cdwo4,'.-')
+xlabel('aperture size')
+ylabel('visibility')
+xlim([0,1])
+legend({'LuAG 50 \mum','CdWO_4 100 \mum'})
+
+figure, plot(apsize_luag*0.1,vis_apsize_luag.*sqrt(countspers_luag)','.-')
+hold on
+plot(apsize_cdwo4*0.1,vis_apsize_cdwo4.*sqrt(countspers_cdwo4)','.-')
+xlabel('aperture')
+ylabel('V*\sqrt{counts/s}')
+legend({'LuAG 50 \mum','CdWO_4 100 \mum'},'Location','southeast')
+xlim([0,1])
+title('figure of merit')
+
+figure, yyaxis left
+plot(apsize_luag*0.1,vis_apsize_luag,'.-','Color',[0, 0.4470, 0.7410])
+hold on
+plot(apsize_cdwo4*0.1,vis_apsize_cdwo4,'.-','Color',[0.8500, 0.3250, 0.0980])
+ylabel('visibility')
+xlabel('aperture size')
+yyaxis right
+plot(apsize_luag*0.1,countspers_luag,'*--','Color',[0, 0.4470, 0.7410])
+hold on
+plot(apsize_cdwo4*0.1,countspers_cdwo4,'*--','Color',[0.8500, 0.3250, 0.0980])
+ylabel('counts/ms')
+xlim([0,1])
+ylim([0,90])
+l1 = plot([NaN,NaN],'-','color',[0, 0.4470, 0.7410]);
+l2 = plot([NaN,NaN],'-','color',[0.8500, 0.3250, 0.0980]);
+legend([l1, l2],{'LuAG 50 \mum','CdWO_4 100 \mum'},'Location','southeast')
+ax = gca;
+ax.YAxis(1).Color = 'k';
+ax.YAxis(2).Color = 'k';
+
+% % vis vs distance
+datadir = '/asap3/petra3/gpfs/p07/2019/data/11007902/raw/';
+prefix = 'ximea_vis12_aperture03_z';%'ximea_vis02_z';%'vis01_z'; %'ximea_vis01_z';
+outerloop = dir([datadir prefix '*']);
+tmp2 = dir([datadir outerloop(1).name '/*img*']);
+% get sizes
+zpositions = numel(outerloop); % number of z positions
+nps = numel(tmp2); % number of phase steps
+% load data
+refname = dir([datadir outerloop(1).name '/*ref*']);
+tmp = imread([datadir outerloop(1).name '/' refname(1).name]);
+[sy,sx,sz] = size(tmp);
+roi = [3750,4050,1350,1650]; % XIMEA % cropping roi [x1,x2,y1,y2]
+figure, imagesc(tmp), axis equal
+hold on
+rectangle('Position',[roi(1),roi(3),roi(2)-roi(1),...
+    roi(2)-roi(1)],'EdgeColor','r')
+title('crop roi')
+ims = zeros(roi(4)-roi(3)+1,roi(2)-roi(1)+1,zpositions,nps);
+tic
+parfor zp = 1:zpositions
+    innerloop = dir([datadir outerloop(zp).name '/*img*']);
+    darkname = dir([datadir outerloop(zp).name '/*dar*']);
+    dark = imread([datadir outerloop(zp).name '/' darkname.name],...
+            'PixelRegion',{[roi(3) roi(4)],[roi(1) roi(2)]});
+    for ps = 1:nps
+        tmp = imread([datadir outerloop(zp).name '/' innerloop(ps).name],...
+            'PixelRegion',{[roi(3) roi(4)],[roi(1) roi(2)]});
+        ims(:,:,zp,ps) = double(tmp-dark);
+    end
+end
+fprintf([num2str(zpositions*nps) ' images loaded, '])
+toc
+% read distances from file names
+z = zeros(1,zpositions);
+for zp = 1:zpositions
+    z(zp) = str2double(outerloop(zp).name(length(prefix)+1:length(prefix)+4));
+end
+% calculate visibility
+vis_map = zeros(roi(4)-roi(3)+1,roi(2)-roi(1)+1,zpositions);
+for zp = 1:zpositions
+    imsteps = squeeze(ims(:,:,zp,:));
+    ft_imsteps = fft(imsteps,[],3);
+    vm = 2*abs(ft_imsteps(:,:,2))./abs(ft_imsteps(:,:,1));
+    vis_map(:,:,zp) = medfilt2(vm,[3 3]);
+end
+% choose a roi to average visibility over
+vis_roi = [125,175,125+25,175+25]; % XIMEA
+vis_dist = squeeze(mean(mean(vis_map(vis_roi(3):vis_roi(4),...
+    vis_roi(1):vis_roi(2),:),1),2));
+
+figure, plot(z,vis_dist,'.-')
+xlabel('z [mm]')
+ylabel('visibility')
+grid on
+ylim([0,0.16])
+% % vis vs settle time
+
+% % vis vs exposure time
+
+% % vis vs tilt vs distance
+datadir = '/asap3/petra3/gpfs/p07/2019/data/11007902/raw/';
+prefix = 'ximea_vis17_z';%'ximea_vis02_z';%'vis01_z'; %'ximea_vis01_z';
+outerloop = dir([datadir prefix '*']);
+z = 800:10:1000;
+tiltangles = 32:1:44;
+zpositions = length(z);
+tilts = length(tiltangles);
+ntomoscans = numel(outerloop);
+nps = numel(dir([datadir outerloop(1).name '/*img*'])); % number of phase steps
+% load data
+roi = [3750,4050,1000,1300]; % XIMEA % cropping roi [x1,x2,y1,y2]
+vis_roi = [125,175,125+25,175+25]; % XIMEA
+refname = dir([datadir outerloop(1).name '/*ref*']);
+tmp = imread([datadir outerloop(1).name '/' refname(1).name]);
+tmp_crop = tmp(roi(3):roi(4),roi(1):roi(2));
+[sy,sx,sz] = size(tmp);
+figure, imagesc(tmp), axis equal
+hold on, rectangle('Position',[roi(1),roi(3),roi(2)-roi(1),roi(2)-roi(1)],'EdgeColor','r')
+title('crop roi')
+figure, imagesc(tmp_crop), axis equal
+hold on, rectangle('Position',[vis_roi(1),vis_roi(3),vis_roi(2)-vis_roi(1),...
+    vis_roi(2)-vis_roi(1)],'EdgeColor','r')
+title('vis roi')
+ims = zeros(vis_roi(4)-vis_roi(3)+1,vis_roi(2)-vis_roi(1)+1,ntomoscans);
+tic
+parfor ii = 1:ntomoscans
+    innerloop = dir([datadir outerloop(ii).name '/*img*']);
+    darkname = dir([datadir outerloop(ii).name '/*dar*']);
+    dark = imread([datadir outerloop(ii).name '/' darkname.name],...
+            'PixelRegion',{[roi(3) roi(4)],[roi(1) roi(2)]});
+    for ps = 1:nps
+        tmp = imread([datadir outerloop(ii).name '/' innerloop(ps).name],...
+            'PixelRegion',{[roi(3) roi(4)],[roi(1) roi(2)]});
+        tmp = double(tmp-dark);
+        ims(:,:,ii,ps) = tmp(vis_roi(3):vis_roi(4),vis_roi(1):vis_roi(2));
+    end
+end
+fprintf([num2str(ntomoscans*nps) ' images loaded, '])
+toc
+vis_map = zeros(vis_roi(4)-vis_roi(3)+1,vis_roi(2)-vis_roi(1)+1,ntomoscans);
+for ii = 1:ntomoscans
+    these_ims = squeeze(ims(:,:,ii,:));
+    ft_ims = fft(these_ims,[],3);
+    vm = 2*abs(ft_ims(:,:,2))./abs(ft_ims(:,:,1));
+    vis_map(:,:,ii) = medfilt2(vm,[3 3]);
+end
+fun = @(block_struct)  ...
+    median(block_struct.data,'all')*ones(size(block_struct.data));
+vis_dat = zeros(1,ntomoscans);
+for ii = 1:ntomoscans
+    vm = vis_map(:,:,ii) ;
+    vm2 = blockproc(vm,[5 5],fun);
+    vis_dat(ii) = median(vm2,'all');
+end
+vis_dat2 = reshape(vis_dat,[tilts,zpositions]);
+
+figure, plot(z,vis_dat2(1:3:end,:),'.-')
+xlabel('z [mm]')
+ylabel('visibility')
+legend(num2str(tiltangles(1:3:end)'))
+title('Visibility, distance, and tilt angle')
+
+% % phase projections
+datadir = '/asap3/petra3/gpfs/p07/2019/data/11007454/raw/';
+sdir = 'bmc10_mouse21_xsgi_a/tiff0000'; % scan directory
+fnames = dir([datadir sdir filesep '*img*']);
+flatnames = dir([datadir sdir filesep '*ref*']);
+darkname = dir([datadir sdir filesep '*dar*']);
+crop_roi = [1,7920,1,2600];
+dark = imread([datadir sdir filesep darkname(1).name],...
+            'PixelRegion',{[crop_roi(3) crop_roi(4)],[crop_roi(1) crop_roi(2)]});
+nps = 5;
+sdir = 'bmc10_mouse21_xsgi_a/tiff0010'; % scan directory
+fnames = dir([datadir sdir filesep '*img*']);
+flatnames = dir([datadir sdir filesep '*ref*']);
+ims = zeros(crop_roi(4)-crop_roi(3)+1,crop_roi(2)-crop_roi(1)+1,nps);
+flat_ims = zeros(crop_roi(4)-crop_roi(3)+1,crop_roi(2)-crop_roi(1)+1,nps);
+tic
+for ii = 1:nps
+    tmp = imread([datadir sdir filesep fnames(ii+5*500).name],...
+            'PixelRegion',{[crop_roi(3) crop_roi(4)],[crop_roi(1) crop_roi(2)]});
+    ims(:,:,ii) = tmp-dark;
+    tmp = imread([datadir sdir filesep flatnames(ii).name],...
+            'PixelRegion',{[crop_roi(3) crop_roi(4)],[crop_roi(1) crop_roi(2)]});
+    flat_ims(:,:,ii) = tmp-dark;
+end
+toc
+% dpc processing
+wrap = @(datin) ((datin+pi)-2*pi*floor((datin+pi)/(2*pi)))-pi;
+ft_ims = fft(ims,[],3);
+ft_flat_ims = fft(flat_ims,[],3);
+dp_im = wrap(angle(ft_ims(:,:,2))-angle(ft_flat_ims(:,:,2)));
+df_im = (abs(ft_ims(:,:,2))./abs(ft_ims(:,:,1)))./(abs(ft_flat_ims(:,:,2))./abs(ft_flat_ims(:,:,1)));
+ac_im = abs(ft_ims(:,:,1))./abs(ft_flat_ims(:,:,1));
+vis_ff = 2*abs(ft_flat_ims(:,:,2))./abs(ft_flat_ims(:,:,1));
+
+figure, imagesc(ims(:,:,1))
+title('raw proj')
+
+figure, subplot(311)
+imagesc(dp_im,[-pi,pi]/5), axis equal
+ylim([crop_roi(3),crop_roi(4)])
+xlim([crop_roi(1),crop_roi(2)])
+title('differential phase')
+subplot(312), imagesc(ac_im,[0.7,1.1]), axis equal
+ylim([crop_roi(3),crop_roi(4)])
+xlim([crop_roi(1),crop_roi(2)])
+title('attenuation')
+subplot(313), imagesc(df_im,[0,2.5]), axis equal
+ylim([crop_roi(3),crop_roi(4)])
+xlim([crop_roi(1),crop_roi(2)])
+title('dark field')
+
+% % image of the gratings
+tmp = flat_ims(:,:,1);
+figure, imagesc(tmp), axis equal
+ylim([crop_roi(3),crop_roi(4)])
+xlim([crop_roi(1),crop_roi(2)])
+title('fringe pattern at d = 900 mm')
+
+roi = [3750,4050,1000,1300]; % XIMEA % cropping roi [x1,x2,y1,y2]
+vis_roi = [125,175,125+25,175+25]; % XIMEA
+
+figure, subplot(131)
+imagesc(tmp), axis equal
+ylim([crop_roi(3),crop_roi(4)])
+xlim([crop_roi(1),crop_roi(2)])
+hold on, rectangle('Position',[roi(1),roi(3),roi(2)-roi(1),roi(2)-roi(1)],'EdgeColor','r')
+title('fringe pattern at d = 900 mm')
+tmp_crop = tmp(roi(3):roi(4),roi(1):roi(2));
+subplot(132), imagesc(tmp_crop), axis equal
+ylim([1,300])
+xlim([1,300])
+hold on, rectangle('Position',[vis_roi(1),vis_roi(3),vis_roi(2)-vis_roi(1),...
+    vis_roi(2)-vis_roi(1)],'EdgeColor','r')
+vis_tmp_crop = tmp_crop(vis_roi(3):vis_roi(4),vis_roi(1):vis_roi(2));
+subplot(133), imagesc(vis_tmp_crop), axis equal
+ylim([1,50])
+xlim([1,50])
+
 %% dpc scripts
 % data is in '/asap3/petra3/gpfs/p07/2019/data/11007902/raw/'
+datadir = '/asap3/petra3/gpfs/p07/2019/data/11007454/raw/';
+sdir1 = '/bmc13_sheep_brain_formalin_a'; % scan directory
 
-datadir = '/asap3/petra3/gpfs/p07/2019/data/11007902/raw/test_vis_01/';
+dirs = dir([datadir sdir1 filesep 'tiff*']);
+ndirs = numel(dirs);
+n_proj = zeros(1,ndirs);
+n_frames= zeros(1,ndirs);
+for ii =1:ndirs
+    sdir2 = [sdir1 filesep 'tiff' num2str(ii-1,'%04d')];
+    fnames = dir([datadir sdir2 filesep '*img*']);
+    flatnames = dir([datadir sdir2 filesep '*ref*']);
+    darkname = dir([datadir sdir2 filesep '*dar*']);
+    n_proj(ii) = numel(fnames);
+    n_frames(ii) = numel(fnames)+numel(flatnames)+numel(darkname);
+end
+n_proj
 
-a = dir([datadir '*img*']);
-nims = numel( a );
-sy = 3840;
-sx = 5120;
-ims = zeros(sy,sx,nims);
+a=imread([datadir sdir2 filesep fnames(end-100).name]);
+figure,imagesc(a)
+%% check that scan is running
+datadir = '/asap3/petra3/gpfs/p07/2019/data/11007454/raw/';
+sdir = 'bmc10_mouse21_xsgi_a/tiff0000'; % scan directory
+fnames = dir([datadir sdir filesep '*img*']);
+flatnames = dir([datadir sdir filesep '*ref*']);
+darkname = dir([datadir sdir filesep '*dar*']);
+dark = single(imread([datadir sdir filesep darkname(1).name]));
+im = single(imread([datadir sdir filesep fnames(end).name]))-dark;
+ref = single(imread([datadir sdir filesep flatnames(end).name]))-dark;
+
+figure, imagesc(im./ref,[0.25,1.1])
+
+%% one phase projection
+datadir = '/asap3/petra3/gpfs/p07/2019/data/11007454/raw/';
+sdir = 'vis_0512_01/tiff0000'; % scan directory
+
+fnames = dir([datadir sdir filesep '*img*']);
+flatnames = dir([datadir sdir filesep '*ref*']);
+darkname = dir([datadir sdir filesep '*dar*']);
+
+crop_roi = [1,7920,1,2600];
+dark = imread([datadir sdir filesep darkname(1).name],...
+            'PixelRegion',{[crop_roi(3) crop_roi(4)],[crop_roi(1) crop_roi(2)]});
+
+nps = 5;
+ims = zeros(crop_roi(4)-crop_roi(3)+1,crop_roi(2)-crop_roi(1)+1,nps);
+flat_ims = zeros(crop_roi(4)-crop_roi(3)+1,crop_roi(2)-crop_roi(1)+1,nps);
 tic
-parfor ii = 1:nims
-    tmp = imread([datadir filesep a(ii).name ]);
-    ims(:,:,ii) = tmp;
+for ii = 1:nps
+    tmp = imread([datadir sdir filesep fnames(ii).name],...
+            'PixelRegion',{[crop_roi(3) crop_roi(4)],[crop_roi(1) crop_roi(2)]});
+    ims(:,:,ii) = tmp-dark;
+    tmp = imread([datadir sdir filesep flatnames(ii).name],...
+            'PixelRegion',{[crop_roi(3) crop_roi(4)],[crop_roi(1) crop_roi(2)]});
+    flat_ims(:,:,ii) = tmp-dark;
 end
 toc
 
-stepping_curve = squeeze(ims(2319,2215,:));
-figure, plot(stepping_curve,'.-')
+% dpc processing
+wrap = @(datin) ((datin+pi)-2*pi*floor((datin+pi)/(2*pi)))-pi;
+
+ft_ims = fft(ims,[],3);
+ft_flat_ims = fft(flat_ims,[],3);
+
+dp_im = wrap(angle(ft_ims(:,:,2))-angle(ft_flat_ims(:,:,2)));
+df_im = (abs(ft_ims(:,:,2))./abs(ft_ims(:,:,1)))./(abs(ft_flat_ims(:,:,2))./abs(ft_flat_ims(:,:,1)));
+ac_im = abs(ft_ims(:,:,1))./abs(ft_flat_ims(:,:,1));
+vis_ff = 2*abs(ft_flat_ims(:,:,2))./abs(ft_flat_ims(:,:,1));
+
+figure, imagesc(ims(:,:,1))
+title('raw proj')
+
+figure, imagesc(dp_im,[-pi,pi]/5), axis equal
+title('dpc')
+
+figure, imagesc(ac_im,[0.7,1.1]), axis equal
+title('att')
+
+figure, imagesc(df_im,[0,2.5]), axis equal
+title('df')
+
+figure, imagesc(ims(200:450,3200:3450,1))
+
+figure, imagesc(dp_im(200:450,3200:3450))
+figure, imagesc(wrap(angle(ft_ims(200:450,3200:3450,2))))
+figure, imagesc(wrap(angle(ft_flat_ims(200:450,3200:3450,2))))
+
+roi = [2500,2750,1100,1350];
+figure, imagesc(vis_ff(roi(3):roi(4),roi(1):roi(2)))
+
+median(vis_ff(roi(3):roi(4),roi(1):roi(2)),'all')
+
+figure, imagesc(vis_ff,[0.07,0.17])
+
+%% dpc reco
+datadir = '/asap3/petra3/gpfs/p07/2019/data/11007902/raw/';
+sdir = 'bmc01_greek_brain_e'; % scan directory
+
+fnames = dir([datadir sdir filesep '*img*']);
+flatnames = dir([datadir sdir filesep '*ref*']);
+darkname = dir([datadir sdir filesep '*dar*']);
+
+% define a cropping region
+tmp = imread([datadir sdir filesep fnames(1).name]);
+croi = [360,7561,1201,1401]; % [x1,x2,y1,y2]
+figure, imagesc(tmp), hold on
+rectangle('Position',[croi(1),croi(3),croi(2)-croi(1),...
+    croi(4)-croi(3)],'EdgeColor','r')
+title('crop roi')
+
+% load dark
+tmp = imread([datadir sdir filesep fnames(ii).name],...
+            'PixelRegion',{[crop_roi(3) crop_roi(4)],[crop_roi(1) crop_roi(2)]});
 
 
-roi = [1750,2050,2050,2350]; % [x1,x2,y1,y2]
+%% one phase projection
+datadir = '/asap3/petra3/gpfs/p07/2019/data/11007902/raw/';
+sdir = 'dpc_proj01'; % scan directory
 
-figure, imagesc(ims(roi(3):roi(4),roi(1):roi(2),1))
+fnames = dir([datadir sdir filesep '*img*']);
+flatnames = dir([datadir sdir filesep '*ref*']);
+darkname = dir([datadir sdir filesep '*dar*']);
 
-figure, plot(squeeze(ims(roi(3),2050:2150,1)))
+crop_roi = [101,7000,1,650];
+dark = imread([datadir sdir filesep darkname(1).name],...
+            'PixelRegion',{[crop_roi(3) crop_roi(4)],[crop_roi(1) crop_roi(2)]});
+
+nps = numel(fnames);
+ims = zeros(crop_roi(4)-crop_roi(3)+1,crop_roi(2)-crop_roi(1)+1,nps);
+flat_ims = zeros(crop_roi(4)-crop_roi(3)+1,crop_roi(2)-crop_roi(1)+1,nps);
+tic
+parfor ii = 1:nps
+    tmp = imread([datadir sdir filesep fnames(ii).name],...
+            'PixelRegion',{[crop_roi(3) crop_roi(4)],[crop_roi(1) crop_roi(2)]});
+    ims(:,:,ii) = tmp-dark;
+    tmp = imread([datadir sdir filesep flatnames(ii).name],...
+            'PixelRegion',{[crop_roi(3) crop_roi(4)],[crop_roi(1) crop_roi(2)]});
+    flat_ims(:,:,ii) = tmp-dark;
+end
+toc
+
+% dpc processing
+wrap = @(datin) ((datin+pi)-2*pi*floor((datin+pi)/(2*pi)))-pi;
+
+ft_ims = fft(ims,[],3);
+ft_flat_ims = fft(flat_ims,[],3);
+
+dp_im = wrap(angle(ft_ims(:,:,2))-angle(ft_flat_ims(:,:,2)));
+df_im = (abs(ft_ims(:,:,2))./abs(ft_ims(:,:,1)))./(abs(ft_flat_ims(:,:,2))./abs(ft_flat_ims(:,:,1)));
+ac_im = abs(ft_ims(:,:,1))./abs(ft_flat_ims(:,:,1));
+vis_ff = 2*abs(ft_flat_ims(:,:,2))./abs(ft_flat_ims(:,:,1));
+
+figure, imagesc(ims(:,:,1))
+title('raw proj')
+
+figure, imagesc(dp_im,[-pi,pi]/5), axis equal
+title('dpc')
+
+figure, imagesc(ac_im,[0.7,1.1]), axis equal
+title('att')
+
+figure, imagesc(df_im,[0,2.5]), axis equal
+title('df')
+
+figure, imagesc(ims(200:450,3200:3450,1))
+
+figure, imagesc(dp_im(200:450,3200:3450))
+figure, imagesc(wrap(angle(ft_ims(200:450,3200:3450,2))))
+figure, imagesc(wrap(angle(ft_flat_ims(200:450,3200:3450,2))))
+
+%% checking aperture size (second  scintillator)
+% prefix_list = {'ximea_luag_08_57ms','ximea_luag_07_73ms',...
+%     'ximea_luag_06_100ms','ximea_luag_05_140ms',...
+%     'ximea_luag_04_195ms','ximea_luag_03_290ms',...
+%     'ximea_luag_02_500ms','ximea_luag_01_1000ms'};
+prefix_list = {'ximea_cdwo4_08_028ms','ximea_cdwo4_07_038ms',...
+    'ximea_cdwo4_06_050ms','ximea_cdwo4_05_072ms',...
+    'ximea_cdwo4_04_102ms','ximea_cdwo4_03_148ms',...
+    'ximea_cdwo4_02_255ms','ximea_cdwo4_01_520ms'};
+
+datadir = '/asap3/petra3/gpfs/p07/2019/data/11007902/raw/';
+
+roi = [3450,3750,1300,1600]; % XIMEA % cropping roi [x1,x2,y1,y2]
+%vis_roi = [100,150,100,150]; % XIMEA
+vis_roi = [1,roi(2)-roi(1)+1,1,roi(4)-roi(3)+1]; % XIMEA
+
+ims = zeros(roi(4)-roi(3)+1,roi(2)-roi(1)+1,length(prefix_list),nps);
+tic
+parfor ap = 1:length(prefix_list)
+    prefix = prefix_list{ap};
+    innerloop = dir([datadir prefix '/*img*']);
+    darkname = dir([datadir prefix '/*dar*']);
+    dark = imread([datadir prefix '/' darkname.name],...
+            'PixelRegion',{[roi(3) roi(4)],[roi(1) roi(2)]});
+    for ps = 1:nps
+        this_im = imread([datadir prefix '/' innerloop(ps).name],...
+            'PixelRegion',{[roi(3) roi(4)],[roi(1) roi(2)]});
+        ims(:,:,ap,ps) = double(this_im)-double(dark);
+    end
+end
+fprintf([num2str(length(prefix_list)*nps) ' images loaded, '])
+toc
+
+% get exposure time
+apsize = zeros(1,length(prefix_list));
+for ap = 1:length(prefix_list)
+    prefix = prefix_list{ap};
+    apsize(ap) = str2double(prefix(13:14));
+end
+
+exptime = zeros(1,length(prefix_list));
+for et = 1:length(prefix_list)
+    prefix = prefix_list{et};
+    exptime(et) = str2double(prefix(16:18));
+%     if isnan(str2double(prefix(18)))
+%         if isnan(str2double(prefix(17)))
+%             exptime(et) = str2double(prefix(15:16));
+%         else
+%             exptime(et) = str2double(prefix(15:17));
+%         end
+%     else
+%         exptime(et) = str2double(prefix(15:18));
+%     end
+end
+
+meancounts = zeros(1,length(prefix_list));
+for ap = 1:length(prefix_list)
+    these_ims = squeeze(ims(:,:,ap,:));
+    tmp = these_ims(vis_roi(3):vis_roi(4),vis_roi(1):vis_roi(2),:);
+    meancounts(ap) = mean(tmp(:));
+end
+
+countspers = meancounts./exptime;
 
 
+% calculate visibility
+vis_map = zeros(roi(4)-roi(3)+1,roi(2)-roi(1)+1,length(prefix_list));
+for ap = 1:length(prefix_list)
+    imsteps = squeeze(ims(:,:,ap,:));
+    ft_imsteps = fft(imsteps,[],3);
+    vis_map(:,:,ap) = 2*abs(ft_imsteps(:,:,2))./abs(ft_imsteps(:,:,1));
+end
 
-crop_im = squeeze(ims(roi(3):roi(4),roi(1):roi(2),1));
-ft_crop_im = fftshift(fft2(crop_im));
+% fun = @(block_struct)  ...
+%     median(block_struct.data,'all')*ones(size(block_struct.data));
+% vis_dat = zeros(1,ntomoscans);
+% for ii = 1:ntomoscans
+%     vm = vis_map(:,:,ii) ;
+%     vm2 = blockproc(vm,[5 5],fun);
+%     vis_dat(ii) = median(vm2,'all');
+% end
 
-figure, imagesc(log(abs(ft_crop_im))), axis equal
+for ap = 1:length(prefix_list)
+    vis_map(:,:,ap) = medfilt2(squeeze(vis_map(:,:,ap)),[5 5]);
+end
+vis_apsize = squeeze(mean(mean(vis_map(vis_roi(3):vis_roi(4),...
+    vis_roi(1):vis_roi(2),:),1),2));
+
+figure, plot(apsize*0.1,vis_apsize,'.-')
+xlabel('aperture size')
+ylabel('visibility')
+xlim([0,1])
+title('CdWO_4')
+
+figure, plot(apsize*0.1,vis_apsize.*sqrt(countspers)','.-')
+xlabel('aperture')
+ylabel('V*sqrt(counts/s)')
+title('CdWO_4')
+
+figure, yyaxis left
+plot(apsize*0.1,vis_apsize,'.-')
+ylabel('visibility')
+xlabel('aperture size')
+yyaxis right
+plot(apsize*0.1,countspers,'.-')
+ylabel('counts/ms')
+xlim([0,1])
+title('CdWO_4')
 
 
-crp_im = ims(roi(3):roi(4),roi(1):roi(2),1:5);
-ft_crp_im = fft(crp_im,[],3);
+%% compare before and after focusing
+datadir = '/asap3/petra3/gpfs/p07/2019/data/11007902/raw/';
+sdir = 'ximea_vis18_z0900mm_g1rotx044'; % scan directory
 
-vis_map = abs(ft_crp_im(:,:,2))./abs(ft_crp_im(:,:,1));
+fnames = dir([datadir sdir filesep '*img*']);
+darkname = dir([datadir sdir filesep '*dar*']);
+dark = imread([datadir sdir filesep darkname(1).name]);
+[sy,sx] = size(dark);
+
+nps = numel(fnames);
+ims = zeros(sy,sx,nps);
+tic
+parfor ii = 1:nps
+    tmp = imread([datadir sdir filesep fnames(ii).name]);
+    ims(:,:,ii) = tmp-dark;
+end
+toc
+
+figure, imagesc(ims(:,:,1))
+
+ft_ims = fft(ims,[],3);
+vis_map = abs(ft_ims(:,:,2))./abs(ft_ims(:,:,1));
+
+figure, imagesc(vis_map,[0,12]*1e-2), colorbar
+title('focused')
+
+
+datadir = '/asap3/petra3/gpfs/p07/2019/data/11007902/raw/';
+sdir = 'ximea_vis17_z0900mm_g1rotx044'; % scan directory
+
+fnames = dir([datadir sdir filesep '*img*']);
+darkname = dir([datadir sdir filesep '*dar*']);
+dark = imread([datadir sdir filesep darkname(1).name]);
+[sy,sx] = size(dark);
+
+nps = numel(fnames);
+ims = zeros(sy,sx,nps);
+tic
+parfor ii = 1:nps
+    tmp = imread([datadir sdir filesep fnames(ii).name]);
+    ims(:,:,ii) = tmp-dark;
+end
+toc
+
+figure, imagesc(ims(:,:,1))
+
+ft_ims = fft(ims,[],3);
+vis_map2 = abs(ft_ims(:,:,2))./abs(ft_ims(:,:,1));
+
+figure, imagesc(vis_map2,[0,12]*1e-2), colorbar
+title('before focusing')
+
 
 %% 
 
@@ -138,7 +797,7 @@ datadir = '/asap3/petra3/gpfs/p07/2019/data/11007902/raw/';
 prefix = 'ximea_vis17_z';%'ximea_vis02_z';%'vis01_z'; %'ximea_vis01_z';
 outerloop = dir([datadir prefix '*']);
 
-z = 800;%:10:1000;
+z = 800:10:1000;
 tiltangles = 32:1:44;
 
 zpositions = length(z);
@@ -147,12 +806,12 @@ ntomoscans = numel(outerloop);
 nps = numel(dir([datadir outerloop(1).name '/*img*'])); % number of phase steps
 
 % load data
+roi = [3750,4050,1000,1300]; % XIMEA % cropping roi [x1,x2,y1,y2]
+vis_roi = [125,175,125+25,175+25]; % XIMEA
 refname = dir([datadir outerloop(1).name '/*ref*']);
 tmp = imread([datadir outerloop(1).name '/' refname(1).name]);
 tmp_crop = tmp(roi(3):roi(4),roi(1):roi(2));
 [sy,sx,sz] = size(tmp);
-roi = [3750,4050,1000,1300]; % XIMEA % cropping roi [x1,x2,y1,y2]
-vis_roi = [125,175,125+25,175+25]; % XIMEA
 figure, imagesc(tmp), axis equal
 hold on, rectangle('Position',[roi(1),roi(3),roi(2)-roi(1),roi(2)-roi(1)],'EdgeColor','r')
 title('crop roi')
@@ -163,7 +822,7 @@ title('vis roi')
 
 ims = zeros(vis_roi(4)-vis_roi(3)+1,vis_roi(2)-vis_roi(1)+1,ntomoscans);
 tic
-for ii = 1:ntomoscans
+parfor ii = 1:ntomoscans
     innerloop = dir([datadir outerloop(ii).name '/*img*']);
     darkname = dir([datadir outerloop(ii).name '/*dar*']);
     dark = imread([datadir outerloop(ii).name '/' darkname.name],...
@@ -186,16 +845,125 @@ for ii = 1:ntomoscans
     vis_map(:,:,ii) = medfilt2(vm,[3 3]);
 end
 
-vis_dat = squeeze(mean(mean(vis_map,1),2));
-figure, plot(tiltangles,vis_dat,'.-')
+fun = @(block_struct)  ...
+    median(block_struct.data,'all')*ones(size(block_struct.data));
+vis_dat = zeros(1,ntomoscans);
+for ii = 1:ntomoscans
+    vm = vis_map(:,:,ii) ;
+    vm2 = blockproc(vm,[5 5],fun);
+    vis_dat(ii) = median(vm2,'all');
+end
+
+figure, plot(tiltangles,vis_dat(1:tilts),'.-')
 xlabel('tilt angle [deg]')
 ylabel('visibility')
 
-vis_dat = reshape(vis_dat,[zpositions,tilts]);
+vis_dat2 = reshape(vis_dat,[tilts,zpositions]);
+
+figure, plot(tiltangles,vis_dat2,'.-')
+xlabel('tilt angle [deg]')
+ylabel('visibility')
+
+figure, plot(z,vis_dat2(13,:),'.-')
+hold on
+plot(z,vis_dat2(7,:),'.-')
+xlabel('z [mm]')
+ylabel('visibility')
+legend({[num2str(tiltangles(13))],[num2str(tiltangles(7))]})
+
+figure,plot(z_ximea,vis_dist_ximea,'.-')
+hold on
+plot(z,vis_dat2(13,:),'.-')
+plot(z,vis_dat2(7,:),'.-')
+xlabel('z [mm]')
+ylabel('visibility')
+legend({'ximea, 38',[num2str(tiltangles(13))],[num2str(tiltangles(7))]})
+
+figure, imagesc(z,tiltangles,vis_dat2,[0.125,0.145])
+colorbar
+xlabel('z [mm]')
+ylabel('tilt angle [deg]')
+title(prefix,'Interpreter','none')
+
+%% visibility vs. detector position and tilt angle (LuAG)
+% % Note: if you run this during acquisition, index errors just mean not
+% % all projections are taken so try running it again
+datadir = '/asap3/petra3/gpfs/p07/2019/data/11007902/raw/';
+prefix = 'ximea_vis20_z';%'ximea_vis02_z';%'vis01_z'; %'ximea_vis01_z';
+outerloop = dir([datadir prefix '*']);
+
+z = 700:25:1100;
+tiltangles = 30:2:50;
+
+zpositions = length(z);
+tilts = length(tiltangles);
+ntomoscans = numel(outerloop);
+nps = numel(dir([datadir outerloop(1).name '/*img*'])); % number of phase steps
+
+% load data
+roi = [3750,4050,1000,1300]; % XIMEA % cropping roi [x1,x2,y1,y2]
+vis_roi = [125,175,125+25,175+25]; % XIMEA
+refname = dir([datadir outerloop(1).name '/*ref*']);
+tmp = imread([datadir outerloop(1).name '/' refname(1).name]);
+tmp_crop = tmp(roi(3):roi(4),roi(1):roi(2));
+[sy,sx,sz] = size(tmp);
+figure, imagesc(tmp), axis equal
+hold on, rectangle('Position',[roi(1),roi(3),roi(2)-roi(1),roi(2)-roi(1)],'EdgeColor','r')
+title('crop roi')
+figure, imagesc(tmp_crop), axis equal
+hold on, rectangle('Position',[vis_roi(1),vis_roi(3),vis_roi(2)-vis_roi(1),...
+    vis_roi(2)-vis_roi(1)],'EdgeColor','r')
+title('vis roi')
+
+ims = zeros(vis_roi(4)-vis_roi(3)+1,vis_roi(2)-vis_roi(1)+1,ntomoscans);
+tic
+parfor ii = 1:ntomoscans
+    innerloop = dir([datadir outerloop(ii).name '/*img*']);
+    darkname = dir([datadir outerloop(ii).name '/*dar*']);
+    dark = imread([datadir outerloop(ii).name '/' darkname.name],...
+            'PixelRegion',{[roi(3) roi(4)],[roi(1) roi(2)]});
+    for ps = 1:nps
+        tmp = imread([datadir outerloop(ii).name '/' innerloop(ps).name],...
+            'PixelRegion',{[roi(3) roi(4)],[roi(1) roi(2)]});
+        tmp = double(tmp-dark);
+        ims(:,:,ii,ps) = tmp(vis_roi(3):vis_roi(4),vis_roi(1):vis_roi(2));
+    end
+end
+fprintf([num2str(ntomoscans*nps) ' images loaded, '])
+toc
+
+vis_map = zeros(vis_roi(4)-vis_roi(3)+1,vis_roi(2)-vis_roi(1)+1,ntomoscans);
+for ii = 1:ntomoscans
+    these_ims = squeeze(ims(:,:,ii,:));
+    ft_ims = fft(these_ims,[],3);
+    vm = 2*abs(ft_ims(:,:,2))./abs(ft_ims(:,:,1));
+    vis_map(:,:,ii) = medfilt2(vm,[3 3]);
+end
+
+fun = @(block_struct)  ...
+    median(block_struct.data,'all')*ones(size(block_struct.data));
+vis_dat = zeros(1,ntomoscans);
+for ii = 1:ntomoscans
+    vm = vis_map(:,:,ii) ;
+    vm2 = blockproc(vm,[5 5],fun);
+    vis_dat(ii) = median(vm2,'all');
+end
+
+vis_dat2 = reshape(vis_dat,[tilts,zpositions]);
+
+figure, plot(tiltangles,vis_dat2,'.-')
+xlabel('tilt angle [deg]')
+ylabel('visibility')
 
 
+figure,plot(z_ximea,vis_dist_ximea,'.-')
+hold on
+plot(z,vis_dat2,'.-')
+xlabel('z [mm]')
+ylabel('visibility')
 
-figure, imagesc(z,tiltangles,vis_dat)
+figure, imagesc(z,tiltangles,vis_dat2,[0.085,0.105])
+colorbar
 xlabel('z [mm]')
 ylabel('tilt angle [deg]')
 title(prefix,'Interpreter','none')
@@ -454,10 +1222,13 @@ figure, plot(apsize*0.1,vis_apsize,'.-')
 xlabel('aperture size')
 ylabel('visibility')
 xlim([0,1])
+title('cdwo4')
 
 figure, plot(apsize*0.1,vis_apsize.*sqrt(countspers)','.-')
 xlabel('aperture')
 ylabel('V*sqrt(counts/s)')
+title('cdwo4')
+
 
 figure, yyaxis left
 plot(apsize*0.1,vis_apsize,'.-')
@@ -467,6 +1238,7 @@ yyaxis right
 plot(apsize*0.1,countspers,'.-')
 ylabel('counts/ms')
 xlim([0,1])
+title('cdwo4')
 
 
 %% spare parts below
@@ -476,6 +1248,14 @@ for zp = 1:zpositions
     talbot_carpet(:,zp) = squeeze(ims(round(end/2),:,zp,1));
 end
 
+fun = @(block_struct)  ...
+    median(block_struct.data,'all')*ones(size(block_struct.data));
+vis_dat = zeros(1,ntomoscans);
+for ii = 1:ntomoscans
+    vm = vis_map(:,:,ii) ;
+    vm2 = blockproc(vm,[5 5],fun);
+    vis_dat(ii) = median(vm2,'all');
+end
 
 
 
