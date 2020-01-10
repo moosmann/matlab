@@ -91,11 +91,12 @@ if tomo.run || tomo.run_interactive_mode
         
         % parameter strcut for interactive functions
         itomo = tomo;
-        
-        if phase_retrieval.apply && phase_retrieval.apply_before
-            itomo.take_neg_log = 0;
-        else
-            itomo.take_neg_log = 1;
+        if isempty( tomo.take_neg_log )
+            if phase_retrieval.apply && phase_retrieval.apply_before
+                itomo.take_neg_log = 0;
+            else
+                itomo.take_neg_log = 1;
+            end
         end
         if phase_retrieval.apply
             itomo.inumber_of_stds = 9;
@@ -236,15 +237,19 @@ if tomo.run || tomo.run_interactive_mode
                 
                 % Plot metrics
                 h_rot_off = figure('Name', 'OFFSET: metrics', 'WindowState', 'maximized');
-                x = 1:7; %[1:4 6:7];
-                Y = cell2mat({metrics_offset(x).val});
+                ind = 1:7; %[1:4 6:7];
+                Y = cell2mat({metrics_offset(ind).val});
                 plot( offset, Y, '-+');
+                ax1 = gca;
                 axis tight
                 xlabel( 'offset' )
-                legend( metrics_offset(x).name )
-                ax1 = gca;
+                legend( metrics_offset(ind).name )
                 ax2 = axes( 'Position', ax1.Position, 'XAxisLocation', 'top', 'YAxisLocation', 'right', 'Color', 'none');
-                %line(1:numel( offset ), 0, 'Parent', ax2 )
+                x2 = 1:numel( offset );
+                line( x2, 1, 'Parent', ax2 )
+                ax2.XLim = x2([1 end]);
+                %ax2.XTick = x2;
+                ax2.XGrid = 'on';
                 xlabel( 'index (image no.)' )
                 set( ax1, 'YTick', [] ) % 'XTickMode', 'auto', 'XMinorTick', 'on')
                 set( ax2, 'YTick', [] )
@@ -294,8 +299,8 @@ if tomo.run || tomo.run_interactive_mode
                                 '\n if empty: use default range, '...
                                 '\n if scalar: use value & end interactive mode, '...
                                 '\n if ''s'': change slice, '...
-                                '\n if ''d'': enter debug mode, '...
-                                '\n: '];
+                                '\n if ''d'': enter debug mode: '...
+                                '\n '];
                             inp = input( txt );
                         end % while ischar( inp )
                         if isempty( inp )
@@ -345,17 +350,21 @@ if tomo.run || tomo.run_interactive_mode
                             
                             % Plot metrics
                             h_rot_tilt = figure('Name', 'TILT: metrics', 'WindowState', 'maximized');
-                            x = 6:7;
-                            Y = cell2mat({metrics_tilt(x).val});
+                            ind = 6:7;
+                            Y = cell2mat({metrics_tilt(ind).val});
                             plot( tilt, Y, '-+');
+                            ax1 = gca;
                             axis tight
                             xlabel( 'tilt angle' )
-                            legend( metrics_tilt(x).name)
-                            ax1 = gca;
-                            set( ax1, 'YTick', [] )
+                            legend( metrics_tilt(ind).name)
                             ax2 = axes( 'Position', ax1.Position, 'XAxisLocation', 'top', 'YAxisLocation', 'right', 'Color', 'none');
-                            line(1:numel( offset ), 0, 'Parent', ax2 )
+                            x2 = 1:numel( offset );
+                            line( x2, 1, 'Parent', ax2 )
+                            ax2.XLim = x2([1 end]);
+                            %ax2.XTick = x2;
+                            ax2.XGrid = 'on';
                             xlabel( 'index (image no.)' )
+                            set( ax1, 'YTick', [] )
                             set( ax2, 'YTick', [] )
                             title(sprintf('rotation axis: metrics VS tilt'))
                             drawnow
@@ -520,17 +529,21 @@ if tomo.run || tomo.run_interactive_mode
                             
                             % Plot metrics
                             h_rot_angle_scaling = figure('Name', 'ANGLES: metrics', 'WindowState', 'maximized');
-                            x = 1:7;
-                            Y = cell2mat({metrics_angle_scaling(x).val});
+                            ind = 1:7;
+                            Y = cell2mat({metrics_angle_scaling(ind).val});
                             plot( angle_scaling, Y, '-+');
+                            ax1 = gca;
                             axis tight
                             xlabel( 'angle scaling' )
-                            legend( metrics_angle_scaling(x).name)
-                            ax1 = gca;
-                            set( ax1, 'YTick', [] )
+                            legend( metrics_angle_scaling(ind).name)
                             ax2 = axes( 'Position', ax1.Position, 'XAxisLocation', 'top', 'YAxisLocation', 'right', 'Color', 'none');
-                            line(1:numel( angle_scaling ), 0, 'Parent', ax2 )
+                            x2 = 1:numel( angle_scaling );
+                            line( x2, 1, 'Parent', ax2 )
+                            ax2.XLim = x2([1 end]);
+                            %ax2.XTick = x2;
+                            ax2.XGrid = 'on';
                             xlabel( 'index (image no.)' )
+                            set( ax1, 'YTick', [] )
                             set( ax2, 'YTick', [] )
                             title(sprintf('angles: metrics VS angle_scaling'))
                             drawnow
@@ -538,6 +551,7 @@ if tomo.run || tomo.run_interactive_mode
                             
                             % Play
                             nimplay(vol, 1, [], 'ANGLES: sequence of reconstructed slices using different angle scalings')
+
                         end
                         
                         if isscalar( angle_scaling )

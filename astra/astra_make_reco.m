@@ -19,7 +19,7 @@ if strcmpi(recoType(1:3),'FBP')
     iterations = 1;
 end
 
-dimHorVol = size(sino,2);
+dimHorVol = size(sino,1);
 % Create geometry
 vol_geom = astra_create_vol_geom(dimHorVol, dimHorVol);
 % Create geometry

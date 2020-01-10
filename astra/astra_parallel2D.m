@@ -1,4 +1,4 @@
-function vol = astra_parallel2D( tomo, sino)
+function vol = astra_parallel2D( tomo, sino, gpu_index)
 % Slicewise parallel backprojection of 2D or 3D sinograms using ASTRA.
 %
 % ARGUMENTS
@@ -47,13 +47,16 @@ function vol = astra_parallel2D( tomo, sino)
 %
 % Written by Julian Moosmann
 
+if nargin < 3
+    gpu_index = [];
+end
+
 %% Default arguments %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 angles = assign_from_struct( tomo, 'angles', pi );
 vol_shape = assign_from_struct( tomo, 'vol_shape', [size( sino, 1), size( sino, 1), size(sino, 3) ] );
 vol_size = assign_from_struct( tomo, 'vol_size', [] );
 pixel_size = assign_from_struct( tomo, 'astra_pixel_size', 1 );
 tilt = assign_from_struct( tomo, 'tilt_camera', 0 );
-gpu_index = assign_from_struct( tomo, 'astra_gpu_index', [] );
 algorithm = assign_from_struct( tomo, 'algorithm', 'fbp' );
 iterations = assign_from_struct( tomo, 'iterations', 100);
 rotation_axis_offset = assign_from_struct( tomo.rot_axis, 'offset', 0);
@@ -62,6 +65,9 @@ angle_offset = assign_from_struct( tomo.rot_angle, 'offset', 0 );
 MinConstraint = assign_from_struct( tomo.sirt, 'MinConstraint', [] );
 MaxConstraint = assign_from_struct( tomo.sirt, 'MaxConstraint', [] );
 %vert_shift = assign_from_struct( tomo, 'vert_shift', [] );
+if isempty( gpu_index )
+    gpu_index = assign_from_struct( tomo, 'astra_gpu_index', [] );
+end
  
 %% TODO: Spiral CT using interpolation
 

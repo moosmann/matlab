@@ -385,7 +385,7 @@ switch method
 end % switch method
 
 %% Plot correlation %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-if par.visual_output
+if par.visual_output && exist( 'corr_mat', 'var' )
     figure( 'Name', 'Correlation of projections and flat-fields');
     mid = round( num_proj_used / 2 );
     f = @(mat,pp) mat(pp,:)';
@@ -408,10 +408,33 @@ switch method
         
         flat_median = median( flat, 3);
         parfor nn = 1:num_proj_used
-            im = proj(:, :, nn);
-            flat_median_shifted = circshift( flat_median, round( -x0(nn) / raw_bin ), 1 );
-            proj(:, :, nn) = im ./ flat_median_shifted;
+        %    im = proj(:, :, nn);
+            %flat_median_shifted = circshift( flat_median, round( -x0(nn) / raw_bin ), 1 );
+            %proj(:, :, nn) = im ./ flat_median_shifted;
+            
+            % Binned shift (shift, not first pixel)
+            shift = ( x0(nn) - 1 ) / raw_bin;
+            shift_int = floor( shift );
+            shift_sub = shift - shift_int;
+            
+            % shift flat
+            if mod( shift_sub, 1 ) ~= 0
+                % crop flat at integer shift, then shift subpixel
+                xx = shift_int + (1:im_shape_cropbin1+1);
+                flat_median_shifted = imtranslate( flat_median(xx,:), [0 -shift_sub], 'linear' );
+            else
+                xx = shift_int + (1:im_shape_cropbin1);
+                flat_median_shifted = flat_median(xx,:);
+            end
+            
+            % flat field correction
+            p = proj(:, :, nn);
+            p = p ./ flat_median_shifted(1:im_shape_cropbin1,:) ;
+            
+            proj(:,:,nn) = p;
+            
         end
+        
         
     otherwise
         fprintf( '\nFlat-field correction using %u best match(es).', corr_num_flats)
