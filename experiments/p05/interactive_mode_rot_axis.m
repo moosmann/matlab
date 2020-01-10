@@ -237,7 +237,7 @@ if tomo.run || tomo.run_interactive_mode
                 
                 % Plot metrics
                 h_rot_off = figure('Name', 'OFFSET: metrics', 'WindowState', 'maximized');
-                ind = 1:7; %[1:4 6:7];
+                ind = 2:7; %[1:4 6:7];
                 Y = cell2mat({metrics_offset(ind).val});
                 plot( offset, Y, '-+');
                 ax1 = gca;
