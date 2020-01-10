@@ -234,7 +234,7 @@ if tomo.run || tomo.run_interactive_mode
                         end
                     end
                 end
-                
+
                 % Plot metrics
                 h_rot_off = figure('Name', 'OFFSET: metrics', 'WindowState', 'maximized');
                 ind = 2:7; %[1:4 6:7];
@@ -358,7 +358,7 @@ if tomo.run || tomo.run_interactive_mode
                             xlabel( 'tilt angle' )
                             legend( metrics_tilt(ind).name)
                             ax2 = axes( 'Position', ax1.Position, 'XAxisLocation', 'top', 'YAxisLocation', 'right', 'Color', 'none');
-                            x2 = 1:numel( offset );
+                            x2 = 1:numel( tilt );
                             line( x2, 1, 'Parent', ax2 )
                             ax2.XLim = x2([1 end]);
                             %ax2.XTick = x2;

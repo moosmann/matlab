@@ -196,9 +196,17 @@ scan_path = [raw_path '014_Mohmmr_stage23_1_1']; ADD
 % scan_path = [raw_path '019_Mohmmr_stage18_2_1']; ADD
 
 
-tomo.rot_axis.offset = 8.25 * 2 / raw_bin; % 7.1.20
+
+write.flatcor = 1; % save preprocessed flat corrected projections
+interactive_mode.rot_axis_pos = 1; % reconstruct slices with dif+ferent rotation axis offsets
+interactive_mode.rot_axis_tilt = 1; % reconstruct slices with different offset AND tilts of the rotation axis
+% 10.1.20
+tomo.rot_axis.offset = 8.85 * 2 / raw_bin; % z = 0.2
+tomo.rot_axis.offset = 8.25 * 2 / raw_bin; % z = 0.5
+tomo.rot_axis.offset = 7.5 * 2 / raw_bin; % z = 0.8
 scan_path = [raw_path '020_Mohmmr_stage19_1_1']; ADD
 
+image_correlation.area_height = [0 0.3];
 
 
 tomo.rot_axis.offset =  3.7 * 4 / raw_bin;
