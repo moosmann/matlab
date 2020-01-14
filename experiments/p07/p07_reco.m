@@ -821,7 +821,7 @@ if ~read_flatcor && ~read_sino
     flat_corr_area2 = IndexParameterToRange( flat_corr_area2, im_shape_roi(2) );
     % Preallocation
     flat = zeros( [im_shape_binned1, im_shape_binned2, num_ref_used], 'single');
-    roi_flat = zeros( numel( flat_corr_area1 ), numel( flat_corr_area2 ) , num_proj_used, 'single');
+    roi_flat = zeros( numel( flat_corr_area1 ), numel( flat_corr_area2 ) , num_ref_used, 'single');
     num_zeros = zeros( 1, num_ref_used );
     fprintf( ' Allocated memory: %.2f GiB,', Bytes( flat, 3 ) )
     refs_to_use = zeros( 1, size( flat,3), 'logical');

@@ -1,4 +1,4 @@
-function [poolobj, poolsize] = OpenParpool( poolsize, use_cluster, tmp_folder, enforce_poolsize, poolsize_max)
+function [poolobj, poolsize] = OpenParpool( poolsize, use_cluster, tmp_folder, enforce_poolsize, poolsize_max, poolsize_fac )
 % Open pool of parallel worker if it doesn't exist or if it is smaller than
 % the desired pool size.
 %
@@ -7,6 +7,8 @@ function [poolobj, poolsize] = OpenParpool( poolsize, use_cluster, tmp_folder, e
 %   scheduling.
 % tmp_folder : string, directory with write permission, required for the
 %   parpool to start
+% poolsize_fac : scalar, default: 0.9; if pool exist, close current pool
+% und open larger one only if
 %
 % Written by Julian Moosmann. Last modification: 2016-10-06, 2018-01-15
 %
@@ -23,6 +25,9 @@ if nargin < 4
 end
 if nargin < 5
     poolsize_max = [];
+end
+if nargin < 6
+    poolsize_fac = 0.85;
 end
 
 %% Main %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -76,7 +81,7 @@ if poolsize > 1
         end
         
         % check if number of workers of current pool is smaller than poolsize
-        if strcmp( clust, 'local' )  && poolobj.NumWorkers < poolsize
+        if strcmp( clust, 'local' )  && poolobj.NumWorkers < poolsize_fac * poolsize
             pflag = 1;
         end
         

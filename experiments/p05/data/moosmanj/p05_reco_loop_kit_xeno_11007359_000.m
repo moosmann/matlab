@@ -159,24 +159,51 @@ raw_path = '/asap3/petra3/gpfs/p05/2019/data/11007359/raw/';
 % poor image quality: scintillator extremely dirty and strong beam
 % variations, almost impossible to find a proper reference image
 
+%% Test Section
+
+phase_retrieval.apply = 0;
+par.visual_output = 1; 
+write.flatcor = 1; 
+interactive_mode.rot_axis_pos = 1; 
+interactive_mode.rot_axis_tilt = 1;
+
+tomo.rot_axis.offset = 5.4 * 2 / raw_bin; % 7.1.20
+scan_path = [raw_path '008_WT_stage23_1_1']; 
+
+image_correlation.area_height = [1 600];
+image_correlation.area_width = [0 1];
+write.parfolder = 'image_corr_roi_0_1_1_600';
+ADD
+
+pixel_filter_radius = [5 5]; 
+write.parfolder = 'pixel_filt_size5';
+ADD
+
+%% Rot axis checked
+write.parfolder = '';
+interactive_mode.rot_axis_pos = 1;
+
 % scan_path = [raw_path '001_WT_stage18_1_1_spiral']; ADD
 % scan_path = [raw_path '001_WT_stage18_1_1_stepscan']; ADD
 % scan_path = [raw_path '004_WT_stage23_1_1_spiral']; ADD
-interactive_mode.rot_axis_pos = 1;
-phase_retrieval.apply = 0;
 
+% vertical movement: ~5-8 pixels binned 2x
 tomo.rot_axis.offset = 5.4 * 2 / raw_bin; % 7.1.20
 scan_path = [raw_path '008_WT_stage23_1_1']; ADD
 
+% vertical movement
 tomo.rot_axis.offset = -3.95  * 2 / raw_bin; % 8.1.20
 scan_path = [raw_path '009_WT_stage23_1_2']; ADD
 
+% vertical movement
 tomo.rot_axis.offset = 3.8  * 1 / raw_bin; % 8.1.20
 scan_path = [raw_path '010_WT_stage22_1_1']; ADD
 
+% vertical movement
 tomo.rot_axis.offset = 4.8 * 2 / raw_bin; % 8.1.20
 scan_path = [raw_path '011_WT_stage21_1_1']; ADD
 
+% vertical movement
 tomo.rot_axis.offset = 5.25 * 2 / raw_bin; % 8.1.20
 scan_path = [raw_path '012_WT_stage22_2_1']; ADD
 
@@ -195,18 +222,13 @@ scan_path = [raw_path '014_Mohmmr_stage23_1_1']; ADD
 % scan_path = [raw_path '018_Mohmmr_stage18_1_1_spiral']; ADD
 % scan_path = [raw_path '019_Mohmmr_stage18_2_1']; ADD
 
-
-
-write.flatcor = 1; % save preprocessed flat corrected projections
-interactive_mode.rot_axis_pos = 1; % reconstruct slices with dif+ferent rotation axis offsets
-interactive_mode.rot_axis_tilt = 1; % reconstruct slices with different offset AND tilts of the rotation axis
 % 10.1.20
-tomo.rot_axis.offset = 8.85 * 2 / raw_bin; % z = 0.2
+%tomo.rot_axis.offset = 8.85 * 2 / raw_bin; % z = 0.2
 tomo.rot_axis.offset = 8.25 * 2 / raw_bin; % z = 0.5
-tomo.rot_axis.offset = 7.5 * 2 / raw_bin; % z = 0.8
+%tomo.rot_axis.offset = 7.5 * 2 / raw_bin; % z = 0.8
 scan_path = [raw_path '020_Mohmmr_stage19_1_1']; ADD
 
-image_correlation.area_height = [0 0.3];
+
 
 
 tomo.rot_axis.offset =  3.7 * 4 / raw_bin;
@@ -239,6 +261,7 @@ scan_path = [raw_path '029_Mohmmr_stage22_1_1']; ADD
 tomo.rot_axis.offset = 3.6 * 4 / raw_bin;
 scan_path = [raw_path '030_Mohmmr_stage23_1_1']; ADD
 
+% vertical movement
 tomo.rot_axis.offset = 3.75 * 4 / raw_bin;
 scan_path = [raw_path '031_Mohmmr_stage23_2_1']; ADD
 

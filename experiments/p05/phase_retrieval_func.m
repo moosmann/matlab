@@ -1,4 +1,4 @@
-function [proj, write, tint] = phase_retrieval_func( proj, phase_retrieval, tomo, write, interactive_mode, par )
+function [proj, write, tint] = phase_retrieval_func( proj, phase_retrieval, tomo, write, interactive_mode )
 % Phase retrieval for P05 data.
 %
 % Written by Julian Moosmann, 2018-01-11, last version: 2018-07-27
@@ -7,6 +7,7 @@ function [proj, write, tint] = phase_retrieval_func( proj, phase_retrieval, tomo
 
 %% Main %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 t = toc;
+scan_name = assign_from_struct( write, 'scan_name', '' );
 
 method = phase_retrieval.method;
 padding = phase_retrieval.padding;
@@ -437,7 +438,7 @@ if write.phase_map
     CheckAndMakePath( phase_map_path );
     % Save phase maps
     parfor nn = 1:size( proj, 3)
-        filename = sprintf( '%sphase_%06u.tif', phase_map_path, nn);
+        filename = sprintf( '%sphase_map_%s_%06u.tif', phase_map_path, scan_name, nn);
         write32bitTIFfromSingle( filename, squeeze( rot90( proj( :, :, nn) ) ) )
     end
     pause(0.01)
@@ -452,7 +453,7 @@ if write.phase_sino
     CheckAndMakePath(sino_phase_path)
     % Save slices
     parfor nn = 1:size( proj, 2)
-        filename = sprintf( '%ssino_%06u.tif', sino_phase_path, nn);
+        filename = sprintf( '%sphase_sino_%s_%06u.tif', sino_phase_path, scan_name, nn);
         write32bitTIFfromSingle( filename, squeeze( proj( :, nn, :) )' )
     end
     pause(0.01)

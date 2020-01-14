@@ -1,4 +1,4 @@
-function save_path = write_volume( tag, vol, output_type, reco_path, raw_bin, phase_bin, reco_bin, counter_offset, verbose, suffix, deleteFiles, beamtimeID_regexp )
+function save_path = write_volume( tag, vol, output_type, write, raw_bin, phase_bin, reco_bin, counter_offset, verbose, suffix)
 
 %% Default arguments %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 if nargin < 8
@@ -10,12 +10,11 @@ end
 if nargin < 10
     suffix = '';
 end
-if nargin < 11
-    deleteFiles = 0;
-end
-if nargin < 12
-    beamtimeID_regexp = '';
-end
+
+reco_path = assign_from_struct( write, 'reco_path', 0 );
+deleteFiles = assign_from_struct( write, 'deleteFiles', 0 );
+beamtimeID_regexp  = assign_from_struct( write, 'beamtimeID', '' );
+scan_name = assign_from_struct( write, 'scan_name', '' );
 
 %% Main %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 if tag == 0
@@ -41,19 +40,19 @@ else
         
         case 'float'            
             parfor nn = 1:size( vol, 3)
-                filename = sprintf( '%sreco_%06u.tif', save_path, nn + counter_offset);
+                filename = sprintf( '%sreco_%s_%06u.tif', save_path, scan_name, nn + counter_offset);
                 write32bitTIFfromSingle( filename, vol( :, :, nn) )
             end
             
         case 'uint16'            
             parfor nn = 1:size( vol, 3)
-                filename = sprintf( '%sreco_%06u.tif', save_path, nn + counter_offset);
+                filename = sprintf( '%sreco_%s_%06u.tif', save_path, scan_name, nn + counter_offset);
                 imwrite( uint16( (2^16 - 1) * vol( :, :, nn) ), filename );
             end
             
         case 'uint8'            
             parfor nn = 1:size( vol, 3)
-                filename = sprintf( '%sreco_%06u.tif', save_path, nn + counter_offset);
+                filename = sprintf( '%sreco_%s_%06u.tif', save_path, scan_name, nn + counter_offset);
                 imwrite( uint8( (2^8 - 1) * vol( :, :, nn) ), filename );
             end
         otherwise

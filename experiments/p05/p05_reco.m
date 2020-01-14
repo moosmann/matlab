@@ -339,6 +339,7 @@ fprintf( fid, '%s', raw_path );
 fclose( fid );
 
 fprintf( '%s', scan_name )
+write.scan_name = scan_name;
 fprintf( ' at %s', datetime )
 fprintf( '\n scan_path:\n  %s', scan_path )
 
@@ -917,7 +918,7 @@ if ~read_flatcor && ~read_sino
     flat_corr_area2 = IndexParameterToRange( flat_corr_area2, im_shape_roi(2) );
     % Preallocation
     flat = zeros( [im_shape_binned1, im_shape_binned2, num_ref_used], 'single');
-    roi_flat = zeros( numel( flat_corr_area1 ), numel( flat_corr_area2 ) , num_proj_used, 'single');
+    roi_flat = zeros( numel( flat_corr_area1 ), numel( flat_corr_area2 ) , num_ref_used, 'single');
     num_zeros = zeros( 1, num_ref_used );
     fprintf( ' Allocated memory: %.2f GiB,', Bytes( flat, 3 ) )
     refs_to_use = zeros( 1, size( flat,3), 'logical');
@@ -1368,7 +1369,7 @@ if ~read_flatcor && ~read_sino
         fprintf( '\nSave flat-corrected projections.')
         CheckAndMakePath( flatcor_path, write.deleteFiles, write.beamtimeID )
         parfor nn = 1:size( proj, 3 )
-            filename = sprintf('%sproj_%06u.tif', flatcor_path, nn );
+            filename = sprintf('%sproj_%s_%06u.tif', flatcor_path, scan_name, nn );
             write32bitTIFfromSingle(filename, rot90( proj(:, :, nn) ) );
         end
         fprintf( ' done in %.1f (%.2f min)', toc-t, (toc-t)/60)
@@ -1617,7 +1618,7 @@ if write.sino
     fprintf( '\nSave sinogram:')
     CheckAndMakePath(sino_path, write.deleteFiles, write.beamtimeID)
     parfor nn = 1:size( proj, 2 )
-        filename = sprintf( '%ssino_%06u.tif', sino_path, nn);
+        filename = sprintf( '%ssino_%s_%06u.tif', sino_path, scan_name, nn);
         sino = squeeze( proj( :, nn, :) )';
         write32bitTIFfromSingle( filename, sino )
     end
@@ -1817,7 +1818,7 @@ if tomo.run
                 fclose( fid );
                 
                 % Single precision: 32-bit float tiff
-                write_volume( write.float, vol, 'float', reco_path, raw_bin, phase_bin, 1, 0, verbose, '', write.deleteFiles, write.beamtimeID);
+                write_volume( write.float, vol, 'float', write, raw_bin, phase_bin, 1, 0, verbose, '' );
                 
                 % Compression of dynamic range
                 if write.uint8 || write.uint8_binned || write.uint16 || write.uint16_binned
@@ -1828,10 +1829,10 @@ if tomo.run
                 end
                 
                 % 16-bit tiff
-                write_volume( write.uint16, (vol - tlow)/(thigh - tlow), 'uint16', reco_path, raw_bin, phase_bin, 1, 0, verbose, '', write.deleteFiles, write.beamtimeID);
+                write_volume( write.uint16, (vol - tlow)/(thigh - tlow), 'uint16', write, raw_bin, phase_bin, 1, 0, verbose, '' );
                 
                 % 8-bit tiff
-                write_volume( write.uint8, (vol - tlow)/(thigh - tlow), 'uint8', reco_path, raw_bin, phase_bin, 1, 0, verbose, '', write.deleteFiles, write.beamtimeID);
+                write_volume( write.uint8, (vol - tlow)/(thigh - tlow), 'uint8', write, raw_bin, phase_bin, 1, 0, verbose, '' );
                 
                 % Bin data
                 if write.float_binned || write.uint16_binned || write.uint8_binned || write.uint8_segmented
@@ -1842,18 +1843,18 @@ if tomo.run
                 end
                 
                 % Binned single precision: 32-bit float tiff
-                write_volume( write.float_binned, vol, 'float', reco_path, raw_bin, phase_bin, reco_bin, 0, verbose, '', write.deleteFiles, write.beamtimeID);
+                write_volume( write.float_binned, vol, 'float', write, raw_bin, phase_bin, reco_bin, 0, verbose, '' );
                 
                 % 16-bit tiff binned
-                write_volume( write.uint16_binned, (vol - tlow)/(thigh - tlow), 'uint16', reco_path, raw_bin, phase_bin, reco_bin, 0, verbose, '', write.deleteFiles, write.beamtimeID);
+                write_volume( write.uint16_binned, (vol - tlow)/(thigh - tlow), 'uint16', write, raw_bin, phase_bin, reco_bin, 0, verbose, '' );
                 
                 % 8-bit tiff binned
-                write_volume( write.uint8_binned, (vol - tlow)/(thigh - tlow), 'uint8', reco_path, raw_bin, phase_bin, reco_bin, 0, verbose, '', write.deleteFiles, write.beamtimeID);
+                write_volume( write.uint8_binned, (vol - tlow)/(thigh - tlow), 'uint8', write, raw_bin, phase_bin, reco_bin, 0, verbose, '' );
                 
                 % segmentation
                 if write.uint8_segmented
                     [vol, out] = segment_volume(vol, 2^10, par.visual_output, verbose);
-                    save_path = write_volume( 1, vol/255, 'uint8', reco_path, raw_bin, phase_bin, reco_bin, 0, verbose, '_segmented', write.deleteFiles, write.beamtimeID);
+                    save_path = write_volume( 1, vol/255, 'uint8', write, raw_bin, phase_bin, reco_bin, 0, verbose, '_segmented' );
                     save( sprintf( '%ssegmentation_info.m', save_path), 'out', '-mat', '-v7.3')
                 end
             end
@@ -1923,7 +1924,7 @@ if tomo.run
                 
                 % Save ortho slices z
                 if nn == round( tomo.vol_shape / 2 )
-                    filename = sprintf( '%sreco_zMid.tif', reco_path );
+                    filename = sprintf( '%sreco_%s_zMid.tif', reco_path, scan_name );
                     write32bitTIFfromSingle( filename, rot90(vol,0) );
                 end
                 
@@ -1931,7 +1932,7 @@ if tomo.run
                 %%% ADD other format options!!!!!!!!!!!!!!!!!!!!!!!!!
                 if write.reco
                     % Single precision: 32-bit float tiff
-                    write_volume( write.float, vol, 'float', reco_path, raw_bin, phase_bin, 1, ind(nn) - 1, 0, '', write.deleteFiles, write.beamtimeID);
+                    write_volume( write.float, vol, 'float', write, raw_bin, phase_bin, 1, ind(nn) - 1, 0, '' );
                 end
             end
     end
