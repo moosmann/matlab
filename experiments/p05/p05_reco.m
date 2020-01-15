@@ -912,13 +912,13 @@ if ~read_flatcor && ~read_sino
     t = toc;
     fprintf( '\nProcessing %u flat fields.', num_ref_used )
     % Correlation roi area
-    flat_corr_area1 = image_correlation.area_width;
-    flat_corr_area2 = image_correlation.area_height;
-    flat_corr_area1 = IndexParameterToRange( flat_corr_area1, im_shape_roi(1) );
-    flat_corr_area2 = IndexParameterToRange( flat_corr_area2, im_shape_roi(2) );
+    flat_corr_area1 = IndexParameterToRange( image_correlation.area_width, im_shape_roi(1) );
+    flat_corr_area2 = IndexParameterToRange( image_correlation.area_height, im_shape_roi(2) );
     % Preallocation
     flat = zeros( [im_shape_binned1, im_shape_binned2, num_ref_used], 'single');
-    roi_flat = zeros( numel( flat_corr_area1 ), numel( flat_corr_area2 ) , num_ref_used, 'single');
+    flat_corr_area_width_binned = floor( numel( flat_corr_area1 ) / raw_bin );
+    flat_corr_area_height_binned = floor( numel( flat_corr_area2 ) / raw_bin );
+    roi_flat = zeros( flat_corr_area_width_binned, flat_corr_area_height_binned, num_ref_used, 'single');
     num_zeros = zeros( 1, num_ref_used );
     fprintf( ' Allocated memory: %.2f GiB,', Bytes( flat, 3 ) )
     refs_to_use = zeros( 1, size( flat,3), 'logical');
@@ -940,10 +940,10 @@ if ~read_flatcor && ~read_sino
         im_int = im_int - dark;
         
         % Correlation ROI
-        roi_flat(:,:,nn) = im_int(flat_corr_area1,flat_corr_area2);
+        roi_flat(:,:,nn) = Binning( im_int(flat_corr_area1,flat_corr_area2) ) / raw_bin^2;
         
         % Binning
-        im_float_binned = Binning( im_int, raw_bin) / raw_bin^2;        
+        im_float_binned = Binning( im_int, raw_bin) / raw_bin^2;
         
         % Count for zeros
         num_zeros(nn) =  sum( im_float_binned(:) < 1  );
@@ -1018,8 +1018,9 @@ if ~read_flatcor && ~read_sino
         end
     end
     
-    % Show flat field
+    
     if par.visual_output
+        % Show flat field
         if exist( 'h1' , 'var' ) && isvalid( h1 )
             figure(h1)
         else
@@ -1031,8 +1032,36 @@ if ~read_flatcor && ~read_sino
         colorbar
         axis equal tight
         drawnow
+        
+        % Correlation area
+        if exist( 'h_corr_roi' , 'var' ) && isvalid( h_corr_roi )
+            figure( h_corr_roi )
+        else
+            h_corr_roi = figure( 'Name', 'image correlation roi', 'WindowState', 'maximized');
+        end
+        subplot(1,2,1)
+        im = flat(:,:,1);                
+        imsc1( im )
+%         imobj = imagesc( rot90( im ) );
+%         colormap( gray );
+        hold on
+        x1 = ceil(  flat_corr_area1(1) / raw_bin );
+        %y1 = im_shape_binned2 - floor( flat_corr_area2(1) / raw_bin );
+        y1 = im_shape_binned2 - floor( flat_corr_area2(end) / raw_bin );
+        rectangle( 'Position', [ x1 y1 flat_corr_area_width_binned flat_corr_area_height_binned], 'EdgeColor', 'r' )
+        title( sprintf( 'flat field\n(vertical coordiante values flipped)' ) )
+        colorbar
+        axis equal tight
+        
+        subplot(1,2,2)
+        imsc1( roi_flat(:,:,1) )
+        title( sprintf('flat field ROI \nimage correlation area:\nunbinned (relative) coordinates\nwidth = %g %g\nheight = %g %g', image_correlation.area_width, image_correlation.area_height ) );
+        colorbar
+        axis equal tight
+        
+        drawnow
     end
-    
+
     %% Projections %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     t = toc;
     fprintf( '\nProcessing %u projections.', num_proj_used )
@@ -1081,7 +1110,7 @@ if ~read_flatcor && ~read_sino
     end
     
     % Preallocation
-    roi_proj = zeros( numel( flat_corr_area1 ), numel( flat_corr_area2 ) , num_proj_used, 'single');
+    roi_proj = zeros( floor( numel( flat_corr_area1 ) / raw_bin ), floor( numel( flat_corr_area2 ) / raw_bin ) , num_proj_used, 'single');
     
     % Lateral shift indices
     if isscalar( offset_shift )
@@ -1114,7 +1143,7 @@ if ~read_flatcor && ~read_sino
         im_int = im_int - dark;
         
         % Correlation ROI
-        roi_proj(:,:,nn) = im_int(flat_corr_area1,flat_corr_area2);
+        roi_proj(:,:,nn) = Binning( im_int(flat_corr_area1,flat_corr_area2) ) / raw_bin^2;
 
         % Remove lateral shift & Binning
         xx = x0(nn):x1(nn);

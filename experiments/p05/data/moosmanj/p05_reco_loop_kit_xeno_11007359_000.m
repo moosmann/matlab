@@ -156,6 +156,8 @@ SET_DEFAULT
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 raw_path = '/asap3/petra3/gpfs/p05/2019/data/11007359/raw/';
 
+pixel_filter_radius = [5 5]; 
+
 % poor image quality: scintillator extremely dirty and strong beam
 % variations, almost impossible to find a proper reference image
 
@@ -165,7 +167,7 @@ phase_retrieval.apply = 0;
 par.visual_output = 1; 
 write.flatcor = 1; 
 interactive_mode.rot_axis_pos = 1; 
-interactive_mode.rot_axis_tilt = 1;
+%interactive_mode.rot_axis_tilt = 1;
 
 tomo.rot_axis.offset = 5.4 * 2 / raw_bin; % 7.1.20
 scan_path = [raw_path '008_WT_stage23_1_1']; 
@@ -173,10 +175,6 @@ scan_path = [raw_path '008_WT_stage23_1_1'];
 image_correlation.area_height = [1 600];
 image_correlation.area_width = [0 1];
 write.parfolder = 'image_corr_roi_0_1_1_600';
-ADD
-
-pixel_filter_radius = [5 5]; 
-write.parfolder = 'pixel_filt_size5';
 ADD
 
 %% Rot axis checked
@@ -207,12 +205,14 @@ scan_path = [raw_path '011_WT_stage21_1_1']; ADD
 tomo.rot_axis.offset = 5.25 * 2 / raw_bin; % 8.1.20
 scan_path = [raw_path '012_WT_stage22_2_1']; ADD
 
+% vertical movment, 2-5 pixel unbinned
 tomo.rot_axis.offset = 5.1 * 2 / raw_bin;
 scan_path = [raw_path '013_Mohhmr_stage19_1_1']; ADD
 
 % beam a bit more stable
 
 % Poor quality, very weak contrast, flat field correction OK
+% less vertical movment, but strong lateral movement or tilt or deformation
 tomo.rot_axis.offset = 4.6 * 2 / raw_bin; % 8.1.20, more a guess, no peaks in metrics
 scan_path = [raw_path '014_Mohmmr_stage23_1_1']; ADD
 
@@ -222,59 +222,75 @@ scan_path = [raw_path '014_Mohmmr_stage23_1_1']; ADD
 % scan_path = [raw_path '018_Mohmmr_stage18_1_1_spiral']; ADD
 % scan_path = [raw_path '019_Mohmmr_stage18_2_1']; ADD
 
-% 10.1.20
-%tomo.rot_axis.offset = 8.85 * 2 / raw_bin; % z = 0.2
+% vertical movment of bottom about 2-3 2x binned pixels
+% breathing/deformation or lateral movement about 1-2 2x binnex pixels
+%tomo.rot_axis.offset = 8.85 * 2 / raw_bin; % z = 0.2 % 10.1.20
 tomo.rot_axis.offset = 8.25 * 2 / raw_bin; % z = 0.5
 %tomo.rot_axis.offset = 7.5 * 2 / raw_bin; % z = 0.8
 scan_path = [raw_path '020_Mohmmr_stage19_1_1']; ADD
 
-
-
-
+% massive gas bubbles
+% vertical movment about 1 2x binned pixels
+image_correlation.area_height = [2000 3800];
+image_correlation.area_width = [-1000 -201];
 tomo.rot_axis.offset =  3.7 * 4 / raw_bin;
 scan_path = [raw_path '021_Mohmmr_stage19_2_1']; ADD
 
+% gas bubbles
+% 3-4 2x pixels vertical movement
 tomo.rot_axis.offset =  5.0 * 4 / raw_bin;
 scan_path = [raw_path '022_WT_stage19_1_1']; ADD
 
-tomo.rot_axis.offset =  4.0 * 4 / raw_bin;
+% 1-2 2x pixels vertical movment
+tomo.rot_axis.offset =  7.7 * 2 / raw_bin; % 15.01
 scan_path = [raw_path '023_WT_stage20_1_1']; ADD
 
+% 7-9 2x pixels vertical movement
 tomo.rot_axis.offset = 3.6  * 4 / raw_bin;
 scan_path = [raw_path '024_WT_stage21_1_1']; ADD
 
+% 3-5 2x pixels vertical movement
 tomo.rot_axis.offset =  3.6 * 4 / raw_bin;
 scan_path = [raw_path '025_WT_stage23_1_1']; ADD
 
+% 1-3 2x pixels vertical movment, breathing
 tomo.rot_axis.offset = 3.8  * 4 / raw_bin;
 scan_path = [raw_path '026_Mohmmr_stage20_1_1']; ADD
 
+% 1 2x pixels vertical movement, breathing
 tomo.rot_axis.offset = 3.6  * 4 / raw_bin;
 scan_path = [raw_path '027_Mohmmr_stage20_2_1']; ADD
 
+% 5-7 2x pixels vertical movement, breathing
 tomo.rot_axis.offset =  3.2 * 4 / raw_bin;
 scan_path = [raw_path '028_Mohmmr_stage21_1_1']; ADD
 
+% 1-4 2x pixels vertical movement
 tomo.rot_axis.offset =  3.8 * 4 / raw_bin;
 scan_path = [raw_path '029_Mohmmr_stage22_1_1']; ADD
 
+% 5 2x pixel vertical movement
 tomo.rot_axis.offset = 3.6 * 4 / raw_bin;
 scan_path = [raw_path '030_Mohmmr_stage23_1_1']; ADD
 
-% vertical movement
+% 5 2x pixel vertical movement
 tomo.rot_axis.offset = 3.75 * 4 / raw_bin;
 scan_path = [raw_path '031_Mohmmr_stage23_2_1']; ADD
 
+% 2-3 2x pixel vertical movement, breathing, growing gas bubbles
 tomo.rot_axis.offset = 4.0 * 4 / raw_bin;
 scan_path = [raw_path '032_WT_stage18_1_1']; ADD
 
-
-%% Determine rot axis
+% 1-3 pixel 2x vertical movement, breathing
 scan_path = [raw_path '033_Mohmmr_stage24_1_1']; ADD
 
+% Only 1000 projections?
+% 2-5 2x pixel vertical movement
 scan_path = [raw_path '034_Mohmmr_stage19_3_1_IOD']; ADD
 
+% 2-4 2x pixel vertical movement, breathing rather small compared to other
 scan_path = [raw_path '035_Mohmmr_stage19_4_1_PTA']; ADD
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
