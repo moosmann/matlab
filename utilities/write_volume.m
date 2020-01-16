@@ -11,7 +11,11 @@ if nargin < 10
     suffix = '';
 end
 
-reco_path = assign_from_struct( write, 'reco_path', 0 );
+if ~write.is_phase
+    reco_path = assign_from_struct( write, 'reco_path', 0 );
+else
+    reco_path = assign_from_struct( write, 'reco_phase_path', 0 );
+end
 deleteFiles = assign_from_struct( write, 'deleteFiles', 0 );
 beamtimeID_regexp  = assign_from_struct( write, 'beamtimeID', '' );
 scan_name = assign_from_struct( write, 'scan_name', '' );

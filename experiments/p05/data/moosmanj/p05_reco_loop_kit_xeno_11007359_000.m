@@ -242,7 +242,8 @@ tomo.rot_axis.offset =  5.0 * 4 / raw_bin;
 scan_path = [raw_path '022_WT_stage19_1_1']; ADD
 
 % 1-2 2x pixels vertical movment
-tomo.rot_axis.offset =  7.7 * 2 / raw_bin; % 15.01
+tomo.rot_axis.offset =  7.7 * 2 / raw_bin; % 15.01.20
+phase_retrieval.apply = 1;
 scan_path = [raw_path '023_WT_stage20_1_1']; ADD
 
 % 7-9 2x pixels vertical movement

@@ -340,6 +340,7 @@ fclose( fid );
 
 fprintf( '%s', scan_name )
 write.scan_name = scan_name;
+write.is_phase = phase_retrieval.apply;
 fprintf( ' at %s', datetime )
 fprintf( '\n scan_path:\n  %s', scan_path )
 
@@ -1018,7 +1019,7 @@ if ~read_flatcor && ~read_sino
         end
     end
     
-    
+    %% Figure: Flat field
     if par.visual_output
         % Show flat field
         if exist( 'h1' , 'var' ) && isvalid( h1 )
@@ -1543,7 +1544,7 @@ if phase_retrieval.apply
     end
     if phase_retrieval.apply_before
         % Retrieval
-        [proj, write, tint_phase] = phase_retrieval_func( proj, phase_retrieval, tomo, write, interactive_mode, par );
+        [proj, write, tint_phase] = phase_retrieval_func( proj, phase_retrieval, tomo, write, interactive_mode );
         tomo.rot_axis.position = tomo.rot_axis.position / phase_bin;
         tomo.rot_axis.offset = tomo.rot_axis.offset / phase_bin;
         [tomo.vol_shape, tomo.vol_size] = volshape_volsize( proj, tomo.vol_shape, tomo.vol_size, tomo.rot_axis.offset, verbose );
@@ -1659,7 +1660,7 @@ end
 if phase_retrieval.apply
     if ~phase_retrieval.apply_before
         % Retrieval
-        [proj, write, tint_phase] = phase_retrieval_func( proj, phase_retrieval, tomo, write, interactive_mode, par );
+        [proj, write, tint_phase] = phase_retrieval_func( proj, phase_retrieval, tomo, write, interactive_mode );
         % Post phase retrieval binning
         tomo.rot_axis.position = tomo.rot_axis.position / phase_bin;
         tomo.rot_axis.offset = tomo.rot_axis.offset / phase_bin;
