@@ -312,7 +312,7 @@ if tomo.run || tomo.run_interactive_mode
                         
                         % Set tilt or loop over tilts
                         if isscalar( tilt )
-                            fprintf( ' new rotation axis tilt : %.2f (before: %.2f)', tilt, tomo.rot_axis.tilt )
+                            fprintf( ' new rotation axis tilt : %.f (before: %.f)', tilt, tomo.rot_axis.tilt )
                             tomo.rot_axis.tilt = tilt;
                             
                         else

@@ -49,13 +49,12 @@ fast_reco.interactive_mode.rot_axis_pos = 1;
 % END OF FAST MODE PARAMTER SECTION %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %%% SCAN %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-scan_path = '/asap3/petra3/gpfs/p07/2019/data/11007454/processed/bmc09_tooth2_crown';
-    %pwd;%'/asap3/petra3/gpfs/p07/2019/data/11007454/processed/bmc06_tooth1';
+scan_path = pwd;%'/asap3/petra3/gpfs/p07/2019/data/11007454/processed/bmc06_tooth1';
 %'/asap3/petra3/gpfs/p05/2019/data/11007580/raw/nova_317'; % string/pwd. pwd: change to directory of the scan to be reconstructed, sting: absolute scan path
 read_flatcor = 0; % read preprocessed flatfield-corrected projections. CHECK if negative log has to be taken!
 read_flatcor_path = ''; % subfolder of 'flat_corrected' containing projections
 read_flatcor_trafo = @(im) fliplr( im ); % anonymous function applied to the image which is read e.g. @(x) rot90(x)
-read_sino = 1; % read preprocessed sinograms. CHECK if negative log has to be taken!
+read_sino = 0; % read preprocessed sinograms. CHECK if negative log has to be taken!
 read_sino_folder = 'test02'; % subfolder to scan path
 read_sino_trafo = @(x) (x);%rot90(x); % anonymous function applied to the image which is read e.g. @(x) rot90(x)
 energy = []; % in eV! if empty: read from log file
@@ -100,7 +99,7 @@ image_correlation.method = 'entropy';'ssim-ml';'ssim';'ssim-g';'std';'cov';'corr
 image_correlation.force_calc = 0; % bool. force compuation of correlation even though a (previously computed) corrlation matrix exists
 image_correlation.num_flats = 3; % number of best maching flat fields used for correction
 image_correlation.area_width = [1 100];%[-100 1];% correlation area: index vector or relative/absolute position of [first pix, last pix], negative indexing is supported
-image_correlation.area_height = [0.3 0.7]; % correlation area: index vector or relative/absolute position of [first pix, last pix]
+image_correlation.area_height = [0.2 0.8]; % correlation area: index vector or relative/absolute position of [first pix, last pix]
 ring_filter.apply = 0; % ring artifact filter (use only for scans without lateral sample movement)
 ring_filter.apply_before_stitching = 0; % ! Consider when phase retrieval is applied !
 ring_filter.method = 'jm'; 'wavelet-fft';
@@ -151,7 +150,7 @@ write.to_scratch = 0; % write to 'scratch_cc' instead of 'processed'
 write.deleteFiles = 0; % delete files already existing in output folders. Useful if number or names of files differ when reprocessing.
 write.beamtimeID = ''; % string (regexp),typically beamtime ID, mandatory if 'write.deleteFiles' is true (safety check)
 write.scan_name_appendix = ''; % appendix to the output folder name which defaults to the scan name
-write.parfolder = 'test_sliceartefact';% parent folder to 'reco', 'sino', 'phase', and 'flat_corrected'
+write.parfolder = '';% parent folder to 'reco', 'sino', 'phase', and 'flat_corrected'
 write.subfolder.flatcor = ''; % subfolder in 'flat_corrected'
 write.subfolder.phase_map = ''; % subfolder in 'phase_map'
 write.subfolder.sino = ''; % subfolder in 'sino'
@@ -181,7 +180,7 @@ write.compression.parameter = [0.02 0.02]; % compression-method specific paramet
 par.visual_output = 1; % show images and plots during reconstruction
 interactive_mode.rot_axis_pos = 1; % reconstruct slices with dif+ferent rotation axis offsets
 interactive_mode.rot_axis_pos_default_search_range = []; % if empty: asks for search range when entering interactive mode
-interactive_mode.rot_axis_tilt = 0; % reconstruct slices with different offset AND tilts of the rotation axis
+interactive_mode.rot_axis_tilt = 1; % reconstruct slices with different offset AND tilts of the rotation axis
 interactive_mode.rot_axis_tilt_default_search_range = []; % if empty: asks for search range when entering interactive mode
 interactive_mode.lamino = 0; % find laminography tilt instead camera rotation
 interactive_mode.fixed_other_tilt = 0; % fixed other tilt
@@ -467,6 +466,9 @@ if ~read_flatcor && ~read_sino
     end
     % position of running index
     re = regexp( ref_names{1}, '\d{6,6}');
+    if isempty( re )
+        re = regexp( ref_names{1}, '\d{5,5}');
+    end
     if numel( re ) == 1
         imtype_str_flag = re;
     elseif strcmpi( ref_names{1}(end-6:end-4), 'ref' )
@@ -1040,8 +1042,8 @@ if ~read_flatcor && ~read_sino
         else
             h_corr_roi = figure( 'Name', 'image correlation roi', 'WindowState', 'maximized');
         end
-        subplot(1,2,1)
-        im = flat(:,:,1);                
+        subplot(2,2,1)
+        im = mean( flat, 3);                
         imsc1( im )
 %         imobj = imagesc( rot90( im ) );
 %         colormap( gray );
@@ -1050,11 +1052,11 @@ if ~read_flatcor && ~read_sino
         %y1 = im_shape_binned2 - floor( flat_corr_area2(1) / raw_bin );
         y1 = im_shape_binned2 - floor( flat_corr_area2(end) / raw_bin );
         rectangle( 'Position', [ x1 y1 flat_corr_area_width_binned flat_corr_area_height_binned], 'EdgeColor', 'r' )
-        title( sprintf( 'flat field\n(vertical coordiante values flipped)' ) )
+        title( sprintf( 'mean flat field\n(vertical coordiante values flipped)' ) )
         colorbar
         axis equal tight
         
-        subplot(1,2,2)
+        subplot(2,2,2)
         imsc1( roi_flat(:,:,1) )
         title( sprintf('flat field ROI \nimage correlation area:\nunbinned (relative) coordinates\nwidth = %g %g\nheight = %g %g', image_correlation.area_width, image_correlation.area_height ) );
         colorbar
@@ -1160,7 +1162,7 @@ if ~read_flatcor && ~read_sino
         proj(:, :, nn) = im_float_binned;
     end
     toc_bytes.read_proj = tocBytes( gcp, startS );
-    
+        
     % Delete empty projections
     zz = ~projs_to_use;
     if sum( zz(:) )
@@ -1244,6 +1246,34 @@ if ~read_flatcor && ~read_sino
     fprintf( '\n hot- / dark-pixel filter threshold : %f, %f', filt_pix_par.threshold_hot, filt_pix_par.threshold_dark )
     fprintf( '\n global min/max of projs after filtering and binning:  %6g %6g', raw_min, raw_max)
     fprintf( '\n global min/max of projs after dark-field correction and ring current normalization:  %6g %6g', raw_min2, raw_max2)
+    
+    
+    %% Figure: image correlation roi
+    if par.visual_output
+        if exist( 'h_corr_roi' , 'var' ) && isvalid( h_corr_roi )
+            figure( h_corr_roi )
+        else
+            h_corr_roi = figure( 'Name', 'image correlation roi', 'WindowState', 'maximized');
+        end
+        subplot(2,2,3)
+        im = raw1;
+        imsc1( im )
+        hold on
+        x1 = ceil(  flat_corr_area1(1) / raw_bin );
+        y1 = im_shape_binned2 - floor( flat_corr_area2(end) / raw_bin );
+        rectangle( 'Position', [ x1 y1 flat_corr_area_width_binned flat_corr_area_height_binned], 'EdgeColor', 'r' )
+        title( sprintf( 'proj(:,:,1)\n(vertical coordiante values flipped)' ) )
+        colorbar
+        axis equal tight
+        
+        subplot(2,2,4)
+        imsc1( roi_proj(:,:,1) )
+        title( sprintf('proj(:,:,1) ROI \nimage correlation area:\nunbinned (relative) coordinates\nwidth = %g %g\nheight = %g %g', image_correlation.area_width, image_correlation.area_height ) );
+        colorbar
+        axis equal tight
+        
+        drawnow
+    end
     
     %% Projection/flat field correlation and flat field correction %%%%%%%%
     par.raw_roi = raw_roi;

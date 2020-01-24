@@ -236,12 +236,12 @@ end
 fprintf( '\n Loop finished' )
 
 % Correction factor of two
-% flux measured with fast shuter is smaller tha without, however
+% flux measured with fast shuter is smaller than without, however
 % measurement with flux only accounts for opening flux reduction but not
 % for closing ( from 7.1 without to 5.4 with opening flank fast shutter, so
 % approximately 3.7 with opening and closing flank) AND flux was measured
 % with 0.1 s instead of 0.05 because of  technical problems (from 5.4 at
-% 0.1 ms at 3.7 at 0.05 ms)
+% 0.1 ms to 3.7 at 0.05 ms)
 dose.value = absorbed_energy_per_scan / bone_mass / 2;
 dose.unit = 'Gy';
 

@@ -259,7 +259,7 @@ tomo.rot_axis.offset = 3.8  * 4 / raw_bin;
 scan_path = [raw_path '026_Mohmmr_stage20_1_1']; ADD
 
 % 1 2x pixels vertical movement, breathing
-tomo.rot_axis.offset = 3.6  * 4 / raw_bin;
+tomo.rot_axis.offset = 7.1 * 2 / raw_bin; % 16.1.
 scan_path = [raw_path '027_Mohmmr_stage20_2_1']; ADD
 
 % 5-7 2x pixels vertical movement, breathing
