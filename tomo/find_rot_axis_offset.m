@@ -54,7 +54,8 @@ tomo.slice = slice;
 % Calculate required slab size: tilt condition
 rot_axis_pos = offset + vol_shape(1) / 2;
 l = max( max( rot_axis_pos) , max( abs( vol_shape(1) - rot_axis_pos ) ) );
-dz = ceil( sin( abs( tilt ) ) * l ); % maximum distance between sino plane and reco plane
+% maximum distance between sino plane and reco plane
+dz = ceil( sin( max( abs( [ tilt, fixed_tilt] ) ) ) * l ); 
 if slice - dz < 0 || slice + dz > num_row
     fprintf( '\nWARNING: Inclination of reconstruction plane, slice %u, exceeds sinogram volume. Better choose a more central slice or a smaller tilts.', slice)
 end

@@ -57,7 +57,8 @@ tomo.slice = slice;
 % Calculate required slab
 rot_axis_pos = offset + num_pix / 2;
 l = max( rot_axis_pos, abs( num_pix - rot_axis_pos ));
-dz = ceil( sin( max( abs( tilt ) ) ) * l ); % maximum distance between sino plane and reco plane
+% maximum distance between sino plane and reco plane
+dz = ceil( sin( max( abs( [ tilt, fixed_tilt] ) ) ) * l );
 % Calculate required slab size: Spiral CT condition
 if numel( vert_shift ) > 1
    dz = dz + floor( max( abs( tomo.vert_shift ) ) );

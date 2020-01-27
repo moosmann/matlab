@@ -14,6 +14,7 @@ tomo.angles = tomo.rot_angle.offset + angles;
 imsc1 = @(im) imsc( rot90( im ) );
 tint = 0;
 angle_scaling = [];
+lamino = interactive_mode.lamino;
 
 if tomo.run || tomo.run_interactive_mode
     
@@ -109,10 +110,15 @@ if tomo.run || tomo.run_interactive_mode
             slice = round((size( proj, 2 ) - 1) * interactive_mode.slice_number + 1 );
         end
         
-        itomo.offset = tomo.rot_axis.offset;
-        itomo.tilt = tomo.rot_axis.tilt;
-        itomo.lamino = interactive_mode.lamino;
-        itomo.fixed_tilt = interactive_mode.fixed_other_tilt;
+        itomo.offset = tomo.rot_axis.offset;        
+        if ~lamino
+            itomo.tilt = tomo.rot_axis.tilt_camera;
+            itomo.fixed_tilt = tomo.rot_axis.tilt_lamino;
+        else
+            itomo.tilt = tomo.rot_axis.tilt_lamino;
+            itomo.fixed_tilt = tomo.rot_axis.tilt_camera;
+        end
+        
         itomo.slice = slice;
         
         offset = [];
@@ -202,7 +208,9 @@ if tomo.run || tomo.run_interactive_mode
                 % Reco parameter
                 [itomo.vol_shape, itomo.vol_size] = volshape_volsize( proj, itomo.vol_shape, itomo.vol_size, median(offset), 0);
                 itomo.offset = offset;
-                itomo.tilt = tilt;
+                if ~isempty( tilt )
+                    itomo.tilt = tilt;
+                end
                 if isscalar( angle_scaling )
                     itomo.angles = angle_scaling * angles + tomo.rot_angle.offset;
                 end
@@ -268,7 +276,7 @@ if tomo.run || tomo.run_interactive_mode
                 if interactive_mode.rot_axis_tilt
                     
                     cprintf( 'RED', '\n\nEntering tilt loop:' )
-                    cprintf( 'Magenta', '\n current rotation axis TILT : %g rad = %g deg', tomo.rot_axis.tilt, tomo.rot_axis.tilt * 180 / pi)
+                    cprintf( 'Magenta', '\n current rotation axis TILT : %g rad = %g deg', itomo.tilt, itomo.tilt * 180 / pi)
                     fprintf( '\n calcul. rotation axis TILT : %g rad = %g deg', rot_axis_tilt_calc, rot_axis_tilt_calc * 180 / pi)
                     fprintf( '\n default tilt range : current TILT + [')
                     fprintf( ' %.2g', interactive_mode.rot_axis_tilt_default_search_range )
@@ -304,7 +312,7 @@ if tomo.run || tomo.run_interactive_mode
                             inp = input( txt );
                         end % while ischar( inp )
                         if isempty( inp )
-                            tilt = tomo.rot_axis.tilt + interactive_mode.rot_axis_tilt_default_search_range;
+                            tilt = itomo.tilt + interactive_mode.rot_axis_tilt_default_search_range;
                             fprintf( 'using default range' )
                         else
                             tilt = inp;
@@ -312,8 +320,8 @@ if tomo.run || tomo.run_interactive_mode
                         
                         % Set tilt or loop over tilts
                         if isscalar( tilt )
-                            fprintf( ' new rotation axis tilt : %.f (before: %.f)', tilt, tomo.rot_axis.tilt )
-                            tomo.rot_axis.tilt = tilt;
+                            fprintf( ' new rotation axis tilt : %.f (before: %.f)', tilt, itomo.tilt )
+                            itomo.tilt = tilt;
                             
                         else
                             % Reco
@@ -332,7 +340,7 @@ if tomo.run || tomo.run_interactive_mode
                             fprintf( ' no.' )
                             fprintf( '%11s', 'tilt/rad', 'tilt/deg', metrics_tilt.name )
                             for nn = 1:numel(tilt)
-                                if tilt(nn) == tomo.rot_axis.tilt
+                                if tilt(nn) == itomo.tilt
                                     cprintf( 'Magenta', sprintf( '\n%4u%11g%11g', nn, tilt(nn), tilt(nn)/pi*180 ) )
                                 else
                                     cprintf( 'Black', sprintf( '\n%4u%11g%11g', nn, tilt(nn), tilt(nn)/pi*180 ) )
@@ -387,8 +395,8 @@ if tomo.run || tomo.run_interactive_mode
                             rot_axis_tilt_calc = asin( tform_calc.T(1,2) ) / 2;
                             im2c_warped_calc =  imwarp(im2c, tform_calc, 'OutputView', imref2d(size(im1c)));
                             tform_int = tform_calc;
-                            tform_int.T = [cos( 2 * tomo.rot_axis.tilt ) sin( 2 * tomo.rot_axis.tilt ) 0; ...
-                                -sin( 2 * tomo.rot_axis.tilt ) cos( 2 * tomo.rot_axis.tilt ) 0 ; ...
+                            tform_int.T = [cos( 2 * itomo.tilt ) sin( 2 * itomo.tilt ) 0; ...
+                                -sin( 2 * itomo.tilt ) cos( 2 * itomo.tilt ) 0 ; ...
                                 tform_calc.T(3,1) tform_calc.T(3,2) 1];
                             % Remove translation if very large which is
                             % likely to be incorrect
@@ -405,13 +413,13 @@ if tomo.run || tomo.run_interactive_mode
                             
                             im2c_warped_int =  imwarp(im2c, tform_int, 'OutputView', imref2d(size(im1c)));
                             
-                            xt = ceil( 3 * abs( sin(2*tomo.rot_axis.tilt) ) * max( size(im1c)) ) + 2;
+                            xt = ceil( 3 * abs( sin(2*itomo.tilt) ) * max( size(im1c)) ) + 2;
                             
                             if xt < size( im1c,1)  -10 && xt < size( im1c,2)  -10
-                                fprintf( '\n current rotation axis tilt from interactive mode: %g rad (%g deg)', tomo.rot_axis.tilt, tomo.rot_axis.tilt * 180 / pi)
+                                fprintf( '\n current rotation axis tilt from interactive mode: %g rad (%g deg)', itomo.tilt, itomo.tilt * 180 / pi)
                                 fprintf( '\n calcul. rotation axis tilt from registration    : %g rad (%g deg)', rot_axis_tilt_calc, rot_axis_tilt_calc * 180 / pi)
                                 
-                                name = sprintf( 'TILT: registered projections at %g and %g degree. rot axis tilt from INTERACTIVE mode: %g, rot axis offset: %g', angles(ind1)/pi*180, angles(ind2)/pi*180, tomo.rot_axis.tilt, tomo.rot_axis.offset);
+                                name = sprintf( 'TILT: registered projections at %g and %g degree. rot axis tilt from INTERACTIVE mode: %g, rot axis offset: %g', angles(ind1)/pi*180, angles(ind2)/pi*180, itomo.tilt, tomo.rot_axis.offset);
                                 nimplay( cat(3, im1c(xt:end-xt,xt:end-xt)', im2c_warped_int(xt:end-xt,xt:end-xt)'), 1, 0, name)
                                 
                                 name = sprintf( 'TILT: registered projections at %g and %g degree. corrected. rot axis tilt from REGISTRATION: %g, rot axis offset: %g', angles(ind1)/pi*180, angles(ind2)/pi*180, rot_axis_tilt_calc, tomo.rot_axis.offset);
@@ -435,7 +443,7 @@ if tomo.run || tomo.run_interactive_mode
                             end
                         end % if isscalar( tilt )
                     end % while ~isscalar( tilt )
-                    tomo.rot_axis.tilt = tilt;
+                    itomo.tilt = tilt;
                 end % if interactive_mode.rot_axis_tilt
                       
                 %% ANGLES
@@ -586,6 +594,12 @@ if tomo.run || tomo.run_interactive_mode
             write_gif( vol, filename )
         end
         
+        if ~lamino
+            tomo.rot_axis.tilt_camera = itomo.tilt;
+        else
+            tomo.rot_axis.tilt_lamino = itomo.tilt;
+        end
+        
         tint = toc - tint;
         cprintf( 'RED', '\nEND OF INTERACTIVE MODE\n' )
     end % if interactive_mode.rot_axis_pos
@@ -596,11 +610,12 @@ if tomo.run || tomo.run_interactive_mode
     
     fprintf( '\n rotation axis offset: %.2f', tomo.rot_axis.offset );
     fprintf( '\n rotation axis position: %.2f', tomo.rot_axis.position );
-    fprintf( '\n rotation axis tilt: %g rad (%g deg)', tomo.rot_axis.tilt, tomo.rot_axis.tilt * 180 / pi)
+    fprintf( '\n rotation axis tilt camera: %g rad (%g deg)', tomo.rot_axis.tilt_camera, tomo.rot_axis.tilt_camera * 180 / pi)
+    fprintf( '\n rotation axis tilt lamino: %g rad (%g deg)', tomo.rot_axis.tilt_lamino, tomo.rot_axis.tilt_lamino * 180 / pi)
     [tomo.vol_shape, tomo.vol_size] = volshape_volsize( proj, tomo.vol_shape, tomo.vol_size, tomo.rot_axis.offset, 1);
     
     %% Display 0/pi projection: original and registered with tilt
-    if interactive_mode.rot_axis_tilt && par.visual_output
+    if par.visual_output && interactive_mode.rot_axis_tilt && lamino
         figure('Name','TILT: Projections at 0 and pi cropped symmetrically to rotation center');
         n = 2;
         m = 2;
@@ -617,7 +632,7 @@ if tomo.run || tomo.run_interactive_mode
         title(sprintf('proj at pi'))
         colorbar
         
-        xt = ceil( 3 * abs( sin(2*tomo.rot_axis.tilt) ) * max( size(im1c)) ) + 2;
+        xt = ceil( 3 * abs( sin(2*itomo.tilt) ) * max( size(im1c)) ) + 2;
         if xt > size( im1c,1)  -10 || xt > size( im1c,2)  -10
             xt = 1;
         end
@@ -639,5 +654,5 @@ if tomo.run || tomo.run_interactive_mode
         colorbar
         
         drawnow
-    end
-end
+    end % if interactive_mode.rot_axis_tilt && par.visual_output
+end % if tomo.run || tomo.run_interactive_mode
