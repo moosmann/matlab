@@ -608,11 +608,13 @@ if tomo.run || tomo.run_interactive_mode
         angles = angle_scaling * angles;
     end
     
-    fprintf( '\n rotation axis offset: %.2f', tomo.rot_axis.offset );
-    fprintf( '\n rotation axis position: %.2f', tomo.rot_axis.position );
+    ro = tomo.rot_axis.offset( ceil( numel( tomo.rot_axis.offset ) / 2 ) );
+    rp = tomo.rot_axis.position( ceil( numel( tomo.rot_axis.position ) / 2 ) );
+    fprintf( '\n rotation axis offset: %.2f', ro );
+    fprintf( '\n rotation axis position: %.2f', rp );
     fprintf( '\n rotation axis tilt camera: %g rad (%g deg)', tomo.rot_axis.tilt_camera, tomo.rot_axis.tilt_camera * 180 / pi)
     fprintf( '\n rotation axis tilt lamino: %g rad (%g deg)', tomo.rot_axis.tilt_lamino, tomo.rot_axis.tilt_lamino * 180 / pi)
-    [tomo.vol_shape, tomo.vol_size] = volshape_volsize( proj, tomo.vol_shape, tomo.vol_size, tomo.rot_axis.offset, 1);
+    [tomo.vol_shape, tomo.vol_size] = volshape_volsize( proj, tomo.vol_shape, tomo.vol_size, ro, 1);
     
     %% Display 0/pi projection: original and registered with tilt
     if par.visual_output && interactive_mode.rot_axis_tilt && lamino
