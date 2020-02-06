@@ -5,7 +5,7 @@ if nargin < 8
     counter_offset = 0;
 end
 if nargin < 9
-    verbose = 1;
+    verbose = 0;
 end
 if nargin < 10
     suffix = '';
@@ -24,8 +24,6 @@ scan_name = assign_from_struct( write, 'scan_name', '' );
 if tag == 0
     return
 else
-    t = toc;
-    
     save_path = sprintf( '%s%s_rawBin%u', reco_path, output_type, raw_bin);
     if phase_bin > 1
         save_path = sprintf( '%s_phaseBin%u', save_path, phase_bin);
@@ -62,5 +60,4 @@ else
         otherwise
            error( 'Format ''%s'' not supported.', output_type )
     end
-    PrintVerbose(verbose, ' done in %.2f min.', (toc - t) / 60)
 end

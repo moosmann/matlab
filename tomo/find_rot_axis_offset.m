@@ -9,7 +9,7 @@ function [vol, reco_metric] = find_rot_axis_offset( tomo, proj)
 % mean of all absolute values, mean non-negative values, mean of isotropic
 % modulus of gradient, mean of Laplacian, entropy
 % 
-% Written by Julian Moosmann. Last modification: 2018-04-11
+% Written by Julian Moosmann. 
 %
 % [vol, reco_metric] = find_rot_axis_offset( tomo, proj );
 

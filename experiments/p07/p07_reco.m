@@ -377,18 +377,6 @@ CheckAndMakePath( fig_path )
 
 if ~read_flatcor && ~read_sino
     
-    % Wait until scan finishes
-    filename = sprintf( '%s%sscan.log', scan_path, scan_name );
-    if ~exist( filename, 'file' )
-        % back up for older log file name schemes
-        str = dir( sprintf( '%s*scan.log', scan_path) );
-        filename = sprintf( '%s/%s', str.folder, str.name);
-    end
-    while exist(filename, 'file' ) && ~getfield( dir( filename ) ,'bytes')
-        fprintf( '\nWaiting for scan to finish.' )
-        pause(1);
-    end
-    
     % Path to flat-field corrected projections
     flatcor_path = sprintf( '%s/flat_corrected/rawBin%u/', write.path, raw_bin );
     if ~isempty( write.subfolder.flatcor )
@@ -431,8 +419,6 @@ if ~read_flatcor && ~read_sino
     im_piezo = imlogcell{6};
     
     im_petra = imlogcell{7};
-    
- 
     
     %% Filename
     
@@ -548,13 +534,11 @@ if ~read_flatcor && ~read_sino
         
         dtype = 'uint16';
         eff_pixel_size_binned = raw_bin * eff_pixel_size;
+        
         % Image shape
         filename = sprintf('%s%s', scan_path, ref_names{1});
         [im_raw, tif_info] = read_image( filename, '', [], tif_info, [], dtype, im_trafo );
         im_shape_raw = size( im_raw );
-        
-        
-        %piezo = imlogcell
         
         stimg_name.value = imlogcell{1};
         stimg_name.time =  im_time;
@@ -562,9 +546,6 @@ if ~read_flatcor && ~read_sino
         stimg_key.time = im_time;
         
         % PETRA ring current
-        %         [petra.time, index] = unique( h5read( h5log,'/entry/hardware/beam_current/current/time') );
-        %         petra.current = h5read( h5log,'/entry/hardware/beam_current/current/value');
-        %         petra.current = petra.current(index);
         petra.time = im_time(im_key==0);
         petra.current = im_petra(im_key==0);
         
@@ -587,7 +568,6 @@ if ~read_flatcor && ~read_sino
         % rotation axis
         s_rot.time = im_time(im_key==0);
         s_rot.value = im_angle(im_key==0);
-
 
         %% Lateral shift
         if 1

@@ -26,6 +26,9 @@ if length( name ) > 4
     if isfield( par, 'ccd_xsize') && isequal( par.ccd_xsize, 5120 )
         cam = 'KIT';
     end
+    if isfield( par, 'ccd_xsize') && sum( par.ccd_xsize, [7920])
+        cam = 'XIMEA';
+    end
 else
     cam = 'KIT';
     [par, cur] = KIT_log( file );

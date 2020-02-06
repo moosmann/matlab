@@ -397,12 +397,14 @@ if isempty( write.subfolder.reco )
 else
     write.reco_phase_path = [write.path, filesep, 'reco_phase', filesep, phase_appendix, filesep, write.subfolder.reco, filesep];
 end
+write.reco_path = write.reco_phase_path;
 CheckAndMakePath( write.reco_phase_path )
 fprintf( '\n energy : %g eV', phase_retrieval.energy)
 fprintf( '\n sample detector distance : %g m', phase_retrieval.sample_detector_distance)
 fprintf( '\n pixel size : %g micron', phase_retrieval.eff_pixel_size_binned * 1e6)
 fprintf( '\n phase retrieval method : %s', method)
 fprintf( '\n reco_phase_path : %s', write.reco_phase_path)
+fprintf( '\n Setting reco_path to reco_phase_path' )
 
 %% Retrieval
 fprintf( '\nPhase retrieval: ')

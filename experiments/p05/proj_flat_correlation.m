@@ -50,7 +50,7 @@ outpath = write.parpath;
 %% CORRELATION %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 switch method
     
-    case {'none', '', 'median'}
+    case {'', 'median'}
         fprintf( 'No correlation.' )
         corr = [];
         
@@ -401,7 +401,10 @@ end
 
 %% CORRECTION %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 switch method
-    case {'none', '', 'median'}
+    case 'none'
+        fprintf( '\nNO FLAT FIELD CORRECTION')
+        
+    case {'', 'median'}
         
         % Flat field correction without correlation
         fprintf( '\nFlat-field correction w/o correlation.')

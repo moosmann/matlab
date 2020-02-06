@@ -292,6 +292,23 @@ scan_path = [raw_path '034_Mohmmr_stage19_3_1_IOD']; ADD
 % 2-4 2x pixel vertical movement, breathing rather small compared to other
 scan_path = [raw_path '035_Mohmmr_stage19_4_1_PTA']; ADD
 
+% TEST
+raw_bin = 8;
+ref_range = 50;
+proj_range = 10;
+write.to_scratch = 1;
+write.flatcor = 1;
+write.phase_map = 1; 
+write.sino = 1; 
+write.phase_sino = 1;
+write.reco = 1;
+write.float = 1;
+write.uint16 = 1; 
+write.uint8 = 1;
+write.float_binned = 1; 
+write.uint16_binned = 1;
+write.uint8_binned = 1;
+scan_path = [raw_path '035_Mohmmr_stage19_4_1_PTA']; ADD
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

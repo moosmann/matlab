@@ -16,8 +16,13 @@ if ~isstruct( value )
     evalin( 'caller', expr );
 else
     fn = fieldnames( value );
-    fn = fn{1};
-    assignin( 'caller', 'assign_tmp', value.(fn) )
-    expr = sprintf( '%s.%s = assign_tmp;', name, fn  );
-    evalin( 'caller', expr );
+    %for nn = 1:numel( fn )
+        %fnn = fn{nn};
+        fnn = fn{1};
+        assignin( 'caller', 'assign_tmp', value.(fnn) )
+        expr = sprintf( '%s.%s = assign_tmp;', name, fnn  );
+        evalin( 'caller', expr );
+        fprintf( '\nname: %s', name)
+        fprintf( '\nname: %s', fnn)
+    %end
 end
