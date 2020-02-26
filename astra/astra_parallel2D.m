@@ -1,8 +1,8 @@
-function vol = astra_parallel2D( tomo, sino, gpu_index, rotation_axis_offset)
+function vol = astra_parallel2D( par, sino, gpu_index, rotation_axis_offset)
 % Slicewise parallel backprojection of 2D or 3D sinograms using ASTRA.
 %
 % ARGUMENTS
-% tomo : parameter struct with fields:
+% par : parameter struct with fields:
 %   angles: scalar or vector. Default: pi. If calar it is the angular range
 %       covered during one tomogram and the angles are computed as angles * (0:num_proj-1) /
 %       num_proj. If vector it is the angles of the projections. If scalar the 
@@ -55,23 +55,38 @@ if nargin < 4
 end
 
 %% Default arguments %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-angles = assign_from_struct( tomo, 'angles', pi );
-vol_shape = assign_from_struct( tomo, 'vol_shape', [size( sino, 1), size( sino, 1), size(sino, 3) ] );
-vol_size = assign_from_struct( tomo, 'vol_size', [] );
-pixel_size = assign_from_struct( tomo, 'astra_pixel_size', 1 );
-tilt = assign_from_struct( tomo, 'tilt_camera', 0 );
-algorithm = assign_from_struct( tomo, 'algorithm', 'fbp' );
-iterations = assign_from_struct( tomo, 'iterations', 100);
-scan_position = assign_from_struct( tomo, 'scan_position', 0);
-angle_offset = assign_from_struct( tomo.rot_angle, 'offset', 0 );
-MinConstraint = assign_from_struct( tomo.sirt, 'MinConstraint', [] );
-MaxConstraint = assign_from_struct( tomo.sirt, 'MaxConstraint', [] );
-%vert_shift = assign_from_struct( tomo, 'vert_shift', [] );
+angles = return_with_default( par.angles, pi );
+scan_position = return_with_default( par.scan_position, 0 );
+angle_offset = return_with_default( par.rot_angle_offset, 0 );
+vol_shape = return_with_default( par.vol_shape, [size( sino, 1), size( sino, 1), size(sino, 3) ] );
+vol_size = return_with_default( par.vol_size, [] );
+pixel_size = return_with_default( par.astra_pixel_size, 1 );
+tilt = return_with_default( par.tilt_camera, 0 );
+algorithm = return_with_default( par.algorithm, 'fbp' );
+iterations = return_with_default( par.iterations, 20 );
+MinConstraint = return_with_default( par.sirt_MinConstraint, [] );
+MaxConstraint = return_with_default( par.sirt_MaxConstraint, [] );
+%link_data = return_with_default( par.astra_link_data, 0 );
+%vert_shift = par.vert_shift;
+
+%angles = assign_from_struct( par, 'angles', pi );
+%vol_shape = assign_from_struct( par, 'vol_shape', [size( sino, 1), size( sino, 1), size(sino, 3) ] );
+%vol_size = assign_from_struct( par, 'vol_size', [] );
+%pixel_size = assign_from_struct( par, 'astra_pixel_size', 1 );
+%tilt = assign_from_struct( par, 'tilt_camera', 0 );
+%algorithm = assign_from_struct( par, 'algorithm', 'fbp' );
+%iterations = assign_from_struct( par, 'iterations', 100);
+%scan_position = assign_from_struct( par, 'scan_position', 0);
+%angle_offset = assign_from_struct( par.rot_angle, 'offset', 0 );
+%MinConstraint = assign_from_struct( par.sirt, 'MinConstraint', [] );
+%MaxConstraint = assign_from_struct( par.sirt, 'MaxConstraint', [] );
+%vert_shift = assign_from_struct( par, 'vert_shift', [] );
+
 if isempty( gpu_index )
-    gpu_index = assign_from_struct( tomo, 'astra_gpu_index', [] );
+    gpu_index = return_with_default( par.astra_gpu_index, [] );
 end
 if isempty( rotation_axis_offset )
-    rotation_axis_offset = assign_from_struct( tomo.rot_axis, 'offset', 0);
+    rotation_axis_offset = return_with_default( par.rot_axis_offset, 0 );
 end
 
 %% TODO: Spiral CT using interpolation
@@ -83,7 +98,6 @@ if tilt ~= 0
 end
 
 angles = double( angles );
-%rotation_axis_offset = double( rotation_axis_offset );
 
 % GPU
 if isempty( gpu_index )
@@ -205,17 +219,16 @@ bp_id = astra_mex_algorithm('create', cfg);
 % of the difference between the projection data and the projection of the
 % reconstruction.
 if strcmpi( algorithm, 'fbp' )
-    astra_mex_algorithm('iterate', bp_id, 1);
+    astra_mex_algorithm( 'iterate', bp_id, 1 );
 else
-    astra_mex_algorithm('iterate', bp_id, iterations);
+    astra_mex_algorithm( 'iterate', bp_id, iterations );
 end
-astra_mex_algorithm('delete', bp_id);
-astra_mex_data2d('delete', sino_id)
+astra_mex_algorithm( 'delete', bp_id );
+astra_mex_data2d( 'delete', sino_id )
 
 %% Fetch data from ASTRA memory
-vol = astra_mex_data2d('get_single', vol_id);
-astra_mex_data2d('delete', vol_id)
-%astra_mex_projector2d('clear')
+vol = astra_mex_data2d( 'get_single', vol_id );
+astra_mex_data2d( 'delete', vol_id )
 
 % Required for adjoint?
 %vol = pi / 2 / numel(angles) * vol;

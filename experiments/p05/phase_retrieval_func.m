@@ -1,21 +1,24 @@
-function [proj, write, tint] = phase_retrieval_func( proj, phase_retrieval, tomo, write, interactive_mode )
+function [proj, tint] = phase_retrieval_func( proj, par )
 % Phase retrieval for P05 data.
 %
 % Written by Julian Moosmann, 2018-01-11, last version: 2018-07-27
 %
-% [proj, write, tint] = p05_phase_retrieval( proj, phase_retrieval, tomo, write, interactive_mode, par )
+% [proj, par, tint] = p05_phase_retrieval( proj, par )
 
 %% Main %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 t = toc;
-scan_name = assign_from_struct( write, 'scan_name', '' );
 
-method = phase_retrieval.method;
-padding = phase_retrieval.padding;
-reg_par = phase_retrieval.reg_par;
-bin_filt = phase_retrieval.bin_filt;
-cutoff_frequ = phase_retrieval.cutoff_frequ;
-edp = [phase_retrieval.energy, phase_retrieval.sample_detector_distance, phase_retrieval.eff_pixel_size_binned];
-take_neg_log = phase_retrieval.take_neg_log;
+scan_name = par.scan_name;
+method = par.phase_retrieval_method;
+padding = par.phase_retrieval_padding;
+reg_par = par.phase_retrieval_reg_par;
+bin_filt = par.phase_retrieval_bin_filt;
+cutoff_frequ = par.phase_retrieval_cutoff_frequ;
+% par.phase_retrieval_post_binning_factor;
+edp = [par.energy, par.sample_detector_distance, par.eff_pixel_size_binned];
+if isempty( par.take_neg_log )
+            par.take_neg_log = 0;
+end
 if edp(1) <= 0
     error( 'Energy is zero!' );
 end
@@ -36,16 +39,15 @@ fprintf( '\n effective pixel size binned : %g micron', pixelsize * 1e6);
 fprintf( '\n characteristic length (detector width) b : %f mm', b * 1000 )
 fprintf( '\n Fresnel number = b^2 / lambda / z: %g', NF )
 
-
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Interactive mode %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 tint = 0;
-if exist( 'interactive_mode', 'var' ) && isfield( interactive_mode, 'phase_retrieval' ) && interactive_mode.phase_retrieval
+if isfield( par, 'interactive_mode_phase_retrieval' ) && par.interactive_mode_phase_retrieval
     tint = toc;
     plot_ctf_mask(1) = 0;
     
-    if tomo.rot_axis.tilt ~= 0
-        error( 'Rotation axis tilt not supported in interactive phase retrieval mode. Set ''tomo.rot_axis.tilt'' to 0 in order to run interactive reco.' )
+    if par.rot_axis.tilt ~= 0
+        error( 'Rotation axis tilt not supported in interactive phase retrieval mode. Set ''par.rot_axis.tilt'' to 0 in order to run interactive reco.' )
     end
     
     if plot_ctf_mask
@@ -54,48 +56,48 @@ if exist( 'interactive_mode', 'var' ) && isfield( interactive_mode, 'phase_retri
     end
     
     cprintf( 'RED', '\n\nENTERING INTERACTIVE PHASE RETRIEVAL MODE' );
-    if ~isempty( interactive_mode.phase_retrieval_default_search_range )
-        reg_par_def_range = interactive_mode.phase_retrieval_default_search_range;
+    if ~isempty( par.interactive_mode_phase_retrieval_default_search_range )
+        reg_par_def_range = par.interactive_mode_phase_retrieval_default_search_range;
     else
         reg_par_def_range = 1:6;
     end
 
-    if interactive_mode.slice_number > 1
-        slice = interactive_mode.slice_number;
-    elseif interactive_mode.slice_number <= 1 && interactive_mode.slice_number >= 0
-        slice = round( ( size( proj, 2) - 1) * interactive_mode.slice_number + 1 );
+    if par.interactive_mode_slice_number > 1
+        slice = par.interactive_mode_slice_number;
+    elseif par.interactive_mode_slice_number <= 1 && par.interactive_mode_slice_number >= 0
+        slice = round( ( size( proj, 2) - 1) * par.interactive_mode_slice_number + 1 );
     else
         slice = ceil( size( proj, 2) / 2 );
     end
     
     % Tomography parameters
-    vol_shape = assign_from_struct( tomo, 'vol_shape', [] );
-    vol_size = assign_from_struct( tomo, 'vol_size', [] );
-    butterworth_filtering = assign_from_struct( tomo.butterworth_filter, 'apply', 0 );
-    if isempty( tomo.rot_axis.offset )
+    vol_shape = assign_from_struct( par, 'vol_shape', [] );
+    vol_size = assign_from_struct( par, 'vol_size', [] );
+    butterworth_filtering = assign_from_struct( par.butterworth_filter, 'apply', 0 );
+    if isempty( par.rot_axis.offset )
         cprintf( 'Blue', '\n\n Interactive phase retrieval mode requires rotation axis position:' )
-        tomo.rot_axis.offset = input( ' ' );
+        par.rot_axis.offset = input( ' ' );
     end
     [num_pix, num_row, num_proj] = size( proj );
        
     %  Size, shape
-    [vol_shape, vol_size] = volshape_volsize( proj, vol_shape, vol_size, tomo.rot_axis.offset, 0);
+    [vol_shape, vol_size] = volshape_volsize( proj, vol_shape, vol_size, par.rot_axis.offset, 0);
     if isempty( vol_shape )
         vol_shape = [num_pix, num_pix, 1];
     else
         vol_shape(3) = 1;
     end
-    tomo.vol_shape = vol_shape;
+    par.vol_shape = vol_shape;
     if isempty( vol_size )
         vol_size = [-num_pix/2 num_pix/2 -num_pix/2 num_pix/2 -0.5 0.5];
     else
         vol_size(5) = -0.5;
         vol_size(6) = 0.5;
     end
-    tomo.vol_size = vol_size;
-    %tomo.rot_axis.offset = tomo.rot_axis.offset + tomo.offset_shift + eps;
+    par.vol_size = vol_size;
+    %par..rot_axis.offset = par..rot_axis.offset + par..offset_shift + eps;
     
-    if strcmpi( tomo.algorithm, 'fbp' )
+    if strcmpi( par.algorithm, 'fbp' )
         % Ramp filter
         fbp_filt = iradonDesignFilter('Ram-Lak', 2 * num_pix, 1);
         
@@ -204,7 +206,7 @@ if exist( 'interactive_mode', 'var' ) && isfield( interactive_mode, 'phase_retri
                 t = toc;
                 fprintf( ' filter:' )
                 tmp = bsxfun( @times, slab_ft, phase_filter );
-                if strcmpi( tomo.algorithm, 'fbp' )
+                if strcmpi( par.algorithm, 'fbp' )
                     tmp = bsxfun( @times, tmp, fbp_filt );
                 end
                 fprintf( ' %.1f s.', toc - t)
@@ -217,7 +219,7 @@ if exist( 'interactive_mode', 'var' ) && isfield( interactive_mode, 'phase_retri
                 % Tomography
                 t = toc;
                 fprintf( ' tomo:' )
-                reco = astra_parallel2D( tomo, permute( sino, [3 1 2]) );
+                reco = astra_parallel2D( par, permute( sino, [3 1 2]) );
                 %im = FilterOutlier( im );
                 pha(:,:,nn) = reco;
                 fprintf( ' %.1f s.', toc - t)
@@ -263,7 +265,7 @@ if exist( 'interactive_mode', 'var' ) && isfield( interactive_mode, 'phase_retri
             fprintf( '\n')
             fprintf( '%10s', 'image no.', 'reg par', 'reg val', reco_metric.name)
             for nn = 1:numel(reg_par)
-                if reg_par(nn) == phase_retrieval.reg_par
+                if reg_par(nn) == par.reg_par
                     cprintf( 'Green', sprintf('\n%10u%10.2f%10.2g', nn, reg_par(nn), 10^-reg_par(nn) ) )
                 else
                     cprintf( 'Black', '\n%10u%10.2f%10.2g', nn, reg_par(nn), 10^-reg_par(nn) )
@@ -298,7 +300,7 @@ if exist( 'interactive_mode', 'var' ) && isfield( interactive_mode, 'phase_retri
             title(sprintf('rotation axis: metrics VS regularization parameter'))
             drawnow
             
-            saveas( f, sprintf( '%s%s.png', write.fig_path, regexprep( f.Name, '\ |:', '_') ) );
+            saveas( f, sprintf( '%s%s.png', par.write_fig_path, regexprep( f.Name, '\ |:', '_') ) );
             
             % Play
             nimplay( pha, 1, [], 'PHASE RETRIEVAL: sequence of reconstructed slices using different phase retrieval parameters')
@@ -362,21 +364,21 @@ if exist( 'interactive_mode', 'var' ) && isfield( interactive_mode, 'phase_retri
         
     end % of while loop ~isscalar( reg_par )
     
-    phase_retrieval.method = method;
-    phase_retrieval.reg_par = reg_par;
-    phase_retrieval.cutoff_frequ = cutoff_frequ;
-    phase_retrieval.bin_filt = bin_filt;
-    phase_retrieval.padding = padding;
-    phase_retrieval.energy = edp(1);
-    phase_retrieval.sample_detector_distance = edp(2);
-    phase_retrieval.eff_pixel_size_binned = edp(3);
+    par.method = method;
+    par.reg_par = reg_par;
+    par.cutoff_frequ = cutoff_frequ;
+    par.bin_filt = bin_filt;
+    par.padding = padding;
+    par.energy = edp(1);
+    par.sample_detector_distance = edp(2);
+    par.eff_pixel_size_binned = edp(3);
     
     tint = toc - tint;
     
     % Save sequence
     % Renormalize: subtract minimum, then divide by maximum-minimum.
     if exist( 'pha', 'var')
-        filename = sprintf( '%sphase_retrieval__reg_par_sequence.gif', write.fig_path );
+        filename = sprintf( '%sphase_retrieval__reg_par_sequence.gif', par.write_fig_path );
         write_gif( pha, filename )
     end
     cprintf( 'red', '\nEND OF INTERACTIVE MODE' )  
@@ -389,21 +391,21 @@ end
 im_shape = [size(proj,1) , size(proj,2)];
 im_shape_pad = (1 + padding) * im_shape;
 [phase_filter, phase_appendix] = PhaseFilter( method, im_shape_pad, edp, reg_par, bin_filt, cutoff_frequ, 'single');
-write.phase_appendix = phase_appendix;
+par.write_phase_appendix = phase_appendix;
 
 % reco phase dir
-if isempty( write.subfolder.reco )
-    write.reco_phase_path = [write.path, filesep, 'reco_phase', filesep, phase_appendix, filesep];
+if isempty( par.write_subfolder_reco )
+    par.write_reco_phase_path = [par.write_path, filesep, 'reco_phase', filesep, phase_appendix, filesep];
 else
-    write.reco_phase_path = [write.path, filesep, 'reco_phase', filesep, phase_appendix, filesep, write.subfolder.reco, filesep];
+    par.write_reco_phase_path = [par.write_path, filesep, 'reco_phase', filesep, phase_appendix, filesep, par.write_subfolder_reco, filesep];
 end
-write.reco_path = write.reco_phase_path;
-CheckAndMakePath( write.reco_phase_path )
-fprintf( '\n energy : %g eV', phase_retrieval.energy)
-fprintf( '\n sample detector distance : %g m', phase_retrieval.sample_detector_distance)
-fprintf( '\n pixel size : %g micron', phase_retrieval.eff_pixel_size_binned * 1e6)
+par.write_reco_path = par.write_reco_phase_path;
+CheckAndMakePath( par.write_reco_phase_path )
+fprintf( '\n energy : %g eV', par.energy)
+fprintf( '\n sample detector distance : %g m', par.sample_detector_distance)
+fprintf( '\n pixel size : %g micron', par.eff_pixel_size_binned * 1e6)
 fprintf( '\n phase retrieval method : %s', method)
-fprintf( '\n reco_phase_path : %s', write.reco_phase_path)
+fprintf( '\n reco_phase_path : %s', par.write_reco_phase_path)
 fprintf( '\n Setting reco_path to reco_phase_path' )
 
 %% Retrieval
@@ -420,7 +422,7 @@ pause(0.01)
 fprintf( '\n done in %g s (%.2f min)', toc-t-tint, (toc-t-tint)/60)
 
 %% Post phase retrieval binning
-phase_bin = phase_retrieval.post_binning_factor; % alias for readablity
+phase_bin = par.post_binning_factor; % alias for readablity
 if phase_bin > 1
     t = toc;
     fprintf( '\nPost phase retrieval binning:')
@@ -429,14 +431,16 @@ if phase_bin > 1
         proj_bin(:,:,nn) = Binning( proj(:,:,nn), phase_bin ) / phase_bin^2;
     end
     proj = proj_bin;
+    par.rot_axis_position = par.rot_axis_position / phase_bin;
+    par.rot_axis_offset = par.rot_axis_offset / phase_bin;
     fprintf( ' done in %g s (%.2f min)', toc - t, (toc - t) / 60)
 end
 
 %% Save phase maps
-if write.phase_map
+if par.write_phase_map
     t = toc;
     fprintf( '\nSave phase maps:')
-    phase_map_path = [write.phase_map_path, phase_appendix, filesep];
+    phase_map_path = [par.write_phase_map_path, phase_appendix, filesep];
     CheckAndMakePath( phase_map_path );
     % Save phase maps
     parfor nn = 1:size( proj, 3)
@@ -448,10 +452,10 @@ if write.phase_map
 end
 
 %% Save sinograms
-if write.phase_sino
+if par.write_phase_sino
     t = toc;
     fprintf( '\nSave phase map sinogram:')
-    sino_phase_path = write.sino_phase_path;
+    sino_phase_path = par.write_sino_phase_path;
     CheckAndMakePath(sino_phase_path)
     % Save slices
     parfor nn = 1:size( proj, 2)

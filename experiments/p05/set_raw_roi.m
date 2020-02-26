@@ -1,4 +1,4 @@
-function raw_roi = set_raw_roi( raw_roi, par, im_shape_raw, im_raw, tif_info, dtype, im_trafo, scan_path, fig_path, ref_names, dark_names )
+function raw_roi = set_raw_roi( par, im_shape_raw, im_raw, tif_info, dtype, ref_names, dark_names )
 % Set raw ROI.
 %
 % ARGUMENT
@@ -20,6 +20,11 @@ function raw_roi = set_raw_roi( raw_roi, par, im_shape_raw, im_raw, tif_info, dt
 % Written by Julian Moosmann.
 %
 % raw_roi = set_raw_roi( raw_roi, par, im_shape_raw, im_raw, tif_info, dtype, im_trafo, scan_path, fig_path, ref_names, dark_names )
+
+raw_roi = par.raw_roi;
+im_trafo = par.im_trafo;
+scan_path = par.scan_path;
+fig_path = par.write_figures_path;
 
 if ~isempty( raw_roi ) % else AUTO ROI
     if numel( raw_roi ) > 1

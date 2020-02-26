@@ -1,42 +1,41 @@
-function save_path = write_volume( tag, vol, output_type, write, raw_bin, phase_bin, reco_bin, counter_offset, verbose, suffix)
+function save_path = write_volume( tag, vol, output_type, par, reco_bin, counter_offset, suffix)
 
 %% Default arguments %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 if nargin < 8
     counter_offset = 0;
 end
 if nargin < 9
-    verbose = 0;
+    par.verbose = 0;
 end
 if nargin < 10
     suffix = '';
 end
 
-if ~write.is_phase
-    reco_path = assign_from_struct( write, 'reco_path', 0 );
-else
-    reco_path = assign_from_struct( write, 'reco_phase_path', 0 );
-end
-deleteFiles = assign_from_struct( write, 'deleteFiles', 0 );
-beamtimeID_regexp  = assign_from_struct( write, 'beamtimeID', '' );
-scan_name = assign_from_struct( write, 'scan_name', '' );
-
 %% Main %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+if ~par.phase_retrieval
+    reco_path = par.write_reco_path;
+else
+    reco_path = par.write_reco_phase_path;
+end
+scan_name = par.scan_name; 
+
+
 if tag == 0
     return
 else
-    save_path = sprintf( '%s%s_rawBin%u', reco_path, output_type, raw_bin);
-    if phase_bin > 1
-        save_path = sprintf( '%s_phaseBin%u', save_path, phase_bin);
+    save_path = sprintf( '%s%s_rawBin%u', reco_path, output_type, par.raw_bin);
+    if par.phase_retrieval_post_binning_factor > 1
+        save_path = sprintf( '%s_phaseBin%u', save_path, par.phase_bin);
     end
-    PrintVerbose(verbose, '\n Write %s', output_type)
+    PrintVerbose(par.verbose, '\n Write %s', output_type)
     if reco_bin > 1
-        PrintVerbose(verbose, ' binned')
+        PrintVerbose(par.verbose, ' binned')
         save_path = sprintf( '%s_recoBin%u', save_path, reco_bin);
     end
-    PrintVerbose(verbose, ':')
+    PrintVerbose(par.verbose, ':')
     save_path = [save_path suffix];
     CheckTrailingSlash( save_path )
-    CheckAndMakePath( save_path, deleteFiles, beamtimeID_regexp )
+    CheckAndMakePath( save_path, par.write_deleteFiles, par.write_beamtimeID_regexp )
         
     switch output_type
         

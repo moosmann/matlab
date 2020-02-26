@@ -1,11 +1,11 @@
-function [proj, corr, toc_bytes] = proj_flat_correlation( proj, flat, image_correlation, par, write, roi_proj, roi_flat, toc_bytes )
+function [proj, corr, toc_bytes] = proj_flat_correlation( proj, flat, par, roi_proj, roi_flat, toc_bytes )
 % Correlate all projection with all flat-field to find the best matching
 % pairs for the flat-field correction using method of choice.
 %
 % ARGUMENTS
 % proj : stack of projections
 % flat : stack of flat field
-% image_correlation : struct, required fields see below
+% par.image_correlation_ : struct, required fields see below
 % par : struct, required fields see below
 % roi_proj : projection ROI for correlation when offset shift is corrected
 % roi_flat : reference ROI for correlation when offset shift is corrected
@@ -18,7 +18,7 @@ function [proj, corr, toc_bytes] = proj_flat_correlation( proj, flat, image_corr
 %
 % Written by Julian Moosmann.
 %
-% [proj, corr] = proj_flat_correlation( proj, flat, image_correlation, par, roi_proj, roi_flat )
+% [proj, corr] = proj_flat_correlation( proj, flat, par.image_correlation_, par, roi_proj, roi_flat )
 
 %% To do
 % Combine structs found at different locations and check what happens when
@@ -35,17 +35,16 @@ end
 %% Parameters %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % Parameters in struct fields
-force_calc = image_correlation.force_calc;
-method = image_correlation.method;
+force_calc = par.image_correlation_force_calc;
+method = par.image_correlation_method;
 raw_bin = par.raw_bin;
-flat_corr_area1 = image_correlation.area_width;
-flat_corr_area2 = image_correlation.area_height;
-corr_num_flats = image_correlation.num_flats;
+flat_corr_area1 = par.image_correlation_area_width;
+flat_corr_area2 = par.image_correlation_area_height;
+corr_num_flats = par.image_correlation_num_flats;
 [im_shape_cropbin1, im_shape_binned2, num_proj_used] = size( proj );
 [im_shape_binned1,~,num_ref_used] = size( flat );
 x0 = par.offset_shift_x0;
-%x1 = par.offset_shift_x1;
-outpath = write.parpath;
+outpath = par.write_parpath;
 
 %% CORRELATION %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 switch method
