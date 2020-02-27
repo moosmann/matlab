@@ -2,13 +2,12 @@
 
 %% Reco loop scripts %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 edit synchroload2016nov_11001978.m
-edit synchroload2016sept_check.m
-edit synchroload2016sept.m % c20160920_000_diana c20160913_000_synload
+edit synchroload2016sept_c20160913.m
+edit synchroload2016sept_c20160913_check.m.m % c20160920_000_diana c20160913_000_synload
 edit synchroload2017may_11003950.m
 edit synchroload2017nov03_11003773
 edit synchroload2017nov13_11004016.m
 edit synchroload2017nov23_11003288.m
-edit synchroload2017nov23_11003288_oldDoubleCheck.m
 edit synchroload2017oct_11003440.m
 edit synchroload2018apr_11004263.m
 edit synchroload2018may_11004936.m
@@ -17,6 +16,7 @@ edit synchroload2019may_11005842.m
 edit synchroload2019july_11006704.m
 
 %% Other scripts
+edit synchroload_scans.m
 edit synchroload_figureMeetingApr2017.m
 edit synchroload_radiography.m
 edit synchroload_renorm_slices.m
@@ -184,7 +184,7 @@ p.reco_sub = 'reco/float_rawBin5';
 p.scan_name = 'syn004_71L_Mg5Gd_12w';
 %p.scan_name = 'syn007_47L_Peek_12w';
 %p.scan_name = 'syn008_47R_Ti_12w';
-vol = p05_load_sequ( p );
+%vol = p05_load_sequ( p );
 
 %% 2017 Nov 13 11004016
 p.proc_path = '/asap3/petra3/gpfs/p05/2017/data/11004016/processed';
@@ -219,9 +219,10 @@ p.reco_sub = 'reco/float_rawBin2';
 p.scan_name = 'syn004_24R_PEEK_8w';
 p.regdir = 'x';
 p.steps = [];
-p.register = 1;
+p.register = 0;
 p.outlier_thresh = 0.01;
 [vol, vol_reg] = p05_load_sequ( p );
+
 
 p.proc_path = '/asap3/petra3/gpfs/p05/2018/data/11005553/processed';
 p.reco_sub = 'reco/float_rawBin2';
@@ -241,12 +242,13 @@ p.register = 1;
 p.outlier_thresh = 0.01;
 [vol, vol_reg] = p05_load_sequ( p );
 
+%%
 p.proc_path = '/asap3/petra3/gpfs/p05/2018/data/11005553/processed';
 p.reco_sub = 'reco/float_rawBin3_phaseBin2';
 p.scan_name = 'syn014_105R_Mg10Gd_4w';
 p.regdir = 'x';
 p.steps = [];
-p.register = 1;
+p.register = 0;
 p.outlier_thresh = 0.01;
 [vol, vol_reg] = p05_load_sequ( p );
 

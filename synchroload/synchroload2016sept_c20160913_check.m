@@ -1,4 +1,4 @@
-function synchroload2016sept_check( SUBSETS, RUN_RECO, PRINT_PARAMETERS)
+function synchroload2016sept_c20160913_check( SUBSETS, RUN_RECO, PRINT_PARAMETERS)
 
 if nargin < 1
     SUBSETS = [];
