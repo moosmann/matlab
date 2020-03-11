@@ -58,6 +58,8 @@ end
 %% all outpus in micron
 
 ca
+font_size = 18;
+line_width = 6;
 
 %% Constants
 %h_J_s      = 6.62606896e-34;  % J * s
@@ -124,18 +126,23 @@ fprintf('\n frequency cut-off by geometric blur (pixel size / geomtric blur):\n 
 fprintf('\n distance between sample points that interfere due to autocorrelation in micron:\n  %g micron', out.distance.interferenceByAutocorrelation)
 
 %% Plot
-zRange = 0:0.005:2;
+zRange = 0:0.005:1.4;
 b = bg(R,zRange,s);
 [~, zmaxind] = min( abs( b - PixelSize_micron ) );
 zmax = zRange(zmaxind);
 
-
-figure( 'Name', 'geometric blur vs propagation distance')
-plot( zRange, [b; repmat( PixelSize_micron, numel( zRange))] )
-xlabel( 'propagation distance / mi' )
+fig_path = '/asap3/petra3/gpfs/common/p05/jm/pictures/';
+h1 = figure( 'Name', 'Coherence: geometric blur vs propagation distance');
+p = plot( zRange, [b; repmat( PixelSize_micron, numel( zRange))] );
+xlabel( 'propagation distance / m' )
 ylabel( 'spatial resolution / micron' )
-legend( 'geometric blur', 'effective pixelsize' )
+legend( 'geometric blur', 'effective pixelsize', 'Location', 'northwest' )
+title( sprintf( 'energy: %g keV', E_keV) )
+set( p ,'LineWidth', line_width )
+ax = gca;
+ax.FontSize = font_size; 
 axis tight
+saveas( h1, sprintf( '%s%s.png', fig_path, regexprep( h1.Name, '\ |:', '_') ) );
 
 fprintf( ' \n distance where blur equals eff pixel size: %g m', zmax )
 
