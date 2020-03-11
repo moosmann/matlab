@@ -1,184 +1,206 @@
 
-%ca
+%% Parameters
 clear all
 read_scans = 1;
+ignore_case = 0;
+process.tags = {'c'};
+stitch_only = 0;
+resample_and_stitch = 0;
+% Output directory
+outpath = '/asap3/petra3/gpfs/p05/2017/data/11003288/processed/segmentation/';
 
 %% Beamtimes
 beamtime = { ...
     2016 11001978
     2017 11003950
-    2017 11004016
     2017 11003288
     2017 11003440
     2017 11003773
+    2017 11004016
     2018 11004263
     2018 11004936
     2018 11005553
     2019 11006704
-    2019 11006704
     2019 11006991
     };
 
-%name_pattern = '*Mg*';
-%name_pattern = '*Peek*';
-name_pattern = 'Ti';
-ignore_case = 0;
-
-process.tags = {'c'};
-stitch_only = 0;
-resample_and_stitch = 0;
-
-%% Output directory
-%segpath = '/asap3/petra3/gpfs/p05/2018/data/11004936/processed/segmentation/';
-segpath = '/asap3/petra3/gpfs/p05/2017/data/11003288/processed/segmentation/Ti';
-
-%% Read scans %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-if read_scans
+s = synchroload_samples;
+% Loop over cpd and load scans, loop over implant types
+for exp_type = { 'cpd', 'load'}
+    et = exp_type{1};
     
-    scans = [];
-    n_cpd = 0;
-    n_load = 0;
-    n_other = 0;
-    
-    % Loop over beamtimes
-    for nn = 1:size( beamtime, 1 )
+    for imp_type = { 'Mg5Gd', 'Mg10Gd', 'Ti', 'PEEK' }
+        it = imp_type{1};
+        fprintf( '\n\n%s %s', et, it )
         
-        % beamtime folder
-        if size( beamtime, 1 ) == 1
-            beamtime_year = beamtime{1};
-            beamtime_id = beamtime{2};
-        else
-            beamtime_year = beamtime{nn,1};
-            beamtime_id = beamtime{nn,2};
+        name_pattern = s.(et).(it);
+        
+        % add underscore for unique match using regexp
+        for nn = 1:numel( name_pattern )
+            name_pattern{nn} = [ '_' name_pattern{nn}];
         end
-        proc = sprintf( '/asap3/petra3/gpfs/p05/%u/data/%u/processed', beamtime_year, beamtime_id );
         
-        % scan folder
-        %scan_struct = dir( [proc filesep name_pattern] );
-        dir_struct = dir( proc );
-        match = contains( {dir_struct.name}, name_pattern, 'IgnoreCase', ignore_case );
-        scan_struct = dir_struct(match);
-        fprintf( '\nexp %2u: year %u, beamtime %u, %u folders with %s', nn, beamtime_year, beamtime_id, length( scan_struct ), name_pattern );
         
-        % Loop over scans
-        for mm = 1:length( scan_struct )
-            scan_pattern = scan_struct(mm).name;
-            scan_path = [ scan_struct(mm).folder filesep scan_pattern ];
+        %% Extract info
+        scans = [];
+        n_cpd = 0;
+        n_load = 0;
+        n_other = 0;
+        
+        % Loop over beamtimes
+        for nn = 1:size( beamtime, 1 )
             
-            if isfolder( scan_path )
+            % beamtime folder
+            if size( beamtime, 1 ) == 1
+                beamtime_year = beamtime{1};
+                beamtime_id = beamtime{2};
+            else
+                beamtime_year = beamtime{nn,1};
+                beamtime_id = beamtime{nn,2};
+            end
+            proc = sprintf( '/asap3/petra3/gpfs/p05/%u/data/%u/processed', beamtime_year, beamtime_id );
+            
+            % scan folder
+            dir_struct = dir( proc );
+            match = contains( {dir_struct.name}, name_pattern, 'IgnoreCase', ignore_case );
+            scan_struct = dir_struct(match);
+            fprintf( '\nexp %2u %s %s %u %u %u: %s found', nn, et, it, beamtime_year, beamtime_id, length( scan_struct ) );
+            
+            % Loop over scans
+            nc = 0;
+            for mm = 1:length( scan_struct )
+                bin = [];
+                effective_pixel_size = [];
+                camera = [];
+                im_shape_raw = [];
+                scan_pattern = scan_struct(mm).name;
+                scan_path = [ scan_struct(mm).folder filesep scan_pattern ];
                 
-                reco_path = [scan_path filesep 'reco' ];
-                
-                if exist( reco_path, 'dir')
+                if isfolder( scan_path )
                     
-                    %% Find float recos
-                    d = dir( [ reco_path '/float*' ] );
-                    disdir =  [ d(:).isdir ];
-                    floats_namecell = { d( disdir ).name };
-                    if isempty( floats_namecell )
-                        continue
-                    end
+                    reco_path = [scan_path filesep 'reco' ];
                     
-                    %% Choose first float reco
-                    vol_name = floats_namecell{1};
-                    vol_path = [reco_path filesep vol_name];
-                    
-                    %% Read log file
-                    dir_struct = dir( [reco_path '/reco*.log'] );
-                    log_file = [ reco_path  filesep  dir_struct(1).name ];
-                    fid = fopen( log_file );
-                    c = textscan( fid, '%s', 'Delimiter', {'\n', '\r'} );
-                    c = c{1};
-                    fclose( fid );
-                    
-                    %% Effective pixelsize
-                    for ll = 1:numel( c )
-                        t = regexp( c{ll}, 'effective_pixel_size' );
-                        if t
-                            cc = textscan( c{ll}, '%*s : %f %*s');
-                            effective_pixel_size = cc{1};
-                            break
-                        end
-                    end
-                    
-                    %% Camera
-                    for ll = 1:numel( c )
-                        t = regexp( c{ll}, 'camera' );
-                        if t
-                            cc = textscan( c{ll}, '%*s : %s');
-                            camera = cc{1}{1};
-                            break
-                        end
-                    end
-                    
-                    %% im shape raw
-                    for ll = 1:numel( c )
-                        t = regexp( c{ll}, {'im_shape_raw', 'raw_image_shape_raw'} );
-                        %disp( c{ll} )
-                        if [t{:}]
-                             cc = textscan( c{ll}, '%*s : %u %u');
-                            im_shape_raw = [cc{:}];
-                            break
-                        end
-                    end
-                    
-                    %% Binning factor
-                    t = regexp( vol_name, 'bin|Bin' );
-                    if ~isempty( t )
-                        bin = str2double( vol_name(t+3) );
-                    else
-                        bin = 1;
-                    end
-                    
-                    %% Unique name
-                    unique_scan_name = sprintf( '%u_%u_%s', beamtime_year, beamtime_id, scan_pattern);
-                    
-                    %% Create parameter struct
-                    tmp.unique_name =unique_scan_name;
-                    tmp.bin = bin;
-                    tmp.effective_pixel_size = effective_pixel_size;
-                    tmp.full_reco_path = vol_path;
-                    
-                    %% Sort scan type
-                    expr = '_\d\d\d$|load|test|push|drill';
-                    t = regexp( scan_pattern, expr, 'once');
-                    
-                    if isempty( t )
-                        % CPD
-                        n_cpd = n_cpd + 1;
-                        scans.cpd(n_cpd) = tmp;
-                        tag = 'c';
-                    else
+                    if exist( reco_path, 'dir')
                         
-                        expr = 'test' ;
-                        t = regexp( scan_pattern, expr, 'once' );
-                        if isempty( t )
-                            % load
-                            n_load = n_load + 1;
-                            scans.load(n_load) = tmp;
-                            tag = 'l';
-                        else
-                            % rest
-                            n_other = n_other + 1;
-                            scans.other(n_other) = tmp;
-                            tag = 'o';
+                        %% Find float recos
+                        d = dir( [ reco_path '/float*' ] );
+                        disdir =  [ d(:).isdir ];
+                        floats_namecell = { d( disdir ).name };
+                        if isempty( floats_namecell )
+                            continue
                         end
+                        
+                        %% Choose first float reco
+                        vol_name = floats_namecell{1};
+                        vol_path = [reco_path filesep vol_name];
+                        
+                        %% Read log file
+                        dir_struct = dir( [reco_path '/reco*.log'] );
+                        log_file = [ reco_path  filesep  dir_struct(1).name ];
+                        fid = fopen( log_file );
+                        c = textscan( fid, '%s', 'Delimiter', {'\n', '\r'} );
+                        c = c{1};
+                        fclose( fid );
+                        
+                        %% Effective pixelsize
+                        for ll = 1:numel( c )
+                            t = regexp( c{ll}, 'effective_pixel_size' );
+                            if t
+                                cc = textscan( c{ll}, '%*s : %f %*s');
+                                effective_pixel_size = cc{1};
+                                break
+                            end
+                        end
+                        
+                        %% Camera
+                        for ll = 1:numel( c )
+                            t = regexp( c{ll}, 'camera' );
+                            if t
+                                cc = textscan( c{ll}, '%*s : %s');
+                                camera = cc{1}{1};
+                                break
+                            end
+                        end
+                        
+                        %% im shape raw
+                        for ll = 1:numel( c )
+                            t = regexp( c{ll}, {'im_shape_raw', 'raw_image_shape', 'raw_image_shape_raw'} );
+                            %disp( c{ll} )
+                            if sum( [t{:}] )
+                                cc = textscan( c{ll}, '%*s : %u %u');
+                                im_shape_raw = [cc{:}];
+                                break
+                            end
+                        end
+                        
+                        %% Binning factor
+                        for ll = 1:numel( c )
+                            t = regexp( c{ll}, {'raw_bin', 'raw_binning_factor', 'raw_binning'} );
+                            if sum( [t{:}] )
+                                cc = textscan( c{ll}, '%*s : %u %u');
+                                bin = [cc{:}];
+                                break
+                            end
+                        end
+                        if ~isscalar( bin )
+                            
+                            t = regexp( vol_name, 'bin|Bin' );
+                            if ~isempty( t )
+                                bin = str2double( vol_name(t+3) );
+                            else
+                                bin = 1;
+                            end
+                        end
+                        
+                        %% Create parameter struct
+                        tmp.bin = bin;
+                        tmp.effective_pixel_size = effective_pixel_size;
+                        tmp.full_reco_path = vol_path;
+                        
+                        %% Sort scan type
+                        expr = '_\d\d\d$|load|test|push|drill';
+                        t = regexp( scan_pattern, expr, 'once');
+                        
+                        name = sprintf( '%s_%s_cam%ux%u_pix%04.0fnm_%u_%u_%s', et, it, im_shape_raw, 1000*effective_pixel_size,  beamtime_year, beamtime_id, scan_pattern);
+                        
+                        nc = nc + 1;
+                        scans.(et).(it)(nc) = tmp;
+%                         if isempty( t )
+%                             % CPD
+%                             n_cpd = n_cpd + 1;
+%                             tmp.unique_name = ['cpd_' name];
+%                             scans.cpd(n_cpd) = tmp;
+%                         else
+%                             expr = 'test' ;
+%                             t = regexp( scan_pattern, expr, 'once' );
+%                             if isempty( t )
+%                                 % load
+%                                 n_load = n_load + 1;
+%                                 tmp.unique_name = ['load_' name];
+%                                 scans.load(n_load) = tmp;
+%                                 
+%                             else
+%                                 % rest
+%                                 n_other = n_other + 1;
+%                                 tmp.unique_name = ['other_' name];
+%                                 scans.other(n_other) = tmp;
+%                             end
+%                         end
+                        
+                        fprintf( '\n %2u. bin: %u, effpix: %f, cam: %s, shape: %u %u, name: %s', mm, bin, effective_pixel_size, camera, im_shape_raw, name )
                     end
-                    
-                    fprintf( '\n %2u. bin: %u, effpix: %f, cam: %s, shape: %u %u, tag: %s, name: %s', mm, bin, effective_pixel_size, camera, im_shape_raw, tag, unique_scan_name )
-                else
-                    %fprintf( '\n    %s', scan_path )
                 end
             end
         end
-    end
-    %
-    
-    %% Save parameter struct
-    filename = [ segpath 'scan_paramter_struct.m'];
-    save( filename, 'scans' );
-    fprintf( '\nFinished reading scans.\n' )
-end
+        
+    end % imp_type
+end % exp_type
+
+%% Save parameter struct
+%filename = [ outpath 'scan_paramter_struct.m'];
+%save( filename, 'scans' );
+fprintf( '\nFinished reading scans.\n' )
+
 
 %% Stitch and resample %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 if resample_and_stitch
@@ -194,13 +216,13 @@ if resample_and_stitch
         switch tag
             case 'c'
                 scan_struct_cur = scans.cpd;
-                parpath = [ segpath 'cpd/' ];
+                parpath = [ outpath 'cpd/' ];
             case 'l'
                 scan_struct_cur = scans.load;
-                parpath = [ segpath 'load/' ];
+                parpath = [ outpath 'load/' ];
             case 'o'
                 scan_struct_cur = scans.other;
-                parpath = [ segpath 'other/' ];
+                parpath = [ outpath 'other/' ];
         end
         
         CheckAndMakePath( parpath )

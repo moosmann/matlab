@@ -4,7 +4,7 @@
 % 1 Gy = 1 J / kg = m^2 / s^2
 
 ca
-%clear all
+clear all
 sample_type = 'real';
 %sample_type = 'cylinder';
 num_proj_phan = 1200;
@@ -200,7 +200,6 @@ drawnow
 %flux.value = 7.2e10 * ones( numel( energy ) );
 flux.unit = 'photons / s';
 
-fprintf( '\n Start loop over energy and projections' )
 bone_density = bc.density.value;
 mac_bone = bc.mass_att_coeff.value;
 
@@ -211,6 +210,37 @@ water_density = 1.0 * 1000; % water density in kg / m^3
 [energy_wl, ~, mac_wl] = read_nist_txt( 'water_liquid' );
 mac_water = interp1( energy_wl, mac_wl, energy );
 
+%% FIGURE skin entrance dose
+entrance_doserate_water = eV_to_J * flux_density.value .* mac_water .* energy;
+%entrance_doserate_water = eV_to_J * 2.1e11*1e6 .* mac_water .* energy;
+entrance_dose_water = entrance_doserate_water * total_scan_time;
+name = sprintf( 'skin entrance dose water');
+f = figure( 'Name', name );
+p = plot( energy / 1000, entrance_dose_water );
+xlabel( 'energy / keV', 'FontSize', font_size )
+ylabel( 'dose / Gy', 'FontSize', font_size )
+set( p ,'LineWidth', line_width )
+title( name , 'FontSize', font_size );
+ax = gca;
+ax.FontSize = font_size; 
+axis tight
+
+%% FIGURE skin entrance bone
+entrance_doserate_bone = eV_to_J * flux_density.value .* mac_bone.* energy;
+entrance_dose_bone = entrance_doserate_bone* total_scan_time;
+name = sprintf( 'skin entrance dose bone');
+f = figure( 'Name', name );
+p = plot( energy / 1000, entrance_dose_bone );
+xlabel( 'energy / keV', 'FontSize', font_size )
+ylabel( 'dose / Gy', 'FontSize', font_size )
+set( p ,'LineWidth', line_width )
+title( name , 'FontSize', font_size );
+ax = gca;
+ax.FontSize = font_size; 
+axis tight
+
+%% Loop
+fprintf( '\n Start loop over energy and projections' )
 exp_time = exp_time_per_image.value;
 fprintf( '\n energy step (%u): ', numel( energy ) )
 for kk = 1:numel( energy )
