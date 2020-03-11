@@ -193,8 +193,9 @@ par.use_cluster = 0; % if available: on MAXWELL nodes disp/nova/wga/wgs cluster 
 par.poolsize = 0.75; % number of workers used in a local parallel pool. if 0: use current config. if >= 1: absolute number. if 0 < poolsize < 1: relative amount of all cores to be used. if SLURM scheduling is available, a default number of workers is used.
 par.poolsize_gpu_limit_factor = 0.7; % Relative amount of GPU memory used for preprocessing during parloop. High values speed up Proprocessing, but increases out-of-memory failure
 tomo.astra_link_data = 1; % ASTRA data objects become references to Matlab arrays. Reduces memory issues.
-tomo.astra_gpu_index = []; % GPU Device index to use, Matlab notation: index starts from 1. default: [], uses all
-
+tomo.astra_gpu_index = 2:6; % GPU Device index to use, Matlab notation: index starts from 1. default: [], uses all
+par.gpu_index = tomo.astra_gpu_index;
+par.use_gpu_in_parfor = 0;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%% END OF PARAMETERS / SETTINGS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -933,12 +934,15 @@ if ~read_flatcor && ~read_sino
     fprintf( '\n image shape roi binned : %u x %u = %.1g pixels', im_shape_binned1, im_shape_binned2, numel_im_roi_binned)
     fprintf( '\n raw binning factor : %u', raw_bin)
     
-    gpu_mem_requ_per_im = prod( im_shape_roi ) * (4 + 2 + 2 + 1 ); % Limit by GPU pixel filter: 1 single + 2 uint16 + 1 logical
-    %poolsize_max_gpu = floor( par.poolsize_gpu_limit_factor * min( mem_avail_gpu ) / gpu_mem_requ_per_im / numel( tomo.astra_gpu_index ) );
-    poolsize_max_gpu = floor( par.poolsize_gpu_limit_factor * min( mem_avail_gpu ) / gpu_mem_requ_per_im );
-    fprintf( ' \n estimated GPU memory required per image for pixel filtering : %g MiB', gpu_mem_requ_per_im / 1024^2 )
-    fprintf( ' \n GPU poolsize limit factor : %g', par.poolsize_gpu_limit_factor )
-    fprintf( ' \n GPU memory induced maximum poolsize : %u', poolsize_max_gpu )
+    if par.use_gpu_in_parfor
+        gpu_mem_requ_per_im = prod( im_shape_roi ) * (4 + 2 + 2 + 1 ); % Limit by GPU pixel filter: 1 single + 2 uint16 + 1 logical
+        poolsize_max_gpu = floor( par.poolsize_gpu_limit_factor * min( mem_avail_gpu ) / gpu_mem_requ_per_im );
+        fprintf( ' \n estimated GPU memory required per image for pixel filtering : %g MiB', gpu_mem_requ_per_im / 1024^2 )
+        fprintf( ' \n GPU poolsize limit factor : %g', par.poolsize_gpu_limit_factor )
+        fprintf( ' \n GPU memory induced maximum poolsize : %u', poolsize_max_gpu )
+    else
+        poolsize_max_gpu = par.poolsize;
+    end
     
     %% Dark field %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     t = toc;
@@ -952,8 +956,10 @@ if ~read_flatcor && ~read_sino
     filt_pix_par.filter_Inf = 0;
     filt_pix_par.filter_NaN = 0;
     filt_pix_par.verbose = 0;
+    filt_pix_par.use_gpu = par.use_gpu_in_parfor;
     
     %startS = ticBytes( gcp );
+    gpu_index = tomo.astra_gpu_index;
     parfor ( nn = 1:num_dark, poolsize_max_gpu )
         
         % Read image
@@ -971,7 +977,7 @@ if ~read_flatcor && ~read_sino
         im_int( im_int > im_mean + 4*im_std) = uint16( im_mean);
         
         % Filter pixels
-        im_int = FilterPixelGPU( im_int, filt_pix_par);
+        im_int = FilterPixelGPU( im_int, filt_pix_par );
         
         % Assign image to stack
         dark(:, :, nn) = im_int;
@@ -1036,7 +1042,7 @@ if ~read_flatcor && ~read_sino
         im_int = read_image( filename, '', raw_roi, tif_info, im_shape_raw, dtype, im_trafo );
         
         % Filter pixel
-        im_int = FilterPixelGPU( im_int, filt_pix_par);
+        im_int = FilterPixelGPU( im_int, filt_pix_par );
         
         % Dark field correction
         im_int = im_int - dark;
@@ -1239,7 +1245,7 @@ if ~read_flatcor && ~read_sino
         im_int = read_image( filename, '', raw_roi, tif_info, im_shape_raw, dtype, im_trafo );
         
         % Filter pixel
-        im_int = FilterPixelGPU( im_int, filt_pix_par);
+        im_int = FilterPixelGPU( im_int, filt_pix_par );
         
         % Dark field correction
         im_int = im_int - dark;
@@ -2139,12 +2145,13 @@ if tomo.run
             fprintf( '\n GPU memory induced maximum poolsize : %u ', poolsize_max_astra )
             
             fprintf( '\n Start parallel GPU reco: ' )
-            num_gpu = numel( tomo.astra_gpu_index );
+            gpu_index = tomo.astra_gpu_index;
+            num_gpu = numel( gpu_index );
             poolsize_max_astra = min( [poolsize_max_astra, 3 *  num_gpu] );
             write_reco = write.reco;
             write_float =  write.float;
             reco_path = write.reco_path;
-            parfor (nn = 1:size( proj, 2 ), poolsize_max_astra)
+           parfor (nn = 1:size( proj, 2 ), poolsize_max_astra)
                 
                 if ~isscalar( rot_axis_offset_reco )
                     rotation_axis_offset = rot_axis_offset_reco(nn);
@@ -2153,7 +2160,7 @@ if tomo.run
                 end
                 
                 % Backproject
-                gpu_ind = mod( nn, num_gpu ) + 1;
+                gpu_ind = gpu_index( 1 + mod( nn, num_gpu ) );
                 vol = rot90( astra_parallel2D( tomo, permute( proj(:,nn,:), [3 1 2]), gpu_ind, rotation_axis_offset ), -1);
                 
                 vol_min = min( vol_min, min( vol(:) ) );

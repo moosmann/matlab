@@ -1,4 +1,4 @@
-function [im_int, threshold_hot, threshold_dark] = FilterPixelGPU( im_int, par )
+function [im_int, threshold_hot, threshold_dark] = FilterPixelGPU( im_int, par, gpu_index )
 % Filter hot, dark, or dead pixels of the 2D input image. Filtered pixels
 % are substituted by the median values of their neighboorhood. Hot and dark pixels are
 %found using a ratio of the image and the median filtered images which has
@@ -37,6 +37,18 @@ function [im_int, threshold_hot, threshold_dark] = FilterPixelGPU( im_int, par )
 if nargin < 2
     par = struct;
 end
+if nargin < 3
+    gpu_index = [];
+end
+use_gpu = par.use_gpu;
+
+if use_gpu && ~isempty( gpu_index )
+    p = parallel.gpu.GPUDevice.current();
+    cur_gpu_index = p.Index;
+    if cur_gpu_index ~= gpu_index
+        gpuDevice( gpu_index );
+    end
+end
 verbose = assign_from_struct( par, 'verbose', 0 );
 if verbose
     t = toc;
@@ -45,8 +57,10 @@ if verbose
     im_mean = mean( im_int(:) );
     im_std  = std( single( im_int(:) ) );
     inp_class = class( im_int );
-    gpu = parallel.gpu.GPUDevice.current;
-    mem0 = gpu.AvailableMemory;
+    if use_gpu
+        gpu = parallel.gpu.GPUDevice.current;
+        mem0 = gpu.AvailableMemory;
+    end
 end
 threshold_hot = assign_from_struct( par, 'threshold_hot', 0.01 );
 threshold_dark = assign_from_struct( par, 'threshold_dark', 0, 1 );
@@ -69,7 +83,11 @@ if isequal( threshold_hot, 0) && isequal( threshold_dark, 0) && isequal( filter_
 end
 
 % Create GPU array
-im = gpuArray( im_int );
+if use_gpu
+    im = gpuArray( im_int );
+else
+    im = im_int;
+end
 
 % Pad array since medfilt on GPU has no padding option
 im = padarray( im, [mfnh1 mfnh2], 'symmetric', 'both' );
@@ -83,7 +101,11 @@ num_NaN = 0;
 num_Inf = 0;
 
 % Filter mask
-mask = zeros( size(im), 'logical','gpuArray' );
+if use_gpu
+    mask = zeros( size(im), 'logical','gpuArray' );
+else
+    mask = zeros( size(im), 'logical' );
+end
 
 % Detect INFs
 if isfloat( im_int ) && filter_Inf
@@ -149,7 +171,11 @@ end
 im(mask) = im_med(mask);
 
 % Retrieve form GPU
-im_int = gather( im(mfnh1+1:end-mfnh1,mfnh2+1:end-mfnh2) );
+if use_gpu
+    im_int = gather( im(mfnh1+1:end-mfnh1,mfnh2+1:end-mfnh2) );
+else
+    im_int = im(mfnh1+1:end-mfnh1,mfnh2+1:end-mfnh2) ;
+end
 
 %% Print info
 if verbose
@@ -178,12 +204,15 @@ if verbose
     end
     fprintf( '\n before filter: [Min Max Mean Std] = [%9g %9g %9g %9g]', im_min, im_max, im_mean, im_std );
     fprintf( '\n after filter : [Min Max Mean Std] = [%9g %9g %9g %9g]', im_filt_min, im_filt_max, im_filt_mean, im_filt_std );
-    mem1 = gpu.AvailableMemory;
-    memt = gpu.TotalMemory;
-    fprintf( '\n gpu device index : %u', gpu.Index )
-    fprintf( '\n gpu memory at start: %f (%g)', mem0 / 1024^2, mem0 / memt )
-    fprintf( '\n gpu memory at end  : %f (%g)', mem1 / 1024^2, mem1 / memt )
-    fprintf( '\n gpu memory diff.   : %f (%g)', (mem0 - mem1) / 1024^2, (mem0 - mem1) / memt )
+    if use_gpu
+        mem1 = gpu.AvailableMemory;
+        memt = gpu.TotalMemory;
+        
+        fprintf( '\n gpu device index : %u', gpu.Index )
+        fprintf( '\n gpu memory at start: %f (%g)', mem0 / 1024^2, mem0 / memt )
+        fprintf( '\n gpu memory at end  : %f (%g)', mem1 / 1024^2, mem1 / memt )
+        fprintf( '\n gpu memory diff.   : %f (%g)', (mem0 - mem1) / 1024^2, (mem0 - mem1) / memt )
+    end
     fprintf( '\n Elapsed time : %g s', t  )
     fprintf( '\n' )
 end
