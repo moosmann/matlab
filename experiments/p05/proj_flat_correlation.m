@@ -447,8 +447,12 @@ switch method
         flat_ind = corr_mat_pos(:,1:corr_num_flats);
         
         %        startS = ticBytes( gcp );
+%         [~, mem_avail_cpu, ~] = free_memory;
+%         mem_proj = Bytes( proj );
+%         mem_flat = Bytes( flat );
+%         parpool_max = min( [floor( mem_avail_cpu / ( mem_proj + mem_flat ) ), par.poolsize] );
+%         parfor ( nn = 1:num_proj_used, parpool_max )
         for nn = 1:num_proj_used
-            
             % Mean over flat fields
             flat_ind_nn = flat_ind(nn,:);
             flat_mean = mean( flat(:,:,flat_ind_nn), 3);

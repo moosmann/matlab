@@ -1,168 +1,218 @@
-function [im,HotThresh,DarkThresh,HotPixPercent,DeadPixPercent,DarkPixPercent] = FilterPixel(im,FiltThreshHot_FiltThreshDark,printInfo,medianFilterRadius,filterDeadPixel,filterInfsAndNans)
-%Filter hot, dark, and dead pixels.
-%Substitute hot (and dead) pixels by median values. Hot and dark pixels are
+function [im_int, threshold_hot, threshold_dark] = FilterPixel( im_int, par, gpu_index )
+% Filter hot, dark, or dead pixels of the 2D input image. Filtered pixels
+% are substituted by the median values of their neighboorhood. Hot and dark pixels are
 %found using a ratio of the image and the median filtered images which has
 %to be bigger than a FiltThreshHot_FiltThreshDark.
 %
-% im: matrix, image to be filtered
-% FiltThreshHot_FiltThreshDark: scalar or vector, default: [0.01 0]; values < [1 0.5] are
-% interpreted as the percentage of pixel to be filtered; for values > [1
-% 0.5], pixels with ratio-matrix > FiltThreshHot_FiltThreshDark(1) and FiltThreshHot_FiltThreshDark(2) are filtered 
-% printfInfo: scalar, default 0
-% medianFilterRadius: 2-vector, default: [3 3], radii of the median filter applied to the image
-% filterDeadPixel: scalar, default true
+% im : 2D array, image to be filtered
+% par : parameter struct with fields:
+%   threshold_hot : positive scalar, default: 0.01. Values < 1 are
+%       interpreted as relative numbers of pixels to be filtered. Values >=
+%       1 are interpreted as thresholds. Pixels of the matrix
+%       'im./medfilt2( im )' with a threshold.
+%   threshold_dark : positive scalar, default: 0. Values < 0.5 are
+%       interpreted as relative numbers of pixels to be filtered. Values >=
+%       0.5 are interpreted as thresholds. Pixels of the matrix
+%       'im ./ medfilt2( im )' with a threshold.
+%   medfilt_neighboorhood: 2-vector, default: [3 3]. Neighborhood of the
+%       median filter applied to the image.
+%   filter_dead_pixel : scalar, default: true.
+%   verbose: scalar, default: 0.
 %
-%If FiltThreshHot_FiltThreshDark = [0 0] and filterDeadPixel = 0 the
-%input image is directly returned without doing any computations.
+% If threshold_hot, threshold_dark, and  filter_dead_pixel are all zero,
+% the input image is returned.
 %
 %Calculating the threshold from the prescription to filter X % of all pixel
 %is more compuationally extensive compared to the case where the values are
 %given directly, and thus should be avoided for a large amount of data.
 %
-%Printing information about the unfiltered and filtered image also produces
-%unnecessary workload.
+% Note: Printing information about the unfiltered and filtered image
+% produces additonal workload and should be turned off for speed.
 %
-% Written by Julian Moosmann, first version 2011-Jul, last mod 2015-05-27
+% Written by Julian Moosmann.
 %
-%[im,HotPixPercent,DeadPixPercent,DarkPixPercent] = FilterPixel(im,FiltThreshHot_FiltThreshDark,printInfo,medianFilterRadius,filterDeadPixel)
+% [im, thresholds, percentages] = FilterPixelGPU( im, par )
 
-
-%% Default values %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% Default arguments %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 if nargin < 2
-    FiltThreshHot_FiltThreshDark = [0.01 0];
+    par = struct;
 end
 if nargin < 3
-    printInfo = 0;
+    gpu_index = [];
 end
-if nargin < 4
-    medianFilterRadius = [3 3];
+use_gpu = par.use_gpu;
+
+if use_gpu && ~isempty( gpu_index )
+    p = parallel.gpu.GPUDevice.current();
+    cur_gpu_index = p.Index;
+    if cur_gpu_index ~= gpu_index
+        gpuDevice( gpu_index );
+    end
 end
-if nargin < 5
-    filterDeadPixel = 1;
+verbose = assign_from_struct( par, 'verbose', 0 );
+if verbose
+    t = toc;
+    im_min  = min( im_int(:) );
+    im_max  = max( im_int(:) );
+    im_mean = mean( im_int(:) );
+    im_std  = std( single( im_int(:) ) );
+    inp_class = class( im_int );
+    if use_gpu
+        gpu = parallel.gpu.GPUDevice.current;
+        mem0 = gpu.AvailableMemory;
+    end
 end
-if nargin < 6
-    filterInfsAndNans = [1, 1];
-end
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%% Check threshold argument
-HotThresh  = FiltThreshHot_FiltThreshDark(1);
-if length(FiltThreshHot_FiltThreshDark) == 2
-    DarkThresh = FiltThreshHot_FiltThreshDark(2);
-else
-    DarkThresh = 0;
-end
-%% Return original image if Threshhold are zero.
-if HotThresh == 0 && DarkThresh == 0 && filterDeadPixel == 0
+threshold_hot = assign_from_struct( par, 'threshold_hot', 0.01 );
+threshold_dark = assign_from_struct( par, 'threshold_dark', 0, 1 );
+medfilt_neighboorhood = assign_from_struct( par, 'medfilt_neighboorhood', [3 3] );
+filter_dead_pixel = assign_from_struct( par, 'filter_dead_pixel', 1 );
+filter_Inf = assign_from_struct( par, 'filter_Inf', 1 );
+filter_NaN = assign_from_struct( par, 'filter_NaN', 1 );
+
+%% Main %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%gpu = parallel.gpu.GPUDevice.current;
+%fprintf( ' %u', gpu.Index );
+
+mfnh1 = medfilt_neighboorhood(1);
+mfnh2 = medfilt_neighboorhood(2);
+
+% Return original image if threshhold are zero.
+if isequal( threshold_hot, 0) && isequal( threshold_dark, 0) && isequal( filter_dead_pixel, 0 )
     return;
 end
-%% Check data type for non-integerness
-if isinteger(im)
-    im = single(im);
-end
-%% Info
-NumPix = numel(im);
-NumDead = 0;
-NumHot  = 0;
-NumDark = 0;
-NumNan = 0;
-NumInf = 0;
-if printInfo
-    imMin  = min(im(:));
-    imMax  = max(im(:));
-    imMean = mean(im(:));
-    imStd  = std(im(:));
-end
-mask = zeros(size(im));
-% INFs
-if filterInfsAndNans(1)
-    mask = mask | isinf(im);
-    NumInf = sum(mask(:));
-end
-% NANs
-if filterInfsAndNans(2)
-    mask = mask | isnan(im);
-    NumNan = sum(mask(:)) - NumInf;
+
+% Create GPU array
+if use_gpu
+    im = gpuArray( im_int );
+else
+    im = im_int;
 end
 
-%% Dead pixel mask
-if filterDeadPixel > 0
+% Pad array since medfilt on GPU has no padding option
+im = padarray( im, [mfnh1 mfnh2], 'symmetric', 'both' );
+
+% Info
+num_pix = numel( im );
+num_dead = 0;
+num_hot  = 0;
+num_dark = 0;
+num_NaN = 0;
+num_Inf = 0;
+
+% Filter mask
+if use_gpu
+    mask = zeros( size(im), 'logical','gpuArray' );
+else
+    mask = zeros( size(im), 'logical' );
+end
+
+% Detect INFs
+if isfloat( im_int ) && filter_Inf
+    mask = mask | isinf( im );
+    num_Inf = sum( mask(:) );
+end
+
+% Detect NANs
+if isfloat( im_int ) && filter_NaN
+    mask = mask | isnan( im );
+    num_NaN = sum( mask(:) ) - num_Inf;
+end
+
+% Dead pixel mask
+if filter_dead_pixel > 0
     mask = mask | im <= 0;
-    NumDead = sum(mask(:)) - NumInf -NumNan;
-    if HotThresh == 0 && DarkThresh == 0 && NumDead == 0
+    num_dead = sum( mask(:) ) - num_Inf - num_NaN;
+    % Return if dark/hot pixels are not filtered & no dead pixels detected
+    if threshold_hot == 0 && threshold_dark == 0 && num_dead == 0
         return
     end
 end
 
-% Replace Infs, Nans, and deads before median filter
-if filterInfsAndNans(1) || filterInfsAndNans(2) || filterDeadPixel
+% Replace Infs, NaNs, and dead pixel before median filtering
+if filter_Inf || filter_NaN || filter_dead_pixel
     im(mask) = mean2( im(~mask) );
 end
 
-%% Median filterd image
-imMedian = medfilt2(im, medianFilterRadius, 'symmetric');
+% Median filtered image
+im_med = medfilt2( im, medfilt_neighboorhood );
 
-%% Ratio of image and median filtered image
-R = im./imMedian;
-if (HotThresh > 0 && HotThresh <= 1) || (DarkThresh > 0 && DarkThresh <= 0.5)
-    Rsorted = sort(R(:));
+% Ratio of image and median filtered image
+R = single( im );
+R = R ./ single( im_med );
+if (threshold_hot > 0 && threshold_hot < 1) || (threshold_dark > 0 && threshold_dark < 0.5)
+    R_sorted = sort( R(:) );
 end
-%% Hot pixel mask
-if HotThresh > 0
-    % Determine HotThresh if not given explixitly as a value > 1
-    if HotThresh < 1
-        % Set FiltThreshHot_FiltThreshDark to filter 'theshold' % of all pixels
-        HotThresh = Rsorted(floor(NumPix*(1-HotThresh)));
+
+% Hot pixel mask
+if threshold_hot > 0
+    % Determine threshold_hot if not given explixitly as a value >= 1par
+    if threshold_hot < 1
+        x = floor( num_pix * ( 1 - threshold_hot ) );
+        threshold_hot = gather( R_sorted(x) );
     end
-    % Add hot pixel mask
-    if exist('mask','var')
-        mask = mask | R > HotThresh;
-    else
-        mask = R > HotThresh;
-    end
-    NumHot = sum(mask(:)) - NumDead;
+    % Combine hot pixel mask and previos mask
+    mask = mask | R > threshold_hot;
+    num_hot = sum( mask(:) ) - num_dead;
 end
-%% Dark pixel mask
-if DarkThresh > 0
-    % Determine DarkThresh if not given explixitly as a value < 1
-    if DarkThresh < 0.5
-        % Set FiltThreshHot_FiltThreshDark to filter 'theshold' % of all pixels
-        DarkThresh = Rsorted(floor(NumPix*(DarkThresh)));
+
+% Dark pixel mask
+if threshold_dark > 0
+    % Determine threshold_dark if not given explixitly as a value >= 0.5
+    if threshold_dark < 0.5
+        x = floor( num_pix * threshold_dark );
+        threshold_dark = gather( R_sorted(x) );
     end
-    mask = mask | R < DarkThresh;
-    NumDark = sum(mask(:)) - NumDead - NumHot;
+    mask = mask | R < threshold_dark;
+    num_dark = sum( mask(:) ) - num_dead - num_hot;
 end
-% % Filter corners
-% mask(1:1,1:2) = 1;
-% mask(1:2,end-1:end) = 1;
-% mask(end-1:end,1:2) = 1;
-% mask(end-1:end,end-1:end) = 1;
-%% Replace dead, hot, and dark pixels by median values
-im(mask) = imMedian(mask);
+
+% Replace pixels to be filtered
+im(mask) = im_med(mask);
+
+% Retrieve form GPU
+if use_gpu
+    im_int = gather( im(mfnh1+1:end-mfnh1,mfnh2+1:end-mfnh2) );
+else
+    im_int = im(mfnh1+1:end-mfnh1,mfnh2+1:end-mfnh2) ;
+end
+
 %% Print info
-if printInfo
-    imFiltMin  = min(im(:));
-    imFiltMax  = max(im(:));
-    imFiltMean = mean(im(:));
-    imFiltStd  = std(im(:));
-    fprintf('Total number of pixels: %u\n',NumPix);
-    if filterDeadPixel > 0
-        fprintf('Number of dead pixels: %9u (%3.2f%%)\n',NumDead,100*NumDead/NumPix)
+if verbose
+    t = toc - t ;
+    im_filt_min  = min( im_int(:) );
+    im_filt_max  = max( im_int(:) );
+    im_filt_mean = mean( im_int(:) );
+    im_filt_std  = std( single( im_int(:) ) );
+    fprintf( '\n class : %s (Note: Inf/NaN detection works only for float arrays)', inp_class );
+    fprintf( '\n shape padded : %u %u', size( im ) )
+    fprintf( '\n number of pixels: %u', num_pix );
+    if filter_dead_pixel > 0
+        fprintf( '\n number of dead pixels: %9u (%3f %%)', num_dead, 100*num_dead/num_pix )
     end
-    if HotThresh > 0
-        fprintf('Number  of hot pixels: %9u (%3.2f%%), threshold: %9g\n',NumHot,100*NumHot/NumPix,HotThresh);
+    if threshold_hot > 0
+        fprintf( '\n number  of hot pixels: %9u (%3f%%), threshold: %9g', num_hot, 100 * num_hot/num_pix, threshold_hot );
     end
-    if DarkThresh > 0
-        fprintf('Number of dark pixels: %9u (%3.2f%%), threshold: %9g\n',NumDark,100*NumDark/NumPix,DarkThresh);
+    if threshold_dark > 0
+        fprintf( '\n number of dark pixels: %9u (%3f%%), threshold: %9g', num_dark, 100 * num_dark/num_pix, threshold_dark );
     end
-    if NumInf > 0
-        fprintf('Number of INFs: %9u (%3.2f%%)\n',NumInf,100*NumInf/NumPix);
+    if num_Inf > 0
+        fprintf( '\n number of Infs: %9u (%3f%%)', num_Inf, 100 * num_Inf / num_pix );
     end
-    if NumNan > 0
-        fprintf('Number of NANs: %9u (%3.2f%%)\n',NumNan,100*NumNan/NumPix);
-    end 
-    fprintf('Before: [Min Max Mean Std] = [%9g %9g %9g %9g]\n',imMin,imMax,imMean,imStd);
-    fprintf('After : [Min Max Mean Std] = [%9g %9g %9g %9g]\n',imFiltMin,imFiltMax,imFiltMean,imFiltStd);
+    if num_NaN > 0
+        fprintf( '\n number of NANs: %9u (%3f%%)', num_NaN, 100 * num_NaN / num_pix );
+    end
+    fprintf( '\n before filter: [Min Max Mean Std] = [%9g %9g %9g %9g]', im_min, im_max, im_mean, im_std );
+    fprintf( '\n after filter : [Min Max Mean Std] = [%9g %9g %9g %9g]', im_filt_min, im_filt_max, im_filt_mean, im_filt_std );
+    if use_gpu
+        mem1 = gpu.AvailableMemory;
+        memt = gpu.TotalMemory;
+        
+        fprintf( '\n gpu device index : %u', gpu.Index )
+        fprintf( '\n gpu memory at start: %f (%g)', mem0 / 1024^2, mem0 / memt )
+        fprintf( '\n gpu memory at end  : %f (%g)', mem1 / 1024^2, mem1 / memt )
+        fprintf( '\n gpu memory diff.   : %f (%g)', (mem0 - mem1) / 1024^2, (mem0 - mem1) / memt )
+    end
+    fprintf( '\n Elapsed time : %g s', t  )
+    fprintf( '\n' )
 end
-HotPixPercent = NumHot/NumPix;
-DeadPixPercent = NumDead/NumPix;
-DarkPixPercent = NumDark/NumPix;

@@ -14,6 +14,7 @@ edit synchroload2018may_11004936.m
 edit synchroload2018nov_11005553.m
 edit synchroload2019may_11005842.m
 edit synchroload2019july_11006704.m
+edit synchroload2019dec_11006991.m
 
 %% Other scripts
 edit synchroload_scans.m

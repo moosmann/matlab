@@ -62,7 +62,7 @@ raw_roi = []; % vertical and/or horizontal ROI; (1,1) coordinate = top left pixe
 % [y0 y1 x0 x1]: vertical + horzontal ROI, each ROI as above
 % if -1: auto roi, selects vertical ROI automatically. Use only for DCM. Not working for *.raw data where images are flipped and DMM data.
 % if < -1: Threshold is set as min(proj(:,:,[1 end])) + abs(raw_roi)*median(dark(:)). raw_roi=-1 defaults to min(proj(:,:,[1 end])) + 4*median(dark(:))
-raw_bin = 2; % projection binning factor: integer
+raw_bin = 4; % projection binning factor: integer
 im_trafo = '' ;%'rot90(im,-1)'; % string to be evaluated after reading data in the case the image is flipped/rotated/etc due to changes at the beamline, e.g. 'rot90(im)'
 % STITCHING/CROPPING only for scans without lateral movment. Legacy support
 par.crop_at_rot_axis = 0; % for recos of scans with excentric rotation axis but WITHOUT projection stitching
@@ -105,10 +105,10 @@ ring_filter.waveletfft.sigma = 2.4; %  suppression factor for 'wavelet-fft'
 ring_filter.jm.median_width = 11; % multiple widths are applied consecutively, eg [3 11 21 31 39];
 strong_abs_thresh = 1; % if 1: does nothing, if < 1: flat-corrected values below threshold are set to one. Try with algebratic reco techniques.
 %%% PHASE RETRIEVAL %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-phase_retrieval.apply = 0; % See 'PhaseFilter' for detailed description of parameters !
+phase_retrieval.apply = 1; % See 'PhaseFilter' for detailed description of parameters !
 phase_retrieval.apply_before = 0; % before stitching, interactive mode, etc. For phase-contrast data with an excentric rotation axis phase retrieval should be done afterwards. To find the rotataion axis position use this option in a first run, and then turn it of afterwards.
 phase_retrieval.post_binning_factor = 1; % Binning factor after phase retrieval, but before tomographic reconstruction
-phase_retrieval.method = 'qp';'tie';'qpcut';'dpc'; %'qp' 'ctf' 'tie' 'qp2' 'qpcut'
+phase_retrieval.method = 'tie';'qp';'qpcut';'dpc'; %'qp' 'ctf' 'tie' 'qp2' 'qpcut'
 phase_retrieval.reg_par = 2.5; % regularization parameter. larger values tend to blurrier images. smaller values tend to original data.
 phase_retrieval.bin_filt = 0.1; % threshold for quasiparticle retrieval 'qp', 'qp2'
 phase_retrieval.cutoff_frequ = 2 * pi; % in radian. frequency cutoff in Fourier space for 'qpcut' phase retrieval
@@ -145,7 +145,7 @@ tomo.sirt.MinConstraint = []; % If specified, all values below MinConstraint wil
 tomo.sirt.MaxConstraint = []; % If specified, all values above MaxConstraint will be set to MaxConstraint.
 %%% OUTPUT %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 write.path = ''; %'/gpfs/petra3/scratch/moosmanj'; % absolute path were output data will be stored. !!overwrites the write.to_scratch flag. if empty uses the beamtime directory and either 'processed' or 'scratch_cc'
-write.to_scratch = 1; % write to 'scratch_cc' instead of 'processed'
+write.to_scratch = 0; % write to 'scratch_cc' instead of 'processed'
 write.deleteFiles = 0; % delete files already existing in output folders. Useful if number or names of files differ when reprocessing.
 write.beamtimeID = ''; % string (regexp),typically beamtime ID, mandatory if 'write.deleteFiles' is true (safety check)
 write.scan_name_appendix = ''; % appendix to the output folder name which defaults to the scan name
@@ -178,7 +178,7 @@ write.compression.parameter = [0.02 0.02]; % compression-method specific paramet
 write.uint8_segmented = 0; % experimental: threshold segmentaion for histograms with 2 distinct peaks: __/\_/\__
 %%% INTERACTION %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 par.visual_output = 1; % show images and plots during reconstruction
-interactive_mode.rot_axis_pos = 0; % reconstruct slices with dif+ferent rotation axis offsets
+interactive_mode.rot_axis_pos = 1; % reconstruct slices with dif+ferent rotation axis offsets
 interactive_mode.rot_axis_pos_default_search_range = []; % if empty: asks for search range when entering interactive mode
 interactive_mode.rot_axis_tilt = 0; % reconstruct slices with different offset AND tilts of the rotation axis
 interactive_mode.rot_axis_tilt_default_search_range = []; % if empty: asks for search range when entering interactive mode
@@ -186,16 +186,16 @@ interactive_mode.lamino = 0; % find laminography tilt instead camera tilt
 interactive_mode.angles = 0; % reconstruct slices with different scalings of angles
 interactive_mode.angle_scaling_default_search_range = []; % if empty: use a variaton of -/+5 * (angle increment / maximum angle)
 interactive_mode.slice_number = 0.5; % default slice number. if in [0,1): relative, if in (1, N]: absolute
-interactive_mode.phase_retrieval = 0; % Interactive retrieval to determine regularization parameter
+interactive_mode.phase_retrieval = 1; % Interactive retrieval to determine regularization parameter
 interactive_mode.phase_retrieval_default_search_range = []; % if empty: asks for search range when entering interactive mode, otherwise directly start with given search range
 %%% HARDWARE / SOFTWARE %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 par.use_cluster = 0; % if available: on MAXWELL nodes disp/nova/wga/wgs cluster computation can be used. Recommended only for large data sets since parpool creation and data transfer implies a lot of overhead.
 par.poolsize = 0.75; % number of workers used in a local parallel pool. if 0: use current config. if >= 1: absolute number. if 0 < poolsize < 1: relative amount of all cores to be used. if SLURM scheduling is available, a default number of workers is used.
 par.poolsize_gpu_limit_factor = 0.7; % Relative amount of GPU memory used for preprocessing during parloop. High values speed up Proprocessing, but increases out-of-memory failure
 tomo.astra_link_data = 1; % ASTRA data objects become references to Matlab arrays. Reduces memory issues.
-tomo.astra_gpu_index = 2:6; % GPU Device index to use, Matlab notation: index starts from 1. default: [], uses all
+tomo.astra_gpu_index = []; % GPU Device index to use, Matlab notation: index starts from 1. default: [], uses all
 par.gpu_index = tomo.astra_gpu_index;
-par.use_gpu_in_parfor = 0;
+par.use_gpu_in_parfor = 1;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%% END OF PARAMETERS / SETTINGS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -742,7 +742,7 @@ if ~read_flatcor && ~read_sino
         
         if par.visual_output && ~sum( isnan( petra.current ) )
             name = 'PETRA beam current from status server';
-            f = figure( 'Name', name, 'WindowState', 'maximized');
+            f = figure( 'Name', name );
             x = double(petra.time(2:1:end)-petra.time(2)) / 1000 / 60;
             y = petra.current(2:1:end);
             plot( x, y, '.' )
@@ -859,7 +859,7 @@ if ~read_flatcor && ~read_sino
                     % Plot vertical shift
                     if par.visual_output
                         name = 'spiral scan: vertical shift';
-                        f = figure( 'Name', name, 'WindowState', 'maximized');
+                        f = figure( 'Name', name );
                         plot( vert_shift, '.')
                         title( name )
                         axis equal tight
@@ -977,7 +977,7 @@ if ~read_flatcor && ~read_sino
         im_int( im_int > im_mean + 4*im_std) = uint16( im_mean);
         
         % Filter pixels
-        im_int = FilterPixelGPU( im_int, filt_pix_par );
+        im_int = FilterPixel( im_int, filt_pix_par );
         
         % Assign image to stack
         dark(:, :, nn) = im_int;
@@ -1042,7 +1042,7 @@ if ~read_flatcor && ~read_sino
         im_int = read_image( filename, '', raw_roi, tif_info, im_shape_raw, dtype, im_trafo );
         
         % Filter pixel
-        im_int = FilterPixelGPU( im_int, filt_pix_par );
+        im_int = FilterPixel( im_int, filt_pix_par );
         
         % Dark field correction
         im_int = im_int - dark;
@@ -1188,7 +1188,7 @@ if ~read_flatcor && ~read_sino
         filename = sprintf('%s%s', scan_path, img_names_mat(1, :));
         im_int = read_image( filename, '', raw_roi, tif_info, im_shape_raw, dtype, im_trafo );
         %im_int = FilterPixel( im_int, pixel_filter_threshold_proj, 0, pixel_filter_radius);
-        im_int = FilterPixelGPU( im_int, filt_pix_par );
+        im_int = FilterPixel( im_int, filt_pix_par );
         raw1 = Binning( im_int, raw_bin) / raw_bin^2;
         subplot(2,3,3)
         imsc1( raw1 )
@@ -1203,15 +1203,15 @@ if ~read_flatcor && ~read_sino
     if filt_pix_par.threshold_hot  < 1 || filt_pix_par.threshold_dark < 0.5
         filename = sprintf('%s%s', scan_path, img_names_mat(num_proj_used, :));
         im_int = read_image( filename, '', raw_roi, tif_info, im_shape_raw, dtype, im_trafo );
-        [~, ht(3), dt(3)] = FilterPixelGPU( im_int, filt_pix_par );
+        [~, ht(3), dt(3)] = FilterPixel( im_int, filt_pix_par );
         %[~, ht(3), dt(3)] = FilterPixel( read_image( filename, '', raw_roi, tif_info, im_shape_raw, dtype, im_trafo ), pixel_filter_threshold_proj, 0, pixel_filter_radius);
         filename = sprintf('%s%s', scan_path, img_names_mat(1, :));
         im_int = read_image( filename, '', raw_roi, tif_info, im_shape_raw, dtype, im_trafo );
-        [~, ht(2), dt(2)] = FilterPixelGPU( im_int, filt_pix_par );
+        [~, ht(2), dt(2)] = FilterPixel( im_int, filt_pix_par );
         %[~, ht(2), dt(2)] = FilterPixel( read_image( filename, '', raw_roi, tif_info, im_shape_raw, dtype, im_trafo ), pixel_filter_threshold_proj, 0, pixel_filter_radius);
         filename = sprintf('%s%s', scan_path, img_names_mat(round(num_proj_used/2), :));
         im_int = read_image( filename, '', raw_roi, tif_info, im_shape_raw, dtype, im_trafo );
-        [~, ht(1), dt(1)] = FilterPixelGPU( im_int, filt_pix_par );
+        [~, ht(1), dt(1)] = FilterPixel( im_int, filt_pix_par );
         %[~, ht(1), dt(1)] = FilterPixel( read_image( filename, '', raw_roi, tif_info, im_shape_raw, dtype, im_trafo ), pixel_filter_threshold_proj, 0, pixel_filter_radius);
         filt_pix_par.threshold_hot  = median( ht );
         filt_pix_par.threshold_dark = median( dt );
@@ -1245,7 +1245,7 @@ if ~read_flatcor && ~read_sino
         im_int = read_image( filename, '', raw_roi, tif_info, im_shape_raw, dtype, im_trafo );
         
         % Filter pixel
-        im_int = FilterPixelGPU( im_int, filt_pix_par );
+        im_int = FilterPixel( im_int, filt_pix_par );
         
         % Dark field correction
         im_int = im_int - dark;
@@ -1308,7 +1308,7 @@ if ~read_flatcor && ~read_sino
                 if exist( 'hrc', 'var' ) && isvalid( hrc )
                     figure(hrc)
                 else
-                    hrc = figure( 'Name', name, 'WindowState', 'maximized');
+                    hrc = figure( 'Name', name );
                 end
                 subplot(1,1,1);
                 plot( ref_nums, ref_rc(:), '.',proj_nums, proj_rc(:), '.' )
@@ -2030,7 +2030,7 @@ if tomo.run
             
             
             %% Save ortho slices
-            
+            CheckAndMakePath( write.reco_path )
             % Save ortho slices x
             nn = round( size( vol, 1 ) / 2);
             im = squeeze( vol(nn,:,:) );
@@ -2226,7 +2226,7 @@ if tomo.run
     fprintf( ' \n tomo reco done in %.1f s (%.2f min)', toc-t, (toc-t)/60 )
 end
 
-% Write reco log file %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% Write reco log file %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 CheckAndMakePath( write.reco_path )
 save( sprintf( '%sangles.mat', write.reco_path), 'angles' );
 %save( sprintf( '%s/angles.mat', fileparts( flatcor_path) ), 'angles' );
