@@ -74,16 +74,6 @@ if tomo.run || tomo.run_interactive_mode
     end
     
     %% INTERACTIVE MODE: rotation axis position / tilt %%%%%%%%%%%%%%%%%%%%%
-    %    %%% AUTOMATIC MODE %%%
-    %     automatic_mode = 0; % Find rotation axis position automatically. NOT IMPLEMENTED!
-    %     automatic_mode_coarse = 'entropy'; % NOT IMPLEMENTED!
-    %     automatic_mode_fine = 'iso-grad'; % NOT IMPLEMENTED!
-    %     if automatic_mode(1) % NOT IMPLEMENTED YET
-    %         pts = 10;
-    %         im_center = im_shape_cropbin1 / 2;
-    %         offset_stride = floor( im_center / pts );
-    %         offset = -im_center:offset_stride:im_center;
-    %     end
     
     tint = 0;
     if interactive_mode.rot_axis_pos

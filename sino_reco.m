@@ -39,44 +39,16 @@ close all hidden % close all open windows
 %%% SCAN %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 scan_path = ...
     ... '/asap3/petra3/gpfs/p07/2019/data/11006991/processed/hzg_ind_01_cork_a/';
+    '/asap3/petra3/gpfs/p05/2019/data/11007580/processed/smf_09_be_3033';
     '/asap3/petra3/gpfs/p07/2019/data/11007454/processed/bmc06_tooth1';
-raw_bin = 3; % projection binning factor: integer
+raw_bin = 4; % projection binning factor: integer
 read_sino_folder = sprintf( 'trans%02u', raw_bin);
-read_flatcor = 0; % read preprocessed flatfield-corrected projections. CHECK if negative log has to be taken!
-read_flatcor_path = ''; % subfolder of 'flat_corrected' containing projections
-read_flatcor_trafo = @(im) fliplr( im ); % anonymous function applied to the image which is read e.g. @(x) rot90(x)
 read_sino = 1; % read preprocessed sinograms. CHECK if negative log has to be taken!
 read_sino_trafo = @(x) (x);%rot90(x); % anonymous function applied to the image which is read e.g. @(x) rot90(x)
-energy = []; % in eV! if empty: read from log file
-sample_detector_distance = []; % in m. if empty: read from log file
-eff_pixel_size = []; % in m. if empty: read from log lfile. effective pixel size =  detector pixel size / magnification
-pixel_scaling = 1; % to account for beam divergence if pixel size was determined (via MTF) at the wrong distance
-%%% PREPROCESSING %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-raw_roi = []; % vertical and/or horizontal ROI; (1,1) coordinate = top left pixel; supports absolute, relative, negative, and mixed indexing.
-im_trafo = '' ;%'rot90(im,-1)'; % string to be evaluated after reading data in the case the image is flipped/rotated/etc due to changes at the beamline, e.g. 'rot90(im)'
-par.crop_at_rot_axis = 0; % for recos of scans with excentric rotation axis but WITHOUT projection stitching
-par.stitch_projections = 0; % for 2 pi scans: stitch projection at rotation axis position. Recommended with phase retrieval to reduce artefacts. Standard absorption contrast data should work well without stitching. Subpixel stitching not supported (non-integer rotation axis position is rounded, less/no binning before reconstruction can be used to improve precision).
-par.stitch_method = 'sine'; 'step';'linear'; %  ! CHECK correlation area !
-proj_range = []; % range of projections to be used (from all found, if empty or 1: all, if scalar: stride, if range: start:incr:end
-ref_range = []; % range of flat fields to be used (from all found), if empty or 1: all. if scalar: stride, if range: start:incr:end
-pixel_filter_threshold_dark = [0.01 0.005]; % Dark fields: threshold parameter for hot/dark pixel filter, for details see 'FilterPixel'
-pixel_filter_threshold_flat = [0.01 0.005]; % Flat fields: threshold parameter for hot/dark pixel filter, for details see 'FilterPixel'
-pixel_filter_threshold_proj = [0.01 0.005]; % Raw projection: threshold parameter for hot/dark pixel filter, for details see 'FilterPixel'
-pixel_filter_radius = [3 3]; % Increase only if blobs of zeros or other artefacts are expected. Can increase processing time heavily.
-ring_current_normalization = 0; % normalize flat fields and projections by ring current
-image_correlation.method = 'entropy';'ssim-ml';'ssim';'ssim-g';'std';'cov';'corr';'diff1-l1';'diff1-l2';'diff2-l1';'diff2-l2';'cross-entropy-12';'cross-entropy-21';'cross-entropy-x';
-image_correlation.force_calc = 0; % bool. force compuation of correlation even though a (previously computed) corrlation matrix exists
-image_correlation.num_flats = 3; % number of best maching flat fields used for correction
-image_correlation.area_width = [1 100];%[-100 1];% correlation area: index vector or relative/absolute position of [first pix, last pix], negative indexing is supported
-image_correlation.area_height = [0.3 0.7]; % correlation area: index vector or relative/absolute position of [first pix, last pix]
-ring_filter.apply = 0; % ring artifact filter (use only for scans without lateral sample movement)
-ring_filter.apply_before_stitching = 0; % ! Consider when phase retrieval is applied !
-ring_filter.method = 'jm'; 'wavelet-fft';
-ring_filter.waveletfft.dec_levels = 2:5; % decomposition levels for 'wavelet-fft'
-ring_filter.waveletfft.wname = 'db25';'db30'; % wavelet type, see 'FilterStripesCombinedWaveletFFT' or 'waveinfo'
-ring_filter.waveletfft.sigma = 2.4; %  suppression factor for 'wavelet-fft'
-ring_filter.jm.median_width = 11; % multiple widths are applied consecutively, eg [3 11 21 31 39];
-strong_abs_thresh = 1; % if 1: does nothing, if < 1: flat-corrected values below threshold are set to one. Try with algebratic reco techniques.
+energy = 17999; % in eV! if empty: read from log file
+sample_detector_distance = 0.2; % in m. if empty: read from log file
+eff_pixel_size = 1.27512e-6 ; % in m. if empty: read from log lfile. effective pixel size =  detector pixel size / magnification
+tomo.rot_angle.full_range = 2*pi; % in radians. if []: full angle of rotation including additional increment, or array of angles. if empty full rotation angles is determined automatically to pi or 2 pi
 %%% PHASE RETRIEVAL %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 phase_retrieval.apply = 0; % See 'PhaseFilter' for detailed description of parameters !
 phase_retrieval.apply_before = 0; % before stitching, interactive mode, etc. For phase-contrast data with an excentric rotation axis phase retrieval should be done afterwards. To find the rotataion axis position use this option in a first run, and then turn it of afterwards.
@@ -92,12 +64,12 @@ tomo.run_interactive_mode = 1; % if tomo.run = 0, use to determine rot axis posi
 tomo.reco_mode = '3D'; 'slice'; % slice-wise or full 3D backprojection. 'slice': volume must be centered at origin & no support of rotation axis tilt, reco binning, save compressed
 tomo.vol_size = []; %[-.5 .5 -.5 .5 -0.5 0.5];% 6-component vector [xmin xmax ymin ymax zmin zmax], for excentric rot axis pos / extended FoV;. if empty, volume is centerd within tomo.vol_shape. unit voxel size is assumed. if smaller than 10 values are interpreted as relative size w.r.t. the detector size. Take care bout minus signs! Note that if empty vol_size is dependent on the rotation axis position.
 tomo.vol_shape = []; %[1 1 1] shape (# voxels) of reconstruction volume. used for excentric rot axis pos. if empty, inferred from 'tomo.vol_size'. in absolute numbers of voxels or in relative number w.r.t. the default volume which is given by the detector width and height.
-tomo.rot_angle.full_range = 2*pi; % in radians. if []: full angle of rotation including additional increment, or array of angles. if empty full rotation angles is determined automatically to pi or 2 pi
 tomo.rot_angle.offset = pi; % global rotation of reconstructed volume
-tomo.rot_axis.offset = []; % rotation axis offset w.r.t to the image center. Assuming the rotation axis position to be centered in the FOV for standard scan, the offset should be close to zero.
+tomo.rot_axis.offset = -0.25; % rotation axis offset w.r.t to the image center. Assuming the rotation axis position to be centered in the FOV for standard scan, the offset should be close to zero.
 tomo.rot_axis.position = []; % if empty use automatic computation. EITHER OFFSET OR POSITION MUST BE EMPTY. YOU MUST NOT USE BOTH!
 tomo.rot_axis.offset_shift = []; %[]; % absolute lateral movement in pixels during fly-shift-scan, overwrite lateral shift read out from hdf5 log
-tomo.rot_axis.tilt = 0; % in rad. camera tilt w.r.t rotation axis. if empty calculate from registration of projections at 0 and pi
+tomo.rot_axis.tilt_camera = 0; % in rad. camera tilt w.r.t rotation axis.
+tomo.rot_axis.tilt_lamino = 0; % 
 tomo.rot_axis.corr_area1 = []; % ROI to correlate projections at angles 0 & pi. Use [0.75 1] or so for scans with an excentric rotation axis
 tomo.rot_axis.corr_area2 = []; % ROI to correlate projections at angles 0 & pi
 tomo.fbp_filter.type = 'Ram-Lak';'linear'; % see iradonDesignFilter for more options. Ram-Lak according to Kak/Slaney
@@ -125,9 +97,7 @@ write.subfolder.phase_map = ''; % subfolder in 'phase_map'
 write.subfolder.sino = ''; % subfolder in 'sino'
 write.subfolder.reco = ''; % subfolder in 'reco'
 write.flatcor = 0; % save preprocessed flat corrected projections
-write.phase_map = 0; % save phase maps (if phase retrieval is not 0)
 write.sino = 0; % save sinograms (after preprocessing & before FBP filtering and phase retrieval)
-write.phase_sino = 0; % save sinograms of phase maps
 write.reco = 1; % save reconstructed slices (if tomo.run=1)
 write.float = 1; % single precision (32-bit float) tiff
 write.uint16 = 0; % save 16bit unsigned integer tiff using 'write.compression.method'
@@ -139,12 +109,6 @@ write.uint8_binned = 0; % save binned 8bit unsigned integer tiff using 'wwrite.c
 write.reco_binning_factor = 2; % IF BINNED VOLUMES ARE SAVED: binning factor of reconstructed volume
 write.compression.method = 'outlier';'histo';'full'; 'std'; 'threshold'; % method to compression dynamic range into [0, 1]
 write.compression.parameter = [0.02 0.02]; % compression-method specific parameter
-% dynamic range is compressed s.t. new dynamic range assumes
-% 'outlier' : [LOW, HIGH] = write.compression.parameter, eg. [0.01 0.03], outlier given in percent, if scalear LOW = HIGH.
-% 'full' : full dynamic range is used
-% 'threshold' : [LOW HIGH] = write.compression.parameter, eg. [-0.01 1]
-% 'std' : NUM = write.compression.parameter, mean +/- NUM*std, dynamic range is rescaled to within -/+ NUM standard deviations around the mean value
-% 'histo' : [LOW HIGH] = write.compression.parameter (100*LOW)% and (100*HIGH)% of the original histogram, e.g. [0.02 0.02]
 %%% INTERACTION %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 par.visual_output = 1; % show images and plots during reconstruction
 interactive_mode.rot_axis_pos = 0; % reconstruct slices with dif+ferent rotation axis offsets
@@ -164,24 +128,19 @@ par.poolsize = 0.7; % number of workers used in a local parallel pool. if 0: use
 par.poolsize_gpu_limit_factor = 0.7; % Relative amount of GPU memory used for preprocessing during parloop. High values speed up Proprocessing, but increases out-of-memory failure
 tomo.astra_link_data = 1; % ASTRA data objects become references to Matlab arrays. Reduces memory issues.
 tomo.astra_gpu_index = []; % GPU Device index to use, Matlab notation: index starts from 1. default: [], uses all
+tomo.astra_reco_per_gpu = 1;
 %%% EXPERIMENTAL OR NOT YET IMPLEMENTED %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 write.uint8_segmented = 0; % experimental: threshold segmentaion for histograms with 2 distinct peaks: __/\_/\__
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%% END OF PARAMETERS / SETTINGS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
 tic
 verbose = 1;
 vert_shift = 0;
 offset_shift = 0;
 scan_position = [];
 logpar = [];
-
-% Parameter checks
-if ~phase_retrieval.apply
-    phase_retrieval.post_binning_factor = 0;
-end
 if interactive_mode.rot_axis_tilt && strcmpi( tomo.reco_mode, 'slice' )
     error( 'Slicewise reconstruction and reconstruction with tilted rotation axis are not compatible!' )
 end
@@ -214,7 +173,6 @@ assign_default( 'interactive_mode.rot_axis_tilt_default_search_range', -0.005:0.
 assign_default( 'interactive_mode.phase_retrieval_default_search_range', [] )
 assign_default( 'interactive_mode.angles', 0 );
 assign_default( 'interactive_mode.angle_scaling_default_search_range', [] );
-
 assign_default( 'tomo.rot_axis.corr_area2', [0.1 0.9] );
 
 % Define variables from struct fields for convenience
@@ -236,7 +194,6 @@ warning( 'off', 'MATLAB:hg:AutoSoftwareOpenGL' );
 fprintf( 'START RECONSTRUCTION: ')
 
 %% Folders
-
 % Scan path
 while scan_path(end) == filesep
     scan_path(end) = [];
@@ -245,9 +202,6 @@ end
 scan_path = [scan_path, filesep];
 [beamtime_path, raw_folder] = fileparts(raw_path);
 [~, beamtime_id] = fileparts(beamtime_path);
-if ~strcmp(raw_folder, 'raw') && ~read_sino && ~read_flatcor
-    error('Given path does not contain a ''raw'' folder: %s', raw_folder)
-end
 
 % Output path and folder
 out_folder = 'processed';
@@ -315,14 +269,11 @@ write.fig_path = [write.path, filesep, 'figures', filesep];
 fig_path = write.fig_path;
 CheckAndMakePath( fig_path )
 
-
 % Start parallel CPU pool %%%
 [poolobj, par.poolsize] = OpenParpool( par.poolsize , par.use_cluster, [beamtime_path filesep 'scratch_cc']);
 
 t = toc;
 %% Read sinogram %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-
 % Sino path
 if ~isempty( read_sino_folder )
     sino_path = [scan_path read_sino_folder filesep];
@@ -397,12 +348,12 @@ padding_method = tomo.fbp_filter.padding_method;
 save_path = sprintf( '%sfloat_rawBin%u/%s', reco_path, raw_bin);
 CheckAndMakePath( save_path );
 take_neg_log = tomo.take_neg_log;
+
 % Read sinogram
+%parfor (nn = 1:numel( sino_names ), num_gpu * tomo.astra_reco_per_gpu )
 for nn = 1:numel( sino_names )
-% for nn=[10,20,30];
     
     filename = sprintf('%s%s', sino_path, sino_names_mat(nn, :));
-    %sino = read_image( filename, '', '', tiff_info, [], [], '', 0 );
     sino = read_image( filename );
     sino = read_sino_trafo( sino );
     
@@ -411,45 +362,30 @@ for nn = 1:numel( sino_names )
     else
         sino = NegLog( sino, take_neg_log );
         sino = reshape( sino, [im_shape_cropbin1, 1, num_proj_read] );
+        % Filter
         sino = padarray( sino, padding * [im_shape_cropbin1 0 0], padding_method, 'post' );
         sino = real( ifft( bsxfun(@times, fft( sino, [], 1), filt), [], 1, 'symmetric') );
         sino = sino(1:im_shape_cropbin1,:,:);
-        
-        
-        %
-        %sino = gpuArray( sino );
-        %                   sino = reshape( sino, [im_shape_cropbin1, 1, num_proj_read] );
-        %                   sino = padarray( sino, padding * [im_shape_cropbin1 0 0], padding_method, 'post' );
-        %                   sino = real( ifft( bsxfun(@times, fft( sino, [], 1), filt), [], 1, 'symmetric') );
-        %                   sino = sino(1:im_shape_cropbin1,:,:);
-        %                   sino = gather( sino );
-        %
+        % Tomo
         gpu_index = mod( nn,  num_gpu ) + 1;
         vol = astra_parallel2D( tomo, permute( sino, [3 1 2]), gpu_index );
-        
+        % Save
         filename = sprintf( '%s/%s', save_path, sino_names_mat(nn,:));
         write32bitTIFfromSingle( filename, vol )
     end
     
 end
-
 fprintf( ' \n tomo reco done in %.1f s (%.2f min)', toc-t, (toc-t)/60 )
-
 
 %% Write reco log file %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 CheckAndMakePath( reco_path )
-
 if write.reco
     logfile_path = reco_path;
-    
-else
-    logfile_path = write.path;
 end
 CheckAndMakePath( logfile_path )
 if write.reco
-    
     logfile_name = sprintf( '%sreco_rawBin%u.log', logfile_path, raw_bin);
-    
+
     fid = fopen( logfile_name, 'w');
     fprintf(fid, 'scan_name : %s\n', scan_name);
     fprintf(fid, 'beamtime_id : %s\n', beamtime_id);
@@ -459,23 +395,15 @@ if write.reco
     fprintf(fid, 'MATLAB version : %s\n', version);
     fprintf(fid, 'Git commit ID : %s\n', git_commit_id);
     fprintf(fid, 'platform : %s\n', computer);
-    
     fprintf(fid, 'effective_pixel_size : %g micron\n', eff_pixel_size * 1e6);
     fprintf(fid, 'effective_pixel_size_binned : %g micron\n', eff_pixel_size_binned * 1e6);
     fprintf(fid, 'energy : %g eV\n', energy);
     fprintf(fid, 'sample_detector_distance : %f m\n', sample_detector_distance);
-    
-    
-    fprintf(fid, 'strong_abs_thresh : %f m\n', strong_abs_thresh);
-    
     if tomo.run
         % Volume
         fprintf(fid, 'tomo.vol_shape : %u %u %u\n', tomo.vol_shape(1), tomo.vol_shape(2), tomo.vol_shape(3));
         fprintf(fid, 'tomo.vol_size : %f %f %f %f %f %f\n', tomo.vol_size(1), tomo.vol_size(2), tomo.vol_size(3), tomo.vol_size(4), tomo.vol_size(5), tomo.vol_size(6));
         % Rotation
-        fprintf(fid, 'crop_at_rot_axis : %u\n', par.crop_at_rot_axis);
-        fprintf(fid, 'par.stitch_projections : %u\n', par.stitch_projections);
-        fprintf(fid, 'par.stitch_method : %s\n', par.stitch_method );
         fprintf(fid, 'tomo.reco_mode : %s\n', tomo.reco_mode);
         fprintf(fid, 'tomo.rot_angle.full_range : %f * pi rad\n', tomo.rot_angle.full_range / pi);
         fprintf(fid, 'tomo.rot_angle.offset : %f * pi rad\n', tomo.rot_angle.offset / pi);
@@ -484,20 +412,6 @@ if write.reco
         fprintf(fid, 'raw_image_binned_center : %f\n', im_shape_cropbin1 / 2);
         fprintf(fid, 'interactive_mode.rot_axis_pos : %u\n', interactive_mode.rot_axis_pos);
         fprintf(fid, 'interactive_mode.phase_retrieval : %u\n', interactive_mode.phase_retrieval);
-        % Ring filter
-        fprintf(fid, 'ring_filter.apply : %u\n', ring_filter.apply);
-        if ring_filter.apply
-            fprintf(fid, 'ring_filter.method : %s\n', ring_filter.method);
-            fprintf(fid, 'ring_filter.apply_before_stitching : %u\n', ring_filter.apply_before_stitching);
-            switch lower( ring_filter.method )
-                case 'wavelet-fft'
-                    fprintf(fid, 'ring_filter.waveletfft.wname : %s\n', ring_filter.waveletfft.wname );
-                    fprintf(fid, 'ring_filter.waveletfft.dec_levels : [%s]\n', sprintf( ' %u', ring_filter.waveletfft.dec_levels) );
-                    fprintf(fid, 'ring_filter.waveletfft.sigma : %f\n', ring_filter.waveletfft.sigma );
-                case 'jm'
-                    fprintf(fid, 'ring_filter.jm.median_width : %s\n', sprintf( '%u ', ring_filter.jm.median_width) );
-            end
-        end
         % Tomo
         fprintf(fid, 'tomo.algorithm : %s\n', tomo.algorithm );
         switch tomo.algorithm

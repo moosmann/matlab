@@ -35,7 +35,8 @@ function [im_int, threshold_hot, threshold_dark] = FilterPixel( im_int, par, gpu
 
 %% Default arguments %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 if nargin < 2
-    par = struct;
+    par.use_gpu = 0;
+    par.verbose = 0;
 end
 if nargin < 3
     gpu_index = [];
