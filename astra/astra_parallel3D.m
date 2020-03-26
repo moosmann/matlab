@@ -42,7 +42,6 @@ function vol = astra_parallel3D( tomo, sino)
 % kernel.
 %
 % Written by Julian Moosmann
-% First version: 2016-10-5. Last modification: 2017-10-30
 
 %% TODO: test double precision support
 %% TODO: proper Ram-Lak filter for tilted axis
@@ -50,19 +49,19 @@ function vol = astra_parallel3D( tomo, sino)
 
 %% Default arguments %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 angles = assign_from_struct( tomo, 'angles', pi );
-rotation_axis_offset = assign_from_struct( tomo.rot_axis, 'offset', 0);
+rotation_axis_offset = assign_from_struct( tomo, 'rot_axis_offset', 0);
 scan_position = assign_from_struct( tomo, 'scan_position', 0);
 vert_shift = assign_from_struct( tomo, 'vert_shift', [] );
-angle_offset = assign_from_struct( tomo.rot_angle, 'offset', 0 );
+angle_offset = assign_from_struct( tomo, 'rot_angle_offset', 0 );
 vol_shape = assign_from_struct( tomo, 'vol_shape', [size( sino, 1), size( sino, 1), size(sino, 3) ] );
 vol_size = assign_from_struct( tomo, 'vol_size', [] );
 pixel_size = assign_from_struct( tomo, 'astra_pixel_size', [1 1] );
-tilt = assign_from_struct( tomo, 'tilt_camera', 0 );
-tilt_lamino = assign_from_struct( tomo, 'tilt_lamino', 0 );
+tilt = assign_from_struct( tomo, 'rot_axis_tilt_camera', 0 );
+tilt_lamino = assign_from_struct( tomo, 'rot_axis_tilt_lamino', 0 );
 algorithm = assign_from_struct( tomo, 'algorithm', 'fbp' );
 iterations = assign_from_struct( tomo, 'iterations', 100);
-MinConstraint = assign_from_struct( tomo.sirt, 'MinConstraint', [] );
-MaxConstraint = assign_from_struct( tomo.sirt, 'MaxConstraint', [] );
+MinConstraint = assign_from_struct( tomo, 'MinConstraint', [] );
+MaxConstraint = assign_from_struct( tomo, 'MaxConstraint', [] );
 gpu_index = assign_from_struct( tomo, 'astra_gpu_index', [] );
 link_data = assign_from_struct( tomo, 'astra_link_data', 0 );
  
@@ -188,10 +187,17 @@ switch lower( algorithm )
         cfg = astra_struct('BP3D_CUDA');
     case 'sirt'
         cfg = astra_struct('SIRT3D_CUDA');
-        cfg.option.MinConstraint = MinConstraint;
-        cfg.option.MaxConstraint = MaxConstraint;
     case 'cgls'
         cfg = astra_struct('CGLS3D_CUDA');        
+end
+if sum( strcmpi( algorithm, { 'sirt' }) )
+    if ~isempty( MinConstraint )
+        cfg.option.MinConstraint = MinConstraint;
+        
+    end
+    if ~isempty( MaxConstraint )
+        cfg.option.MaxConstraint = MaxConstraint;
+    end
 end
 cfg.ProjectionDataId = sino_id;
 cfg.ReconstructionDataId = vol_id;

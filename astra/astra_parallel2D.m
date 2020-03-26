@@ -59,19 +59,17 @@ angles = assign_from_struct( tomo, 'angles', pi );
 vol_shape = assign_from_struct( tomo, 'vol_shape', [size( sino, 1), size( sino, 1), size(sino, 3) ] );
 vol_size = assign_from_struct( tomo, 'vol_size', [] );
 pixel_size = assign_from_struct( tomo, 'astra_pixel_size', 1 );
-tilt = assign_from_struct( tomo, 'tilt_camera', 0 );
+tilt = assign_from_struct( tomo, 'rot_axis_tilt_camera', 0 );
 algorithm = assign_from_struct( tomo, 'algorithm', 'fbp' );
 iterations = assign_from_struct( tomo, 'iterations', 100);
 scan_position = assign_from_struct( tomo, 'scan_position', 0);
-angle_offset = assign_from_struct( tomo.rot_angle, 'offset', 0 );
-MinConstraint = assign_from_struct( tomo.sirt, 'MinConstraint', [] );
-MaxConstraint = assign_from_struct( tomo.sirt, 'MaxConstraint', [] );
+angle_offset = assign_from_struct( tomo, 'rot_angle_offset', 0 );
+MinConstraint = assign_from_struct( tomo, 'MinConstraint', [] );
+MaxConstraint = assign_from_struct( tomo, 'MaxConstraint', [] );
 %vert_shift = assign_from_struct( tomo, 'vert_shift', [] );
-if isempty( gpu_index )
-    gpu_index = assign_from_struct( tomo, 'astra_gpu_index', [] );
-end
+astra_gpu_index = assign_from_struct( tomo, 'astra_gpu_index', [] );
 if isempty( rotation_axis_offset )
-    rotation_axis_offset = assign_from_struct( tomo.rot_axis, 'offset', 0);
+    rotation_axis_offset = assign_from_struct( tomo, 'rot_axis_offset', 0);
 end
 
 %% TODO: Spiral CT using interpolation
@@ -87,9 +85,14 @@ angles = double( angles );
 
 % GPU
 if isempty( gpu_index )
-    astra_mex('set_gpu_index', 0:gpuDeviceCount - 1);
+    if ~isempty( astra_gpu_index )
+        astra_mex('set_gpu_index', astra_gpu_index - 1);
+    else
+        astra_mex('set_gpu_index', 0:gpuDeviceCount - 1);
+    end
 else
-    astra_mex('set_gpu_index', gpu_index - 1);
+    nn = astra_gpu_index( 1 + mod( gpu_index, numel( astra_gpu_index ) ) );
+    astra_mex('set_gpu_index', nn - 1);
 end
 
 %% Detector geometry
@@ -175,24 +178,21 @@ switch lower( algorithm )
         cfg = astra_struct('FBP_CUDA');
     case 'sirt'
         cfg = astra_struct('SIRT_CUDA');
-        if ~isempty( MinConstraint ) 
-            cfg.option.MinConstraint = MinConstraint;
-        end
-        if ~isempty( MaxConstraint )
-            cfg.option.MaxConstraint = MaxConstraint;
-        end
     case 'sart'
         cfg = astra_struct('SART_CUDA');
-        if ~isempty( MinConstraint ) 
-            cfg.option.MinConstraint = MinConstraint;
-        end
-        if ~isempty( MaxConstraint )
-            cfg.option.MaxConstraint = MaxConstraint;
-        end
     case 'cgls'
         cfg = astra_struct('CGLS_CUDA');
     case 'em'
         cfg = astra_struct('EM_CUDA');
+end
+if sum( strcmpi( algorithm, { 'sirt','sart' }) )
+    if ~isempty( MinConstraint )
+        cfg.option.MinConstraint = MinConstraint;
+        
+    end
+    if ~isempty( MaxConstraint )
+        cfg.option.MaxConstraint = MaxConstraint;
+    end
 end
 cfg.ProjectionDataId = sino_id;
 cfg.ReconstructionDataId = vol_id;

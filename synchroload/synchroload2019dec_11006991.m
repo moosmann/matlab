@@ -60,18 +60,7 @@ end
 % Define parameter here. Otherwise parameters are taken from the current
 % version of 'p05_reco' if not set in the section below.
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-% !!! FAST RECO MODE PARAMTERS !!! OVERWRITES SOME PARAMETERS SET BELOW !!!
-fast_reco.run = 0;
-fast_reco.raw_roi = [];
-% END OF FAST MODE PARAMTER SECTION %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
 %%% SCAN %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-scan_path = pwd;
-%'/asap3/petra3/gpfs/p07/2019/data/11007454/processed/bmc11_mouse21_inline';
-%pwd;%'/asap3/petra3/gpfs/p07/2019/data/11007454/processed/bmc06_tooth1';
-%'/asap3/petra3/gpfs/p05/2019/data/11007580/raw/nova_317'; % string/pwd. pwd: change to directory of the scan to be reconstructed, sting: absolute scan path
 read_flatcor = 0; % read preprocessed flatfield-corrected projections. CHECK if negative log has to be taken!
 read_flatcor_path = '/asap3/petra3/gpfs/p05/2019/data/11007890/processed/AZ91_C500_ae_0/flat_corrected/rawBin2'; % subfolder of 'flat_corrected' containing projections
 read_flatcor_trafo = @(im) im; %fliplr( im ); % anonymous function applied to the image which is read e.g. @(x) rot90(x)
@@ -92,44 +81,19 @@ raw_roi = []; % vertical and/or horizontal ROI; (1,1) coordinate = top left pixe
 raw_bin = 4; % projection binning factor: integer
 im_trafo = '' ;%'rot90(im,-1)'; % string to be evaluated after reading data in the case the image is flipped/rotated/etc due to changes at the beamline, e.g. 'rot90(im)'
 % STITCHING/CROPPING only for scans without lateral movment. Legacy support
-par.crop_at_rot_axis = 0; % for recos of scans with excentric rotation axis but WITHOUT projection stitching
-par.stitch_projections = 0; % for 2 pi cans: stitch projection at rotation axis position. Recommended with phase retrieval to reduce artefacts. Standard absorption contrast data should work well without stitching. Subpixel stitching not supported (non-integer rotation axis position is rounded, less/no binning before reconstruction can be used to improve precision).
-par.stitch_method = 'sine'; 'step';'linear'; %  ! CHECK correlation area !
-% 'step' : no interpolation, use step function
-% 'linear' : linear interpolation of overlap region
-% 'sine' : sinusoidal interpolation of overlap region
 proj_range = []; % range of projections to be used (from all found, if empty or 1: all, if scalar: stride, if range: start:incr:end
 ref_range = []; % range of flat fields to be used (from all found), if empty or 1: all. if scalar: stride, if range: start:incr:end
 pixel_filter_threshold_dark = [0.01 0.005]; % Dark fields: threshold parameter for hot/dark pixel filter, for details see 'FilterPixel'
 pixel_filter_threshold_flat = [0.01 0.005]; % Flat fields: threshold parameter for hot/dark pixel filter, for details see 'FilterPixel'
 pixel_filter_threshold_proj = [0.01 0.005]; % Raw projection: threshold parameter for hot/dark pixel filter, for details see 'FilterPixel'
 pixel_filter_radius = [3 3]; % Increase only if blobs of zeros or other artefacts are expected. Can increase processing time heavily.
-ring_current_normalization = 0; % normalize flat fields and projections by ring current
+ring_current_normalization = 1; % normalize flat fields and projections by ring current
 image_correlation.method = 'ssim-ml';'entropy';'none';'ssim';'ssim-g';'std';'cov';'corr';'diff1-l1';'diff1-l2';'diff2-l1';'diff2-l2';'cross-entropy-12';'cross-entropy-21';'cross-entropy-x';
-% Correlation of projections and flat fields. Essential for DCM data. Typically improves reconstruction quality of DMM data, too.
-% Available methods ('ssim-ml'/'entropy' usually work best):
-% 'none' : no correlation for DPC
-% 'median' or '': use median flat
-% 'ssim-ml' : Matlab's structural similarity index (SSIM), includes Gaussian smoothing
-% 'entropy' : entropy measure of proj over flat, usually similar result to SSIM, but faster
-% 'ssim' : own implementation of SSIM without smoothing, usually worse, but sometimes better than 'ssim-ml'
-% 'ssim-g' : 'ssim' with smoothing (Gaussian blurring)
-% 'cov' : cross covariance
-% 'corr' : cross correlation = normalized cross covariance
-% 'std' : standard deviation of proj over flat
-% 'diff1/2-l1/2': L1/L2-norm of anisotropic (diff1-l*) or isotropic (diff2-l*) difference of projections and flat fields
-% 'cross-entropy-*' : asymmetric (12,21) and symmetric (x) cross entropy
 image_correlation.force_calc = 0; % bool. force compuation of correlation even though a (previously computed) corrlation matrix exists
 image_correlation.num_flats = 3; % number of best maching flat fields used for correction
 image_correlation.area_width = [1 100];%[-100 1];% correlation area: index vector or relative/absolute position of [first pix, last pix], negative indexing is supported
 image_correlation.area_height = [0.2 0.8]; % correlation area: index vector or relative/absolute position of [first pix, last pix]
-ring_filter.apply = 0; % ring artifact filter (use only for scans without lateral sample movement)
-ring_filter.apply_before_stitching = 0; % ! Consider when phase retrieval is applied !
-ring_filter.method = 'jm'; 'wavelet-fft';
-ring_filter.waveletfft.dec_levels = 2:5; % decomposition levels for 'wavelet-fft'
-ring_filter.waveletfft.wname = 'db25';'db30'; % wavelet type, see 'FilterStripesCombinedWaveletFFT' or 'waveinfo'
-ring_filter.waveletfft.sigma = 2.4; %  suppression factor for 'wavelet-fft'
-ring_filter.jm.median_width = 11; % multiple widths are applied consecutively, eg [3 11 21 31 39];
+norm_sino = 1; % angle-wise offset-normalization of sino
 strong_abs_thresh = 1; % if 1: does nothing, if < 1: flat-corrected values below threshold are set to one. Try with algebratic reco techniques.
 %%% PHASE RETRIEVAL %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 phase_retrieval.apply = 0; % See 'PhaseFilter' for detailed description of parameters !
@@ -143,33 +107,33 @@ phase_retrieval.padding = 1; % padding of intensities before phase retrieval, 0:
 dpc_steps = 5;
 dpc_bin = 8;
 %%% TOMOGRAPHY %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-tomo.run = 1; % run tomographic reconstruction
+tomo.run = 0; % run tomographic reconstruction
 tomo.run_interactive_mode = 1; % if tomo.run = 0, use to determine rot axis positions without processing the full tomogram;
 tomo.reco_mode = '3D';'slice';  % slice-wise or full 3D backprojection. 'slice': volume must be centered at origin & no support of rotation axis tilt, reco binning, save compressed
 tomo.vol_size = []; %[-.5 .5 -.5 .5 -0.5 0.5];% 6-component vector [xmin xmax ymin ymax zmin zmax], for excentric rot axis pos / extended FoV;. if empty, volume is centerd within tomo.vol_shape. unit voxel size is assumed. if smaller than 10 values are interpreted as relative size w.r.t. the detector size. Take care bout minus signs! Note that if empty vol_size is dependent on the rotation axis position.
 tomo.vol_shape = []; %[1 1 1] shape (# voxels) of reconstruction volume. used for excentric rot axis pos. if empty, inferred from 'tomo.vol_size'. in absolute numbers of voxels or in relative number w.r.t. the default volume which is given by the detector width and height.
-tomo.rot_angle.full_range = [];% 2 * pi ;[]; % in radians. if []: full angle of rotation including additional increment, or array of angles. if empty full rotation angles is determined automatically to pi or 2 pi
-tomo.rot_angle.offset = pi; % global rotation of reconstructed volume
-tomo.rot_axis.offset = 1.4;% -230.2;[]; % rotation axis offset w.r.t to the image center. Assuming the rotation axis position to be centered in the FOV for standard scan, the offset should be close to zero.
-tomo.rot_axis.position = []; % if empty use automatic computation. EITHER OFFSET OR POSITION MUST BE EMPTY. YOU MUST NOT USE BOTH!
-tomo.rot_axis.offset_shift = []; %[]; % absolute lateral movement in pixels during fly-shift-scan, overwrite lateral shift read out from hdf5 log
-tomo.rot_axis.tilt_camera = 0; % in rad. camera tilt w.r.t rotation axis.
-tomo.rot_axis.tilt_lamino = 0; % in rad. lamino tilt w.r.t beam.
-tomo.rot_axis.corr_area1 = []; % ROI to correlate projections at angles 0 & pi. Use [0.75 1] or so for scans with an excentric rotation axis
-tomo.rot_axis.corr_area2 = []; % ROI to correlate projections at angles 0 & pi
-tomo.fbp_filter.type = 'Ram-Lak';'linear'; % see iradonDesignFilter for more options. Ram-Lak according to Kak/Slaney
-tomo.fbp_filter.freq_cutoff = 1; % Cut-off frequency in Fourier space of the above FBP filter
-tomo.fbp_filter.padding = 1; % symmetric padding for consistent boundary conditions, 0: no padding
-tomo.fbp_filter.padding_method = 'symmetric';
-tomo.butterworth_filter.apply = 0; % use butterworth filter in addition to FBP filter
-tomo.butterworth_filter.order = 1;
-tomo.butterworth_filter.frequ_cutoff = 0.9;
+tomo.rot_angle_full_range = [];% 2 * pi ;[]; % in radians. if []: full angle of rotation including additional increment, or array of angles. if empty full rotation angles is determined automatically to pi or 2 pi
+tomo.rot_angle_offset = pi; % global rotation of reconstructed volume
+tomo.rot_axis_offset = 1.4;% -230.2;[]; % rotation axis offset w.r.t to the image center. Assuming the rotation axis position to be centered in the FOV for standard scan, the offset should be close to zero.
+tomo.rot_axis_position = []; % if empty use automatic computation. EITHER OFFSET OR POSITION MUST BE EMPTY. YOU MUST NOT USE BOTH!
+tomo.rot_axis_offset_shift = []; %[]; % absolute lateral movement in pixels during fly-shift-scan, overwrite lateral shift read out from hdf5 log
+tomo.rot_axis_tilt_camera = 0; % in rad. camera tilt w.r.t rotation axis.
+tomo.rot_axis_tilt_lamino = 0; % in rad. lamino tilt w.r.t beam.
+tomo.rot_axis_corr_area1 = []; % ROI to correlate projections at angles 0 & pi. Use [0.75 1] or so for scans with an excentric rotation axis
+tomo.rot_axis_corr_area2 = []; % ROI to correlate projections at angles 0 & pi
+tomo.fbp_filter_type = 'Ram-Lak';'linear'; % see iradonDesignFilter for more options. Ram-Lak according to Kak/Slaney
+tomo.fbp_filter_freq_cutoff = 1; % Cut-off frequency in Fourier space of the above FBP filter
+tomo.fbp_filter_padding = 1; % symmetric padding for consistent boundary conditions, 0: no padding
+tomo.fbp_filter_padding_method = 'symmetric';
+tomo.butterworth_filter = 0; % use butterworth filter in addition to FBP filter
+tomo.butterworth_filter_order = 1;
+tomo.butterworth_filter_frequ_cutoff = 0.9;
 tomo.astra_pixel_size = 1; % detector pixel size for reconstruction: if different from one 'tomo.vol_size' must to be ajusted, too!
 tomo.take_neg_log = []; % take negative logarithm. if empty, use 1 for attenuation contrast, 0 for phase contrast
 tomo.algorithm = 'fbp';'sirt'; 'cgls';'sart';'em';'fbp-astra'; % SART/EM only work for 3D reco mode
 tomo.iterations = 40; % for 'sirt' or 'cgls'.
-tomo.sirt.MinConstraint = []; % If specified, all values below MinConstraint will be set to MinConstraint. This can be used to enforce non-negative reconstructions, for example.
-tomo.sirt.MaxConstraint = []; % If specified, all values above MaxConstraint will be set to MaxConstraint.
+tomo.MinConstraint = []; % If specified, all values below MinConstraint will be set to MinConstraint. This can be used to enforce non-negative reconstructions, for example.
+tomo.MaxConstraint = []; % If specified, all values above MaxConstraint will be set to MaxConstraint.
 %%% OUTPUT %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 write.path = ''; %'/gpfs/petra3/scratch/moosmanj'; % absolute path were output data will be stored. !!overwrites the write.to_scratch flag. if empty uses the beamtime directory and either 'processed' or 'scratch_cc'
 write.to_scratch = 0; % write to 'scratch_cc' instead of 'processed'
@@ -177,11 +141,11 @@ write.deleteFiles = 0; % delete files already existing in output folders. Useful
 write.beamtimeID = ''; % string (regexp),typically beamtime ID, mandatory if 'write.deleteFiles' is true (safety check)
 write.scan_name_appendix = ''; % appendix to the output folder name which defaults to the scan name
 write.parfolder = '';% parent folder to 'reco', 'sino', 'phase', and 'flat_corrected'
-write.subfolder.flatcor = ''; % subfolder in 'flat_corrected'
-write.subfolder.phase_map = ''; % subfolder in 'phase_map'
-write.subfolder.sino = ''; % subfolder in 'sino'
-write.subfolder.reco = ''; % subfolder in 'reco'
-write.flatcor = 0; % save preprocessed flat corrected projections
+write.subfolder_flatcor = ''; % subfolder in 'flat_corrected'
+write.subfolder_phase_map = ''; % subfolder in 'phase_map'
+write.subfolder_sino = ''; % subfolder in 'sino'
+write.subfolder_reco = ''; % subfolder in 'reco'
+write.flatcor = 1; % save preprocessed flat corrected projections
 write.phase_map = 1; % save phase maps (if phase retrieval is not 0)
 write.sino = 0; % save sinograms (after preprocessing & before FBP filtering and phase retrieval)
 write.phase_sino = 0; % save sinograms of phase maps
@@ -190,22 +154,14 @@ write.float = 1; % single precision (32-bit float) tiff
 write.uint16 = 0; % save 16bit unsigned integer tiff using 'write.compression.method'
 write.uint8 = 0; % save binned 8bit unsigned integer tiff using 'write.compression.method'
 % Optionally save binned reconstructions, only works in '3D' reco_mode
-write.float_binned = 0; % save binned single precision (32-bit float) tiff
+write.float_binned = 1; % save binned single precision (32-bit float) tiff
 write.uint16_binned = 0; % save binned 16bit unsigned integer tiff using 'write.compression.method'
 write.uint8_binned = 0; % save binned 8bit unsigned integer tiff using 'wwrite.compression.method'
 write.reco_binning_factor = 2; % IF BINNED VOLUMES ARE SAVED: binning factor of reconstructed volume
-write.compression.method = 'outlier';'histo';'full'; 'std'; 'threshold'; % method to compression dynamic range into [0, 1]
-write.compression.parameter = [0.02 0.02]; % compression-method specific parameter
-% dynamic range is compressed s.t. new dynamic range assumes
-% 'outlier' : [LOW, HIGH] = write.compression.parameter, eg. [0.01 0.03], outlier given in percent, if scalear LOW = HIGH.
-% 'full' : full dynamic range is used
-% 'threshold' : [LOW HIGH] = write.compression.parameter, eg. [-0.01 1]
-% 'std' : NUM = write.compression.parameter, mean +/- NUM*std, dynamic range is rescaled to within -/+ NUM standard deviations around the mean value
-% 'histo' : [LOW HIGH] = write.compression.parameter (100*LOW)% and (100*HIGH)% of the original histogram, e.g. [0.02 0.02]
 write.uint8_segmented = 0; % experimental: threshold segmentaion for histograms with 2 distinct peaks: __/\_/\__
 %%% INTERACTION %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-par.visual_output = 1; % show images and plots during reconstruction
-interactive_mode.rot_axis_pos = 1; % reconstruct slices with dif+ferent rotation axis offsets
+par.visual_output = 0; % show images and plots during reconstruction
+interactive_mode.rot_axis_pos = 0; % reconstruct slices with dif+ferent rotation axis offsets
 interactive_mode.rot_axis_pos_default_search_range = []; % if empty: asks for search range when entering interactive mode
 interactive_mode.rot_axis_tilt = 0; % reconstruct slices with different offset AND tilts of the rotation axis
 interactive_mode.rot_axis_tilt_default_search_range = []; % if empty: asks for search range when entering interactive mode
@@ -220,9 +176,9 @@ par.use_cluster = 0; % if available: on MAXWELL nodes disp/nova/wga/wgs cluster 
 par.poolsize = 0.75; % number of workers used in a local parallel pool. if 0: use current config. if >= 1: absolute number. if 0 < poolsize < 1: relative amount of all cores to be used. if SLURM scheduling is available, a default number of workers is used.
 par.poolsize_gpu_limit_factor = 0.7; % Relative amount of GPU memory used for preprocessing during parloop. High values speed up Proprocessing, but increases out-of-memory failure
 tomo.astra_link_data = 1; % ASTRA data objects become references to Matlab arrays. Reduces memory issues.
-tomo.astra_gpu_index = []; % GPU Device index to use, Matlab notation: index starts from 1. default: [], uses all
+tomo.astra_gpu_index = [2 4:6];
 par.gpu_index = tomo.astra_gpu_index;
-par.use_gpu_in_parfor = 1;
+par.use_gpu_in_parfor = 0;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Set default. Defines default parameter set to be used.
 SET_DEFAULT
@@ -245,121 +201,125 @@ scan_path = [raw_path 'syn001_Ti_12w_47R']; ADD
 scan_path = [raw_path 'syn002_Ti_12w_47R_z0140_t130ms']; ADD
 scan_path = [raw_path 'syn004_Ti_12w_47R_z0280_t130ms']; ADD
 
-tomo.rot_axis.offset = 0.4 * 4 / raw_bin;
-scan_path = [raw_path 'syn005_Ti_12w_47R_z0030_t001ms']; ADD
-scan_path = [raw_path 'syn006_Ti_12w_47R_z0030_t005ms']; ADD
-scan_path = [raw_path 'syn007_Ti_12w_47R_z0030_t010ms']; ADD
-scan_path = [raw_path 'syn008_Ti_12w_47R_z0030_t135ms']; ADD
+%% syn005 1ms
+scan_path = [raw_path 'syn005_Ti_12w_47R_z0030_t001ms']; 
+tomo.rot_axis_offset = 0.4 * 4 / raw_bin;
+tomo.reco_mode = 'slice';
 
-tomo.rot_axis.offset = 0.0 * 4 / raw_bin;
+tomo.algorithm = 'fbp';
+write.subfolder_reco = 'fbp';
+ADD
+
+tomo.algorithm = 'sirt';
+tomo.iterations = 200;
+write.subfolder_reco = sprintf( '%s%u',  tomo.algorithm, tomo.iterations );
+ADD
+
+tomo.algorithm = 'cgls';
+write.subfolder_reco = sprintf( '%s%u',  tomo.algorithm, tomo.iterations );
+ADD
+
+tomo.algorithm = 'sart';
+write.subfolder_reco = sprintf( '%s%u',  tomo.algorithm, tomo.iterations );
+ADD
+
+tomo.algorithm = 'em';
+write.subfolder_reco = sprintf( '%s%u',  tomo.algorithm, tomo.iterations );
+ADD
+
+%% syn006 5ms
+scan_path = [raw_path 'syn006_Ti_12w_47R_z0030_t005ms'];
+
+tomo.algorithm = 'fbp';
+write.subfolder_reco = sprintf( '%s',  tomo.algorithm  );
+ADD
+
+tomo.iterations = 200;
+
+tomo.algorithm = 'sirt';
+write.subfolder_reco = sprintf( '%s%u',  tomo.algorithm, tomo.iterations );
+ADD
+
+tomo.algorithm = 'cgls';
+write.subfolder_reco = sprintf( '%s%u',  tomo.algorithm, tomo.iterations );
+ADD
+
+tomo.algorithm = 'sart';
+write.subfolder_reco = sprintf( '%s%u',  tomo.algorithm, tomo.iterations );
+ADD
+
+tomo.algorithm = 'em';
+write.subfolder_reco = sprintf( '%s%u',  tomo.algorithm, tomo.iterations );
+ADD
+
+tomo.astra_gpu_index = [];
+par.gpu_index = tomo.astra_gpu_index;
+
+%% syn007 10ms
+tomo.algorithm = 'fbp';
+write.subfolder_reco = sprintf( '%s%u',  tomo.algorithm );
+scan_path = [raw_path 'syn007_Ti_12w_47R_z0030_t010ms']; ADD
+
+%% syn008 135ms
+scan_path = [raw_path 'syn008_Ti_12w_47R_z0030_t135ms'];
+
+tomo.reco_mode = 'slice';
+
+tomo.algorithm = 'fbp';
+write.subfolder_reco = sprintf( '%s%u',  tomo.algorithm );
+ADD
+
+tomo.algorithm = 'sirt';
+write.subfolder_reco = sprintf( '%s%u',  tomo.algorithm, tomo.iterations );
+ADD
+
+tomo.algorithm = 'cgls';
+write.subfolder_reco = sprintf( '%s%u',  tomo.algorithm, tomo.iterations );
+ADD
+
+%%
+tomo.algorithm = 'fbp';
+write.subfolder_reco = 'fbp';
+tomo.rot_axis_offset = 0.0 * 4 / raw_bin;
 scan_path = [raw_path 'syn009_Ti_12w_47R_z0140_t001ms']; ADD
 scan_path = [raw_path 'syn010_Ti_12w_47R_z0140_t005ms']; ADD
 scan_path = [raw_path 'syn011_Ti_12w_47R_z0140_t010ms']; ADD
 scan_path = [raw_path 'syn012_Ti_12w_47R_z0140_t135ms']; ADD
 
-tomo.rot_axis.offset = -1.7 * 4 / raw_bin;
+tomo.rot_axis_offset = -1.7 * 4 / raw_bin;
 scan_path = [raw_path 'syn013_Ti_12w_47R_z0280_t001ms']; ADD
 scan_path = [raw_path 'syn014_Ti_12w_47R_z0280_t005ms']; ADD
 scan_path = [raw_path 'syn015_Ti_12w_47R_z0280_t010ms']; ADD
 scan_path = [raw_path 'syn016_Ti_12w_47R_z0280_t135ms']; ADD
 
-tomo.rot_axis.offset = -4.6 * 4 / raw_bin;
+tomo.rot_axis_offset = -4.6 * 4 / raw_bin;
 scan_path = [raw_path 'syn017_Ti_12w_47R_z0560_t001ms']; ADD
 scan_path = [raw_path 'syn018_Ti_12w_47R_z0560_t005ms']; ADD
 scan_path = [raw_path 'syn019_Ti_12w_47R_z0560_t010ms']; ADD
 scan_path = [raw_path 'syn020_Ti_12w_47R_z0560_t135ms']; ADD
 
-tomo.rot_axis.offset = -11 * 4 / raw_bin;
+tomo.rot_axis_offset = -11 * 4 / raw_bin;
 scan_path = [raw_path 'syn021_Ti_12w_47R_z1120_t001ms']; ADD
 scan_path = [raw_path 'syn022_Ti_12w_47R_z1120_t005ms']; ADD
 scan_path = [raw_path 'syn023_Ti_12w_47R_z1120_t010ms']; ADD
 scan_path = [raw_path 'syn024_Ti_12w_47R_z1120_t135ms']; ADD
 
+tomo.rot_axis_offset = -8.35 * 4 / raw_bin;
 scan_path = [raw_path 'syn025_Ti_12w_47R_z0900_t001ms_dpc']; ADD
-
 scan_path = [raw_path 'syn026_Ti_12w_47R_z0900_t005ms_dpc']; ADD
-
 scan_path = [raw_path 'syn027_Ti_12w_47R_z0900_t010ms_dpc']; ADD
 
-scan_path = [raw_path 'syn28_621732li_6w_Ti_prox1_01']; ADD
-
-scan_path = [raw_path 'syn29_621732li_6w_Ti_prox1_01']; ADD
-
-scan_path = [raw_path 'syn30_621732li_6w_Ti_prox1_01']; ADD
-
 scan_path = [raw_path 'syn31_621732li_6w_Ti_prox1_01']; ADD
-
 scan_path = [raw_path 'syn31_621732li_6w_Ti_prox1_02']; ADD
-
 scan_path = [raw_path 'syn31_621732li_6w_Ti_prox1_03']; ADD
-
 scan_path = [raw_path 'syn31_621732li_6w_Ti_prox1_04']; ADD
-
 scan_path = [raw_path 'syn31_621732li_6w_Ti_prox1_05']; ADD
-
 scan_path = [raw_path 'syn31_621732li_6w_Ti_prox1_06']; ADD
-
 scan_path = [raw_path 'syn31_621732li_6w_Ti_prox1_07']; ADD
-
 scan_path = [raw_path 'syn31_621732li_6w_Ti_prox1_08']; ADD
-
 scan_path = [raw_path 'syn31_621732li_6w_Ti_prox1_09']; ADD
-
 scan_path = [raw_path 'syn31_621732li_6w_Ti_prox1_10']; ADD
-
 scan_path = [raw_path 'syn31_621732li_6w_Ti_prox1_11']; ADD
-
-scan_path = [raw_path 'test01']; ADD
-
-scan_path = [raw_path 'test02']; ADD
-
-scan_path = [raw_path 'test03']; ADD
-
-scan_path = [raw_path 'test03_dpc']; ADD
-
-scan_path = [raw_path 'test04_nodpc']; ADD
-
-scan_path = [raw_path 'test06_dpc']; ADD
-
-scan_path = [raw_path 'test_flyscan03']; ADD
-
-scan_path = [raw_path 'test_flyscan04']; ADD
-
-scan_path = [raw_path 'test_flyscan05']; ADD
-
-scan_path = [raw_path 'test_flyscan07']; ADD
-
-scan_path = [raw_path 'test_flyscan08']; ADD
-
-scan_path = [raw_path 'test_flyscan09_spireal']; ADD
-
-scan_path = [raw_path 'test_flyscan10']; ADD
-
-scan_path = [raw_path 'test_flyscan11']; ADD
-
-scan_path = [raw_path 'test_flyscan12']; ADD
-
-scan_path = [raw_path 'test_flyscan13']; ADD
-
-scan_path = [raw_path 'test_flyscan14']; ADD
-
-scan_path = [raw_path 'test_flyscan15']; ADD
-
-scan_path = [raw_path 'test_flyscan16']; ADD
-
-scan_path = [raw_path 'test_flyscan17']; ADD
-
-scan_path = [raw_path 'test_flyscan18']; ADD
-
-scan_path = [raw_path 'test_flyscan19']; ADD
-
-scan_path = [raw_path 'test_flyscan2']; ADD
-
-scan_path = [raw_path 'test_flyscan20']; ADD
-
-scan_path = [raw_path 'test_flyscan21']; ADD
-
-scan_path = [raw_path 'test_flyscan22']; ADD
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

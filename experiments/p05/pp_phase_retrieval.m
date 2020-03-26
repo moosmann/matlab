@@ -1,4 +1,4 @@
-function [proj, write, tint] = phase_retrieval_func( proj, phase_retrieval, tomo, write, interactive_mode )
+function [proj, write, tint] = pp_phase_retrieval( proj, phase_retrieval, tomo, write, interactive_mode )
 % Phase retrieval for P05 data.
 %
 % Written by Julian Moosmann, 2018-01-11, last version: 2018-07-27
