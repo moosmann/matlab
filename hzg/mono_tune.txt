@@ -1,0 +1,63 @@
+pos_p07_dcm_1st_bend     0.019997636
+pos_p07_dcm_2nd_bend     -0.48598097
+2nd_pitch =        2.1439649 MaxInt =        13053.769  FWHM =     0.0055839391
+
+pos_p07_dcm_1st_bend     0.019997636
+pos_p07_dcm_2nd_bend     -0.49597911
+2nd_pitch =        2.1496396 MaxInt =        11993.980  FWHM =     0.0054146931
+
+pos_p07_dcm_1st_bend     0.019997636
+pos_p07_dcm_2nd_bend     -0.50597846
+2nd_pitch =        2.1559245 MaxInt =        10829.420  FWHM =     0.0049963456
+
+pos_p07_dcm_1st_bend     0.019997636
+pos_p07_dcm_2nd_bend     -0.47597481
+2nd_pitch =        2.1371555 MaxInt =        13740.162  FWHM =     0.0058715819
+
+pos_p07_dcm_1st_bend     0.019997636
+pos_p07_dcm_2nd_bend     -0.46597425
+2nd_pitch =        2.1308670 MaxInt =        14464.598  FWHM =     0.0061084096
+
+pos_p07_dcm_1st_bend     0.019997636
+pos_p07_dcm_2nd_bend     -0.45596930
+2nd_pitch =        2.1244463 MaxInt =        14988.597  FWHM =     0.0064053192
+
+pos_p07_dcm_1st_bend     0.019997636
+pos_p07_dcm_2nd_bend     -0.44596874
+2nd_pitch =        2.1182501 MaxInt =        15261.158  FWHM =     0.0065228342
+
+pos_p07_dcm_1st_bend     0.019997636
+pos_p07_dcm_2nd_bend     -0.42596444
+2nd_pitch =        2.1055521 MaxInt =        15327.340  FWHM =     0.0076791477
+
+pos_p07_dcm_1st_bend     0.019997636
+pos_p07_dcm_2nd_bend     -0.38596023
+2nd_pitch =        2.0804539 MaxInt =        14353.800  FWHM =      0.010040748
+
+pos_p07_dcm_1st_bend     0.019997636
+pos_p07_dcm_2nd_bend     -0.40596340
+2nd_pitch =        2.0936571 MaxInt =        14973.001  FWHM =     0.0086625045
+
+pos_p07_dcm_1st_bend     0.019997636
+pos_p07_dcm_2nd_bend     -0.43096972
+2nd_pitch =        2.1090835 MaxInt =        15100.314  FWHM =     0.0071918675
+
+pos_p07_dcm_1st_bend     0.029996986
+pos_p07_dcm_2nd_bend     -0.43096631
+2nd_pitch =        2.1151220 MaxInt =        15654.673  FWHM =     0.0070669178
+
+pos_p07_dcm_1st_bend    0.0099948100
+pos_p07_dcm_2nd_bend     -0.43096631
+2nd_pitch =        2.1016454 MaxInt =        6601.5004  FWHM =     0.0076127810
+
+pos_p07_dcm_1st_bend     0.014990016
+pos_p07_dcm_2nd_bend     -0.43096631
+2nd_pitch =        2.1046517 MaxInt =        10385.507  FWHM =     0.0074156710
+
+pos_p07_dcm_1st_bend     0.019988556
+pos_p07_dcm_2nd_bend     -0.43096631
+2nd_pitch =        2.1082524 MaxInt =        14703.680  FWHM =     0.0071543846
+
+pos_p07_dcm_1st_bend     0.021991760
+pos_p07_dcm_2nd_bend     -0.43096631
+2nd_pitch =        2.1095486 MaxInt =        15672.839  FWHM =     0.0070854558
