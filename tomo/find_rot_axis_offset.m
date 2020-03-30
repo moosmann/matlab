@@ -113,7 +113,7 @@ end
 
 % Backprojection
 for nn = 1:numel( offset )
-    tomo.rot_axis.offset = offset(nn) + offset_shift + eps;
+    tomo.rot_axis_offset = offset(nn) + offset_shift + eps;
     
     %% Reco
     switch lower( tomo.reco_mode )

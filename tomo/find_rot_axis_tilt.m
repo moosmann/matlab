@@ -103,7 +103,7 @@ for nn = 1:numel(reco_metric)
     reco_metric(nn).val = zeros( numel(tilt), 1);
 end
 
-tomo.rot_axis.offset = offset + offset_shift + eps;
+tomo.rot_axis_offset = offset + offset_shift + eps;
 
 % Backprojection
 for nn = 1:numel( tilt )

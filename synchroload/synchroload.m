@@ -17,13 +17,16 @@ edit synchroload2019july_11006704.m
 edit synchroload2019dec_11006991.m
 
 %% Other scripts
+edit synchroload_samples.m
+edit synchroload_resample_data_for_segmentation.m 
+edit synchroload_resample_data_for_segmentation_new.m
+edit synchroload_resample_data_for_segmentation_old.m
+edit synchroload_resample_data_for_segmentation_autodetect.m
+edit synchroload_resample_data_for_segmentation_listmode.m
 edit synchroload_scans.m
 edit synchroload_figureMeetingApr2017.m
 edit synchroload_radiography.m
 edit synchroload_renorm_slices.m
-edit synchroload_resample_data_for_segmentation_old.m
-edit synchroload_resample_data_for_segmentation_autodetect.m
-edit synchroload_resample_data_for_segmentation_listmode.m
 edit synchroload_sequ_force.m
 edit synchroload_sequ.m
 edit synchroload_syn13.m

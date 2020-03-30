@@ -72,10 +72,13 @@ for nn = 1:num_scans
     
     % Projection shape
     for ll = 1:numel( c )
-        t = regexp( c{ll}, 'im_shape_raw' );
-        if t
+        %t = regexp( c{ll}, 'im_shape_raw' );
+        t = regexp( c{ll}, {'im_shape_raw', 'raw_image_shape', 'raw_image_shape_raw'} );
+        %if t
+        if sum( [t{:}] )
             cc = textscan( c{ll}, '%*s : %u %u');
-            im_shape_raw = [ cc{1} cc{2} ];
+            %im_shape_raw = [ cc{1} cc{2} ];
+            im_shape_raw = [cc{:}];
             break
         end
     end
@@ -83,10 +86,13 @@ for nn = 1:num_scans
     
     % Binning factor
     for ll = 1:numel( c )
-        t = regexp( c{ll}, 'raw_binning_factor' );
-        if t
+        % t = regexp( c{ll}, 'raw_binning_factor' );
+        t = regexp( c{ll}, {'raw_bin', 'raw_binning_factor', 'raw_binning'} );
+        %if t
+        if sum( [t{:}] )
             cc = textscan( c{ll}, '%*s : %u %u');
-            bin = [ cc{1} cc{2} ];
+            %bin = [ cc{1} cc{2} ];
+            bin = [cc{:}];
             break
         end
     end
@@ -100,6 +106,10 @@ for nn = 1:num_scans
             raw_roi = [ cc{1} cc{2} ];
             break
         end
+    end
+    if ~exist( 'raw_roi', 'var' )
+        raw_roi(1) = 1;
+        raw_roi(2) = im_shape_raw(2);
     end
     s(nn).raw_roi = raw_roi;
     
@@ -151,7 +161,7 @@ for nn = 1:num_scans
     im_struct = dir( [ vol_path filesep '*.tif' ] );
     im = imread( [vol_path filesep im_struct(1).name] );
     vol = zeros( [size(im) numel( im_struct )], 'single' );
-    fprintf( '\n  Reading projections:' )
+    fprintf( '\n  Reading volume:' )
     num_slices = numel( im_struct );
     % Invert or
     filename_cell = {im_struct(end:-1:1).name};

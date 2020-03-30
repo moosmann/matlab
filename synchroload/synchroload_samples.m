@@ -33,6 +33,7 @@ ti_c = {
 '51R'
 '52R'
 };
+ti_c = sort( ti_c );
 % LOAD
 ti_l = {
 '13L'
@@ -54,6 +55,7 @@ ti_l = {
 '6R'
 '8R'
 };
+ti_l = sort( ti_l );
 out.Ti = cat( 1,  ti_c, ti_l );
 out.cpd.Ti = ti_c;
 out.load.Ti = ti_l;
@@ -90,6 +92,7 @@ peek_c = {
 '46R'
 '61L'
 };
+peek_c = sort( peek_c );
 %LOAD
 peek_l = {
 '11R'
@@ -111,6 +114,7 @@ peek_l = {
 '5L'
 '7R'
 };
+peek_l = sort( peek_l );
 out.cpd.PEEK = peek_c;
 out.load.PEEK = peek_l;
 out.PEEK = cat( 1, peek_c, peek_l );
@@ -146,6 +150,7 @@ mg5gd_c = {
 '95R'
 '96R'
 };
+mg5gd_c = sort( mg5gd_c );
 % LOAD
 mg5gd_l = {
 '102L'
@@ -159,6 +164,7 @@ mg5gd_l = {
 '86R'
 '92R'
 };
+mg5gd_l = sort( mg5gd_l );
 out.cpd.Mg5Gd = mg5gd_c;
 out.load.Mg5Gd = mg5gd_l;
 out.Mg5Gd = cat( 1, mg5gd_c, mg5gd_l );
@@ -194,6 +200,7 @@ mg10gd_c = {
 '95L'
 '96L'
 };
+mg10gd_c = sort( mg10gd_c );
 % LOAD
 mg10gd_l = {
 '102R'
@@ -208,6 +215,7 @@ mg10gd_l = {
 '85L'
 '89R'
 };
+mg10gd_l = sort( mg10gd_l );
 out.cpd.Mg10Gd = mg10gd_c;
 out.load.Mg10Gd = mg10gd_l;
 out.Mg10Gd = cat( 1, mg10gd_c, mg10gd_l );
