@@ -36,7 +36,7 @@ pixel_filter_threshold_dark = [0.01 0.005]; % Dark fields: threshold parameter f
 pixel_filter_threshold_flat = [0.01 0.005]; % Flat fields: threshold parameter for hot/dark pixel filter, for details see 'FilterPixel'
 pixel_filter_threshold_proj = [0.01 0.005]; % Raw projection: threshold parameter for hot/dark pixel filter, for details see 'FilterPixel'
 pixel_filter_radius = [3 3]; % Increase only if blobs of zeros or other artefacts are expected. Can increase processing time heavily.
-ring_current_normalization = 0; % normalize flat fields and projections by ring current
+ring_current_normalization = 1; % normalize flat fields and projections by ring current
 image_correlation.method = 'ssim-ml';'entropy';'ssim';'ssim-g';'std';'cov';'corr';'diff1-l1';'diff1-l2';'diff2-l1';'diff2-l2';'cross-entropy-12';'cross-entropy-21';'cross-entropy-x';
 image_correlation.num_flats = 3; % number of best maching flat fields used for correction
 image_correlation.area_width = [1 100];%[-100 1];% correlation area: index vector or relative/absolute position of [first pix, last pix], negative indexing is supported
@@ -118,7 +118,7 @@ write.compression_parameter = [0.02 0.02]; % compression-method specific paramet
 write.uint8_segmented = 0; % experimental: threshold segmentaion for histograms with 2 distinct peaks: __/\_/\__
 %%% INTERACTION %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 par.visual_output = 1; % show images and plots during reconstruction
-interactive_mode.rot_axis_pos = 0; % reconstruct slices with dif+ferent rotation axis offsets
+interactive_mode.rot_axis_pos = 1; % reconstruct slices with dif+ferent rotation axis offsets
 interactive_mode.rot_axis_pos_default_search_range = []; % if empty: asks for search range when entering interactive mode
 interactive_mode.rot_axis_tilt = 0; % reconstruct slices with different offset AND tilts of the rotation axis
 interactive_mode.rot_axis_tilt_default_search_range = []; % if empty: asks for search range when entering interactive mode
@@ -149,13 +149,21 @@ raw_path = '/asap3/petra3/gpfs/p05/2017/data/11003950/raw/';
 tomo.rot_axis_offset = 0.5 / raw_bin;
 scan_path = [raw_path 'syn01_48L_PEEK_12w_b'];ADD
 scan_path = [raw_path 'syn01_48L_PEEK_12w_c'];ADD
-tomo.rot_axis_offset = 2 / raw_bin;
+
+tomo.rot_axis_offset = 0.75 / raw_bin;
 scan_path = [raw_path 'syn02_46R_PEEK_12w_a'];ADD
 scan_path = [raw_path 'syn02_46R_PEEK_12w_b'];ADD
+
+tomo.rot_axis_offset = 0.5 / raw_bin;
 scan_path = [raw_path 'syn03_12R_PEEK_12w_a'];ADD
 scan_path = [raw_path 'syn03_12R_PEEK_12w_b'];ADD
+
+tomo.rot_axis_offset = 0.35 / raw_bin;
 scan_path = [raw_path 'syn04_30R_PEEK_8w_a'];ADD
+tomo.rot_axis_offset = 0.1 / raw_bin;
 scan_path = [raw_path 'syn04_30R_PEEK_8w_b'];ADD
+
+tomo.rot_axis_offset = -0.25 / raw_bin;
 scan_path = [raw_path 'syn05_41R_PEEK_12w_a'];ADD
 scan_path = [raw_path 'syn11_53R_Mg5Gd_12w_load_broken'];ADD
 
@@ -198,6 +206,7 @@ scan_path = [raw_path 'syn13_55L_Mg10Gd_12w_load_24_noload'];ADD
 
 
 raw_roi = [1211 2410];
+tomo.rot_axis_offset = 0 / raw_bin;
 scan_path = [raw_path 'syn14_48L_PEEK_12w_a'];ADD
 scan_path = [raw_path 'syn14_48L_PEEK_12w_b'];ADD
 scan_path = [raw_path 'syn15_29R_PEEK_8w_a'];ADD

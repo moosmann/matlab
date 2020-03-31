@@ -187,6 +187,7 @@ for exp_type = { 'cpd', 'load'}
                         tmp.bin = bin;
                         tmp.name = name;
                         tmp.data_path = data_path;
+
                         % Assign to groups
                         it_counter = it_counter + 1;
                         scans.(et).(it)(it_counter) = tmp;
@@ -256,7 +257,7 @@ if 1
     sr_counter = 0;
     expr = '_b$';
     t = regexp( {scans_proc(:).name}, expr, 'once');
-    for nn = 1:numel( t )
+    for nn = 127:numel( t )
         scan = scans_proc(nn);
         scan_name = scan.name;
         if ~isempty( t{nn} )

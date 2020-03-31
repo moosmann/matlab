@@ -59,8 +59,11 @@ for nn = 1:num_scans
     s(nn).full_path = full_path;
     
     % Reco log
-    reco_log = [full_path filesep scan_subfolder filesep 'reco.log' ];
-    if ~exist( reco_log, 'file' )
+    reco_log = [full_path filesep scan_subfolder filesep 'reco*.log' ];
+    rls = dir( reco_log );    
+    if ~isempty( rls )
+        reco_log = [rls(end).folder filesep rls(end).name];
+    else
         fprintf( '\nReco log not found!\n' )
         break
     end
@@ -107,7 +110,7 @@ for nn = 1:num_scans
             break
         end
     end
-    if ~exist( 'raw_roi', 'var' )
+    if ~exist( 'raw_roi', 'var' ) || ( exist( 'raw_roi', 'var' ) && isempty( raw_roi ) )
         raw_roi(1) = 1;
         raw_roi(2) = im_shape_raw(2);
     end
