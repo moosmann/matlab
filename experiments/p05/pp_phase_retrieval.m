@@ -44,8 +44,8 @@ if exist( 'interactive_mode', 'var' ) && isfield( interactive_mode, 'phase_retri
     tint = toc;
     plot_ctf_mask(1) = 0;
     
-    if tomo.rot_axis.tilt_camera ~= 0 || tomo.rot_axis.tilt_lamino
-        error( 'Rotation axis tilt not supported in interactive phase retrieval mode. Set ''tomo.rot_axis.tilt'' to 0 in order to run interactive reco.' )
+    if tomo.rot_axis_tilt_camera ~= 0 || tomo.rot_axis_tilt_lamino
+        error( 'Rotation axis tilt not supported in interactive phase retrieval mode. Set ''tomo.rot_axis_tilt'' to 0 in order to run interactive reco.' )
     end
     
     if plot_ctf_mask
@@ -72,14 +72,14 @@ if exist( 'interactive_mode', 'var' ) && isfield( interactive_mode, 'phase_retri
     vol_shape = assign_from_struct( tomo, 'vol_shape', [] );
     vol_size = assign_from_struct( tomo, 'vol_size', [] );
     butterworth_filtering = assign_from_struct( tomo.butterworth_filter, 'apply', 0 );
-    if isempty( tomo.rot_axis.offset )
+    if isempty( tomo.rot_axis_offset )
         cprintf( 'Blue', '\n\n Interactive phase retrieval mode requires rotation axis position:' )
-        tomo.rot_axis.offset = input( ' ' );
+        tomo.rot_axis_offset = input( ' ' );
     end
     [num_pix, num_row, num_proj] = size( proj );
        
     %  Size, shape
-    [vol_shape, vol_size] = volshape_volsize( proj, vol_shape, vol_size, tomo.rot_axis.offset, 0);
+    [vol_shape, vol_size] = volshape_volsize( proj, vol_shape, vol_size, tomo.rot_axis_offset, 0);
     if isempty( vol_shape )
         vol_shape = [num_pix, num_pix, 1];
     else
@@ -93,7 +93,7 @@ if exist( 'interactive_mode', 'var' ) && isfield( interactive_mode, 'phase_retri
         vol_size(6) = 0.5;
     end
     tomo.vol_size = vol_size;
-    %tomo.rot_axis.offset = tomo.rot_axis.offset + tomo.offset_shift + eps;
+    %tomo.rot_axis_offset = tomo.rot_axis_offset + tomo.offset_shift + eps;
     
     if strcmpi( tomo.algorithm, 'fbp' )
         % Ramp filter

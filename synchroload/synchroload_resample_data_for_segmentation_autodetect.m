@@ -447,10 +447,10 @@ end
 
 %% LIST : Stitch, Singe, Other
 scan_type = [cpd_list{:,2}];
-mask = scan_type == 1;
+mask = scan_type > 0;
 scans_stitch = cpd_list(mask,1);
 fprintf( '\n number of cpd scans to stitch : %u', numel( scans_stitch ) )
-mask = scan_type > 0;
+mask = scan_type == 0;
 scans_single_height = cpd_list(mask,1);
 fprintf( '\n number of cpd single height : %u', numel( scans_single_height ) )
 mask = scan_type == -1;
@@ -458,7 +458,16 @@ scans_other = cpd_list(mask,1);
 fprintf( '\n number of cpd other : %u', numel( scans_other ) )
 
 %% Stitch struct
-for n = 1:numel( scans_stitch )
+ss(max( scan_type )).scans = {};
+for n = 1:max( scan_type )
+    mask = scan_type == n;
+    ss(n).scans = cpd_list( mask )';
+    ss(n).num_scans = sum( mask(:) );
+    for m = 1:ss(n).num_scans
+        name = ss(n).scans{m};
+        match = strcmp( name, {scans_proc.name} );
+        ss(n).scan_structs(m) = scans_proc(match);
+    end
     
 end
 
