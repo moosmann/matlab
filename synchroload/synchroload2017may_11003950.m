@@ -92,8 +92,8 @@ tomo.MaxConstraint = []; % sirt3D/sirt2d/sart2d only. If specified, all values a
 %%% OUTPUT %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 write.path = ''; %'/gpfs/petra3/scratch/moosmanj'; % absolute path were output data will be stored. !!overwrites the write.to_scratch flag. if empty uses the beamtime directory and either 'processed' or 'scratch_cc'
 write.to_scratch = 0; % write to 'scratch_cc' instead of 'processed'
-write.deleteFiles = 0; % delete files already existing in output folders. Useful if number or names of files differ when reprocessing.
-write.beamtimeID = ''; % string (regexp),typically beamtime ID, mandatory if 'write.deleteFiles' is true (safety check)
+write.deleteFiles = 1; % delete files already existing in output folders. Useful if number or names of files differ when reprocessing.
+write.beamtimeID = '11003950'; % string (regexp),typically beamtime ID, mandatory if 'write.deleteFiles' is true (safety check)
 write.scan_name_appendix = ''; % appendix to the output folder name which defaults to the scan name
 write.parfolder = '';% parent folder to 'reco', 'sino', 'phase', and 'flat_corrected'
 write.subfolder_flatcor = ''; % subfolder in 'flat_corrected'
@@ -133,9 +133,9 @@ par.use_cluster = 0; % if available: on MAXWELL nodes disp/nova/wga/wgs cluster 
 par.poolsize = 0.75; % number of workers used in a local parallel pool. if 0: use current config. if >= 1: absolute number. if 0 < poolsize < 1: relative amount of all cores to be used. if SLURM scheduling is available, a default number of workers is used.
 par.poolsize_gpu_limit_factor = 0.7; % Relative amount of GPU memory used for preprocessing during parloop. High values speed up Proprocessing, but increases out-of-memory failure
 tomo.astra_link_data = 1; % ASTRA data objects become references to Matlab arrays. Reduces memory issues.
-tomo.astra_gpu_index = []; % GPU Device index to use, Matlab notation: index starts from 1. default: [], uses all
+tomo.astra_gpu_index = [2,4:6]; % GPU Device index to use, Matlab notation: index starts from 1. default: [], uses all
 par.gpu_index = tomo.astra_gpu_index;
-par.use_gpu_in_parfor = 1;
+par.use_gpu_in_parfor = 0;
 
 ADD_DEFAULT
 
@@ -164,7 +164,10 @@ tomo.rot_axis_offset = 0.1 / raw_bin;
 scan_path = [raw_path 'syn04_30R_PEEK_8w_b'];ADD
 
 tomo.rot_axis_offset = -0.25 / raw_bin;
+% DELETED: Problems with b scan
 scan_path = [raw_path 'syn05_41R_PEEK_12w_a'];ADD
+scan_path = [raw_path 'syn05_41R_PEEK_12w_b'];ADD
+
 scan_path = [raw_path 'syn11_53R_Mg5Gd_12w_load_broken'];ADD
 
 % load: att reco
@@ -204,17 +207,6 @@ scan_path = [raw_path 'syn13_55L_Mg10Gd_12w_load_18'];ADD
 scan_path = [raw_path 'syn13_55L_Mg10Gd_12w_load_22'];ADD
 scan_path = [raw_path 'syn13_55L_Mg10Gd_12w_load_24_noload'];ADD
 
-
-raw_roi = [1211 2410];
-tomo.rot_axis_offset = 0 / raw_bin;
-scan_path = [raw_path 'syn14_48L_PEEK_12w_a'];ADD
-scan_path = [raw_path 'syn14_48L_PEEK_12w_b'];ADD
-scan_path = [raw_path 'syn15_29R_PEEK_8w_a'];ADD
-scan_path = [raw_path 'syn15_29R_PEEK_8w_b'];ADD
-scan_path = [raw_path 'syn16_43R_PEEK_12w_a'];ADD
-scan_path = [raw_path 'syn16_43R_PEEK_12w_b'];ADD
-scan_path = [raw_path 'syn17_25R_PEEK_8w_a'];ADD('r')
-
 %% Radiography after load increase before tomography
 raw_roi = [];
 do_tomo = 0;
@@ -230,7 +222,45 @@ scan_path = [raw_path 'syn13_55L_Mg10Gd_12w_load_17'];ADD
 scan_path = [raw_path 'syn13_55L_Mg10Gd_12w_load_19'];ADD
 scan_path = [raw_path 'syn13_55L_Mg10Gd_12w_load_21'];ADD('r')
 
+%% CPD
+
+interactive_mode.rot_axis_pos = 0;
+raw_roi = [1211 2410];
+
+tomo.rot_axis_offset = 0.5 / raw_bin;
+scan_path = [raw_path 'syn14_48L_PEEK_12w_a'];ADD
+scan_path = [raw_path 'syn14_48L_PEEK_12w_b'];ADD
+
+tomo.rot_axis_offset = 0.25 / raw_bin;
+scan_path = [raw_path 'syn15_29R_PEEK_8w_a'];ADD
+scan_path = [raw_path 'syn15_29R_PEEK_8w_b'];ADD
+
+tomo.rot_axis_offset = 0.2 / raw_bin;
+scan_path = [raw_path 'syn16_43R_PEEK_12w_a'];ADD
+tomo.rot_axis_offset = 0.125 / raw_bin;
+scan_path = [raw_path 'syn16_43R_PEEK_12w_b'];ADD
+
+
+interactive_mode.rot_axis_pos = 1;
+tomo.rot_axis_offset = 0.2 / raw_bin;
+raw_roi = [1240 2420];
+% Problems, DELETED
+%scan_path = [raw_path 'syn17_25R_PEEK_8w_a'];ADD('r')
+%scan_path = [raw_path 'syn17_25R_PEEK_8w_b'];ADD('r')
+
+raw_roi = -1;
+tomo.rot_axis_offset = -1.25 / raw_bin;
+% Problems scanned again
+%scan_path = [raw_path 'syn19_88R_Mg5Gd_4w_a'];ADD('r')
+%scan_path = [raw_path 'syn19_88R_Mg5Gd_4w_b'];ADD('r')
+
+% Problems, DELETED
+%tomo.rot_axis_offset = -1.0 / raw_bin;
+%scan_path = [raw_path 'syn21_77L_Mg5Gd_8w_a'];ADD('r')
+%scan_path = [raw_path 'syn21_77L_Mg5Gd_8w_b'];ADD('r')
+
 %% Tomography CPD straw 2
+interactive_mode.rot_axis_pos = 0;
 raw_roi = -1;
 tomo.rot_axis.offset = -1.1 * 2 / raw_bin;
 scan_path = [raw_path 'syn22_77L_Mg5Gd_8w_a'];ADD

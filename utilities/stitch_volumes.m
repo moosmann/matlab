@@ -483,7 +483,6 @@ if  crop
     end
 end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-fprintf( '\n' )
 
 %% Save stitched volume
 if save_stitched_volume

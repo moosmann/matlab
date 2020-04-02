@@ -4,7 +4,6 @@ function [tomo, angles, tint] = interactive_mode_rot_axis( par, logpar, phase_re
 % loops are used alternating the determination of the position and the tilt
 % of the rotation axis.
 %
-%
 % Written by Julian Moosmann
 %
 % [tomo, tint] = interactive_mode_rot_axis( par, logpar, phase_retrieval, tomo, write, interactive_mode, proj, angles)
@@ -297,8 +296,8 @@ if tomo.run || tomo.run_interactive_mode
                                 '\n if empty: use default range, '...
                                 '\n if scalar: use value & end interactive mode, '...
                                 '\n if ''s'': change slice, '...
-                                '\n if ''d'': enter debug mode: '...
-                                '\n '];
+                                '\n if ''d'': enter debug mode, '...
+                                '\n: '];
                             inp = input( txt );
                         end % while ischar( inp )
                         if isempty( inp )
@@ -310,7 +309,7 @@ if tomo.run || tomo.run_interactive_mode
                         
                         % Set tilt or loop over tilts
                         if isscalar( tilt )
-                            fprintf( ' new rotation axis tilt : %.f (before: %.f)', tilt, itomo.tilt )
+                            fprintf( ' new rotation axis tilt : %f (before: %f)', tilt, itomo.tilt )
                             itomo.tilt = tilt;
                             
                         else
@@ -406,13 +405,13 @@ if tomo.run || tomo.run_interactive_mode
                             xt = ceil( 3 * abs( sin(2*itomo.tilt) ) * max( size(im1c)) ) + 2;
                             
                             if xt < size( im1c,1)  -10 && xt < size( im1c,2)  -10
-                                fprintf( '\n current rotation axis tilt from interactive mode: %g rad (%g deg)', itomo.tilt, itomo.tilt * 180 / pi)
+                                fprintf( '\n current rotation axis tilt from interactive mode: %g rad (%g deg)', tilt, tilt * 180 / pi)
                                 fprintf( '\n calcul. rotation axis tilt from registration    : %g rad (%g deg)', rot_axis_tilt_calc, rot_axis_tilt_calc * 180 / pi)
                                 
-                                name = sprintf( 'TILT: registered projections at %g and %g degree. rot axis tilt from INTERACTIVE mode: %g, rot axis offset: %g', angles(ind1)/pi*180, angles(ind2)/pi*180, itomo.tilt, tomo.rot_axis_offset);
+                                name = sprintf( 'TILT: registered projections at %g and %g degree. rot axis tilt from INTERACTIVE mode: %g, rot axis offset: %g', angles(ind1)/pi*180, angles(ind2)/pi*180, tilt, offset);
                                 nimplay( cat(3, im1c(xt:end-xt,xt:end-xt)', im2c_warped_int(xt:end-xt,xt:end-xt)'), 1, 0, name)
                                 
-                                name = sprintf( 'TILT: registered projections at %g and %g degree. corrected. rot axis tilt from REGISTRATION: %g, rot axis offset: %g', angles(ind1)/pi*180, angles(ind2)/pi*180, rot_axis_tilt_calc, tomo.rot_axis_offset);
+                                name = sprintf( 'TILT: registered projections at %g and %g degree. corrected. rot axis tilt from REGISTRATION: %g, rot axis offset: %g', angles(ind1)/pi*180, angles(ind2)/pi*180, rot_axis_tilt_calc, offset);
                                 nimplay( cat(3, im1c(xt:end-xt,xt:end-xt)', im2c_warped_calc(xt:end-xt,xt:end-xt)'), 1, 0, name)
                                 
                                 inp = input( '\n\nENTER ROTATION AXIS TILT, if empty use current tilt: ');

@@ -26,7 +26,7 @@ lamino = assign_from_struct( tomo, 'lamino', 0 );
 fixed_tilt = assign_from_struct( tomo, 'fixed_tilt', 0 );
 take_neg_log = assign_from_struct( tomo, 'take_neg_log', 1 );
 number_of_stds = assign_from_struct( tomo, 'number_of_stds', 4 );
-butterworth_filtering = assign_from_struct( tomo.butterworth_filter, 'apply', 0 );
+butterworth_filtering = assign_from_struct( tomo, 'butterworth_filter', 0 );
 vert_shift = assign_from_struct( tomo, 'vert_shift', 0 );
 
 mask_rad = 0.95;
@@ -108,11 +108,11 @@ tomo.rot_axis_offset = offset + offset_shift + eps;
 % Backprojection
 for nn = 1:numel( tilt )
     if ~lamino
-        tomo.tilt_camera = tilt(nn);
-        tomo.tilt_lamino = fixed_tilt;
+        tomo.rot_axis_tilt_camera = tilt(nn);
+        tomo.rot_axis_tilt_lamino = fixed_tilt;
     else
-        tomo.tilt_camera = fixed_tilt;
-        tomo.tilt_lamino = tilt(nn);
+        tomo.rot_axis_tilt_camera = fixed_tilt;
+        tomo.rot_axis_tilt_lamino = tilt(nn);
     end
     
     %% Reco

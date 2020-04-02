@@ -104,11 +104,11 @@ for nn = 1:numel(reco_metric)
 end
 
 if ~lamino
-    tomo.tilt_camera = tilt;
-    tomo.tilt_lamino = fixed_tilt;
+    tomo.rot_axis_tilt_camera = tilt;
+    tomo.rot_axis_tilt_lamino = fixed_tilt;
 else
-    tomo.tilt_camera = fixed_tilt;
-    tomo.tilt_lamino = tilt;
+    tomo.rot_axis_tilt_camera = fixed_tilt;
+    tomo.rot_axis_tilt_lamino = tilt;
 end
 
 % Backprojection

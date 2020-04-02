@@ -18,9 +18,9 @@ function vol = astra_parallel2D( tomo, sino, gpu_index, rotation_axis_offset)
 %       vol_shape.
 %   pixel_size: scalar or 2-component vector. Default: 1. Size of a detector
 %       pixel. If scalar square pixels are assumed.
-%   tilt: scalar, tilt of rotation axis perpendicular to the beam. this accounts for
+%   tilt_camera: scalar, tilt_camera of rotation axis perpendicular to the beam. this accounts for
 %       a rotation of the camera
-%   tilt_lamino : scalar, default: 0. tilt of rotation axis towards forward
+%   tilt_lamino : scalar, default: 0. tilt_camera of rotation axis towards forward
 %       beam direction in radians.
 %   algorithm : string, see p05_reco
 %   iterations : scalar, number of iteration for iterative methods,
@@ -59,7 +59,8 @@ angles = assign_from_struct( tomo, 'angles', pi );
 vol_shape = assign_from_struct( tomo, 'vol_shape', [size( sino, 1), size( sino, 1), size(sino, 3) ] );
 vol_size = assign_from_struct( tomo, 'vol_size', [] );
 pixel_size = assign_from_struct( tomo, 'astra_pixel_size', 1 );
-tilt = assign_from_struct( tomo, 'rot_axis_tilt_camera', 0 );
+tilt_camera = assign_from_struct( tomo, 'rot_axis_tilt_camera', 0 );
+tilt_lamino = assign_from_struct( tomo, 'rot_axis_tilt_lamino', 0 );
 algorithm = assign_from_struct( tomo, 'algorithm', 'fbp' );
 iterations = assign_from_struct( tomo, 'iterations', 100);
 scan_position = assign_from_struct( tomo, 'scan_position', 0);
@@ -76,12 +77,11 @@ end
 
 %% Main %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-if tilt ~= 0
-    error( 'Rotation axis tilt is not supported for 2D slicewise reconstructions' )
+if tilt_camera ~= 0 || tilt_lamino
+    error( 'Rotation axis tilt_camera is not supported for 2D slicewise reconstructions' )
 end
 
 angles = double( angles );
-%rotation_axis_offset = double( rotation_axis_offset );
 
 % GPU
 if isempty( gpu_index )

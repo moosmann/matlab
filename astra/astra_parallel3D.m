@@ -19,9 +19,9 @@ function vol = astra_parallel3D( tomo, sino)
 %       vol_shape.
 %   pixel_size: scalar or 2-component vector. Default: 1. Size of a detector
 %       pixel. If scalar square pixels are assumed.
-%   tilt: scalar, tilt of rotation axis perpendicular to the beam. this accounts for
+%   rot_axis_tilt_camera: scalar, tilt_camera of rotation axis perpendicular to the beam. this accounts for
 %       a rotation of the camera
-%   tilt_lamino : scalar, default: 0. tilt of rotation axis towards forward
+%   rot_axis_tilt_lamino : scalar, default: 0. tilt_camera of rotation axis towards forward
 %       beam direction in radians.
 %   algorithm : string, see p05_reco
 %   iterations : scalar, number of iteration for iterative methods,
@@ -56,7 +56,7 @@ angle_offset = assign_from_struct( tomo, 'rot_angle_offset', 0 );
 vol_shape = assign_from_struct( tomo, 'vol_shape', [size( sino, 1), size( sino, 1), size(sino, 3) ] );
 vol_size = assign_from_struct( tomo, 'vol_size', [] );
 pixel_size = assign_from_struct( tomo, 'astra_pixel_size', [1 1] );
-tilt = assign_from_struct( tomo, 'rot_axis_tilt_camera', 0 );
+tilt_camera = assign_from_struct( tomo, 'rot_axis_tilt_camera', 0 );
 tilt_lamino = assign_from_struct( tomo, 'rot_axis_tilt_lamino', 0 );
 algorithm = assign_from_struct( tomo, 'algorithm', 'fbp' );
 iterations = assign_from_struct( tomo, 'iterations', 100);
@@ -129,14 +129,14 @@ for nn = 1:num_proj
     vectors(nn,6) = z + sin( tilt_lamino );
 
     % vector from detector pixel (0,0) to (0,1)
-    vectors(nn,7) = cos( tilt ) * cos( theta ) * DetectorSpacingX;
-    vectors(nn,8) = cos( tilt ) * sin( theta ) * DetectorSpacingX;
-    vectors(nn,9) = cos( tilt_lamino ) * sin( tilt ) * DetectorSpacingX;
+    vectors(nn,7) = cos( tilt_camera ) * cos( theta ) * DetectorSpacingX;
+    vectors(nn,8) = cos( tilt_camera ) * sin( theta ) * DetectorSpacingX;
+    vectors(nn,9) = cos( tilt_lamino ) * sin( tilt_camera ) * DetectorSpacingX;
 
     % vector from detector pixel (0,0) to (1,0)
-    vectors(nn,10) = -sin( tilt ) * cos( theta ) * DetectorSpacingY;
-    vectors(nn,11) = -sin( tilt ) * sin( theta ) * DetectorSpacingY;
-    vectors(nn,12) = cos( tilt_lamino) * cos(tilt) * DetectorSpacingY;
+    vectors(nn,10) = -sin( tilt_camera ) * cos( theta ) * DetectorSpacingY;
+    vectors(nn,11) = -sin( tilt_camera ) * sin( theta ) * DetectorSpacingY;
+    vectors(nn,12) = cos( tilt_lamino) * cos(tilt_camera) * DetectorSpacingY;
 
 end
 

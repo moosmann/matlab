@@ -26,7 +26,7 @@
 % Written by Julian Moosmann.
 
 if ~exist( 'external_parameter' ,'var')
-    clearvars
+    clearvars    
 end
 close all hidden % close all open windows
 %dbstop if error
@@ -1104,7 +1104,7 @@ if ~read_flatcor && ~read_sino
                 drawnow
             end
         else
-            fprintf('\n WARNING: flat fields not normalized by ring current. Names read from directory and log-file are inconsistent.\n')
+            cprintf( 'Red', '\n WARNING: flat fields not normalized by ring current. Names read from directory and log-file are inconsistent.\n')
         end
     end
     
@@ -1332,7 +1332,7 @@ if ~read_flatcor && ~read_sino
                 saveas( hrc, sprintf( '%s%s.png', fig_path, regexprep( hrc.Name, '\ |:', '_') ) );
             end
         else
-            fprintf('\n WARNING: projections not normalized by ring current. Names read from directory and log-file are inconsistent.\n')
+            cprintf( 'Red', '\n WARNING: projections not normalized by ring current. Names read from directory and log-file are inconsistent.\n')
         end
     end
     
@@ -2088,10 +2088,6 @@ if tomo.run
                 
                 fprintf( '\n Backproject:')
                 t2 = toc;
-                %%% Move to appropriate position or replace globally !!!!!!!!!!
-                tomo.tilt_camera = tomo.rot_axis_tilt_camera;
-                tomo.tilt_lamino = tomo.rot_axis_tilt_lamino;
-                
                 vol = astra_parallel3D( tomo, permute( proj, [1 3 2]) );
                 pause(0.01)
                 fprintf( ' done in %.2f min.', (toc - t2) / 60)
