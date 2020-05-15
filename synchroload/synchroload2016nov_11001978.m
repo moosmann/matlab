@@ -24,7 +24,7 @@ sample_detector_distance = []; % in m. if empty: read from log file
 eff_pixel_size = []; % in m. if empty: read from log lfile. effective pixel size =  detector pixel size / magnification
 pixel_scaling = 1; % to account for beam divergence if pixel size was determined (via MTF) at the wrong distance
 %%% PREPROCESSING %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-raw_roi = []; % vertical and/or horizontal ROI; (1,1) coordinate = top left pixel; supports absolute, relative, negative, and mixed indexing.
+raw_roi = -1; % vertical and/or horizontal ROI; (1,1) coordinate = top left pixel; supports absolute, relative, negative, and mixed indexing.
 raw_bin = 2; % projection binning factor: integer
 im_trafo = '' ;%'rot90(im,-1)'; % string to be evaluated after reading data in the case the image is flipped/rotated/etc due to changes at the beamline, e.g. 'rot90(im)'
 % STITCHING/CROPPING only for scans without lateral movment. Legacy support
@@ -94,8 +94,8 @@ tomo.MaxConstraint = []; % sirt3D/sirt2d/sart2d only. If specified, all values a
 %%% OUTPUT %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 write.path = ''; %'/gpfs/petra3/scratch/moosmanj'; % absolute path were output data will be stored. !!overwrites the write.to_scratch flag. if empty uses the beamtime directory and either 'processed' or 'scratch_cc'
 write.to_scratch = 0; % write to 'scratch_cc' instead of 'processed'
-write.deleteFiles = 0; % delete files already existing in output folders. Useful if number or names of files differ when reprocessing.
-write.beamtimeID = ''; % string (regexp),typically beamtime ID, mandatory if 'write.deleteFiles' is true (safety check)
+write.deleteFiles = 1; % delete files already existing in output folders. Useful if number or names of files differ when reprocessing.
+write.beamtimeID = '1001978'; % string (regexp),typically beamtime ID, mandatory if 'write.deleteFiles' is true (safety check)
 write.scan_name_appendix = ''; % appendix to the output folder name which defaults to the scan name
 write.parfolder = '';% parent folder to 'reco', 'sino', 'phase', and 'flat_corrected'
 write.subfolder_flatcor = ''; % subfolder in 'flat_corrected'
@@ -120,7 +120,7 @@ write.compression_parameter = [0.02 0.02]; % compression-method specific paramet
 write.uint8_segmented = 0; % experimental: threshold segmentaion for histograms with 2 distinct peaks: __/\_/\__
 %%% INTERACTION %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 par.visual_output = 1; % show images and plots during reconstruction
-interactive_mode.rot_axis_pos = 1; % reconstruct slices with dif+ferent rotation axis offsets
+interactive_mode.rot_axis_pos = 0; % reconstruct slices with dif+ferent rotation axis offsets
 interactive_mode.rot_axis_pos_default_search_range = []; % if empty: asks for search range when entering interactive mode
 interactive_mode.rot_axis_tilt = 0; % reconstruct slices with different offset AND tilts of the rotation axis
 interactive_mode.rot_axis_tilt_default_search_range = []; % if empty: asks for search range when entering interactive mode
@@ -135,7 +135,7 @@ par.use_cluster = 0; % if available: on MAXWELL nodes disp/nova/wga/wgs cluster 
 par.poolsize = 0.75; % number of workers used in a local parallel pool. if 0: use current config. if >= 1: absolute number. if 0 < poolsize < 1: relative amount of all cores to be used. if SLURM scheduling is available, a default number of workers is used.
 par.poolsize_gpu_limit_factor = 0.7; % Relative amount of GPU memory used for preprocessing during parloop. High values speed up Proprocessing, but increases out-of-memory failure
 tomo.astra_link_data = 1; % ASTRA data objects become references to Matlab arrays. Reduces memory issues.
-tomo.astra_gpu_index = []; % GPU Device index to use, Matlab notation: index starts from 1. default: [], uses all
+tomo.astra_gpu_index = [4:6]; % GPU Device index to use, Matlab notation: index starts from 1. default: [], uses all
 par.gpu_index = tomo.astra_gpu_index;
 par.use_gpu_in_parfor = 1;
 
@@ -143,248 +143,231 @@ SET_DEFAULT
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% PARAMETER / DATA SETS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-%tomo.rot_axis_offset = 0.4 * 4 / raw_bin;
-
 raw_path = '/asap3/petra3/gpfs/p05/2016/data/11001978/raw/';
 
-% corroded screw
+%% corroded screw
 scan_path = [raw_path 'mah_01'];
 tomo.rot_axis_offset = -135.75 / raw_bin;
-tomo.rot_axis_tilt = -0.003;
+tomo.rot_axis_tilt_camera = -0.003;
 ADD
 
-% corroded screw
 scan_path = [raw_path 'mah_02'];
 tomo.rot_axis_offset = -135.75 / raw_bin;
-tomo.rot_axis_tilt = -0.003;
+tomo.rot_axis_tilt_camera = -0.003;
 ADD
 
-% corroded screw
 scan_path = [raw_path 'mah_03'];
 tomo.rot_axis_offset = -135.75 / raw_bin;
-tomo.rot_axis_tilt = -0.003;
+tomo.rot_axis_tilt_camera = -0.003;
 ADD
-
-% implant fresh
-scan_path = [raw_path 'mah_04'];
-excentric_tomo.rot_axis = 1;
-crop_at_tomo.rot_axis = 1;
-tomo.rot_axis_offset = 628 / raw_bin;
-tomo.rot_axis_tilt = -0.003;
-%vol_shape = [2155 2155 1050];
-ADD('r')
 
 % corroded screw
 scan_path = [raw_path 'mah_05'];
 tomo.rot_axis_offset = 2 / raw_bin;
-tomo.rot_axis_tilt = -0.003;
+tomo.rot_axis_tilt_camera = -0.003;
 ADD
 
 % corroded screw
 scan_path = [raw_path 'mah_06_Mg10G_004'];
 tomo.rot_axis_offset = 5 / raw_bin;
-tomo.rot_axis_tilt = -0.003;
+tomo.rot_axis_tilt_camera = -0.003;
 ADD
+
+%% implant fresh
+scan_path = [raw_path 'mah_04'];
+excentric_tomo.rot_axis = 1;
+crop_at_tomo.rot_axis = 1;
+tomo.rot_axis_offset = 628 / raw_bin;
+tomo.rot_axis_tilt_camera = -0.003;
+%vol_shape = [2155 2155 1050];
+ADD('r')
 
 % implant fresh formalin
 scan_path = [raw_path 'mah_07_bone_in_formalin'];
 tomo.rot_axis_offset = 2 / raw_bin;
-tomo.rot_axis_tilt = -0.003;
+tomo.rot_axis_tilt_camera = -0.003;
 ADD
 
-% corrosion cell
+%% corrosion cell
 scan_path = [raw_path 'mah_08_corrosion_cell_A'];
 tomo.rot_axis_offset = -3.5 / raw_bin;
-tomo.rot_axis_tilt = -0.003;
+tomo.rot_axis_tilt_camera = -0.003;
 ADD
 
-% corrosion cell
 scan_path = [raw_path 'mah_08_corrosion_cell_B'];
 tomo.rot_axis_offset = -2 / raw_bin;
-tomo.rot_axis_tilt = -0.003;
+tomo.rot_axis_tilt_camera = -0.003;
 ADD
 
-% TODO
-scan_path = [raw_path 'mah_10_13R_top'];
-excentric_rot_axis = 1;
-tomo.rot_axis_offset = 1078 / raw_bin;
-tomo.rot_axis_tilt = -0.00267; % about -.15 degrees
-ADD
+%% Phase contrast test
+tomo.rot_axis_tilt_camera = -0.003;
+tomo.rot_axis_offset = -3.5 / raw_bin;
+scan_path = [ raw_path 'mah_29_15R_top_occd125_withpaper'];ADD
+scan_path = [ raw_path 'mah_30_15R_top_occd125_withoutpaper'];ADD
 
-scan_path = [ raw_path '/mah_10_13R_bottom'];
-tomo.rot_axis_offset = 539;
-tomo.rot_axis_tilt = -0.0023;
-ADD
-
-scan_path = [ raw_path 'mah_11_20R_top'];
-tomo.rot_axis_offset = 538.5;
-tomo.rot_axis_tilt = -0.0024;
-ADD
-
-scan_path = [ raw_path 'mah_11_20R_bottom'];
-tomo.rot_axis_offset = 538.5;
-tomo.rot_axis_tilt = -0.0024;
-ADD('r')
-
-scan_path = [ raw_path 'mah_15_57R'];
-tomo.rot_axis_offset = -2.5 / raw_bin;
-tomo.rot_axis_tilt = -0.0028;
-ADD
-
-scan_path = [ raw_path 'mah_15_57R'];
-tomo.rot_axis_offset = -2.5 / raw_bin;
-tomo.rot_axis_tilt = -0.0028;
 do_phase_retrieval = 1;
+scan_path = [ raw_path 'mah_29_15R_top_occd125_withpaper'];ADD
+scan_path = [ raw_path 'mah_30_15R_top_occd125_withoutpaper'];ADD
+
+tomo.rot_axis_offset = -79.0 / raw_bin;
+tomo.rot_axis_tilt_camera = -0.002;
+do_phase_retrieval = 1;
+scan_path = [ raw_path 'mah_32_15R_top_occd800_withoutpaper'];ADD
+
+tomo.rot_axis_offset = -40 / raw_bin;
+tomo.rot_axis_tilt_camera = 0.0012;
+do_phase_retrieval = 0;
+scan_path = [ raw_path 'mah_33_50L_occd400_bottom'];ADD
+scan_path = [ raw_path 'mah_33_50L_occd400_top'];ADD
+
+%% Fresh / Load?
+scan_path = [ raw_path 'mah_24_50L_top_load'];
+tomo.rot_axis_offset = 4.5;
+tomo.rot_axis_tilt_camera = -0.004;
 ADD('r')
+
 
 scan_path = [ raw_path 'mah_16_57R_load'];
 tomo.rot_axis_offset = -2.5;
-tomo.rot_axis_tilt = -0.0028;
+tomo.rot_axis_tilt_camera = -0.0028;
 ADD
 
 scan_path = [ raw_path 'mah_17_57R_load_middle'];
 tomo.rot_axis_offset = 88.25;
-tomo.rot_axis_tilt = -0.0025;
+tomo.rot_axis_tilt_camera = -0.0025;
 ADD
 
 scan_path = [ raw_path 'mah_18_57R_load_top'];
 tomo.rot_axis_offset = 88.25;
-tomo.rot_axis_tilt = -0.003;
+tomo.rot_axis_tilt_camera = -0.003;
 ADD
 
-% 3.4.17
-raw_roi = -1;
+%% CPD %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+interactive_mode.rot_axis_pos = 0;
+interactive_mode.rot_axis_tilt = 0;
+
+raw_bin = 3;
+
+% Rescanned 2018, 2020-04-03
+tomo.vol_size = [-.4 .4 -.4 .4 -0.5 0.5];
+tomo.rot_axis_offset = 2 * 539  / raw_bin;
+tomo.rot_axis_tilt_camera = -0.00275; % about -.15 degrees
+scan_path = [raw_path 'mah_10_13R_top'];ADD
+scan_path = [ raw_path 'mah_10_13R_bottom'];ADD
+
+% Rescanned 2018, 2020-04-03
+tomo.rot_axis_offset = 2 * 538.75 / raw_bin;
+tomo.rot_axis_tilt_camera = -0.00275;
+scan_path = [ raw_path 'mah_11_20R_top'];ADD
+scan_path = [ raw_path 'mah_11_20R_bottom'];ADD
+tomo.vol_size = [];
+
+% 2020-40-01
+tomo.rot_axis_offset = -2.5 / raw_bin;
+tomo.rot_axis_tilt_camera = -0.003;
+scan_path = [ raw_path 'mah_15_57R'];ADD
+
+% 2020-40-01
 tomo.rot_axis_offset = 2 * 6.125/ raw_bin;
-tomo.rot_axis_tilt = -0.0029;
+tomo.rot_axis_tilt_camera = -0.0029;
 scan_path = [ raw_path 'mah_20_4L_bottom'];ADD
 % 2020-40-01 movement artefacts
 scan_path = [ raw_path 'mah_20_4L_top'];ADD
 
-scan_path = [ raw_path 'mah_22_50L_top'];
-tomo.rot_axis_offset = 88.5;
-tomo.rot_axis_tilt = -0.0028;
-ADD
 scan_path = [ raw_path 'mah_23_50L_top'];
 tomo.rot_axis_offset = 5;
-tomo.rot_axis_tilt = -0.004160;
+tomo.rot_axis_tilt_camera = -0.004160;
 ADD
-
-scan_path = [ raw_path 'mah_24_50L_top_load'];
-tomo.rot_axis_offset = 4.5;
-tomo.rot_axis_tilt = -0.004;
-do_phase_retrieval = 1;
-ADD('r')
-
 
 % 2020-04-01
 tomo.rot_axis_offset = 3.7;
-tomo.rot_axis_tilt = -0.003;
+tomo.rot_axis_tilt_camera = -0.003;
 scan_path = [ raw_path 'mah_26_8L_bottom'];ADD
 scan_path = [ raw_path 'mah_26_8L_top'];ADD
 
 % 2020-04-01
 tomo.rot_axis_offset = 2 * 4.5 / raw_bin;
-tomo.rot_axis_tilt = -0.00305;
+tomo.rot_axis_tilt_camera = -0.00305;
 scan_path = [ raw_path 'mah_27_16R_bottom'];ADD
 tomo.rot_axis_offset = 2 * 4.25 / raw_bin;
 scan_path = [ raw_path 'mah_27_16R_top'];ADD
 
 % 2020-04-01
 tomo.rot_axis_offset = 2 * 4.15 / raw_bin;
-tomo.rot_axis_tilt = -0.00315;
+tomo.rot_axis_tilt_camera = -0.00315;
 scan_path = [ raw_path 'mah_28_15R_bottom'];ADD
 scan_path = [ raw_path 'mah_28_15R_top'];ADD
 
-tomo.rot_axis_tilt = -0.003;
-tomo.rot_axis_offset = -3.5 / raw_bin;
-scan_path = [ raw_path 'mah_29_15R_top_occd125_withpaper'];ADD
-do_phase_retrieval = 1;
-scan_path = [ raw_path 'mah_29_15R_top_occd125_withpaper'];ADD
-do_phase_retrieval = 0;
-scan_path = [ raw_path 'mah_30_15R_top_occd125_withoutpaper'];ADD
-do_phase_retrieval = 1;
-scan_path = [ raw_path 'mah_30_15R_top_occd125_withoutpaper'];ADD
-
-tomo.rot_axis_offset = -79.0 / raw_bin;
-tomo.rot_axis_tilt = -0.002;
-do_phase_retrieval = 1;
-scan_path = [ raw_path 'mah_32_15R_top_occd800_withoutpaper'];ADD
-
-interactive_mode.rot_axis_pos = 0;
-interactive_mode.rot_axis_tilt = 0;
-
-raw_roi = -1;
-tomo.rot_axis_offset = -40 / raw_bin;
-tomo.rot_axis_tilt = 0.0012;
-do_phase_retrieval = 0;
-scan_path = [ raw_path 'mah_33_50L_occd400_bottom'];ADD
-scan_path = [ raw_path 'mah_33_50L_occd400_top'];ADD
-
-
-tomo.rot_axis_offset = 2 / raw_bin;
-tomo.rot_axis_tilt = 0.00158;
+% 2020-04-01, GOOD DEMO for interactive mode tilt plus double check
+tomo.rot_axis_offset = 2 * 0.7 / raw_bin;
+tomo.rot_axis_tilt_camera = 0.0015;
 scan_path = [ raw_path 'mah_35_1R_bottom'];ADD
 scan_path = [ raw_path 'mah_36_1R_top'];ADD
-
-tomo.rot_axis_offset = 0.6 / raw_bin;
-tomo.rot_axis_tilt = 0.0015;
+% 2020-04-01,
+tomo.rot_axis_offset = 2 * 0.0 / raw_bin;
+tomo.rot_axis_tilt_camera = 0.00125;
 scan_path = [ raw_path 'mah_37_10R_bottom'];ADD
+% 2020-04-01
+tomo.rot_axis_offset = 2 * 0.1 / raw_bin;
 scan_path = [ raw_path 'mah_38_10R_top'];ADD
-
+% 2020-04-01
+tomo.rot_axis_offset = 2 * -0.2 / raw_bin;
+tomo.rot_axis_tilt_camera = 0.0015;
 scan_path = [ raw_path 'mah_39_3L_bottom']; ADD
+% 2020-04-01
+tomo.rot_axis_offset = 2 * -0.35 / raw_bin;
+tomo.rot_axis_tilt_camera = 0.0015;
 scan_path = [ raw_path 'mah_40_3L_top'];ADD
-
+% 2020-04-01
+tomo.rot_axis_offset = 2 * -0.6 / raw_bin;
+tomo.rot_axis_tilt_camera = 0.0015;
 scan_path = [ raw_path 'mah_41_9R_bottom'];ADD
+tomo.rot_axis_offset = 2 * -0.6 / raw_bin;
+tomo.rot_axis_tilt_camera = 0.0015;
 scan_path = [ raw_path 'mah_42_9R_top'];ADD
 
-% Straw: no proper reco possible due to movment
+%% Straw with corroded screws: no proper reco possible due to movment
 
 % corroded screw: movement
 scan_path = [raw_path 'mah_straw_01'];
 tomo.rot_axis_offset = 2 / raw_bin;
-tomo.rot_axis_tilt = -0.003;
-ADD
+tomo.rot_axis_tilt_camera = -0.003;
 
 % corroded screw: movement
 scan_path = [raw_path 'mah_straw_02'];
 tomo.rot_axis_offset = -1.5 / raw_bin;
-tomo.rot_axis_tilt = -0.003;
-ADD
+tomo.rot_axis_tilt_camera = -0.003;
 
 % corroded screw
 scan_path = [raw_path 'mah_straw_03'];
 tomo.rot_axis_offset = -1.25 / raw_bin;
-tomo.rot_axis_tilt = -0.0027;
+tomo.rot_axis_tilt_camera = -0.0027;
 % time-varying bright spots: for nn=1:40,imsc(flat(0+(1:400),0+(1:200),nn)',[000 9000]),pause(1),end
 
 % corroded screw
 scan_path = [raw_path 'mah_straw_04'];
 tomo.rot_axis_offset = -1.75 / raw_bin;
-tomo.rot_axis_tilt = -0.003;
-ADD
+tomo.rot_axis_tilt_camera = -0.003;
 
 % corroded screw
 scan_path = [raw_path 'mah_straw_05'];
 tomo.rot_axis_offset = -2.5 / raw_bin;
-tomo.rot_axis_tilt = -0.0025;
+tomo.rot_axis_tilt_camera = -0.0025;
 
 % corroded screw
 scan_path = [raw_path 'mah_straw_06'];
 tomo.rot_axis_offset = -0 / raw_bin;
-tomo.rot_axis_tilt = -0.003;
+tomo.rot_axis_tilt_camera = -0.003;
 
 % corroded screw
 scan_path = [raw_path 'mah_straw_2_00'];
 tomo.rot_axis_offset = -0.4 / raw_bin;
-tomo.rot_axis_tilt = -0.003;
-write_sino = 1; 
+tomo.rot_axis_tilt_camera = -0.003;
 
 % corroded screw
 scan_path = [raw_path 'mah_straw_2_01'];
 tomo.rot_axis_offset = -0 / raw_bin;
-tomo.rot_axis_tilt = -0.003;
-write_sino = 1; 
+tomo.rot_axis_tilt_camera = -0.003;
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

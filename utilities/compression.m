@@ -68,6 +68,7 @@ switch lower( method )
         xx = round( x / 2 ) + (-ceil(0.9*x/2/sqrt(2)):floor(0.9*x/2/sqrt(2)));
         yy = round( y / 2 ) + (-ceil(0.9*y/2/sqrt(2)):floor(0.9*y/2/sqrt(2)));
         zz = round( z / 2 ) + (-ceil(z/4):floor(z/4));
+        zz( zz < 1 ) = [];
         vol_roi_min = min3( vol(xx,yy,zz) );
         vol_roi_max = max3( vol(xx,yy,zz) );
         PrintVerbose(verbose, '\n volume ROI  min/max : %g, %g', vol_roi_min, vol_roi_max )

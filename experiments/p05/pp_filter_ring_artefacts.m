@@ -6,6 +6,7 @@ function proj = pp_filter_ring_artefacts( ring_filter, proj, angles, par )
 % [proj, h] = pp_filter_ring_artefacts( ring_filter, proj, angles, par )
 
 t = toc;
+window_state  = par.window_state;
 fprintf( '\nFilter ring artifacts using %s: ', ring_filter.method)
 imsc1 = @(im) imsc( flipud( im' ) );
 % sort angles for displaying and non-contiguous acquisition
@@ -32,7 +33,7 @@ switch lower( ring_filter.method )
         fprintf( ' done in %.1f s (%.2f min)', toc-t, (toc-t)/60)
         
         if par.visual_output
-            figure('Name', 'Sinogram and ring filter', 'WindowState', 'maximized');
+            figure('Name', 'Sinogram and ring filter', 'WindowState', window_state  );
             
             subplot(3,1,1)
             imsc( sino_unfilt )

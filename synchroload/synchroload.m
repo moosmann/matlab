@@ -34,6 +34,7 @@ edit synchroload_syn166.m
 edit stitch_volumes.m
 edit dose_synchroload.m
 edit dose_bone_test.m
+edit synchroload_normal
 
 %% Segmentation
 % High quality

@@ -1,4 +1,4 @@
-% One gray is the absorption of one joule of energy, in the form of
+caad% One gray is the absorption of one joule of energy, in the form of
 % ionizing radiation, per kilogram of matter.
 %
 % 1 Gy = 1 J / kg = m^2 / s^2

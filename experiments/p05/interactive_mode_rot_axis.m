@@ -1,7 +1,7 @@
 function [tomo, angles, tint] = interactive_mode_rot_axis( par, logpar, phase_retrieval, tomo, write, interactive_mode, proj, angles)
 % Interactive mode to determine the position and tilt (optionally) of the
 % rotation axis. When position and tilt are searched for, two intertwined
-% loops are used alternating the determination of the position and the tilt
+% loops are used alternating stiltthe determination of the position and the tilt
 % of the rotation axis.
 %
 % Written by Julian Moosmann
@@ -109,22 +109,22 @@ if tomo.run || tomo.run_interactive_mode
         end
         
         itomo.slice = slice;
-        
+        % Initialize paramters to be determined in interactive loops
         offset = [];
         tilt = [];
         angle_scaling = [];
         
         % Loop over offsets
          while ~isscalar( offset )
-            
-            cprintf( 'RED', '\n\nEntering offset loop' )
-            
+            cprintf( 'RED', '\nEntering offset loop' )
             % Print parameters
-            fprintf( '\n\n number of pixels: %u', im_shape_cropbin1)
+            fprintf( '\n scan: %s', write.scan_name )
+            fprintf( '\n number of pixels: %u', im_shape_cropbin1)
             fprintf( '\n image center: %.1f', im_shape_cropbin1 / 2)
             fprintf( '\n current slice : %u', slice)
-            fprintf( '\n current rotation axis position : %.2f', tomo.rot_axis_position)
-            cprintf( 'Magenta', '\n current rotation axis OFFSET : %.2f', tomo.rot_axis_offset )
+            fprintf( '\n current rotation axis position : %.2f', itomo.rot_axis_position)
+            fprintf( '\n current rotation axis TILT : %g rad = %g deg', itomo.tilt, itomo.tilt * 180 / pi)
+            cprintf( 'Magenta', '\n current rotation axis OFFSET : %.2f', itomo.rot_axis_offset )
             fprintf( '\n default offset range : current OFFSET + [')
             fprintf( ' %.2g', interactive_mode.rot_axis_pos_default_search_range )
             fprintf( ']' )
@@ -309,7 +309,7 @@ if tomo.run || tomo.run_interactive_mode
                         
                         % Set tilt or loop over tilts
                         if isscalar( tilt )
-                            fprintf( ' new rotation axis tilt : %f (before: %f)', tilt, itomo.tilt )
+                            fprintf( ' new rotation axis tilt : %f', tilt )
                             itomo.tilt = tilt;
                             
                         else
@@ -405,7 +405,7 @@ if tomo.run || tomo.run_interactive_mode
                             xt = ceil( 3 * abs( sin(2*itomo.tilt) ) * max( size(im1c)) ) + 2;
                             
                             if xt < size( im1c,1)  -10 && xt < size( im1c,2)  -10
-                                fprintf( '\n current rotation axis tilt from interactive mode: %g rad (%g deg)', tilt, tilt * 180 / pi)
+                                fprintf( '\n current rotation axis tilt from interactive mode: %g rad (%g deg)', itomo.tilt, itomo.tilt * 180 / pi)
                                 fprintf( '\n calcul. rotation axis tilt from registration    : %g rad (%g deg)', rot_axis_tilt_calc, rot_axis_tilt_calc * 180 / pi)
                                 
                                 name = sprintf( 'TILT: registered projections at %g and %g degree. rot axis tilt from INTERACTIVE mode: %g, rot axis offset: %g', angles(ind1)/pi*180, angles(ind2)/pi*180, tilt, offset);

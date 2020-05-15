@@ -301,7 +301,6 @@ for ii = 1:ntomoscans
     vis_dat(ii) = median(vm2,'all');
 end
 vis_dat2 = reshape(vis_dat,[tilts,zpositions]);
-
 figure, plot(z,vis_dat2(1:3:end,:),'.-')
 xlabel('z [mm]')
 ylabel('visibility')

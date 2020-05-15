@@ -5,10 +5,11 @@ if nargin < 1
 end
 if nargin < 2
     %SourceSample_m =  145;
-    SourceSample_m = 82.7000;
+    SourceSample_m = 87;
 end
 if nargin < 3
-    SourceSize_micron = sigma_to_FWHM(89.4); % PETRA III horizontal
+    SourceSize_micron = sigma_to_FWHM( 36 );% P05 low beta section
+    %sigma_to_FWHM(89.4); % PETRA III horizontal
 end
 if nargin < 4
     SampleDetector_m = 0.25;1;0.235;
@@ -22,6 +23,24 @@ if nargin < 6
 end
 
 %% Beamline parameters
+
+% P05
+% The Imaging Beamline P05 (IBL) is dedicated to full-field imaging
+% techniques. IBL is located on the low-β sector 4 of the PETRA III hall
+% and shares this sector with the Hard X-ray Micro/Nano-Probe Beamline P06.
+% The insertion device is a 2 m long U29 undulator of a 5 mrad canted
+% undulator pair. The designed size (rms) of the source at 10 keV is 36 μm
+% x 6.1 μm with a divergence (rms) of 28 x 4.0 μrad2. Apart from the
+% undulator, the beamline frontend contains a power slit system and filters
+% (4 mm glassy carbon and 300 μm diamond window with 50 μm Cu). The
+% beamline is designed to operate in an energy range from 5 - 50 keV. 
+%
+% IBL
+% The microtomography endstation (EH2) provides imaging techniques with
+% spatial resolutions down to 0.9 μm. The sample is located ~87 m from the
+% source, at which point the beam has diverged to approximately 7 x 2.5 mm2
+% (DCM, channel cut) or 11 x 11 mm2 (DMM) (FWHM).   
+
 
 % APS, 32ID, Special Operating Mode - Reduced horizontal beam size (RHB) 
 % bh = 120e-6 m instead of nominal 280e-6 m

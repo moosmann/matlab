@@ -111,7 +111,7 @@ if ~isempty( raw_roi ) % else AUTO ROI
             
             % Plot auto ROI
             if par.visual_output
-                f = figure( 'Name', 'auto ROI: raw image and cropping region', 'WindowState', 'maximized');
+                f = figure( 'Name', 'auto ROI: raw image and cropping region' );
                 
                 subplot(1,2,1)
                 im = (single(im_raw) + single(im_raw2) ) / 2;

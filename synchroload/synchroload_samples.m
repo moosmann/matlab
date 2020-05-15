@@ -2,6 +2,7 @@ function out = synchroload_samples( )
 %% Ti
 % CPD
 ti_c = {
+'1L'
 '1R'
 '4R'
 '7L'
@@ -69,7 +70,6 @@ peek_c = {
 '10R'
 '28R'
 '48L'
-'1L'
 '3L'
 '4L'
 '8L'
@@ -199,6 +199,7 @@ mg10gd_c = {
 '93L'
 '95L'
 '96L'
+'100AL'
 };
 mg10gd_c = sort( mg10gd_c );
 % LOAD
