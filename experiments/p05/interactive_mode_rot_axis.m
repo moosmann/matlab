@@ -14,6 +14,9 @@ imsc1 = @(im) imsc( rot90( im ) );
 tint = 0;
 angle_scaling = [];
 lamino = interactive_mode.lamino;
+if isempty( tomo.rot_axis_offset )
+    tomo.rot_axis_offset = 0;
+end
 
 if tomo.run || tomo.run_interactive_mode
     

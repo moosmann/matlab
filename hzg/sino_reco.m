@@ -39,15 +39,17 @@ close all hidden % close all open windows
 %%% SCAN %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 scan_path = ...
     ... '/asap3/petra3/gpfs/p07/2019/data/11006991/processed/hzg_ind_01_cork_a/';
-    '/asap3/petra3/gpfs/p05/2019/data/11007580/processed/smf_09_be_3033';
-    '/asap3/petra3/gpfs/p07/2019/data/11007454/processed/bmc06_tooth1';
-raw_bin = 4; % projection binning factor: integer
+    '/asap3/petra3/gpfs/p05/2020/data/11010107/processed/bmc07_v67r';
+'/asap3/petra3/gpfs/p05/2020/data/11010107/processed/bmc05_v63l';
+'/asap3/petra3/gpfs/p05/2019/data/11007580/processed/smf_09_be_3033';
+'/asap3/petra3/gpfs/p07/2019/data/11007454/processed/bmc06_tooth1';
+raw_bin = 2; % projection binning factor: integer
 read_sino_folder = sprintf( 'trans%02u', raw_bin);
 read_sino = 1; % read preprocessed sinograms. CHECK if negative log has to be taken!
 read_sino_trafo = @(x) (x);%rot90(x); % anonymous function applied to the image which is read e.g. @(x) rot90(x)
-energy = 17999; % in eV! if empty: read from log file
-sample_detector_distance = 0.2; % in m. if empty: read from log file
-eff_pixel_size = 1.27512e-6 ; % in m. if empty: read from log lfile. effective pixel size =  detector pixel size / magnification
+energy = 34037; %17999; % in eV! if empty: read from log file
+sample_detector_distance = 0.025; %0.2; % in m. if empty: read from log file
+eff_pixel_size = 1.2808418e-6;%1.27512e-6 ; % in m. if empty: read from log lfile. effective pixel size =  detector pixel size / magnification
 tomo.rot_angle_full_range = 2*pi; % in radians. if []: full angle of rotation including additional increment, or array of angles. if empty full rotation angles is determined automatically to pi or 2 pi
 %%% PHASE RETRIEVAL %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 phase_retrieval.apply = 0; % See 'PhaseFilter' for detailed description of parameters !
@@ -69,7 +71,7 @@ tomo.rot_axis_offset = []; % rotation axis offset w.r.t to the image center. Ass
 tomo.rot_axis_position = []; % if empty use automatic computation. EITHER OFFSET OR POSITION MUST BE EMPTY. YOU MUST NOT USE BOTH!
 tomo.rot_axis_offset_shift = []; %[]; % absolute lateral movement in pixels during fly-shift-scan, overwrite lateral shift read out from hdf5 log
 tomo.rot_axis_tilt_camera = 0; % in rad. camera tilt w.r.t rotation axis.
-tomo.rot_axis_tilt_lamino = 0; % 
+tomo.rot_axis_tilt_lamino = 0; %
 tomo.rot_axis_corr_area1 = []; % ROI to correlate projections at angles 0 & pi. Use [0.75 1] or so for scans with an excentric rotation axis
 tomo.rot_axis_corr_area2 = []; % ROI to correlate projections at angles 0 & pi
 tomo.fbp_filter_type = 'Ram-Lak';'linear'; % see iradonDesignFilter for more options. Ram-Lak according to Kak/Slaney
@@ -200,6 +202,7 @@ while scan_path(end) == filesep
 end
 [raw_path, scan_name] = fileparts(scan_path);
 scan_path = [scan_path, filesep];
+write.scan_name = scan_name;
 [beamtime_path, raw_folder] = fileparts(raw_path);
 [~, beamtime_id] = fileparts(beamtime_path);
 
@@ -348,31 +351,99 @@ save_path = sprintf( '%sfloat_rawBin%u/%s', reco_path, raw_bin);
 CheckAndMakePath( save_path );
 take_neg_log = tomo.take_neg_log;
 
-% Read sinogram
-%parfor (nn = 1:numel( sino_names ), num_gpu * tomo.astra_reco_per_gpu )
-for nn = 1:numel( sino_names )
-    
-    filename = sprintf('%s%s', sino_path, sino_names_mat(nn, :));
-    sino = read_image( filename );
-    sino = read_sino_trafo( sino );
-    
-    if sum( sino(:) == 0) || sum( isnan( sino(:) ) ) || sum( isinf( sino(:) ) )
-        fprintf( ' %u', nn )
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+tomo.slab_wise = 1;
+tomo.slices_per_slab = [];
+if tomo.slab_wise    
+    fprintf( '\nStart slab-wise reconstruction')
+    if isempty( tomo.slices_per_slab )
+        num_slices_per_slab = 1 * par.poolsize;
+        tomo.slices_per_slab = num_slices_per_slab;
     else
-        sino = NegLog( sino, take_neg_log );
-        sino = reshape( sino, [im_shape_cropbin1, 1, num_proj_read] );
-        % Filter
-        sino = padarray( sino, padding * [im_shape_cropbin1 0 0], padding_method, 'post' );
-        sino = real( ifft( bsxfun(@times, fft( sino, [], 1), filt), [], 1, 'symmetric') );
-        sino = sino(1:im_shape_cropbin1,:,:);
+        num_slices_per_slab = tomo.slices_per_slab;
+    end
+    num_slabs = ceil( im_shape_binned2 / num_slices_per_slab );
+    proj = zeros( [im_shape_cropbin1, num_slices_per_slab, num_proj_read], 'single' );
+    fprintf( ' \n number of slices in total : %u', im_shape_binned2 )
+    fprintf( ' \n number of slices per slab : %u', num_slices_per_slab )
+    fprintf( ' \n number of slabs : %u', num_slabs )
+    % Loop over slab    
+    for ll = 1:num_slabs
+        
+        % Slab indices
+        s0 = 1 + (ll - 1) * num_slices_per_slab;
+        s1 = min( [num_slices_per_slab + (ll - 1) * num_slices_per_slab, im_shape_binned2] );
+        slab_sino_names_mat = sino_names_mat(s0:s1,:);
+        num_slices = s1 - s0 + 1;
+        
+        fprintf( '\n slab no. : %4u', ll )
+        fprintf( ', slab range : [%6u %6u]', s0, s1 )
+        fprintf( ', num slices : %4u', num_slices )
+        
+        % Read and filter
+        parfor mm = 1:num_slices
+            % Read
+            filename = sprintf('%s%s', sino_path, slab_sino_names_mat(mm, :));
+            sino = read_image( filename );
+            sino = read_sino_trafo( sino );
+            % Check for errors
+            if sum( sino(:) == 0) || sum( isnan( sino(:) ) ) || sum( isinf( sino(:) ) )
+                fprintf( ' [%u %u]', ll, mm )
+            else
+                sino = NegLog( sino, take_neg_log );
+                sino = reshape( sino, [im_shape_cropbin1, 1, num_proj_read] );
+                % Filter
+                sino = padarray( sino, padding * [im_shape_cropbin1 0 0], padding_method, 'post' );
+                sino = real( ifft( bsxfun(@times, fft( sino, [], 1), filt), [], 1, 'symmetric') );
+                sino = sino(1:im_shape_cropbin1,:,:);
+                proj(:, mm, :) = sino;
+            end
+        end
+                
         % Tomo
-        gpu_index = mod( nn,  num_gpu ) + 1;
-        vol = astra_parallel2D( tomo, permute( sino, [3 1 2]), gpu_index );
-        % Save
-        filename = sprintf( '%s/%s', save_path, sino_names_mat(nn,:));
-        write32bitTIFfromSingle( filename, vol )
+        % Delete empty slices
+        proj(:,num_slices + 1:end,:) = [];
+        %% ADJUST tomo struct: volume size and shape
+        [tomo.vol_shape, tomo.vol_size] = volshape_volsize( proj, [], [] );
+        %[tomo.vol_shape, tomo.vol_size] = volshape_volsize( proj, tomo.vol_shape, tomo.vol_size, tomo.rot_axis_offset, 0 );
+%        vol = astra_parallel3D( tomo, permute( proj, [3 1 2]) );
+        vol = astra_parallel3D( tomo, permute( proj, [1 3 2]) );
+
+        parfor mm = 1:num_slices
+            % Save
+            filename = sprintf( '%s/%s', save_path, slab_sino_names_mat(mm,:));
+            write32bitTIFfromSingle( filename, vol(:,:,mm) )
+        end
+        
     end
     
+else
+    % Slice-wise reco
+    % Read sinogram, reco, write
+    for nn = 1:numel( sino_names )
+        
+        filename = sprintf('%s%s', sino_path, sino_names_mat(nn, :));
+        sino = read_image( filename );
+        sino = read_sino_trafo( sino );
+        
+        if sum( sino(:) == 0) || sum( isnan( sino(:) ) ) || sum( isinf( sino(:) ) )
+            fprintf( ' %u', nn )
+        else
+            sino = NegLog( sino, take_neg_log );
+            sino = reshape( sino, [im_shape_cropbin1, 1, num_proj_read] );
+            % Filter
+            sino = padarray( sino, padding * [im_shape_cropbin1 0 0], padding_method, 'post' );
+            sino = real( ifft( bsxfun(@times, fft( sino, [], 1), filt), [], 1, 'symmetric') );
+            sino = sino(1:im_shape_cropbin1,:,:);
+            % Tomo
+            gpu_index = mod( nn,  num_gpu ) + 1;
+            vol = astra_parallel2D( tomo, permute( sino, [3 1 2]), gpu_index );
+            % Save
+            filename = sprintf( '%s/%s', save_path, sino_names_mat(nn,:));
+            write32bitTIFfromSingle( filename, vol )
+        end
+        
+    end
 end
 fprintf( ' \n tomo reco done in %.1f s (%.2f min)', toc-t, (toc-t)/60 )
 
@@ -384,7 +455,7 @@ end
 CheckAndMakePath( logfile_path )
 if write.reco
     logfile_name = sprintf( '%sreco_rawBin%u.log', logfile_path, raw_bin);
-
+    
     fid = fopen( logfile_name, 'w');
     fprintf(fid, 'scan_name : %s\n', scan_name);
     fprintf(fid, 'beamtime_id : %s\n', beamtime_id);
