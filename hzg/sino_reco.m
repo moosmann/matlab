@@ -39,8 +39,8 @@ close all hidden % close all open windows
 %%% SCAN %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 scan_path = ...
     ... '/asap3/petra3/gpfs/p07/2019/data/11006991/processed/hzg_ind_01_cork_a/';
+    '/asap3/petra3/gpfs/p05/2020/data/11010107/processed/bmc05_v63l';
     '/asap3/petra3/gpfs/p05/2020/data/11010107/processed/bmc07_v67r';
-'/asap3/petra3/gpfs/p05/2020/data/11010107/processed/bmc05_v63l';
 '/asap3/petra3/gpfs/p05/2019/data/11007580/processed/smf_09_be_3033';
 '/asap3/petra3/gpfs/p07/2019/data/11007454/processed/bmc06_tooth1';
 raw_bin = 2; % projection binning factor: integer

@@ -433,11 +433,10 @@ switch method
             % flat field correction
             p = proj(:, :, nn);
             p = p ./ flat_median_shifted(1:im_shape_cropbin1,:) ;
-            
+            % Reassign
             proj(:,:,nn) = p;
             
         end
-        
         
     otherwise
         fprintf( '\nFlat-field correction using %u best match(es).', corr_num_flats)

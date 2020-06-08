@@ -36,18 +36,15 @@ close all hidden % close all open windows
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % !!! FAST RECO MODE PARAMTERS !!! OVERWRITES SOME PARAMETERS SET BELOW !!!
-fast_reco.run = 0;
-fast_reco.raw_bin = 4;
-fast_reco.raw_roi = [0.4 0.6];
-fast_reco.proj_range = 2;
+fast_reco.run = 1;
+fast_reco.raw_bin = 6;
+fast_reco.raw_roi = [0.48 0.52];
+fast_reco.proj_range = 1;
 fast_reco.ref_range = 10;
 % END OF FAST MODE PARAMTER SECTION %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
+%001 6x 16 1628.800
 %%% SCAN %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 scan_path = pwd; % string/pwd. pwd: change to directory of the scan to be reconstructed, string: absolute scan path
-%'/asap3/petra3/gpfs/p07/2019/data/11007454/processed/bmc11_mouse21_inline';
-%'/asap3/petra3/gpfs/p07/2019/data/11007454/processed/bmc06_tooth1';
-%'/asap3/petra3/gpfs/p05/2019/data/11007580/raw/nova_317';
 read_flatcor = 0; % read preprocessed flatfield-corrected projections. CHECK if negative log has to be taken!
 read_flatcor_path = '/asap3/petra3/gpfs/p05/2019/data/11007890/processed/AZ91_C500_ae_0/flat_corrected/rawBin2'; % subfolder of 'flat_corrected' containing projections
 read_flatcor_trafo = @(im) im; %fliplr( im ); % anonymous function applied to the image which is read e.g. @(x) rot90(x)
@@ -65,7 +62,7 @@ raw_roi = []; % vertical and/or horizontal ROI; (1,1) coordinate = top left pixe
 % [y0 y1 x0 x1]: vertical + horzontal ROI, each ROI as above
 % if -1: auto roi, selects vertical ROI automatically. Use only for DCM. Not working for *.raw data where images are flipped and DMM data.
 % if < -1: Threshold is set as min(proj(:,:,[1 end])) + abs(raw_roi)*median(dark(:)). raw_roi=-1 defaults to min(proj(:,:,[1 end])) + 4*median(dark(:))
-raw_bin = 2; % projection binning factor: integer
+raw_bin = 8; % projection binning factor: integer
 im_trafo = '' ;%'rot90(im,-1)'; % string to be evaluated after reading data in the case the image is flipped/rotated/etc due to changes at the beamline, e.g. 'rot90(im)'
 % STITCHING/CROPPING only for scans without lateral movment. Legacy support
 par.crop_at_rot_axis = 0; % for recos of scans with excentric rotation axis but WITHOUT projection stitching
@@ -77,11 +74,11 @@ par.stitch_method = 'sine'; 'step';'linear'; %  ! CHECK correlation area !
 proj_range = []; % range of projections to be used (from all found, if empty or 1: all, if scalar: stride, if range: start:incr:end
 ref_range = []; % range of flat fields to be used (from all found), if empty or 1: all. if scalar: stride, if range: start:incr:end
 pixel_filter_threshold_dark = [0.01 0.005]; % Dark fields: threshold parameter for hot/dark pixel filter, for details see 'FilterPixel'
-pixel_filter_threshold_flat = [0.01 0.005]; % Flat fields: threshold parameter for hot/dark pixel filter, for details see 'FilterPixel'
-pixel_filter_threshold_proj = [0.01 0.005]; % Raw projection: threshold parameter for hot/dark pixel filter, for details see 'FilterPixel'
+pixel_filter_threshold_flat = [0.02 0.005]; % Flat fields: threshold parameter for hot/dark pixel filter, for details see 'FilterPixel'
+pixel_filter_threshold_proj = [0.02 0.005]; % Raw projection: threshold parameter for hot/dark pixel filter, for details see 'FilterPixel'
 pixel_filter_radius = [3 3]; % Increase only if blobs of zeros or other artefacts are expected. Can increase processing time heavily.
 ring_current_normalization = 1; % normalize flat fields and projections by ring current
-image_correlation.method = 'ssim-ml';'entropy';'none';'ssim';'ssim-g';'std';'cov';'corr';'diff1-l1';'diff1-l2';'diff2-l1';'diff2-l2';'cross-entropy-12';'cross-entropy-21';'cross-entropy-x';
+image_correlation.method = 'median';'ssim-ml';'entropy';'none';'ssim';'ssim-g';'std';'cov';'corr';'diff1-l1';'diff1-l2';'diff2-l1';'diff2-l2';'cross-entropy-12';'cross-entropy-21';'cross-entropy-x';
 % Correlation of projections and flat fields. Essential for DCM data. Typically improves reconstruction quality of DMM data, too.
 % Available methods ('ssim-ml'/'entropy' usually work best):
 % 'none' : no correlation for DPC
@@ -97,7 +94,7 @@ image_correlation.method = 'ssim-ml';'entropy';'none';'ssim';'ssim-g';'std';'cov
 % 'cross-entropy-*' : asymmetric (12,21) and symmetric (x) cross entropy
 image_correlation.force_calc = 0; % bool. force compuation of correlation even though a (previously computed) corrlation matrix exists
 image_correlation.num_flats = 3; % number of best maching flat fields used for correction
-image_correlation.area_width = [100 200];%[-100 1];% correlation area: index vector or relative/absolute position of [first pix, last pix], negative indexing is supported
+image_correlation.area_width = [1 100];%[-100 1];% correlation area: index vector or relative/absolute position of [first pix, last pix], negative indexing is supported
 image_correlation.area_height = [0.2 0.8]; % correlation area: index vector or relative/absolute position of [first pix, last pix]
 ring_filter.apply = 0; % ring artifact filter (use only for scans without lateral sample movement)
 ring_filter.apply_before_stitching = 0; % ! Consider when phase retrieval is applied !
@@ -107,12 +104,12 @@ ring_filter.waveletfft_wname = 'db25';'db30'; % wavelet type, see 'FilterStripes
 ring_filter.waveletfft_sigma = 2.4; %  suppression factor for 'wavelet-fft'
 ring_filter.jm_median_width = 11; % multiple widths are applied consecutively, eg [3 11 21 31 39];
 strong_abs_thresh = 1; % if 1: does nothing, if < 1: flat-corrected values below threshold are set to one. Try with algebratic reco techniques.
-norm_sino = 1;
+norm_sino = 0;
 %%% PHASE RETRIEVAL %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-phase_retrieval.apply = 1; % See 'PhaseFilter' for detailed description of parameters !
+phase_retrieval.apply = 0; % See 'PhaseFilter' for detailed description of parameters !
 phase_retrieval.apply_before = 0; % before stitching, interactive mode, etc. For phase-contrast data with an excentric rotation axis phase retrieval should be done afterwards. To find the rotataion axis position use this option in a first run, and then turn it of afterwards.
 phase_retrieval.post_binning_factor = 1; % Binning factor after phase retrieval, but before tomographic reconstruction
-phase_retrieval.method = 'dpc';'tie';'qp';'qpcut'; %'qp' 'ctf' 'tie' 'qp2' 'qpcut'
+phase_retrieval.method = 'tie';'dpc';'tie';'qp';'qpcut'; %'qp' 'ctf' 'tie' 'qp2' 'qpcut'
 phase_retrieval.reg_par = 2.5; % regularization parameter. larger values tend to blurrier images. smaller values tend to original data.
 phase_retrieval.bin_filt = 0.1; % threshold for quasiparticle retrieval 'qp', 'qp2'
 phase_retrieval.cutoff_frequ = 2 * pi; % in radian. frequency cutoff in Fourier space for 'qpcut' phase retrieval
@@ -123,7 +120,7 @@ dpc_bin = 4;
 tomo.run = 1; % run tomographic reconstruction
 tomo.run_interactive_mode = 1; % if tomo.run = 0, use to determine rot axis positions without processing the full tomogram;
 tomo.reco_mode = '3D';'slice';  % slice-wise or full 3D backprojection. 'slice': volume must be centered at origin & no support of rotation axis tilt, reco binning, save compressed
-tomo.vol_size = []; %[-.5 .5 -.5 .5 -0.5 0.5];% 6-component vector [xmin xmax ymin ymax zmin zmax], for excentric rot axis pos / extended FoV;. if empty, volume is centerd within tomo.vol_shape. unit voxel size is assumed. if smaller than 10 values are interpreted as relative size w.r.t. the detector size. Take care bout minus signs! Note that if empty vol_size is dependent on the rotation axis position.
+tomo.vol_size = [-1.5 1.5 -1.5 1.5 -0.5 0.5];% 6-component vector [xmin xmax ymin ymax zmin zmax], for excentric rot axis pos / extended FoV;. if empty, volume is centerd within tomo.vol_shape. unit voxel size is assumed. if smaller than 10 values are interpreted as relative size w.r.t. the detector size. Take care bout minus signs! Note that if empty vol_size is dependent on the rotation axis position.
 tomo.vol_shape = []; %[1 1 1] shape (# voxels) of reconstruction volume. used for excentric rot axis pos. if empty, inferred from 'tomo.vol_size'. in absolute numbers of voxels or in relative number w.r.t. the default volume which is given by the detector width and height.
 tomo.rot_angle_full_range = [];% 2 * pi ;[]; % in radians. if []: full angle of rotation including additional increment, or array of angles. if empty full rotation angles is determined automatically to pi or 2 pi
 tomo.rot_angle_offset = pi; % global rotation of reconstructed volume
@@ -149,7 +146,7 @@ tomo.MinConstraint = []; % sirt3D/sirt2d/sart2d only. If specified, all values b
 tomo.MaxConstraint = []; % sirt3D/sirt2d/sart2d only. If specified, all values above MaxConstraint will be set to MaxConstraint.
 %%% OUTPUT %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 write.path = ''; %'/gpfs/petra3/scratch/moosmanj'; % absolute path were output data will be stored. !!overwrites the write.to_scratch flag. if empty uses the beamtime directory and either 'processed' or 'scratch_cc'
-write.to_scratch = 0; % write to 'scratch_cc' instead of 'processed'
+write.to_scratch = 1; % write to 'scratch_cc' instead of 'processed'
 write.deleteFiles = 0; % delete files already existing in output folders. Useful if number or names of files differ when reprocessing.
 write.beamtimeID = ''; % string (regexp),typically beamtime ID, mandatory if 'write.deleteFiles' is true (safety check)
 write.scan_name_appendix = ''; % appendix to the output folder name which defaults to the scan name
@@ -160,8 +157,8 @@ write.subfolder_sino = ''; % subfolder in 'sino'
 write.subfolder_reco = ''; % subfolder in 'reco'
 write.flatcor = 0; % save preprocessed flat corrected projections
 write.phase_map = 0; % save phase maps (if phase retrieval is not 0)
-write.sino = 1; % save sinograms (after preprocessing & before FBP filtering and phase retrieval)
-write.phase_sino = 1; % save sinograms of phase maps
+write.sino = 0; % save sinograms (after preprocessing & before FBP filtering and phase retrieval)
+write.phase_sino = 0; % save sinograms of phase maps
 write.reco = 1; % save reconstructed slices (if tomo.run=1)
 write.float = 1; % single precision (32-bit float) tiff
 write.uint16 = 0; % save 16bit unsigned integer tiff using 'write.compression_method'
@@ -272,6 +269,8 @@ if ~isempty( tomo.rot_axis_offset ) && ~isempty( tomo.rot_axis_position )
 end
 
 % Default assignment if non-existing or empty!
+assign_default( 'ref_range', 1 )
+assign_default( 'proj_range', 1 )
 assign_default( 'tomo.rot_axis_offset', 0 )
 assign_default( 'pixel_filter_radius', [3 3] )
 assign_default( 'image_correlation.force_calc', 0 );
@@ -487,41 +486,10 @@ if ~read_flatcor && ~read_sino
         
         offset_shift_micron = s_stage_x.value;
         
-        % Projection file names
+        % File names
         proj_names = fns(im_key==0)';
-        num_proj_found = numel(proj_names);
-        
-        % Projection range to read
-        if isempty( proj_range )
-            proj_range = 1;
-        end
-        if numel( proj_range ) == 1
-            proj_range = 1:proj_range:num_proj_found;
-        end
-        num_proj_used = numel( proj_range );
-        
-        % Ref file names
         ref_names = fns(im_key==1)';
-        num_ref_found = numel(ref_names);
-        if isempty( ref_range )
-            ref_range = 1;
-        end
-        if numel( ref_range ) == 1
-            ref_range = 1:ref_range:num_ref_found;
-        end
-        
-        num_ref_used = numel( ref_range );
-        ref_names_mat = NameCellToMat( ref_names(ref_range) );
-        ref_nums = CellString2Vec( ref_names(ref_range) );
-        fprintf( '\n refs found : %g', num_ref_found)
-        fprintf( '\n refs used : %g', num_ref_used)
-        fprintf( '\n reference range used : %g:%g:%g%', ref_range(1), ref_range(2) - ref_range(1), ref_range(end))
-        
-        % Dark file names
-        dark_names = fns( im_key == 2 )';
-        dark_nums = CellString2Vec( dark_names );
-        num_dark = numel(dark_names);
-        fprintf( '\n darks found : %g', num_dark)
+        dark_names = fns( im_key == 2 )';        
         
         % Angles %%
         angles = im_angle( im_key == 0);
@@ -548,16 +516,6 @@ if ~read_flatcor && ~read_sino
             proj_names =  FilenameCell( [scan_path, '*proj*.raw'] );
             raw_data = 1;
         end
-        num_proj_found = numel(proj_names);
-        % Projection range to read
-        if isempty( proj_range )
-            proj_range = 1;
-        end
-        if numel( proj_range ) == 1
-            proj_range = 1:proj_range:num_proj_found;
-        end
-        num_proj_used = numel( proj_range );
-        
         % Ref file names
         ref_names = FilenameCell( [scan_path, '*.ref'] );
         if isempty( ref_names )
@@ -575,20 +533,6 @@ if ~read_flatcor && ~read_sino
         if isempty( ref_names )
             ref_names = FilenameCell( [scan_path, '*ref*.tif'] );
         end
-        num_ref_found = numel(ref_names);
-        if isempty( ref_range )
-            ref_range = 1;
-        end
-        if numel( ref_range ) == 1
-            ref_range = 1:ref_range:num_ref_found;
-        end
-        num_ref_used = numel( ref_range );
-        ref_names_mat = NameCellToMat( ref_names(ref_range) );
-        ref_nums = CellString2Vec( ref_names(ref_range) );
-        fprintf( '\n refs found : %g', num_ref_found)
-        fprintf( '\n refs used : %g', num_ref_used)
-        fprintf( '\n reference range used : %g:%g:%g%', ref_range(1), ref_range(2) - ref_range(1), ref_range(end))
-        
         % Dark file names
         dark_names = FilenameCell( [scan_path, '*.dar'] );
         if isempty( dark_names )
@@ -601,12 +545,52 @@ if ~read_flatcor && ~read_sino
             dark_names = FilenameCell( [scan_path, '*dar*.tif'] );
         end
         
-        dark_nums = CellString2Vec( dark_names );
-        num_dark = numel(dark_names);
-        fprintf( '\n darks found : %g', num_dark)
+        %% Hack due to rewriting of tomoscan_flikit
+        if isempty( ref_names )
+            h5log = dir( sprintf('%s*_nexus.h5', scan_path) );
+            h5log = [h5log.folder filesep h5log.name];
+            % images
+            stimg_name.value = unique( h5read( h5log, '/entry/scan/data/image_file/value') );
+            stimg_name.time = h5read( h5log,'/entry/scan/data/image_file/time');
+            stimg_key.value = h5read( h5log,'/entry/scan/data/image_key/value');
+            stimg_key.time = double( h5read( h5log,'/entry/scan/data/image_key/time') );
+            
+            % File names
+            proj_names = stimg_name.value(stimg_key.value==0)';
+            ref_names = stimg_name.value(stimg_key.value==1)';
+            dark_names = stimg_name.value(stimg_key.value == 2 )';
+            %% name check for petra iii current is now useless
+        end
+        
     end
-    
+
+    num_dark = numel(dark_names);
+    num_ref_found = numel(ref_names);
+    num_proj_found = numel(proj_names);
+    % Ref range to read
+    if isempty( ref_range )
+        ref_range = 1;
+    end
+    if numel( ref_range ) == 1
+        ref_range = 1:ref_range:num_ref_found;
+    end
+    % Projection range to read
+    if isempty( proj_range )
+        proj_range = 1;
+    end
+    if numel( proj_range ) == 1
+        proj_range = 1:proj_range:num_proj_found;
+    end
+    ref_names_mat = NameCellToMat( ref_names(ref_range) );
+    ref_nums = CellString2Vec( ref_names(ref_range) );
+    dark_nums = CellString2Vec( dark_names );
     proj_nums = CellString2Vec( proj_names(proj_range) );
+    num_ref_used = numel( ref_range );
+    num_proj_used = numel( proj_range );
+    fprintf( '\n refs found : %g', num_ref_found)
+    fprintf( '\n refs used : %g', num_ref_used)
+    fprintf( '\n reference range used : %g:%g:%g%', ref_range(1), ref_range(2) - ref_range(1), ref_range(end))
+    fprintf( '\n darks found : %g', num_dark)
     fprintf( '\n projections found : %g', num_proj_found)
     fprintf( '\n projections used : %g', num_proj_used)
     fprintf( '\n projection range used : first:stride:last =  %g:%g:%g', proj_range(1), proj_range(2) - proj_range(1), proj_range(end))
@@ -1327,7 +1311,7 @@ if ~read_flatcor && ~read_sino
             proj = bsxfun( @times, proj, scale_factor );
             
             % Plot ring current
-            if par.visual_output
+            if par.visual_output && exist( 'ref_rc', 'var' )
                 name = 'PETRA III beam current: Interpolation at image time stamps';
                 if exist( 'hrc', 'var' ) && isvalid( hrc )
                     figure(hrc)

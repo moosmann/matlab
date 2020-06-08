@@ -5,7 +5,7 @@ if nargin < 1
 end
 if nargin < 2
     %SourceSample_m =  145;
-    SourceSample_m = 87;
+    SourceSample_m = 65; 87;
 end
 if nargin < 3
     SourceSize_micron = sigma_to_FWHM( 36 );% P05 low beta section
