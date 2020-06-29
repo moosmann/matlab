@@ -72,6 +72,54 @@ p.camera(3).fov_10x_mm = 1/10 * p.camera(3).chip_size_mm;
 p.camera(3).fov_20x_mm = 1/20 * p.camera(3).chip_size_mm;
 p.camera(3).fov_40x_mm = 1/40 * p.camera(3).chip_size_mm;
 
+cc = 3;
+%% Phantom S990
+cc = cc +1;
+p.camera(cc).name = 'PHantom S640';
+p.camera(cc).sensor = 'CMOS Phantom VEO 640';
+p.camera(cc).dynamic_bit = 12;
+p.camera(cc).digitization_bit = [8 12];
+p.camera(cc).dynamic_range_dB = 55.9;
+p.camera(cc).snr_max_dB = 41.6;
+p.camera(cc).dark_noise_electrons = 20.5;
+p.camera(cc).framerate_12bit_Hz = 1465;
+p.camera(cc).framerate_8bit_Hz = 1480;
+p.camera(cc).framerate_max_128x16_Hz = 200715;
+p.camera(cc).shutter_eletronic = 'global';
+p.camera(cc).expsoure_time_ms = 0.001;
+p.camera(cc).pixels = [2560 1600];
+p.camera(cc).pixel_size_micron = 10;
+p.camera(cc).effective_pixel_size_micron = p.camera(cc).pixel_size_micron ./ p.opt.magn;
+p.camera(cc).chip_size_mm = p.camera(cc).pixels .* p.camera(cc).pixel_size_micron * 1e-3;
+p.camera(cc).fov_5x_mm = 1/5 * p.camera(cc).chip_size_mm;
+p.camera(cc).fov_10x_mm = 1/10 * p.camera(cc).chip_size_mm;
+p.camera(cc).fov_20x_mm = 1/20 * p.camera(cc).chip_size_mm;
+p.camera(cc).fov_40x_mm = 1/40 * p.camera(cc).chip_size_mm;
+
+%% Phantom S990
+cc = cc +1;
+p.camera(cc).name = 'PHantom S990';
+p.camera(cc).sensor = 'CMOS Phantom 4k';
+p.camera(cc).dynamic_bit = 12;
+p.camera(cc).digitization_bit = [8 12];
+p.camera(cc).dynamic_range_dB = [54.8 71.6];
+p.camera(cc).dark_noise_electrons = [31.0 9.6];
+p.camera(cc).framerate_12bit_Hz = 625;
+p.camera(cc).framerate_8bit_Hz = 938;
+p.camera(cc).framerate_max_1024x16_Hz = 25000;
+p.camera(cc).shutter_electronic = 'global / rolling /bright field';
+p.camera(cc).expsoure_time_ms = 0.005;
+p.camera(cc).pixels = [4096 2304];
+p.camera(cc).pixel_size_micron = 6.75;
+p.camera(cc).effective_pixel_size_micron = p.camera(cc).pixel_size_micron ./ p.opt.magn;
+p.camera(cc).chip_size_mm = p.camera(cc).pixels .* p.camera(cc).pixel_size_micron * 1e-3;
+p.camera(cc).fov_5x_mm = 1/5 * p.camera(cc).chip_size_mm;
+p.camera(cc).fov_10x_mm = 1/10 * p.camera(cc).chip_size_mm;
+p.camera(cc).fov_20x_mm = 1/20 * p.camera(cc).chip_size_mm;
+p.camera(cc).fov_40x_mm = 1/40 * p.camera(cc).chip_size_mm;
+
+
+
 %% Stages
 p.stage.rotation.vendor = 'Aerotech';
 p.stage.rotation.travel_range_z = [-10,10];

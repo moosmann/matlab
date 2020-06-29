@@ -1,1 +1,2 @@
 cdsavedworkingdirectory
+disp( pwd )

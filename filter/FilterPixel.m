@@ -141,6 +141,7 @@ im_med = medfilt2( im, medfilt_neighboorhood );
 % Ratio of image and median filtered image
 R = single( im );
 R = R ./ single( im_med );
+%% remove R_sorted to reduce memory
 if (threshold_hot > 0 && threshold_hot < 1) || (threshold_dark > 0 && threshold_dark < 0.5)
     R_sorted = sort( R(:) );
 end

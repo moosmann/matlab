@@ -51,6 +51,7 @@ switch lower( filetype )
     case 'tif'
         warning( 'off', 'MATLAB:imagesci:rtifc:missingPhotometricTag' );
         warning( 'off', 'MATLAB:imagesci:tifftagsread:expectedTagDataFormat' );
+        warning( 'off', 'imageio:tifftagsread:expectedTagDataFormat' );
         if isempty( tif_info)
             tif_info = imfinfo( filename );
         end

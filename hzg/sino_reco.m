@@ -37,19 +37,19 @@ close all hidden % close all open windows
 
 
 %%% SCAN %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-scan_path = ...
-    ... '/asap3/petra3/gpfs/p07/2019/data/11006991/processed/hzg_ind_01_cork_a/';
+scan_path = pwd;
+    '/asap3/petra3/gpfs/p07/2019/data/11006991/processed/hzg_ind_01_cork_a/';
     '/asap3/petra3/gpfs/p05/2020/data/11010107/processed/bmc05_v63l';
     '/asap3/petra3/gpfs/p05/2020/data/11010107/processed/bmc07_v67r';
-'/asap3/petra3/gpfs/p05/2019/data/11007580/processed/smf_09_be_3033';
-'/asap3/petra3/gpfs/p07/2019/data/11007454/processed/bmc06_tooth1';
+    '/asap3/petra3/gpfs/p05/2019/data/11007580/processed/smf_09_be_3033';
+    '/asap3/petra3/gpfs/p07/2019/data/11007454/processed/bmc06_tooth1';
 raw_bin = 2; % projection binning factor: integer
 read_sino_folder = sprintf( 'trans%02u', raw_bin);
 read_sino = 1; % read preprocessed sinograms. CHECK if negative log has to be taken!
 read_sino_trafo = @(x) (x);%rot90(x); % anonymous function applied to the image which is read e.g. @(x) rot90(x)
-energy = 34037; %17999; % in eV! if empty: read from log file
-sample_detector_distance = 0.025; %0.2; % in m. if empty: read from log file
-eff_pixel_size = 1.2808418e-6;%1.27512e-6 ; % in m. if empty: read from log lfile. effective pixel size =  detector pixel size / magnification
+energy = 32999.982; % in eV!
+sample_detector_distance = 0.4; % in m
+eff_pixel_size = 1.26646e-6; % in m
 tomo.rot_angle_full_range = 2*pi; % in radians. if []: full angle of rotation including additional increment, or array of angles. if empty full rotation angles is determined automatically to pi or 2 pi
 %%% PHASE RETRIEVAL %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 phase_retrieval.apply = 0; % See 'PhaseFilter' for detailed description of parameters !
@@ -88,7 +88,7 @@ tomo.iterations = 40; % for 'sirt' or 'cgls'.
 tomo.sirt_MinConstraint = []; % If specified, all values below MinConstraint will be set to MinConstraint. This can be used to enforce non-negative reconstructions, for example.
 tomo.sirt_MaxConstraint = []; % If specified, all values above MaxConstraint will be set to MaxConstraint.
 %%% OUTPUT %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-write.path = ''; %'/gpfs/petra3/scratch/moosmanj'; % absolute path were output data will be stored. !!overwrites the write.to_scratch flag. if empty uses the beamtime directory and either 'processed' or 'scratch_cc'
+write.path = ''; % absolute path were output data will be stored. !!overwrites the write.to_scratch flag. if empty uses the beamtime directory and either 'processed' or 'scratch_cc'
 write.to_scratch = 0; % write to 'scratch_cc' instead of 'processed'
 write.deleteFiles = 0; % delete files already existing in output folders. Useful if number or names of files differ when reprocessing.
 write.beamtimeID = ''; % string (regexp),typically beamtime ID, mandatory if 'write.deleteFiles' is true (safety check)
@@ -112,7 +112,7 @@ write.reco_binning_factor = 2; % IF BINNED VOLUMES ARE SAVED: binning factor of 
 write.compression_method = 'outlier';'histo';'full'; 'std'; 'threshold'; % method to compression dynamic range into [0, 1]
 write.compression_parameter = [0.02 0.02]; % compression-method specific parameter
 %%% INTERACTION %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-par.visual_output = 1; % show images and plots during reconstruction
+par.visual_output = 0; % show images and plots during reconstruction
 interactive_mode.rot_axis_pos = 1; % reconstruct slices with dif+ferent rotation axis offsets
 interactive_mode.rot_axis_pos_default_search_range = []; % if empty: asks for search range when entering interactive mode
 interactive_mode.rot_axis_tilt = 0; % reconstruct slices with different offset AND tilts of the rotation axis

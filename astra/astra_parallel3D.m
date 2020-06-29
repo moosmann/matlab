@@ -108,7 +108,7 @@ for nn = 1:num_proj
     
     % Scan position
     if ~isscalar( scan_position )
-        rao = rao + scan_position(nn);
+        rao = rao - scan_position(nn);
     end
 
     % vertical shift

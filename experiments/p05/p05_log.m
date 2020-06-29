@@ -186,6 +186,7 @@ end
 
 % setup info
 par.Energy = '%f';
+par.energy = '%f';
 par.undulator_gap = '%f';
 par.undulator_harmonic = '%u';
 par.n_dark = '%u';
