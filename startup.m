@@ -1,5 +1,6 @@
 %% Paths
 % TODO: adapt for cases where there is another matlab folder already in use
+
 % User path
 userpath( fileparts( mfilename('fullpath') ) );
 % Search path
@@ -14,7 +15,7 @@ fprintf( '\nuserpath : %s', userpath );
 fprintf( '\nCUDA_PATH : %s', getenv( 'CUDA_PATH' ) );
 
 %% ASTRA
-% ASTRA 1.9 local, compiled 2019-09-09
+% ASTRA 1.99(?) local, compiled 2020-07-06
 ASTRA_PATH = getenv( 'ASTRA_PATH' );
 astra_path = [ ASTRA_PATH '/matlab' ];
 addpath( genpath( astra_path ) );

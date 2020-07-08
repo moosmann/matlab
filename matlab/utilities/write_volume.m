@@ -37,7 +37,13 @@ else
     save_path = [save_path suffix];
     CheckTrailingSlash( save_path )
     CheckAndMakePath( save_path, deleteFiles, beamtimeID_regexp )
-        
+    
+    if strcmp( output_type(1:4), 'uint' )
+        tlow = write.tlow;
+        thigh = write.thigh;
+        vol = -tlow + vol;
+        vol = 1 / (thigh - tlow) * vol;
+    end
     switch output_type
         
         case 'float'            

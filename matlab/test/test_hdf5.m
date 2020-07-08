@@ -165,14 +165,60 @@ inpath = '/asap3/petra3/gpfs/p07/2020/data/11010172/scratch_cc/test_io/hdf/';
 fs = dir( [inpath '*.h5'] );
 fn = [fs(1).folder filesep fs(1).name];
 
+%% Cube
+%fn = '/asap3/petra3/gpfs/p07/2020/data/11010172/scratch_cc/test_io/hdf/cube4000.h5';
+vol_size = 2000 + [1 2 3];
+fn = '/asap3/petra3/gpfs/p07/2020/data/11010172/scratch_cc/test_io/hdf/cube2000.h5';
+fprintf( '\nWrite cube to hdf' )
+cl = 'uint16';
+tic
+h5create( fn, '/dataset1', vol_size, 'Datatype', cl)
+h5write( fn, '/dataset1', ones( vol_size, cl) )
+thdfwrite = toc;
+fprintf( '\n write in %f s = %f min', thdfwrite, thdfwrite/60 )
+%%
 h5disp( fn )
 h5i = h5info( fn );
-h_start = 1;
-h_count = 1;
-h_stride = 1;
+vol_size = h5i.Datasets.Dataspace.Size;
+v = vol_size(1);
+h = vol_size(2);
+a = vol_size(3);
 
+%% sino
+h_start = [round( v / 2 ) 1 1];
+h_count = [1 h a];
+h_stride = [1 1 1];
+fprintf( '\n start : %u %u %u', h_start )
+fprintf( '\n count : %u %u %u', h_count )
+fprintf( '\n stride: %u %u %u', h_stride )
+fprintf( '\n start reading subset' )
 tic
-%sino = h5read( fn_hdf, '/dataset1', h_start, h_count, h_stride );
+sino = h5read( fn, '/dataset1', h_start, h_count, h_stride );
 tortho = toc;
-fprintf( '\n read in %f s = %f min', tortho, tortho/60 )
+fprintf( '\n read sino in %f s = %f min', tortho, tortho/60 )
+%% proj
+h_start = [1 1 round( a / 2)];
+h_count = [v h 1];
+h_stride = [1 1 1];
+fprintf( '\n start : %u %u %u', h_start )
+fprintf( '\n count : %u %u %u', h_count )
+fprintf( '\n stride: %u %u %u', h_stride )
+fprintf( '\n start reading subset' )
+tic
+proj = h5read( fn, '/dataset1', h_start, h_count, h_stride );
+tproj = toc;
+fprintf( '\n read proj in %f s = %f min\n', tproj, tproj/60 )
+%% 2n ortho
+h_start = [1 round( h / 2) 1];
+h_count = [v 1 a];
+h_stride = [1 1 1];
+fprintf( '\n start : %u %u %u', h_start )
+fprintf( '\n count : %u %u %u', h_count )
+fprintf( '\n stride: %u %u %u', h_stride )
+fprintf( '\n start reading subset' )
+tic
+ortho = h5read( fn, '/dataset1', h_start, h_count, h_stride );
+tortho = toc;
+fprintf( '\n read ortho in %f s = %f min\n', tortho, tortho/60 )
 
+fprintf( '\n' )

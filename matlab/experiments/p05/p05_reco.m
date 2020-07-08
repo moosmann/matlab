@@ -1021,8 +1021,9 @@ if ~read_flatcor && ~read_sino
         filename = sprintf('%s%s', scan_path, dark_names{nn});
         im_int = read_image( filename, '', raw_roi, tif_info, im_shape_raw, dtype, im_trafo);
         
-        % Remove large outliers. Assume Gaussian distribution and set all value above
-        % mean + 4 * std (99.994 of values lie within 4 std). 
+        % Remove large outliers, hack for KIT camera chip artefacts. Assume
+        % Gaussian distribution and set all value above mean + 4 * std
+        % (99.994 of values lie within 4 std).
         im_float = single( im_int(:) );
         im_mean = mean( im_float );
         im_std = std( im_float );
@@ -1134,8 +1135,8 @@ if ~read_flatcor && ~read_sino
         if isequal( ref_ind_from_filenames, ref_ind_from_log )
             ref_rc = [cur.ref(ref_range).val];
             ref_rcm = mean( ref_rc(:) );
-            scale_factor = 100 ./ shiftdim( ref_rc(refs_to_use), -1 );
-            flat = bsxfun( @times, flat, scale_factor );
+            scale_factor = 100 ./ shiftdim( ref_rc(refs_to_use), -1 );            
+            flat = fun_times( flat, scale_factor );
             if par.visual_output
                 hrc = figure( 'Name', 'PETRA III beam current: Interpolation at image time stamps', 'WindowState', window_state );
                 subplot(1,1,1);
@@ -1318,6 +1319,9 @@ if ~read_flatcor && ~read_sino
         % Assign image to stack
         proj(:, :, nn) = im_float_binned;
     end
+    fprintf( ' done in %.1f s (%.2f min)', toc - t, ( toc - t ) / 60 )
+    t = tic;
+    fprintf( '\nPostprocessing projections:' )
     toc_bytes.read_proj = tocBytes( gcp, startS );
     
     % Delete empty projections
@@ -1356,7 +1360,7 @@ if ~read_flatcor && ~read_sino
             proj_rc = [cur.proj(proj_range).val];
             proj_rcm = mean( proj_rc(:) );
             scale_factor = 100 ./ shiftdim( proj_rc(projs_to_use), -1 );
-            proj = bsxfun( @times, proj, scale_factor );
+            proj = fun_times( proj, scale_factor );
             
             % Plot ring current
             if par.visual_output && exist( 'ref_rc', 'var' )
@@ -1582,8 +1586,9 @@ if ~read_flatcor && ~read_sino
             sino_mean1 = mean( sino, 1 );
             sino_mean = mean( sino_mean1, 3 );
             m = sino_mean ./ sino_mean1;
-            sino_norm = bsxfun( @times, sino, m );
-            proj(:,nn,:) = sino_norm;
+            %sino_norm = bsxfun( @times, sino, m );
+            sino = fun_times( sino, m );
+            proj(:,nn,:) = sino;
         end
         fprintf( ' done in %.1f s (%.2f min)', toc - t, ( toc - t ) / 60 )
         
@@ -2136,7 +2141,7 @@ if tomo.run
     % Change 'reco_mode' to 'slice' if low on memory
     [mem_free, mem_avail_cpu, mem_total_cpu] = free_memory;
     fprintf( '\n system memory: free, available, total : %.3g GiB, %.3g GiB, %.3g GiB', mem_free/1024^3, mem_avail_cpu/1024^3, mem_total_cpu/1024^3)
-    if vol_mem > 0.8 * mem_avail_cpu
+    if vol_mem > 0.9 * mem_avail_cpu
         tomo.reco_mode = 'slice';
         fprintf( '\nSwitch to slice-wise reco (tomo.reco_mode = ''%s'') due to limited memory ( avail : %.1f GiB, vol : %.1f GiB) .', tomo.reco_mode, mem_avail_cpu / 1024^3, vol_mem / 1024^3 )
     end
@@ -2217,7 +2222,8 @@ if tomo.run
                 im = NegLog(im, take_neg_log);
                 im = padarray( im, padding * [proj_shape1 0 0], padding_method, 'post' );
                 im = fft( im, [], 1);
-                im = bsxfun( @times, im, filt );
+                %im = bsxfun( @times, im, filt );
+                im = fun_times( im, filt );
                 im = real( ifft( im, [], 1, 'symmetric') );
                 im = im(1:proj_shape1,:,:)
                 proj(:,:,nn) = im;
@@ -2344,12 +2350,14 @@ if tomo.run
                         tlow = 0;
                         thigh = 1;
                     end
+                    write.tlow = tlow;
+                    write.thigh = thigh;
                     
                     % 16-bit tiff
-                    write_volume( write.uint16, (vol - tlow)/(thigh - tlow), 'uint16', write, raw_bin, phase_bin, 1, 0, verbose, '' );
+                    write_volume( write.uint16, vol, 'uint16', write, raw_bin, phase_bin, 1, 0, verbose, '' );
                     
                     % 8-bit tiff
-                    write_volume( write.uint8, (vol - tlow)/(thigh - tlow), 'uint8', write, raw_bin, phase_bin, 1, 0, verbose, '' );
+                    write_volume( write.uint8, vol, 'uint8', write, raw_bin, phase_bin, 1, 0, verbose, '' );
                     
                     % Bin data
                     if write.float_binned || write.uint16_binned || write.uint8_binned || write.uint8_segmented
@@ -2363,7 +2371,7 @@ if tomo.run
                     write_volume( write.float_binned, vol, 'float', write, raw_bin, phase_bin, reco_bin, 0, verbose, '' );
                     
                     % 16-bit tiff binned
-                    write_volume( write.uint16_binned, (vol - tlow)/(thigh - tlow), 'uint16', write, raw_bin, phase_bin, reco_bin, 0, verbose, '' );
+                    write_volume( write.uint16_binned, vol, 'uint16', write, raw_bin, phase_bin, reco_bin, 0, verbose, '' );
                     
                     % 8-bit tiff binned
                     write_volume( write.uint8_binned, (vol - tlow)/(thigh - tlow), 'uint8', write, raw_bin, phase_bin, reco_bin, 0, verbose, '' );
@@ -2619,6 +2627,6 @@ end
 fprintf( '\n')
 % END %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 dbclear if error
-if ~strcmp( getenv('USER'), 'moosmanj' )
-    clear vol proj;
-end
+%if ~strcmp( getenv('USER'), 'moosmanj' )
+clear vol proj;
+%end

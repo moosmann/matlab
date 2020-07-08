@@ -237,7 +237,7 @@ for nn = 1:numel( fn )
         c = textscan( cl{1}{b}, sprintf( '%s %s', p_field, p_val ), 1, 'Delimiter', {'=', ':'});
         par.(p_field) = c{1};
     elseif sum( b ) > 1
-        fprintf( 'WARNING: Parameter found more than once' );
+        fprintf( '\nWARNING: Parameter found more than once: %s', p_field );        
     else
         par = rmfield( par, p_field);
     end
