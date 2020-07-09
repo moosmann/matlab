@@ -1320,14 +1320,14 @@ if ~read_flatcor && ~read_sino
         proj(:, :, nn) = im_float_binned;
     end
     fprintf( ' done in %.1f s (%.2f min)', toc - t, ( toc - t ) / 60 )
-    t = tic;
+    t = toc;
     fprintf( '\nPostprocessing projections:' )
     toc_bytes.read_proj = tocBytes( gcp, startS );
     
     % Delete empty projections
     zz = ~projs_to_use;
     if sum( zz(:) )
-        fprintf( '\nDeleting empty projections' )
+        fprintf( '\n Deleting empty projections' )
         proj(:,:,zz) = [];
     end
     if offset_shift ~= 0
@@ -1360,6 +1360,7 @@ if ~read_flatcor && ~read_sino
             proj_rc = [cur.proj(proj_range).val];
             proj_rcm = mean( proj_rc(:) );
             scale_factor = 100 ./ shiftdim( proj_rc(projs_to_use), -1 );
+            fprintf( '\n Ring current normalization' )
             proj = fun_times( proj, scale_factor );
             
             % Plot ring current
@@ -1452,33 +1453,6 @@ if ~read_flatcor && ~read_sino
     proj_min0 = min( proj(:) );
     proj_max0 = max( proj(:) );
     fprintf( '\n global min/max after flat-field corrected:  %6g %6g', proj_min0, proj_max0);
-    
-    %% Plot data transfer from/to workers
-    if par.visual_output
-        bytes_sum = [0 0];
-        f = figure( 'Name', 'Parallel pool data transfer during image correlation', 'WindowState', window_state );
-        Y = [];
-        str = {};
-        fn = fieldnames( toc_bytes );
-        for nn = 1:numel( fn )
-            fnn = fn{nn};
-            X = toc_bytes.(fnn );
-            Y = cat(2, Y, X );
-            bytes_sum = bytes_sum + sum( X );
-            fnn = regexprep( fnn, '_', ' ' );
-            str = cat(2, str, { sprintf( '%s: to', fnn ), sprintf( '%s: from', fnn ) } );
-        end
-        plot( Y / 1024^3, 'o-' )
-        axis tight
-        title( sprintf( 'Data transfer of workers in parpool. Total: %.1f GiB (to), %.1f GiB (from)', bytes_sum / 1024^3 ) )
-        xlabel( 'worker no.' )
-        ylabel( 'transferred data / GiB' )
-        legend( str )
-        drawnow
-        pause( 0.1 )
-        CheckAndMakePath( fig_path )
-        saveas( f, sprintf( '%s%s.png', fig_path, regexprep( f.Name, '\ |:', '_') ) );
-    end
     
     %% Filter strong/full absorption (combine with iterative reco methods)
     if strong_abs_thresh < 1
@@ -1603,7 +1577,6 @@ if ~read_flatcor && ~read_sino
                 sino_mid_norm(:,mm) = proj(:,y(mm),mm);
             end
         end
-        
         CheckAndMakePath( write.sino_path )        
         filename = sprintf( '%ssino_rawBin%u_middle_normalized.tif', write.sino_par_path, raw_bin );
         write32bitTIFfromSingle( filename, sino_mid_norm );
@@ -2130,6 +2103,7 @@ end
 
 %% Tomographic reco %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 if tomo.run
+    ttomo = toc;
     fprintf( '\nTomographic reconstruction:')
     fprintf( '\n method : %s', tomo.algorithm )
     fprintf( '\n angle scaling : %g', tomo.angle_scaling )
@@ -2217,19 +2191,21 @@ if tomo.run
             take_neg_log = tomo.take_neg_log;
             padding = tomo.fbp_filter_padding;
             padding_method = tomo.fbp_filter_padding_method;
+            startS = ticBytes( gcp );
             parfor nn =  1:size( proj, 3)
                 im = proj(:,:,nn);
-                im = NegLog(im, take_neg_log);
+                im = NegLog( im, take_neg_log);
                 im = padarray( im, padding * [proj_shape1 0 0], padding_method, 'post' );
-                im = fft( im, [], 1);
-                %im = bsxfun( @times, im, filt );
+                im = fft( im, [], 1);                
                 im = fun_times( im, filt );
-                im = real( ifft( im, [], 1, 'symmetric') );
+                im = ifft( im, [], 1, 'symmetric');
+                im = real( im );
                 im = im(1:proj_shape1,:,:)
                 proj(:,:,nn) = im;
             end
             pause(0.01)
             fprintf( ' done in %.2f min.', (toc - t2) / 60)
+            toc_bytes.fbp_filter_sino = tocBytes( gcp, startS );
         else
             proj = NegLog( proj, tomo.take_neg_log );
         end
@@ -2341,7 +2317,9 @@ if tomo.run
                     fclose( fid );
                     
                     % Single precision: 32-bit float tiff
+                    startS = ticBytes( gcp );
                     write_volume( write.float, vol, 'float', write, raw_bin, phase_bin, 1, 0, verbose, '' );
+                    toc_bytes.write_float = tocBytes( gcp, startS );
                     
                     % Compression of dynamic range
                     if write.uint8 || write.uint8_binned || write.uint16 || write.uint16_binned
@@ -2374,7 +2352,7 @@ if tomo.run
                     write_volume( write.uint16_binned, vol, 'uint16', write, raw_bin, phase_bin, reco_bin, 0, verbose, '' );
                     
                     % 8-bit tiff binned
-                    write_volume( write.uint8_binned, (vol - tlow)/(thigh - tlow), 'uint8', write, raw_bin, phase_bin, reco_bin, 0, verbose, '' );
+                    write_volume( write.uint8_binned, vol, 'uint8', write, raw_bin, phase_bin, reco_bin, 0, verbose, '' );
                     
                     % segmentation
                     if write.uint8_segmented
@@ -2459,7 +2437,34 @@ if tomo.run
                 end
         end
     end % for rr = 1:num_recos
-    fprintf( ' \n tomo reco done in %.1f s (%.2f min)', toc - t, (toc - t) / 60 )
+    fprintf( ' \n tomo reco done in %.1f s (%.2f min)', toc - ttomo, (toc - ttomo) / 60 )
+end
+
+%% Plot data transfer from/to workers
+if par.visual_output
+    bytes_sum = [0 0];
+    f = figure( 'Name', 'Parallel pool data transfer during image correlation', 'WindowState', window_state );
+    Y = [];
+    str = {};
+    fn = fieldnames( toc_bytes );
+    for nn = 1:numel( fn )
+        fnn = fn{nn};
+        X = toc_bytes.(fnn );
+        Y = cat(2, Y, X );
+        bytes_sum = bytes_sum + sum( X );
+        fnn = regexprep( fnn, '_', ' ' );
+        str = cat(2, str, { sprintf( '%s: to', fnn ), sprintf( '%s: from', fnn ) } );
+    end
+    plot( Y / 1024^3, 'x' )
+    axis tight
+    title( sprintf( 'Data transfer of workers in parpool. Total: %.1f GiB (to), %.1f GiB (from)', bytes_sum / 1024^3 ) )
+    xlabel( 'worker no.' )
+    ylabel( 'transferred data / GiB' )
+    legend( str )
+    drawnow
+    pause( 0.1 )
+    CheckAndMakePath( fig_path )
+    saveas( f, sprintf( '%s%s.png', fig_path, regexprep( f.Name, '\ |:', '_') ) );
 end
 
 %% Write reco log file %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
