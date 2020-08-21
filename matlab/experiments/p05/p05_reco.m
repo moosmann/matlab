@@ -2448,7 +2448,6 @@ end
 if par.visual_output
     bytes_sum = [0 0];
     f = figure( 'Name', 'Parallel pool data transfer during image correlation', 'WindowState', window_state );
-    Y = [];
     str = {};
     fn = fieldnames( toc_bytes );
     marker = 'xs*+.od';
@@ -2457,7 +2456,6 @@ if par.visual_output
     for nn = 1:numel( fn )
         fnn = fn{nn};
         X = toc_bytes.(fnn );
-        % Y = cat(2, Y, X );        
         plot( X / 1024^3, [marker(nn) marker_color(nn)] )
         hold on
         bytes_sum = bytes_sum + sum( X );
