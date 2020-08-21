@@ -195,7 +195,7 @@ par.use_cluster = 0; % if available: on MAXWELL nodes disp/nova/wga/wgs cluster 
 par.poolsize = 0.8; % number of workers used in a local parallel pool. if 0: use current config. if >= 1: absolute number. if 0 < poolsize < 1: relative amount of all cores to be used. if SLURM scheduling is available, a default number of workers is used.
 par.poolsize_gpu_limit_factor = 0.8; % Relative amount of GPU memory used for preprocessing during parloop. High values speed up Proprocessing, but increases out-of-memory failure
 tomo.astra_link_data = 1; % ASTRA data objects become references to Matlab arrays. Reduces memory issues.
-tomo.astra_gpu_index = []; % GPU Device index to use, Matlab notation: index starts from 1. default: [], uses all
+tomo.astra_gpu_index = [1 2 3 6]; % GPU Device index to use, Matlab notation: index starts from 1. default: [], uses all
 par.gpu_index = tomo.astra_gpu_index;
 par.use_gpu_in_parfor = 1;
 par.window_state = 'normal';'maximized'; 'minimized';
@@ -2451,15 +2451,19 @@ if par.visual_output
     Y = [];
     str = {};
     fn = fieldnames( toc_bytes );
+    marker = 'xs*+.od';
+    marker_color = 'gbrmycw';
+    %y yellow m magenta	c cyan r red g green b blue	w white k black
     for nn = 1:numel( fn )
         fnn = fn{nn};
         X = toc_bytes.(fnn );
-        Y = cat(2, Y, X );
+        % Y = cat(2, Y, X );        
+        plot( X / 1024^3, [marker(nn) marker_color(nn)] )
+        hold on
         bytes_sum = bytes_sum + sum( X );
         fnn = regexprep( fnn, '_', ' ' );
         str = cat(2, str, { sprintf( '%s: to', fnn ), sprintf( '%s: from', fnn ) } );
     end
-    plot( Y / 1024^3, 'x' )
     axis tight
     title( sprintf( 'Data transfer of workers in parpool. Total: %.1f GiB (to), %.1f GiB (from)', bytes_sum / 1024^3 ) )
     xlabel( 'worker no.' )
