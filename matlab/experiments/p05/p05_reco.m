@@ -38,8 +38,8 @@ dbstop if error
 % !!! FAST RECO MODE PARAMTERS !!! OVERWRITES SOME PARAMETERS SET BELOW !!!
 fast_reco.run = 0;
 fast_reco.raw_bin = 4;
-fast_reco.raw_roi = [0.05 0.95];
-fast_reco.proj_range = 2;
+fast_reco.raw_roi = [0.4 0.6];
+fast_reco.proj_range = 4;
 fast_reco.ref_range = 10;
 % END OF FAST MODE PARAMTER SECTION %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -63,7 +63,7 @@ raw_roi = []; % vertical and/or horizontal ROI; (1,1) coordinate = top left pixe
 % if -1: auto roi, selects vertical ROI automatically. Use only for DCM. Not working for *.raw data where images are flipped and DMM data.
 % if < -1: Threshold is set as min(proj(:,:,[1 end])) + abs(raw_roi)*median(dark(:)). raw_roi=-1 defaults to min(proj(:,:,[1 end])) + 4*median(dark(:))
 raw_bin = 2; % projection binning factor: integer
-im_trafo =  'rot90(im,1)'; % string to be evaluated after reading data in the case the image is flipped/rotated/etc due to changes at the beamline, e.g. 'rot90(im)'
+im_trafo = '';% 'rot90(im,1)'; % string to be evaluated after reading data in the case the image is flipped/rotated/etc due to changes at the beamline, e.g. 'rot90(im)'
 % STITCHING/CROPPING only for scans without lateral movment. Legacy support
 par.crop_at_rot_axis = 0; % for recos of scans with excentric rotation axis but WITHOUT projection stitching
 par.stitch_projections = 0; % for 2 pi cans: stitch projection at rotation axis position. Recommended with phase retrieval to reduce artefacts. Standard absorption contrast data should work well without stitching. Subpixel stitching not supported (non-integer rotation axis position is rounded, less/no binning before reconstruction can be used to improve precision).
@@ -78,7 +78,7 @@ pixel_filter_threshold_flat = [0.02 0.005]; % Flat fields: threshold parameter f
 pixel_filter_threshold_proj = [0.02 0.005]; % Raw projection: threshold parameter for hot/dark pixel filter, for details see 'FilterPixel'
 pixel_filter_radius = [3 3]; % Increase only if blobs of zeros or other artefacts are expected. Can increase processing time heavily.
 ring_current_normalization = 1; % normalize flat fields and projections by ring current
-image_correlation.method = 'entropy';'ssim-ml';'median';'none';'ssim';'ssim-g';'std';'cov';'corr';'diff1-l1';'diff1-l2';'diff2-l1';'diff2-l2';'cross-entropy-12';'cross-entropy-21';'cross-entropy-x';
+image_correlation.method = 'ssim-ml';'entropy';'median';'none';'ssim';'ssim-g';'std';'cov';'corr';'diff1-l1';'diff1-l2';'diff2-l1';'diff2-l2';'cross-entropy-12';'cross-entropy-21';'cross-entropy-x';
 % Correlation of projections and flat fields. Essential for DCM data. Typically improves reconstruction quality of DMM data, too.
 % Available methods ('ssim-ml'/'entropy' usually work best):
 % 'none' : no correlation, for DPC
@@ -92,7 +92,7 @@ image_correlation.method = 'entropy';'ssim-ml';'median';'none';'ssim';'ssim-g';'
 % 'std' : standard deviation of proj over flat
 % 'diff1/2-l1/2': L1/L2-norm of anisotropic (diff1-l*) or isotropic (diff2-l*) difference of projections and flat fields
 % 'cross-entropy-*' : asymmetric (12,21) and symmetric (x) cross entropy
-image_correlation.force_calc = 1; % bool. force compuation of correlation even though a (previously computed) corrlation matrix exists
+image_correlation.force_calc = 0; % bool. force compuation of correlation even though a (previously computed) corrlation matrix exists
 image_correlation.num_flats = 3; % number of best maching flat fields used for correction
 image_correlation.area_width = [1 100];%[-100 1];% correlation area: index vector or relative/absolute position of [first pix, last pix], negative indexing is supported
 image_correlation.area_height = [0.2 0.8]; % correlation area: index vector or relative/absolute position of [first pix, last pix]
@@ -104,7 +104,7 @@ ring_filter.waveletfft_wname = 'db25';'db30'; % wavelet type, see 'FilterStripes
 ring_filter.waveletfft_sigma = 2.4; %  suppression factor for 'wavelet-fft'
 ring_filter.jm_median_width = 11; % multiple widths are applied consecutively, eg [3 11 21 31 39];
 strong_abs_thresh = 1; % if 1: does nothing, if < 1: flat-corrected values below threshold are set to one. Try with algebratic reco techniques.
-norm_sino = 1;
+norm_sino = 0; % can introduce sever artifacts
 %%% PHASE RETRIEVAL %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 phase_retrieval.apply = 0; % See 'PhaseFilter' for detailed description of parameters !
 phase_retrieval.apply_before = 0; % before stitching, interactive mode, etc. For phase-contrast data with an excentric rotation axis phase retrieval should be done afterwards. To find the rotataion axis position use this option in a first run, and then turn it of afterwards.

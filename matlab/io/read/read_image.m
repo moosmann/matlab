@@ -1,6 +1,6 @@
 function [im, tif_info] = read_image(filename, filetype, roi, tif_info, shape, dtype, trafo, tifftrafo)
 % Read 'tif', 'img', 'dar', 'ref', and 'edf' images and all formats that
-% are MATLAB's imread function can read without additional arguments than file 
+% are MATLAB's imread function can read without additional arguments than file
 % format.
 %
 % filename: string. Absolute filename.
@@ -8,7 +8,7 @@ function [im, tif_info] = read_image(filename, filetype, roi, tif_info, shape, d
 % trafo : string, default ''. string which will be evaluated on the read
 % image, e.g. 'rot90(im)'. Note that 'im' is the mandatory variable.
 %
-% Written by Julian Moosmann. Modified: 2018-10-16
+% Written by Julian Moosmann.
 %
 % [im, tif_info] = read_image(filename, filetype, roi, tif_info, shape, dtype, trafo)
 
@@ -56,52 +56,69 @@ switch lower( filetype )
             tif_info = imfinfo( filename );
         end
         if ~tifftrafo
-           tif_info.Orientation = 0; 
+            tif_info.Orientation = 0;
         end
         switch tif_info.Orientation
             case 0
                 im = imread( filename, 'tif', 'PixelRegion', {[1 tif_info.Height ], [1 tif_info.Width]} );
             case 1
-                x0 = 1;
-                x1 = tif_info.Height;
-                y0 = 1;
-                y1 = tif_info.Width;
-              
-                %% Implement horizontal ROI
-%                 if numel( roi ) > 3
-%                     error( 'Horizontal ROI not yet implemented yet' )
-%                 end
-%                 %im = rot90( imread( filename, 'tif', 'PixelRegion', {[x0 x1 ], [y0 y1]} ), 2);
-                %% MOD: 2019-10-04 Ximea camera
-%                   if numel( roi ) > 1
-%                     y0 = max( (tif_info.Width-roi(2)+1), 1 );
-%                     y1 = min( (tif_info.Width-roi(1)+1), tif_info.Width);
-%                 end
-%                 if numel( roi ) > 1
-%                     y0 = max( (tif_info.Width-roi(2)+1), 1 );
-%                     y1 = min( (tif_info.Width-roi(1)+1), tif_info.Width);
-%                 end
-                %im = fliplr( rot90( imread( filename, 'tif', 'PixelRegion', {[x0 x1 ], [y0 y1]} ), 1 ) );
                 
-                %% MOD: 2019-12-12
-                 if numel( roi ) > 1
-                    x0 = max( (tif_info.Height-roi(2)+1), 1 );
-                    x1 = min( (tif_info.Height-roi(1)+1), tif_info.Height);
+                %% MOD: 2020/08/21 for CCD
+                if tif_info.Height == tif_info.Width && tif_info.Width == 3056
+                    x0 = 1;
+                    x1 = tif_info.Height;
+                    y0 = 1;
+                    y1 = tif_info.Width;
+                    if numel( roi ) > 1
+                        x0 = max( (tif_info.Height-roi(2)+1), 1 );
+                        x1 = min( (tif_info.Height-roi(1)+1), tif_info.Height);                        
+                    end
+                    im = imread( filename, 'tif', 'PixelRegion', {[y0 y1], [x0 x1 ]} );
+                    im = flipud(im);
+                else
+                    x0 = 1;
+                    x1 = tif_info.Height;
+                    y0 = 1;
+                    y1 = tif_info.Width;
                     
-                 end
-                 if numel( roi ) == 4
-                    y0 = max( roi(3), 1);
-                    y1 = min( roi(4), tif_info.Width);
-                 end
-                im = rot90( imread( filename, 'tif', 'PixelRegion', {[x0 x1 ], [y0 y1]} ), -1 );
+                    %% Implement horizontal ROI
+                    %                 if numel( roi ) > 3
+                    %                     error( 'Horizontal ROI not yet implemented yet' )
+                    %                 end
+                    %                 %im = rot90( imread( filename, 'tif', 'PixelRegion', {[x0 x1 ], [y0 y1]} ), 2);
+                    %% MOD: 2019-10-04 Ximea camera
+                    %                   if numel( roi ) > 1
+                    %                     y0 = max( (tif_info.Width-roi(2)+1), 1 );
+                    %                     y1 = min( (tif_info.Width-roi(1)+1), tif_info.Width);
+                    %                 end
+                    %                 if numel( roi ) > 1
+                    %                     y0 = max( (tif_info.Width-roi(2)+1), 1 );
+                    %                     y1 = min( (tif_info.Width-roi(1)+1), tif_info.Width);
+                    %                 end
+                    %im = fliplr( rot90( imread( filename, 'tif', 'PixelRegion', {[x0 x1 ], [y0 y1]} ), 1 ) );
+                    
+                    %% MOD: 2019-12-12
+                    if numel( roi ) > 1
+                        x0 = max( (tif_info.Height-roi(2)+1), 1 );
+                        x1 = min( (tif_info.Height-roi(1)+1), tif_info.Height);
+                        
+                    end
+                    if numel( roi ) == 4
+                        y0 = max( roi(3), 1);
+                        y1 = min( roi(4), tif_info.Width);
+                    end
+                    
+                    
+                    im = rot90( imread( filename, 'tif', 'PixelRegion', {[x0 x1 ], [y0 y1]} ), -1 );
+                end
                 %im = flipud( rot90( imread( filename, 'tif', 'PixelRegion', {[x0 x1 ], [y0 y1]} ), -1 ) );
-                                
+                
             case 3
                 %% Check vert/hor ROI
-%                 x0 = 1;
-%                 x1 = tif_info.Width;
-%                 y0 = 1;
-%                 y1 = tif_info.Height;
+                %                 x0 = 1;
+                %                 x1 = tif_info.Width;
+                %                 y0 = 1;
+                %                 y1 = tif_info.Height;
                 switch numel( roi )
                     case 0
                         im = flipud( read_tif(filename, tif_info) );
