@@ -37,7 +37,9 @@ close all hidden % close all open windows
 
 
 %%% SCAN %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-scan_path = pwd;
+scan_path = ...%pwd;
+    '/asap3/petra3/gpfs/p05/2020/data/11008823/processed/nova004_pyrochroa_coccinea_a';
+    '/asap3/petra3/gpfs/p05/2020/data/11008823/processed/nova003_pentatomidae';
     '/asap3/petra3/gpfs/p07/2019/data/11006991/processed/hzg_ind_01_cork_a/';
     '/asap3/petra3/gpfs/p05/2020/data/11010107/processed/bmc05_v63l';
     '/asap3/petra3/gpfs/p05/2020/data/11010107/processed/bmc07_v67r';
@@ -129,7 +131,7 @@ par.use_cluster = 0; % if available: on MAXWELL nodes disp/nova/wga/wgs cluster 
 par.poolsize = 0.7; % number of workers used in a local parallel pool. if 0: use current config. if >= 1: absolute number. if 0 < poolsize < 1: relative amount of all cores to be used. if SLURM scheduling is available, a default number of workers is used.
 par.poolsize_gpu_limit_factor = 0.7; % Relative amount of GPU memory used for preprocessing during parloop. High values speed up Proprocessing, but increases out-of-memory failure
 tomo.astra_link_data = 1; % ASTRA data objects become references to Matlab arrays. Reduces memory issues.
-tomo.astra_gpu_index = []; % GPU Device index to use, Matlab notation: index starts from 1. default: [], uses all
+tomo.astra_gpu_index = [2 3 6]; % GPU Device index to use, Matlab notation: index starts from 1. default: [], uses all
 tomo.astra_reco_per_gpu = 1;
 %%% EXPERIMENTAL OR NOT YET IMPLEMENTED %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 write.uint8_segmented = 0; % experimental: threshold segmentaion for histograms with 2 distinct peaks: __/\_/\__
@@ -225,7 +227,7 @@ if ~isempty(write.parfolder)
 end
 
 % Save raw path to file for shell short cut
-filename = [userpath, filesep, 'experiments/p05/path_to_latest_raw'];
+filename = [userpath, filesep, 'path_to_raw'];
 fid = fopen( filename , 'w' );
 fprintf( fid, '%s', raw_path );
 fclose( fid );
@@ -254,7 +256,7 @@ for mm = 1:num_gpu
 end
 
 % Save scan path to file
-filename = [userpath, filesep, 'experiments/p05/path_to_latest_scan'];
+filename = [userpath, filesep, 'path_to_scan'];
 fid = fopen( filename , 'w' );
 fprintf( fid, '%s', scan_path );
 fclose( fid );
@@ -338,7 +340,7 @@ if write.reco
     reco_bin = write.reco_binning_factor; % alias for readablity
     CheckAndMakePath( reco_path, 0 )
     % Save reco path to file
-    filename = [userpath, filesep, 'experiments/p05/path_to_latest_reco'];
+    filename = [userpath, filesep, 'path_to_reco'];
     fid = fopen( filename , 'w' );
     fprintf( fid, '%s', reco_path );
     fclose( fid );
@@ -367,8 +369,14 @@ if tomo.slab_wise
     fprintf( ' \n number of slices in total : %u', im_shape_binned2 )
     fprintf( ' \n number of slices per slab : %u', num_slices_per_slab )
     fprintf( ' \n number of slabs : %u', num_slabs )
-    % Loop over slab    
-    for ll = 1:num_slabs
+    % Loop over slab
+    if exist('ll', 'var')
+        start_slab = ll;
+    else
+        start_slab = 1;
+    end
+    %% Slab loop
+    for ll = start_slab:num_slabs
         
         % Slab indices
         s0 = 1 + (ll - 1) * num_slices_per_slab;
@@ -406,11 +414,10 @@ if tomo.slab_wise
         %% ADJUST tomo struct: volume size and shape
         [tomo.vol_shape, tomo.vol_size] = volshape_volsize( proj, [], [] );
         %[tomo.vol_shape, tomo.vol_size] = volshape_volsize( proj, tomo.vol_shape, tomo.vol_size, tomo.rot_axis_offset, 0 );
-%        vol = astra_parallel3D( tomo, permute( proj, [3 1 2]) );
         vol = astra_parallel3D( tomo, permute( proj, [1 3 2]) );
 
-        parfor mm = 1:num_slices
-            % Save
+        % Save
+        parfor mm = 1:num_slices            
             filename = sprintf( '%s/%s', save_path, slab_sino_names_mat(mm,:));
             write32bitTIFfromSingle( filename, vol(:,:,mm) )
         end
