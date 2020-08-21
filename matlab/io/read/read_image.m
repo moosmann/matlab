@@ -5,8 +5,14 @@ function [im, tif_info] = read_image(filename, filetype, roi, tif_info, shape, d
 %
 % filename: string. Absolute filename.
 % filetype: string. Suffix of image file format. Default: ''
+% roi : Region of interest
+% tif_info : image info struct
+% shape : required for raw images
+% dtype : required for raw images
 % trafo : string, default ''. string which will be evaluated on the read
-% image, e.g. 'rot90(im)'. Note that 'im' is the mandatory variable.
+%   image, e.g. 'rot90(im)'. Note that 'im' is the mandatory variable.
+% tifftrafo : use tiff orientagion tag to determine the image
+%   transformation.
 %
 % Written by Julian Moosmann.
 %
