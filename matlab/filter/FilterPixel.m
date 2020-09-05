@@ -132,7 +132,8 @@ end
 
 % Replace Infs, NaNs, and dead pixel before median filtering
 if filter_Inf || filter_NaN || filter_dead_pixel
-    im(mask) = mean2( im(~mask) );
+    im_mean2 = mean2( im(~mask) );
+    im(mask) = im_mean2;
 end
 
 % Median filtered image

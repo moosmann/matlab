@@ -113,24 +113,45 @@ switch lower( filetype )
                         y0 = max( roi(3), 1);
                         y1 = min( roi(4), tif_info.Width);
                     end
-                    
-                    
                     im = rot90( imread( filename, 'tif', 'PixelRegion', {[x0 x1 ], [y0 y1]} ), -1 );
                 end
-                %im = flipud( rot90( imread( filename, 'tif', 'PixelRegion', {[x0 x1 ], [y0 y1]} ), -1 ) );
-                
             case 3
-                %% Check vert/hor ROI
-                %                 x0 = 1;
+                % READ TIFF about twice as fast as imread
+                %                 switch numel( roi )
+                %                     case 0
+                %                         im = flipud( read_tif(filename, tif_info) );
+                %                     case 2
+                %                         im = flipud( read_tif(filename, tif_info, roi ) );
+                %                 end
+
+                
+                
+                %% MOD: 2020-09-03 Ximea sCMOS
+                x0 = 1;
+                x1 = tif_info.Height;
                 %                 x1 = tif_info.Width;
-                %                 y0 = 1;
+                y0 = 1;
+                y1 = tif_info.Width;
                 %                 y1 = tif_info.Height;
-                switch numel( roi )
-                    case 0
-                        im = flipud( read_tif(filename, tif_info) );
-                    case 2
-                        im = flipud( read_tif(filename, tif_info, roi ) );
+                if numel( roi ) > 1
+                    x0 = max( (tif_info.Height-roi(2)+1), 1 );
+                    x1 = min( (tif_info.Height-roi(1)+1), tif_info.Height);
                 end
+                if numel( roi ) == 4
+                    y0 = max( roi(3), 1);
+                    y1 = min( roi(4), tif_info.Width);
+                end
+                try
+                    im = rot90( imread( filename, 'tif', 'PixelRegion', {[x0 x1 ], [y0 y1]} ), 1 );
+                catch
+                    im = zeros([y1 - y0 + 1, x1 - x0 + 1], 'uint16');
+                end
+                
+
+                
+                
+                
+                
                 
             case 4 % Added 2018-11-22, modified 2019-01-30
                 %% Check left/right orientation
@@ -216,7 +237,7 @@ switch lower( filetype )
         %%rot90 for FLI but not for KIT
         if shape(1) > shape(2)
             im = flipud( read_raw( filename, shape, dtype, roi ) );
-            % probably breaks for earlier scans with KIT camera saving raw format, March 2018
+            % probably breaks suport for previou scans with KIT camera saving raw format, March 2018
             %im = ( read_raw( filename, shape, dtype, roi ) );
         else
             % roi for raw is horizontal roi not verticall!

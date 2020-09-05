@@ -1,4 +1,12 @@
 function [im, tiff_info] = read_tif( filename, tiff_info, vert_roi )
+% Read tiff image using low-level file read. Twice as fast MATLAB's imread.
+%
+% ARG:
+% filename : str
+% tiff_info : tiff info struct provided by imfinfo
+% vert_roi : 2-vector of integers defining the vertical ROI
+%
+% Written by J. Moosmann
 
 %% Defaults %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 if nargin < 1
