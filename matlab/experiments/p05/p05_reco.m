@@ -37,9 +37,9 @@ dbstop if error
 
 % !!! FAST RECO MODE PARAMTERS !!! OVERWRITES SOME PARAMETERS SET BELOW !!!
 fast_reco.run = 0;
-fast_reco.raw_bin = 4;
+fast_reco.raw_bin = 8;
 fast_reco.raw_roi = [0.4 0.6];
-fast_reco.proj_range = 4;
+fast_reco.proj_range = 8;
 fast_reco.ref_range = 10;
 % END OF FAST MODE PARAMTER SECTION %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -73,6 +73,7 @@ par.stitch_method = 'sine'; 'step';'linear'; %  ! CHECK correlation area !
 % 'sine' : sinusoidal interpolation of overlap region
 proj_range = []; % range of projections to be used (from all found, if empty or 1: all, if scalar: stride, if range: start:incr:end
 ref_range = []; % range of flat fields to be used (from all found), if empty or 1: all. if scalar: stride, if range: start:incr:end
+wo_crop = 1;
 pixel_filter_threshold_dark = [0.01 0.005]; % Dark fields: threshold parameter for hot/dark pixel filter, for details see 'FilterPixel'
 pixel_filter_threshold_flat = [0.02 0.005]; % Flat fields: threshold parameter for hot/dark pixel filter, for details see 'FilterPixel'
 pixel_filter_threshold_proj = [0.02 0.005]; % Raw projection: threshold parameter for hot/dark pixel filter, for details see 'FilterPixel'
@@ -120,7 +121,7 @@ dpc_bin = 4;
 tomo.run = 1; % run tomographic reconstruction
 tomo.run_interactive_mode = 1; % if tomo.run = 0, use to determine rot axis positions without processing the full tomogram;
 tomo.reco_mode = '3D';'slice';  % slice-wise or full 3D backprojection. 'slice': volume must be centered at origin & no support of rotation axis tilt, reco binning, save compressed
-tomo.vol_size = [];%[];% 6-component vector [xmin xmax ymin ymax zmin zmax], for excentric rot axis pos / extended FoV;. if empty, volume is centerd within tomo.vol_shape. unit voxel size is assumed. if smaller than 10 values are interpreted as relative size w.r.t. the detector size. Take care bout minus signs! Note that if empty vol_size is dependent on the rotation axis position.
+tomo.vol_size = [];[-1.5 1.5 -1.5 1.5 -0.5 0.5];% 6-component vector [xmin xmax ymin ymax zmin zmax], for excentric rot axis pos / extended FoV;. if empty, volume is centerd within tomo.vol_shape. unit voxel size is assumed. if smaller than 10 values are interpreted as relative size w.r.t. the detector size. Take care bout minus signs! Note that if empty vol_size is dependent on the rotation axis position.
 tomo.vol_shape = []; %[1 1 1] shape (# voxels) of reconstruction volume. used for excentric rot axis pos. if empty, inferred from 'tomo.vol_size'. in absolute numbers of voxels or in relative number w.r.t. the default volume which is given by the detector width and height.
 tomo.rot_angle_full_range = [];% 2 * pi ;[]; % in radians. if []: full angle of rotation including additional increment, or array of angles. if empty full rotation angles is determined automatically to pi or 2 pi
 tomo.rot_angle_offset = pi; % global rotation of reconstructed volume
@@ -1274,7 +1275,7 @@ if ~read_flatcor && ~read_sino
     roi_proj = zeros( floor( numel( flat_corr_area1 ) / raw_bin ), floor( numel( flat_corr_area2 ) / raw_bin ) , num_proj_used, 'single');
     
     % Lateral shift indices
-    if isscalar( offset_shift ) || dpc_reco
+    if wo_crop || isscalar( offset_shift ) || dpc_reco
         x0 = ones( 1, num_proj_used );
         x1 = im_shape_raw(1) * x0;
     else
@@ -1878,13 +1879,16 @@ if exist( 'pixel_scaling', 'var' ) && ~isempty( pixel_scaling )
 end
 
 %% TOMOGRAPHY: interactive mode to find rotation axis offset and tilt %%%%%
+if wo_crop
+    tomo.offset_shift = SubtractMean(offset_shift) / raw_bin;
+end
 if dpc_reco
     tomo.vol_shape = [];
     tomo.vol_size = [];
     [tomo.vol_shape, tomo.vol_size] = volshape_volsize( dpc_att, tomo.vol_shape, tomo.vol_size, tomo.rot_axis_offset, verbose );
     [tomo, angles, tint] = interactive_mode_rot_axis( par, logpar, phase_retrieval, tomo, write, interactive_mode, dpc_att, angles);
 else
-    [tomo.vol_shape, tomo.vol_size] = volshape_volsize( proj, tomo.vol_shape, tomo.vol_size, tomo.rot_axis_offset, verbose );
+    [tomo.vol_shape, tomo.vol_size] = volshape_volsize( proj, tomo.vol_shape, tomo.vol_size, tomo.rot_axis_offset, verbose );    
     [tomo, angles, tint] = interactive_mode_rot_axis( par, logpar, phase_retrieval, tomo, write, interactive_mode, proj, angles);
 end
 
@@ -2221,6 +2225,12 @@ if tomo.run
         end
         
         % Backprojection
+        if wo_crop
+            
+        end
+        if wo_crop
+           rot_axis_offset_reco  = SubtractMean(offset_shift) / raw_bin;
+        end
         tomo.rot_axis_offset = rot_axis_offset_reco;
         switch lower( tomo.reco_mode )
             case '3d'
