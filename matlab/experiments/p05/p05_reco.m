@@ -62,7 +62,7 @@ raw_roi = []; % vertical and/or horizontal ROI; (1,1) coordinate = top left pixe
 % [y0 y1 x0 x1]: vertical + horzontal ROI, each ROI as above
 % if -1: auto roi, selects vertical ROI automatically. Use only for DCM. Not working for *.raw data where images are flipped and DMM data.
 % if < -1: Threshold is set as min(proj(:,:,[1 end])) + abs(raw_roi)*median(dark(:)). raw_roi=-1 defaults to min(proj(:,:,[1 end])) + 4*median(dark(:))
-raw_bin = 6; % projection binning factor: integer
+raw_bin = 4; % projection binning factor: integer
 im_trafo = '';% 'rot90(im,1)'; % string to be evaluated after reading data in the case the image is flipped/rotated/etc due to changes at the beamline, e.g. 'rot90(im)'
 % STITCHING/CROPPING only for scans without lateral movment. Legacy support
 par.crop_at_rot_axis = 0; % for recos of scans with excentric rotation axis but WITHOUT projection stitching
@@ -74,6 +74,7 @@ par.stitch_method = 'sine'; 'step';'linear'; %  ! CHECK correlation area !
 proj_range = []; % range of projections to be used (from all found, if empty or 1: all, if scalar: stride, if range: start:incr:end
 ref_range = []; % range of flat fields to be used (from all found), if empty or 1: all. if scalar: stride, if range: start:incr:end
 wo_crop = 1;
+virt_s_pos = 1;
 pixel_filter_threshold_dark = [0.01 0.005]; % Dark fields: threshold parameter for hot/dark pixel filter, for details see 'FilterPixel'
 pixel_filter_threshold_flat = [0.02 0.005]; % Flat fields: threshold parameter for hot/dark pixel filter, for details see 'FilterPixel'
 pixel_filter_threshold_proj = [0.02 0.005]; % Raw projection: threshold parameter for hot/dark pixel filter, for details see 'FilterPixel'
@@ -630,6 +631,15 @@ if ~read_flatcor && ~read_sino
     end
     eff_pixel_size_binned = raw_bin * eff_pixel_size;
     exposure_time = logpar.exposure_time;
+    if isfield( logpar, 's_in_pos' )
+        s_in_pos_mm = logpar.s_in_pos;
+    else
+        s_in_pos_mm = [];
+    end
+    if isfield( logpar, 'pos_s_pos_x' ) && isfield( logpar, 'pos_s_pos_y' )
+        pos_s_pos_x_mm = logpar.pos_s_pos_x;
+        pos_s_pos_y_mm = logpar.pos_s_pos_y;
+    end
     if isempty( energy )
         if isfield( logpar, 'energy')
             energy = logpar.energy;
@@ -755,7 +765,9 @@ if ~read_flatcor && ~read_sino
             if std( offset_shift_mm ) > 10 * eps
                 offset_shift_mm = offset_shift_mm(proj_range);
                 offset_shift = 1e-3 / eff_pixel_size * offset_shift_mm;
-                offset_shift = 1 + offset_shift - min( offset_shift(:) ) ;
+                s_in_pos = 1e-3 / eff_pixel_size * s_in_pos_mm;
+                offset_shift_min = min( offset_shift(:) ) ;
+                offset_shift = 1 + offset_shift - offset_shift_min;
                 
                 % Overwrite lateral shift if offset shift is provided as parameter
                 if isequal( std( offset_shift ), 0 ) && ~isempty( tomo.rot_axis_offset_shift )
@@ -1879,8 +1891,9 @@ if exist( 'pixel_scaling', 'var' ) && ~isempty( pixel_scaling )
 end
 
 %% TOMOGRAPHY: interactive mode to find rotation axis offset and tilt %%%%%
-if wo_crop
-    tomo.offset_shift = SubtractMean(offset_shift) / raw_bin;
+if wo_crop    
+    rot_axis_offset_reco = 1 / raw_bin * SubtractMean(offset_shift);
+    tomo.offset_shift = rot_axis_offset_reco;
 end
 if dpc_reco
     tomo.vol_shape = [];
@@ -1888,7 +1901,18 @@ if dpc_reco
     [tomo.vol_shape, tomo.vol_size] = volshape_volsize( dpc_att, tomo.vol_shape, tomo.vol_size, tomo.rot_axis_offset, verbose );
     [tomo, angles, tint] = interactive_mode_rot_axis( par, logpar, phase_retrieval, tomo, write, interactive_mode, dpc_att, angles);
 else
-    [tomo.vol_shape, tomo.vol_size] = volshape_volsize( proj, tomo.vol_shape, tomo.vol_size, tomo.rot_axis_offset, verbose );    
+    [tomo.vol_shape, tomo.vol_size] = volshape_volsize( proj, tomo.vol_shape, tomo.vol_size, tomo.rot_axis_offset, verbose );
+    if virt_s_pos
+        pos_s_pos_x = pos_s_pos_x_mm / 1000 / eff_pixel_size_binned;
+        pos_s_pos_y = pos_s_pos_y_mm / 1000 / eff_pixel_size_binned;
+        fprintf( '\n pos_s_pos_x : %f mm = %f pixel', pos_s_pos_x_mm, pos_s_pos_x )
+        fprintf( '\n pos_s_pos_y : %f mm = %f pixel', pos_s_pos_y_mm, pos_s_pos_y )
+        sh = -round( pos_s_pos_y );
+        sv = -round( pos_s_pos_x );
+        tomo.vol_size = tomo.vol_size + [ sh, sh, sv, sv, 0, 0];
+        fprintf( '\n tomo.vol_size shifted : ')
+        fprintf( ' %.1f', tomo.vol_size )
+    end
     [tomo, angles, tint] = interactive_mode_rot_axis( par, logpar, phase_retrieval, tomo, write, interactive_mode, proj, angles);
 end
 
@@ -2225,12 +2249,9 @@ if tomo.run
         end
         
         % Backprojection
-        if wo_crop
-            
-        end
-        if wo_crop
-           rot_axis_offset_reco  = SubtractMean(offset_shift) / raw_bin;
-        end
+%         if wo_crop
+%            rot_axis_offset_reco  = SubtractMean(offset_shift) / raw_bin;
+%         end
         tomo.rot_axis_offset = rot_axis_offset_reco;
         switch lower( tomo.reco_mode )
             case '3d'

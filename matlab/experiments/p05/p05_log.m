@@ -106,6 +106,9 @@ par.camera_dist = '%f';
 par.proj_prefix = '%s';
 par.exposure_time = '%f';
 par.off_axes = '%u';
+par.s_in_pos = '%f';
+par.pos_s_pos_x = '%f';
+par.pos_s_pos_y = '%f';
 
 %% Compare possible paramters with strings from log file
 fn = fieldnames( par );
