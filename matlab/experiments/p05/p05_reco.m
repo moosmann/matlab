@@ -73,8 +73,8 @@ par.stitch_method = 'sine'; 'step';'linear'; %  ! CHECK correlation area !
 % 'sine' : sinusoidal interpolation of overlap region
 proj_range = []; % range of projections to be used (from all found, if empty or 1: all, if scalar: stride, if range: start:incr:end
 ref_range = []; % range of flat fields to be used (from all found), if empty or 1: all. if scalar: stride, if range: start:incr:end
-wo_crop = 1;
-virt_s_pos = 1;
+wo_crop = 1; % Do not crop images to account for random lateral shift
+virt_s_pos = 1; % Correct sample position in reconsructed volume if virtual sample position motors are used
 pixel_filter_threshold_dark = [0.01 0.005]; % Dark fields: threshold parameter for hot/dark pixel filter, for details see 'FilterPixel'
 pixel_filter_threshold_flat = [0.02 0.005]; % Flat fields: threshold parameter for hot/dark pixel filter, for details see 'FilterPixel'
 pixel_filter_threshold_proj = [0.02 0.005]; % Raw projection: threshold parameter for hot/dark pixel filter, for details see 'FilterPixel'
