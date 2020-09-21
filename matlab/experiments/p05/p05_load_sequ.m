@@ -100,14 +100,17 @@ drawnow
 %% Read in load sequence
 t = toc;
 fprintf( '\nRead in %u tomograms:', numel( steps ) )
-for nn = 1:numel( steps )
+for ss = 1:numel( steps )
+    nn = steps(ss);
     fprintf( '\n %2u : %s.', nn, struct_scans(nn).name)
     p = [proc_path filesep struct_scans(nn).name reco_sub];
     struct_slices = dir( [p filesep '*.tif']);
     num_slices = numel( struct_slices );
-    parfor mm = 1:num_slices
+    parfor mm = 1:num_slices        
         impath = [p filesep struct_slices(mm).name];
-        vol(:,:,mm,nn) = conv8bit( imread( impath ) );
+        im = conv8bit( imread( impath ) ) ;
+        im = rot90(im);
+        vol(:,:,mm,ss) = im;
     end
     fprintf(  ' Slices : %u.', num_slices )
     pause(0.01)
@@ -391,7 +394,7 @@ t = toc;
 tif_path = [scan_path filesep 'tif'];
 CheckAndMakePath( tif_path )
 for mm = 1:size( vol_reg, 4 )
-    filename = sprintf( '%s/%s_loadSequ_%02u.tif', tif_path, scan_name, mm );
+    filename = sprintf( '%s/%s_loadSequ_z_%02u.tif', tif_path, scan_name, mm );
     for nn = 1:size( vol_reg, 3 )
         im = squeeze( vol_reg(:,:,nn,mm) );
         if nn == 1
@@ -409,7 +412,7 @@ t = toc;
 tif_path = [scan_path filesep 'tif'];
 CheckAndMakePath( tif_path )
 for mm = 1:size( vol_reg, 4 )
-    filename = sprintf( '%s/%s_loadSequ_%02u.tif', tif_path, scan_name, mm );
+    filename = sprintf( '%s/%s_loadSequ_x_%02u.tif', tif_path, scan_name, mm );
     for nn = 1:size( vol_reg, 3 )
         im = squeeze( vol_reg(:,:,nn,mm) );
         if nn == 1

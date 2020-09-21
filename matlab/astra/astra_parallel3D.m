@@ -64,8 +64,14 @@ MinConstraint = assign_from_struct( tomo, 'MinConstraint', [] );
 MaxConstraint = assign_from_struct( tomo, 'MaxConstraint', [] );
 gpu_index = assign_from_struct( tomo, 'astra_gpu_index', [] );
 link_data = assign_from_struct( tomo, 'astra_link_data', 0 );
+offset_shift = assign_from_struct( tomo, 'offset_shift', 0 );
+
  
 %% Main %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+rotation_axis_offset = rotation_axis_offset + offset_shift;
+
 
 angles = double( angles );
 %rotation_axis_offset = double( rotation_axis_offset );

@@ -21,7 +21,7 @@ vol_shape = assign_from_struct( tomo, 'vol_shape', [] );
 vol_size = assign_from_struct( tomo, 'vol_size', [] );
 offset = double( assign_from_struct( tomo, 'offset', 0 ));
 tilt = assign_from_struct( tomo, 'tilt', -0.005:0.001:0.005 );
-offset_shift = assign_from_struct( tomo, 'offset_shift', 0 );
+%offset_shift = assign_from_struct( tomo, 'offset_shift', 0 );
 lamino = assign_from_struct( tomo, 'lamino', 0 );
 fixed_tilt = assign_from_struct( tomo, 'fixed_tilt', 0 );
 take_neg_log = assign_from_struct( tomo, 'take_neg_log', 1 );
@@ -103,7 +103,7 @@ for nn = 1:numel(reco_metric)
     reco_metric(nn).val = zeros( numel(tilt), 1);
 end
 
-tomo.rot_axis_offset = offset + offset_shift + eps;
+%tomo.rot_axis_offset = offset + offset_shift + eps;
 
 % Backprojection
 for nn = 1:numel( tilt )

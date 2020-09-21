@@ -90,7 +90,7 @@ end
 %% Create template %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % Read top and bottom parts from files
-p = [userpath '/experiments/p05/'];
+p = [userpath '/matlab/experiments/p05/'];
 top = fileread( sprintf('%s%s', p, 'reco_loop_template_top.m' ) );
 middle = fileread( sprintf('%s%s', p, 'reco_loop_template_middle.m' ) );
 middle_2 = fileread( sprintf('%s%s', p, 'reco_loop_template_middle_2.m' ) );
@@ -106,7 +106,7 @@ fprintf(fid, 'Created on %s by %s\n', date, getenv('USER') );
 fprintf(fid, '\n%s', middle);
 
 % Paramter set
-fidrec = fopen( [userpath '/experiments/p05/p05_reco.m'], 'r' );
+fidrec = fopen( [userpath '/matlab/experiments/p05/p05_reco.m'], 'r' );
 writetag = 0;
 while 1
     c = textscan(fidrec,'%s',1, 'Delimiter', {'\n'});

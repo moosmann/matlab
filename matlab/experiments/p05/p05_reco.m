@@ -51,18 +51,18 @@ read_flatcor_trafo = @(im) im; %fliplr( im ); % anonymous function applied to th
 read_sino = 0; % read preprocessed sinograms. CHECK if negative log has to be taken!
 read_sino_folder = ''; % subfolder to scan path
 read_sino_trafo = @(x) (x);%rot90(x); % anonymous function applied to the image which is read e.g. @(x) rot90(x)
-energy = []; % in eV! if empty: read from log file
+energy = 33000;[]; % in eV! if empty: read from log file
 sample_detector_distance = []; % in m. if empty: read from log file
-eff_pixel_size = []; % in m. if empty: read from log lfile. effective pixel size =  detector pixel size / magnification
-pixel_scaling =  []; % to account for beam divergence if pixel size was determined (via MTF) at the wrong distance
+eff_pixel_size = 1.07e-6;[]; % in m. if empty: read from log lfile. effective pixel size =  detector pixel size / magnification
+pixel_scaling = []; % to account for beam divergence if pixel size was determined (via MTF) at the wrong distance
 %%% PREPROC ESSING %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+raw_bin = 2; % projection binning factor: integer
 raw_roi = []; % vertical and/or horizontal ROI; (1,1) coordinate = top left pixel; supports absolute, relative, negative, and mixed indexing.
 % []: use full image;
 % [y0 y1]: vertical ROI, skips first raw_roi(1)-1 lines, reads until raw_roi(2); if raw_roi(2) < 0 reads until end - |raw_roi(2)|; relative indexing similar.
 % [y0 y1 x0 x1]: vertical + horzontal ROI, each ROI as above
 % if -1: auto roi, selects vertical ROI automatically. Use only for DCM. Not working for *.raw data where images are flipped and DMM data.
 % if < -1: Threshold is set as min(proj(:,:,[1 end])) + abs(raw_roi)*median(dark(:)). raw_roi=-1 defaults to min(proj(:,:,[1 end])) + 4*median(dark(:))
-raw_bin = 4; % projection binning factor: integer
 im_trafo = '';% 'rot90(im,1)'; % string to be evaluated after reading data in the case the image is flipped/rotated/etc due to changes at the beamline, e.g. 'rot90(im)'
 % STITCHING/CROPPING only for scans without lateral movment. Legacy support
 par.crop_at_rot_axis = 0; % for recos of scans with excentric rotation axis but WITHOUT projection stitching
@@ -74,12 +74,12 @@ par.stitch_method = 'sine'; 'step';'linear'; %  ! CHECK correlation area !
 proj_range = []; % range of projections to be used (from all found, if empty or 1: all, if scalar: stride, if range: start:incr:end
 ref_range = []; % range of flat fields to be used (from all found), if empty or 1: all. if scalar: stride, if range: start:incr:end
 wo_crop = 1; % Do not crop images to account for random lateral shift
-virt_s_pos = 1; % Correct sample position in reconsructed volume if virtual sample position motors are used
+virt_s_pos = 0; % Correct sample position in reconsructed volume if virtual sample position motors are used
 pixel_filter_threshold_dark = [0.01 0.005]; % Dark fields: threshold parameter for hot/dark pixel filter, for details see 'FilterPixel'
 pixel_filter_threshold_flat = [0.02 0.005]; % Flat fields: threshold parameter for hot/dark pixel filter, for details see 'FilterPixel'
 pixel_filter_threshold_proj = [0.02 0.005]; % Raw projection: threshold parameter for hot/dark pixel filter, for details see 'FilterPixel'
-pixel_filter_radius = [3 3]; % Increase only if blobs of zeros or other artefacts are expected. Can increase processing time heavily.
-ring_current_normalization = 1; % normalize flat fields and projections by ring current
+pixel_filter_radius = [5 5]; % Increase only if blobs of zeros or other artefacts are expected. Can increase processing time heavily.
+ring_current_normalization = 0; % normalize flat fields and projections by ring current
 image_correlation.method = 'ssim-ml';'entropy';'median';'none';'ssim';'ssim-g';'std';'cov';'corr';'diff1-l1';'diff1-l2';'diff2-l1';'diff2-l2';'cross-entropy-12';'cross-entropy-21';'cross-entropy-x';
 % Correlation of projections and flat fields. Essential for DCM data. Typically improves reconstruction quality of DMM data, too.
 % Available methods ('ssim-ml'/'entropy' usually work best):
@@ -97,7 +97,7 @@ image_correlation.method = 'ssim-ml';'entropy';'median';'none';'ssim';'ssim-g';'
 image_correlation.force_calc = 0; % bool. force compuation of correlation even though a (previously computed) corrlation matrix exists
 image_correlation.num_flats = 3; % number of best maching flat fields used for correction
 image_correlation.area_width = [1 100];%[-100 1];% correlation area: index vector or relative/absolute position of [first pix, last pix], negative indexing is supported
-image_correlation.area_height = [0.2 0.8]; % correlation area: index vector or relative/absolute position of [first pix, last pix]
+image_correlation.area_height = [0.6 0.9]; % correlation area: index vector or relative/absolute position of [first pix, last pix]
 ring_filter.apply = 0; % ring artifact filter (use only for scans without lateral sample movement)
 ring_filter.apply_before_stitching = 0; % ! Consider when phase retrieval is applied !
 ring_filter.method = 'jm'; 'wavelet-fft';
@@ -122,7 +122,7 @@ dpc_bin = 4;
 tomo.run = 1; % run tomographic reconstruction
 tomo.run_interactive_mode = 1; % if tomo.run = 0, use to determine rot axis positions without processing the full tomogram;
 tomo.reco_mode = '3D';'slice';  % slice-wise or full 3D backprojection. 'slice': volume must be centered at origin & no support of rotation axis tilt, reco binning, save compressed
-tomo.vol_size = [];[-1.5 1.5 -1.5 1.5 -0.5 0.5];% 6-component vector [xmin xmax ymin ymax zmin zmax], for excentric rot axis pos / extended FoV;. if empty, volume is centerd within tomo.vol_shape. unit voxel size is assumed. if smaller than 10 values are interpreted as relative size w.r.t. the detector size. Take care bout minus signs! Note that if empty vol_size is dependent on the rotation axis position.
+tomo.vol_size = [];%[-1.5 1.5 -1.5 1.5 -0.5 0.5];% 6-component vector [xmin xmax ymin ymax zmin zmax], for excentric rot axis pos / extended FoV;. if empty, volume is centerd within tomo.vol_shape. unit voxel size is assumed. if smaller than 10 values are interpreted as relative size w.r.t. the detector size. Take care bout minus signs! Note that if empty vol_size is dependent on the rotation axis position.
 tomo.vol_shape = []; %[1 1 1] shape (# voxels) of reconstruction volume. used for excentric rot axis pos. if empty, inferred from 'tomo.vol_size'. in absolute numbers of voxels or in relative number w.r.t. the default volume which is given by the detector width and height.
 tomo.rot_angle_full_range = [];% 2 * pi ;[]; % in radians. if []: full angle of rotation including additional increment, or array of angles. if empty full rotation angles is determined automatically to pi or 2 pi
 tomo.rot_angle_offset = pi; % global rotation of reconstructed volume
@@ -143,22 +143,22 @@ tomo.butterworth_filter_order = 1;
 tomo.butterworth_filter_frequ_cutoff = 0.9;
 tomo.astra_pixel_size = 1; % detector pixel size for reconstruction: if different from one 'tomo.vol_size' must to be ajusted, too!
 tomo.take_neg_log = []; % take negative logarithm. if empty, use 1 for attenuation contrast, 0 for phase contrast
-tomo.algorithm = 'fbp';'sirt'; 'cgls';'sart';'em';'fbp-astra'; % SART/EM only work for 3D reco mode
-tomo.iterations = 40; % for iterateive algorithms: 'sirt', 'cgls', 'sart', 'em'
+tomo.algorithm =  'fbp';'cgls';'sirt';'sart';'em';'fbp-astra'; % SART/EM only work for 3D reco mode
+tomo.iterations = 50; % for iterateive algorithms: 'sirt', 'cgls', 'sart', 'em'
 tomo.MinConstraint = []; % sirt3D/sirt2d/sart2d only. If specified, all values below MinConstraint will be set to MinConstraint. This can be used to enforce non-negative reconstructions, for example.
 tomo.MaxConstraint = []; % sirt3D/sirt2d/sart2d only. If specified, all values above MaxConstraint will be set to MaxConstraint.
 %%% OUTPUT %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 write.path = ''; %'/gpfs/petra3/scratch/moosmanj'; % absolute path were output data will be stored. !!overwrites the write.to_scratch flag. if empty uses the beamtime directory and either 'processed' or 'scratch_cc'
-write.to_scratch = 0; % write to 'scratch_cc' instead of 'processed'
+write.to_scratch = 1; % write to 'scratch_cc' instead of 'processed'
 write.deleteFiles = 0; % delete files already existing in output folders. Useful if number or names of files differ when reprocessing.
 write.beamtimeID = ''; % string (regexp),typically beamtime ID, mandatory if 'write.deleteFiles' is true (safety check)
 write.scan_name_appendix = ''; % appendix to the output folder name which defaults to the scan name
-write.parfolder = '';% parent folder to 'reco', 'sino', 'phase', and 'flat_corrected'
+write.parfolder = '';% sprintf( '%s%04u', tomo.algorithm, tomo.iterations); '';% parent folder to 'reco', 'sino', 'phase', and 'flat_corrected'
 write.subfolder_flatcor = ''; % subfolder in 'flat_corrected'
 write.subfolder_phase_map = ''; % subfolder in 'phase_map'
 write.subfolder_sino = ''; % subfolder in 'sino'
 write.subfolder_reco = ''; % subfolder in 'reco'
-write.flatcor = 0; % save preprocessed flat corrected projections
+write.flatcor = 1; % save preprocessed flat corrected projections
 write.phase_map = 0; % save phase maps (if phase retrieval is not 0)
 write.sino = 0; % save sinograms (after preprocessing & before FBP filtering and phase retrieval)
 write.phase_sino = 0; % save sinograms of phase maps
@@ -190,7 +190,7 @@ interactive_mode.lamino = 0; % find laminography tilt instead camera tilt
 interactive_mode.angles = 0; % reconstruct slices with different scalings of angles
 interactive_mode.angle_scaling_default_search_range = []; % if empty: use a variaton of -/+5 * (angle increment / maximum angle)
 interactive_mode.slice_number = 0.5; % default slice number. if in [0,1): relative, if in (1, N]: absolute
-interactive_mode.phase_retrieval = 1; % Interactive retrieval to determine regularization parameter
+interactive_mode.phase_retrieval = 0; % Interactive retrieval to determine regularization parameter
 interactive_mode.phase_retrieval_default_search_range = []; % if empty: asks for search range when entering interactive mode, otherwise directly start with given search range
 %%% HARDWARE / SOFTWARE %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 par.use_cluster = 0; % if available: on MAXWELL nodes disp/nova/wga/wgs cluster computation can be used. Recommended only for large data sets since parpool creation and data transfer implies a lot of overhead.
@@ -832,7 +832,7 @@ if ~read_flatcor && ~read_sino
                 end
                 
                 % Plot offset shift%
-                if par.visual_output
+                if par.visual_output && std( scan_position ) ~= 0
                     f = figure( 'Name', 'rotation axis offset shift', 'WindowState', window_state );
                     
                     yyaxis left
@@ -1289,10 +1289,10 @@ if ~read_flatcor && ~read_sino
     % Lateral shift indices
     if wo_crop || isscalar( offset_shift ) || dpc_reco
         x0 = ones( 1, num_proj_used );
-        x1 = im_shape_raw(1) * x0;
+        x1 = im_shape_roi(1) * x0;
     else
         x0 = offset_shift';
-        x1 = x0 + im_shape_raw(1) - max( x0 );
+        x1 = x0 + im_shape_roi(1) - max( x0 );
     end
     
     % Preallocation
@@ -1356,10 +1356,7 @@ if ~read_flatcor && ~read_sino
     if ~isempty( scan_position )
         scan_position(~projs_to_use) = [];
     end
-    
-    % adust scan positon becaus of cropping
-    %scan_position0 = scan_position;
-    %scan_position = scan_position + sign( scan_position ) * ( im_shape_binned1 - im_shape_cropbin1 );    
+
     tomo.scan_position = scan_position;
     
     raw_min = min( proj(:) );
@@ -1523,23 +1520,32 @@ if ~read_flatcor && ~read_sino
         imsc1( FilterOutlier( proj(:,:,1), 0.005 ) )
         xticks([])
         yticks([])
-        title(sprintf('intensity: first proj'))
+        title(sprintf('intensity: turn 1, first proj'))
         colorbar
         axis equal tight
         
         subplot(2,3,5)
-        imsc1( FilterOutlier( proj(:,:,round(size(proj,3)/2)), 0.005 ) )
+        if exist( 'scan_position_index', 'var' )
+            ind1 = 1:size(proj, 3);
+            ind1 = ind1( scan_position_index == 1 );
+            ind_mid = ind1(round(numel(ind1)/2));
+            ind_last = ind1(end);
+        else
+            ind_mid = round(size(proj,3)/2);
+            ind_last = size( proj, 3);
+        end
+        imsc1( FilterOutlier( proj(:,:,ind_mid), 0.005 ) )
         xticks([])
         yticks([])
-        title(sprintf('intensity: middle proj'))
+        title(sprintf('intensity: turn 1, middle proj %u', ind_mid))
         colorbar
         axis equal tight
         
         subplot(2,3,6)
-        imsc1( FilterOutlier( proj(:,:,end), 0.005 ) )
+        imsc1( FilterOutlier( proj(:,:,ind_last), 0.005 ) )
         xticks([])
         yticks([])
-        title(sprintf('intensity: last proj'))
+        title(sprintf('intensity: turn 1, last proj %u', ind_last))
         colorbar
         axis equal tight
         
@@ -1891,9 +1897,20 @@ if exist( 'pixel_scaling', 'var' ) && ~isempty( pixel_scaling )
 end
 
 %% TOMOGRAPHY: interactive mode to find rotation axis offset and tilt %%%%%
-if wo_crop    
-    rot_axis_offset_reco = 1 / raw_bin * SubtractMean(offset_shift);
-    tomo.offset_shift = rot_axis_offset_reco;
+if wo_crop
+    tomo.offset_shift = 1 / raw_bin * SubtractMean(offset_shift);
+end
+[tomo.vol_shape, tomo.vol_size] = volshape_volsize( proj, tomo.vol_shape, tomo.vol_size, tomo.rot_axis_offset, verbose );
+if virt_s_pos
+    pos_s_pos_x = pos_s_pos_x_mm / 1000 / eff_pixel_size_binned;
+    pos_s_pos_y = pos_s_pos_y_mm / 1000 / eff_pixel_size_binned;
+    fprintf( '\n pos_s_pos_x : %f mm = %f pixel', pos_s_pos_x_mm, pos_s_pos_x )
+    fprintf( '\n pos_s_pos_y : %f mm = %f pixel', pos_s_pos_y_mm, pos_s_pos_y )
+    sh = -round( pos_s_pos_y );
+    sv = -round( pos_s_pos_x );
+    tomo.vol_size = tomo.vol_size + [ sh, sh, sv, sv, 0, 0];
+    fprintf( '\n tomo.vol_size shifted : ')
+    fprintf( ' %.1f', tomo.vol_size )
 end
 if dpc_reco
     tomo.vol_shape = [];
@@ -1901,18 +1918,6 @@ if dpc_reco
     [tomo.vol_shape, tomo.vol_size] = volshape_volsize( dpc_att, tomo.vol_shape, tomo.vol_size, tomo.rot_axis_offset, verbose );
     [tomo, angles, tint] = interactive_mode_rot_axis( par, logpar, phase_retrieval, tomo, write, interactive_mode, dpc_att, angles);
 else
-    [tomo.vol_shape, tomo.vol_size] = volshape_volsize( proj, tomo.vol_shape, tomo.vol_size, tomo.rot_axis_offset, verbose );
-    if virt_s_pos
-        pos_s_pos_x = pos_s_pos_x_mm / 1000 / eff_pixel_size_binned;
-        pos_s_pos_y = pos_s_pos_y_mm / 1000 / eff_pixel_size_binned;
-        fprintf( '\n pos_s_pos_x : %f mm = %f pixel', pos_s_pos_x_mm, pos_s_pos_x )
-        fprintf( '\n pos_s_pos_y : %f mm = %f pixel', pos_s_pos_y_mm, pos_s_pos_y )
-        sh = -round( pos_s_pos_y );
-        sv = -round( pos_s_pos_x );
-        tomo.vol_size = tomo.vol_size + [ sh, sh, sv, sv, 0, 0];
-        fprintf( '\n tomo.vol_size shifted : ')
-        fprintf( ' %.1f', tomo.vol_size )
-    end
     [tomo, angles, tint] = interactive_mode_rot_axis( par, logpar, phase_retrieval, tomo, write, interactive_mode, proj, angles);
 end
 
@@ -2252,7 +2257,7 @@ if tomo.run
 %         if wo_crop
 %            rot_axis_offset_reco  = SubtractMean(offset_shift) / raw_bin;
 %         end
-        tomo.rot_axis_offset = rot_axis_offset_reco;
+        %tomo.rot_axis_offset = rot_axis_offset_reco;
         switch lower( tomo.reco_mode )
             case '3d'
                 vol = zeros( tomo.vol_shape, 'single' );
@@ -2669,6 +2674,6 @@ end
 fprintf( '\n')
 % END %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 dbclear if error
-%if ~strcmp( getenv('USER'), 'moosmanj' )
-clear vol proj;
-%end
+if ~strcmp( getenv('USER'), 'moosmanj' )
+    clear vol proj;
+end

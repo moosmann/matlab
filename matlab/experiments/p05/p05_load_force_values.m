@@ -19,6 +19,7 @@ steps = assign_from_struct( p, 'steps', [] );
 out_path = assign_from_struct( p, 'out_path', '' );
 adc2force = assign_from_struct( p, 'adc2force', 4.8 );
 readhdf5 = assign_from_struct( p, 'readhdf5', 1 );
+nogap = assign_from_struct( p, 'nogap', 1 );
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 tic
@@ -258,10 +259,22 @@ axes1 = axes('Parent',fig,'FontSize',font_size,'XMinorTick','off');
 %hold(axes1,'on');
 
 if ~isempty( setforce_force )
-    
-    p = plot( tomo_time - tomo_time(1), tomo_force, 'r.', setforce_time - tomo_time(1), setforce_force, 'b.', 'LineWidth',12);
+    %%
+    t1 = tomo_time - tomo_time(1);
+    [time_tomo, m1s] = sort(t1);
+    force_tomo = tomo_force(m1s);
+    time_setforce = setforce_time - tomo_time(1);
+    [time_setforces, m2s] = sort(time_setforce);
+    force_setforce = setforce_force(m2s);
+    p = plot( time_tomo, force_tomo, 'r.', time_setforces, force_setforce, 'b.', 'LineWidth',12);
     legend( {'tomogram', 'Set force / waiting'}, 'FontSize', font_size,'Location','northwest')
     xlabel('time / h', 'FontSize',font_size);
+    
+    filename = sprintf( '%s/%s_force_values.mat', out_path, scan_name);
+    save( filename, 'time_setforce', 'time_tomo', 'force_setforce', 'force_tomo' )
+
+    
+    %%
 
 else
     if isempty( wait_time ) && isempty( tomo_time )

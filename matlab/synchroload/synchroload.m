@@ -69,6 +69,8 @@ p.scan_name = 'syn004_71L_Mg5Gd_12w';
 %p05_load_force_values( p )
 p05_load_force_values( p )
 
+
+%%
 %load_cell_200N_large, weight, voltage
 weight = 5.31;
 voltage = 2.65;

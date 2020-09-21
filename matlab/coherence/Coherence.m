@@ -5,21 +5,21 @@ if nargin < 1
 end
 if nargin < 2
     %SourceSample_m =  145;
-    SourceSample_m = 65; 87;
+    SourceSample_m = 87;
 end
 if nargin < 3
-    SourceSize_micron = sigma_to_FWHM( 36 );% P05 low beta section
+    SourceSize_micron = sigma_to_FWHM( 90 );% P05 low beta section
     %sigma_to_FWHM(89.4); % PETRA III horizontal
 end
 if nargin < 4
-    SampleDetector_m = 0.25;1;0.235;
+    SampleDetector_m = 1.4;
 end
 if nargin < 5
    Bandwidth = 10^-4;
 end
 if nargin < 6
     %PixelSize_micron = 1.68 ; % micron CMOS 5 x
-    PixelSize_micron = 1 * 0.64 ; % micron, CMOS 10x
+    PixelSize_micron = 2 ; % micron, CMOS 10x
 end
 
 %% Beamline parameters
@@ -128,7 +128,7 @@ out.frequency.blurOverPixel = PixelSize_micron / out.blur.geometric;
 out.distance.interferenceByAutocorrelation = lambda * z / 2 / (PixelSize) * 1e6;
 
 %% Print %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-fprintf('\nCohrence lengths in microns: \n\n')
+fprintf('\nCoherence lengths in microns: \n\n')
 disp(out.coherence)
 
 fprintf('\n angular frequency: %g +/- %g s', out.omega.zero, out.omega.delta)

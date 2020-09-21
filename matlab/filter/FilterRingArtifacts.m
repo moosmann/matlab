@@ -1,4 +1,4 @@
-function [out, Vq] = FilterRingArtifacts(im, rotAxisPos, rstride, thstride, verbose)
+function [out, Vq, Vqf] = FilterRingArtifacts(im, rotAxisPos, rstride, thstride, verbose)
 
 %% Default arguments %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Rotation axis position
@@ -57,9 +57,10 @@ thv = fliplr(pi:-thstride:-pi+thstride);
 % Interpolate
 tic;
 Vq = interp2(X, Y, im, Xq, Yq, 'linear', 0);
+ishow( Vq )
 t = toc;
 
-method = 'wavelet-fft';
+method = 'guided';'wavelet-fft';
 switch method
     case 'wavelet-fft'
         dec_levels = 3;
@@ -69,6 +70,9 @@ switch method
         x1 = 1:xc;
         x2 = xc + x1;
         Vq = cat(1, FilterStripesCombinedWaveletFFT( Vq(x1,:), dec_levels, wname, sigma ),FilterStripesCombinedWaveletFFT( Vq(x2,:), dec_levels, wname, sigma ));
+    case 'guided'
+        Vqf = imguidedfilter(Vq);
+        
     otherwise
         
         % Fourier transform polar image

@@ -41,7 +41,7 @@ transmission_ag = exp( - interp1( energy_ag, mac_ag, E ) * density_ag .* thickne
 % ylabel('transmission')
 % title('Silver * Hafnium')
 % 
-
+figure
 Y = [transmission_ag; transmission_hf; transmission_ag .* transmission_hf];
 plot(E / 1e3, Y )
 xlabel('E / keV')

@@ -44,6 +44,8 @@ function vol = astra_parallel2D( tomo, sino, gpu_index, rotation_axis_offset)
 %% origin and pixels must be square. This is not always explicitly checked
 %% in all functions, so not following these requirements may have
 %% unpredictable results.
+
+%% TODO: Spiral CT using interpolation
 %
 % Written by Julian Moosmann
 
@@ -72,10 +74,11 @@ astra_gpu_index = assign_from_struct( tomo, 'astra_gpu_index', [] );
 if isempty( rotation_axis_offset )
     rotation_axis_offset = assign_from_struct( tomo, 'rot_axis_offset', 0);
 end
-
-%% TODO: Spiral CT using interpolation
+offset_shift = assign_from_struct( tomo, 'offset_shift', 0 );
 
 %% Main %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+rotation_axis_offset = rotation_axis_offset + offset_shift;
 
 if tilt_camera ~= 0 || tilt_lamino
     error( 'Rotation axis tilt_camera is not supported for 2D slicewise reconstructions' )

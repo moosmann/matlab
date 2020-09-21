@@ -18,7 +18,7 @@ slice = assign_from_struct( tomo, 'slice', [] );
 vol_shape = assign_from_struct( tomo, 'vol_shape', [] );
 vol_size = assign_from_struct( tomo, 'vol_size', [] );
 offset = double( assign_from_struct( tomo, 'offset', -10:10 ));
-offset_shift = assign_from_struct( tomo, 'offset_shift', 0 );
+%offset_shift = assign_from_struct( tomo, 'offset_shift', 0 );
 tilt = assign_from_struct( tomo, 'tilt', 0 );
 lamino = assign_from_struct( tomo, 'lamino', 0 );
 fixed_tilt = assign_from_struct( tomo, 'fixed_tilt', 0 );
@@ -113,7 +113,8 @@ end
 
 % Backprojection
 for nn = 1:numel( offset )
-    tomo.rot_axis_offset = offset(nn) + offset_shift + eps;
+    %tomo.rot_axis_offset = offset(nn) + offset_shift + eps;
+    tomo.rot_axis_offset = offset(nn);
     
     %% Reco
     switch lower( tomo.reco_mode )
