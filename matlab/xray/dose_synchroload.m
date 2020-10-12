@@ -3,7 +3,7 @@
 %
 % 1 Gy = 1 J / kg = m^2 / s^2
 
-ca
+%ca
 clear all
 sample_type = 'real';
 %sample_type = 'cylinder';
@@ -207,7 +207,7 @@ peek_density = peek05.density.value;
 mac_peek = peek05.mass_att_coeff.value;
 
 water_density = 1.0 * 1000; % water density in kg / m^3
-[energy_wl, ~, mac_wl] = read_nist_txt( 'water_liquid' );
+[energy_wl, mac_wl] = read_nist_txt( 'water_liquid' );
 mac_water = interp1( energy_wl, mac_wl, energy );
 
 %% FIGURE skin entrance dose

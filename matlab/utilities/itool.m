@@ -6,8 +6,7 @@ function itool(im,varargin)
 %
 %Written by Julian Moosmann, last version 2013-10-24
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% Default arguments
+%% Default arguments %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 NameOfFigure = inputname(1);
 slice = 1;
 roi = 0;
@@ -35,7 +34,9 @@ for nn = 1:numel(varargin)
 end
 imroislice = @(im) im(roi,roi,slice);
 imslice = @(im) im(:,:,slice);
+
 %% MAIN %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+im = gather( im );
 if roi(1) > 0
     h = imtool( imroislice( squeeze( im ) ),dynRange,'InitialMagnification','fit');
     set(h,'units','normalized','outerposition',[0.05 0.05 0.95 0.95]);

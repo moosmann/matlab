@@ -16,8 +16,8 @@ E = (30:5:45)*1e3;
   
 % Energy in eV
 % X-ray mass attenuation coefficient mu/rho in m^2 / kg
-[energy_bc, ~, mac_bc] = read_nist_txt( 'bone_cortical' );
-[energy_wl, ~, mac_wl] = read_nist_txt( 'water_liquid' );
+[energy_bc, mac_bc] = read_nist_txt( 'bone_cortical' );
+[energy_wl, mac_wl] = read_nist_txt( 'water_liquid' );
 
 % thickness_bone in m
 thickness_bone = ((1:3:4)*1e-3)'; 

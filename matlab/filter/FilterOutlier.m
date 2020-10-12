@@ -18,7 +18,7 @@ if nargin < 2
     threshold = 0.03;
 end
 if nargin < 3
-    bit_conversion = '';
+    bit_conversion = 'rescale';
 end
 if nargin < 4
     return_threshs_only = 0;
@@ -64,10 +64,10 @@ if ~return_threshs_only
                 im =  uint32( (2^32 - 1) * (im - im_low) / (im_high - im_low ) );
             case {'64bit', 64, 'uint64'}
                 im =  uint64( (2^64 - 1) * (im - im_low) / (im_high - im_low ) );
+            case {'rescale'}
+                im = (im - im_low) / (im_high - im_low );
         end
         PrintVerbose( verbose, '\n Bit conversion.' )
-    else
-        im = (im - im_low) / (im_high - im_low );
     end
 end
 PrintVerbose( verbose, '\n' )

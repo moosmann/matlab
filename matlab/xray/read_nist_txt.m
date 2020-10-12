@@ -9,7 +9,7 @@ function [energy, mass_att_coeff, energy_abs_coeff] = read_nist_txt( material )
 % RETURNS
 % energy : 1D vector, in eV
 % mass_att_coeff : mass attenuation coefficient μ/ρ in m^2 / kg
-% energy_abs_coeff : energye absorption coefficient  μen/ρ in m^2 / kg
+% energy_abs_coeff : energy absorption coefficient  μen/ρ in m^2 / kg
 %
 % Written J. Moosman. First version. 2019-05-08
 
@@ -19,9 +19,18 @@ if nargin < 1
 end
 
 %% Main %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+energy = [];
+mass_att_coeff = [];
+energy_abs_coeff = [];
+
  parpath = fileparts( mfilename( 'fullpath' ) );
  filename = sprintf( '%s/nist_%s.txt', parpath, material );
- fid = fopen( filename );
+ if exist( filename, 'file' )
+    fid = fopen( filename );
+ else
+     return
+ end
+    
  c = textscan( fid, '%f %f %f', 'Delimiter', {'\n', '\r'}, 'CommentStyle', '%' );
  fclose( fid );
  

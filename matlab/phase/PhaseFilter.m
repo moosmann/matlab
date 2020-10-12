@@ -115,9 +115,9 @@ ArgPrefac = pi*lambda*Distance/Pixelsize^2;
 xi  = FrequencyVector(filter_size(2),precision,1);
 eta = FrequencyVector(filter_size(1),precision,1);
 % 2D
-[sinArg, sinxiquad]   = meshgrid(xi,eta);
+[xi2, eta2]   = meshgrid(xi,eta);
 % Function on 2D
-sinArg = ArgPrefac*(sinArg.^2 + sinxiquad.^2);
+sinArg = ArgPrefac*(xi2.^2 + eta2.^2);
 
 %% Filter 
 switch lower(method)

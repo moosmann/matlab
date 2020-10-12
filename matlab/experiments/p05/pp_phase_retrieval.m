@@ -36,7 +36,10 @@ fprintf( '\n effective pixel size binned : %g micron', pixelsize * 1e6);
 fprintf( '\n characteristic length (detector width) b : %f mm', b * 1000 )
 fprintf( '\n Fresnel number = b^2 / lambda / z: %g', NF )
 
-
+if strcmpi( method(1:6), 'tienlo' ) && interactive_mode.phase_retrieval == 1
+    interactive_mode.phase_retrieval = 0;
+    warning( '\nInteractive mode not supported for %s phase retrieval', method )
+end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Interactive mode %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 tint = 0;
@@ -284,14 +287,14 @@ if exist( 'interactive_mode', 'var' ) && isfield( interactive_mode, 'phase_retri
             f = figure('Name', 'REGULARIZATION PARAMETER: metrics');
             x = 1:numel( reco_metric );
             Y = cell2mat({reco_metric(x).val});
-            plot( reg_par, Y, '-+');            
+            plot( reg_par, Y, '-+');
             axis tight
             xlabel( 'regularization parameter' )
             legend( reco_metric(x).name )
-            ax1 = gca;            
+            ax1 = gca;
             ax2 = axes( 'Position', ax1.Position, 'XAxisLocation', 'top', 'YAxisLocation', 'right', 'Color', 'none');
             line(1:numel( reg_par ), 0, 'Parent', ax2 )
-            xlabel( 'index (image no.)' )            
+            xlabel( 'index (image no.)' )
             set( ax1, 'YTick', [] ) % 'XTickMode', 'auto', 'XMinorTick', 'on')
             set( ax2, 'YTick', [] )
             ylabel( 'metric' )
@@ -303,7 +306,7 @@ if exist( 'interactive_mode', 'var' ) && isfield( interactive_mode, 'phase_retri
             % Play
             nimplay( pha, 1, [], 'PHASE RETRIEVAL: sequence of reconstructed slices using different phase retrieval parameters')
             
-       else
+        else
             first_round = 0;
         end
         
@@ -311,7 +314,7 @@ if exist( 'interactive_mode', 'var' ) && isfield( interactive_mode, 'phase_retri
         reg_par = '';
         while ischar( reg_par )
             fprintf( '\n\nENTER (RANGE OF) REGULARIZATION PARAMETER(S):' )
-            txt = [...                
+            txt = [...
                 '\nif empty: use default range,'...
                 '\n if scalar: use value & EXIT loop,'...
                 '\n if ''s'': change slice number,'...
@@ -338,7 +341,7 @@ if exist( 'interactive_mode', 'var' ) && isfield( interactive_mode, 'phase_retri
                                 slice = slice + abs( slice - slab_size );
                             end
                             if slice + slab_size/2 > size(slab,3)
-                                slice = slice - abs( slice + slab_size - size(slab,3) ); 
+                                slice = slice - abs( slice + slab_size - size(slab,3) );
                             end
                             fprintf( ' \n new slice : %u', slice );
                         case 'edp'
@@ -379,45 +382,126 @@ if exist( 'interactive_mode', 'var' ) && isfield( interactive_mode, 'phase_retri
         filename = sprintf( '%sphase_retrieval__reg_par_sequence.gif', write.fig_path );
         write_gif( pha, filename )
     end
-    cprintf( 'red', '\nEND OF INTERACTIVE MODE' )  
+    cprintf( 'red', '\nEND OF INTERACTIVE MODE' )
 end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-%% Phase retrieval filter
-im_shape = [size(proj,1) , size(proj,2)];
-im_shape_pad = (1 + padding) * im_shape;
-[phase_filter, phase_appendix] = PhaseFilter( method, im_shape_pad, edp, reg_par, bin_filt, cutoff_frequ, 'single');
-write.phase_appendix = phase_appendix;
+if strcmpi( method(1:6), 'tienlo' )
+    %% TIE LO + NLO using Schwinger regularization parameter
+        
+    im_shape = [size(proj,1) , size(proj,2)];
+    
+    % Schwinger regularizatio parameter
+    sn = phase_retrieval.tieNLO_Schwinger.sn;
+    smax = phase_retrieval.tieNLO_Schwinger.smax;
+    
+    % String
+    phase_appendix = sprintf( 'tieNLO_Schwinger_sn%04u_smax%04u', sn, smax );
+    write.phase_appendix = phase_appendix;
+    
+    % reco phase dir
+    if isempty( write.subfolder_reco )
+        write.reco_phase_path = [write.path, filesep, 'reco_phase', filesep, phase_appendix, filesep];
+    else
+        write.reco_phase_path = [write.path, filesep, 'reco_phase', filesep, phase_appendix, filesep, write.subfolder_reco, filesep];
+    end
+    write.reco_path = write.reco_phase_path;
+    CheckAndMakePath( write.reco_phase_path )
+    fprintf( '\n energy : %g eV', phase_retrieval.energy)
+    fprintf( '\n sample detector distance : %g m', phase_retrieval.sample_detector_distance)
+    fprintf( '\n pixel size : %g micron', phase_retrieval.eff_pixel_size_binned * 1e6)
+    fprintf( '\n phase retrieval method : %s', method)
+    fprintf( '\n reco_phase_path : %s', write.reco_phase_path)
+    fprintf( '\n Setting reco_path to reco_phase_path' )
+    
 
-% reco phase dir
-if isempty( write.subfolder_reco )
-    write.reco_phase_path = [write.path, filesep, 'reco_phase', filesep, phase_appendix, filesep];
+        %dimensions of input data array
+        dimy = im_shape(1);
+        dimx = im_shape(2);
+        
+        % Filter
+        x = gpuArray( -1/2:1/((padding+1)*dimx):1/2-1/((padding+1)*dimx) );
+        y = gpuArray( -1/2:1/((padding+1)*dimy):1/2-1/((padding+1)*dimy) );
+        z = gpuArray( smax*(1:sn)/sn );
+        [xi,eta,s]   = meshgrid( x, y, z );
+        xi           = fftshift(fftshift( xi,1),2);
+        eta          = fftshift(fftshift(eta,1),2);
+        selap        = s.*exp(-s.*sqrt(xi.^2+eta.^2));    
+    
+    % Loop
+    fprintf( '\nPhase retrieval: ')
+    nn = 1;
+    parfor (nn = 1:size(proj, 3), gpuDeviceCount)
+        
+        g = SubtractMean( proj(:,:,nn) );
+        g = gpuArray( g );
+        
+        g = padarray( g, padding * im_shape, 'symmetric', 'post' );
+      
+        %FT of g                        
+        g_fts        = repmat( fft2( g ), [1, 1, sn] );
+        
+        % LO: zeroth order result        
+        phi0 = 1 / ( 2 * pi ) * sum( ( ifft2( selap .* g_fts ) ), 3) / sn;
+        phi0 = real(phi0);
+        
+        % NLO: first order result, first correction of three        
+        phi11 = -1 / ( 4 * pi ) * sum( ifft2( selap .* repmat( fft2( g.^2 ),[1,1,sn] ) ), 3 ) / sn;
+        % NLO: first order result, second correction
+        phi12 = -1/(4*pi)*sum(real(ifft2(selap.*repmat(fft2( ...
+            sum((ifft2( xi.*selap.*g_fts)),3)/sn.*ifft2( xi(:,:,1).*g_fts(:,:,1)) ...
+            +sum((ifft2(eta.*selap.*g_fts)),3)/sn.*ifft2(eta(:,:,1).*g_fts(:,:,1)) ...
+            ),[1,1,sn]))),3)/sn;
+        phi13 = -1/(8*pi)*((sum((ifft2(xi.*selap.*g_fts)),3)/sn).^2 ...
+            +(sum((ifft2(eta.*selap.*g_fts)),3)/sn).^2);        
+        phi11 = real(phi11);
+        phi13 = real(phi13);
+        
+        % LO + NLO
+        g = phi0 + phi11 + phi12 + phi13;
+        g = gather( g(1:im_shape(1),1:im_shape(2)) );
+                
+        proj(:,:,nn) = -g;
+    end
+    fprintf( '\n done in %g s (%.2f min)', toc-t-tint, (toc-t-tint)/60)
 else
-    write.reco_phase_path = [write.path, filesep, 'reco_phase', filesep, phase_appendix, filesep, write.subfolder_reco, filesep];
+    
+    %% Phase retrieval filter
+    im_shape = [size(proj,1) , size(proj,2)];
+    im_shape_pad = (1 + padding) * im_shape;
+    [phase_filter, phase_appendix] = PhaseFilter( method, im_shape_pad, edp, reg_par, bin_filt, cutoff_frequ, 'single');
+    write.phase_appendix = phase_appendix;
+    
+    % reco phase dir
+    if isempty( write.subfolder_reco )
+        write.reco_phase_path = [write.path, filesep, 'reco_phase', filesep, phase_appendix, filesep];
+    else
+        write.reco_phase_path = [write.path, filesep, 'reco_phase', filesep, phase_appendix, filesep, write.subfolder_reco, filesep];
+    end
+    write.reco_path = write.reco_phase_path;
+    CheckAndMakePath( write.reco_phase_path )
+    fprintf( '\n energy : %g eV', phase_retrieval.energy)
+    fprintf( '\n sample detector distance : %g m', phase_retrieval.sample_detector_distance)
+    fprintf( '\n pixel size : %g micron', phase_retrieval.eff_pixel_size_binned * 1e6)
+    fprintf( '\n phase retrieval method : %s', method)
+    fprintf( '\n reco_phase_path : %s', write.reco_phase_path)
+    fprintf( '\n Setting reco_path to reco_phase_path' )
+    
+    %% Retrieval
+    fprintf( '\nPhase retrieval: ')
+    parfor nn = 1:size(proj, 3)
+        im = padarray( proj(:,:,nn), padding * im_shape, 'symmetric', 'post' );
+        im = real( ifft2( phase_filter .* fft2( im ) ) );
+        proj(:,:,nn) = im(1:im_shape(1), 1:im_shape(2));
+        % combined GPU and parfor usage requires memory management
+        %im = padarray( gpuArray( proj(:,:,nn) ), raw_im_shape_binned, 'post', 'symmetric' );
+        %proj(:,:,nn) = gather( im(1:raw_im_shape_binned1, 1:raw_im_shape_binned2) );
+    end
+    pause(0.01)
+    fprintf( '\n done in %g s (%.2f min)', toc-t-tint, (toc-t-tint)/60)
 end
-write.reco_path = write.reco_phase_path;
-CheckAndMakePath( write.reco_phase_path )
-fprintf( '\n energy : %g eV', phase_retrieval.energy)
-fprintf( '\n sample detector distance : %g m', phase_retrieval.sample_detector_distance)
-fprintf( '\n pixel size : %g micron', phase_retrieval.eff_pixel_size_binned * 1e6)
-fprintf( '\n phase retrieval method : %s', method)
-fprintf( '\n reco_phase_path : %s', write.reco_phase_path)
-fprintf( '\n Setting reco_path to reco_phase_path' )
-
-%% Retrieval
-fprintf( '\nPhase retrieval: ')
-parfor nn = 1:size(proj, 3)
-    im = padarray( proj(:,:,nn), padding * im_shape, 'symmetric', 'post' );
-    im = -real( ifft2( phase_filter .* fft2( im ) ) );
-    proj(:,:,nn) = im(1:im_shape(1), 1:im_shape(2));
-    % combined GPU and parfor usage requires memory management
-    %im = padarray( gpuArray( proj(:,:,nn) ), raw_im_shape_binned, 'post', 'symmetric' );
-    %proj(:,:,nn) = gather( im(1:raw_im_shape_binned1, 1:raw_im_shape_binned2) );
-end
-pause(0.01)
-fprintf( '\n done in %g s (%.2f min)', toc-t-tint, (toc-t-tint)/60)
 
 %% Post phase retrieval binning
 phase_bin = phase_retrieval.post_binning_factor; % alias for readablity
