@@ -676,16 +676,9 @@ if ~read_flatcor && ~read_sino
         switch lower( cam )
             %%% CHECK h5 entry of camera1 / camera2 !!
             case 'ehd'
-                if isempty( energy )
-                    energy = double(h5read( h5log, '/entry/hardware/camera1/calibration/energy') );
-                end
                 exposure_time = double(h5read( h5log, '/entry/hardware/camera1/calibration/exptime') );
-                %im_shape_raw = [3056 3056];
-                
+                %im_shape_raw = [3056 3056];                
             case 'kit'
-                if isempty( energy )
-                    energy = double(h5read( h5log, '/entry/hardware/camera2/calibration/energy') );
-                end
                 exposure_time = double(h5read( h5log, '/entry/hardware/camera2/calibration/exptime') );
                 %im_shape_raw = [5120 3840];
         end
@@ -713,7 +706,12 @@ if ~read_flatcor && ~read_sino
         end
         im_shape_raw = size( im_raw );
         
-        if ~isempty( imlogcell )
+        h_setup = h5info(h5log, '/entry/scan/setup/' );
+        if sum(strcmpi('pos_p05_energy',{ h_setup.Datasets.Name }))
+            energy = double( h5read( h5log, '/entry/scan/setup/pos_p05_energy' ) );
+            energy = energy( end );
+        end
+        if ~isempty( imlogcell )        
             
         else
             % images

@@ -109,6 +109,9 @@ par.off_axes = '%u';
 par.s_in_pos = '%f';
 par.pos_s_pos_x = '%f';
 par.pos_s_pos_y = '%f';
+par.perp = '%f';
+par.para = '%f';
+par.Bragg = '%f';
 
 %% Compare possible paramters with strings from log file
 fn = fieldnames( par );
@@ -129,7 +132,7 @@ for nn = 1:numel( fn )
             par.(p_field) = val;
         end
     elseif sum( b ) > 1
-        fprintf( 'WARNING: Parameter not unique' );
+        warning( 'WARNING: Parameter not unique' )        
     else
         par = rmfield( par, p_field);
     end
@@ -230,6 +233,11 @@ par.o_ccd_dist = '%f';
 par.p05_dcm_xtal2_pitch_delta = '%f';
 par.com_delta_threshhold =  '%f';
 
+% Mono
+par.perp = '%f';
+par.para = '%f';
+par.Bragg = '%f';
+
 %% Compare possible paramters with strings from log file
 fn = fieldnames( par );
 for nn = 1:numel( fn )
@@ -240,7 +248,7 @@ for nn = 1:numel( fn )
         c = textscan( cl{1}{b}, sprintf( '%s %s', p_field, p_val ), 1, 'Delimiter', {'=', ':'});
         par.(p_field) = c{1};
     elseif sum( b ) > 1
-        fprintf( '\nWARNING: Parameter found more than once: %s', p_field );        
+         warning( '\nWARNING: Parameter found more than once: %s', p_field );        
     else
         par = rmfield( par, p_field);
     end
