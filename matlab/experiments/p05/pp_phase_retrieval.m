@@ -36,7 +36,7 @@ fprintf( '\n effective pixel size binned : %g micron', pixelsize * 1e6);
 fprintf( '\n characteristic length (detector width) b : %f mm', b * 1000 )
 fprintf( '\n Fresnel number = b^2 / lambda / z: %g', NF )
 
-if strcmpi( method(1:6), 'tienlo' ) && interactive_mode.phase_retrieval == 1
+if interactive_mode.phase_retrieval == 1 && strcmpi( method, 'tieNLO_Schwinger' ) 
     interactive_mode.phase_retrieval = 0;
     warning( '\nInteractive mode not supported for %s phase retrieval', method )
 end
@@ -388,7 +388,7 @@ end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-if strcmpi( method(1:6), 'tienlo' )
+if strcmpi( method, 'tieNLO_Schwinger' )
     %% TIE LO + NLO using Schwinger regularization parameter
         
     im_shape = [size(proj,1) , size(proj,2)];
