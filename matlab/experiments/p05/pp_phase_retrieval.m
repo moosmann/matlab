@@ -127,6 +127,7 @@ if exist( 'interactive_mode', 'var' ) && isfield( interactive_mode, 'phase_retri
     slice_old = 0;
     reg_par = reg_par_def_range;
     slab_size = 50;
+    
     while ~isscalar( reg_par ) || first_round
         
         % Print parameters
@@ -142,7 +143,7 @@ if exist( 'interactive_mode', 'var' ) && isfield( interactive_mode, 'phase_retri
             fprintf( '\n current binary filter threshold : %.3f', bin_filt )
         end
         fprintf( '\n current padding factor : %u', padding )
-        fprintf( '\n current vertical slab size : %u', slab_size )
+        fprintf( '\n default vertical slab size : %u', slab_size )
         
         if plot_ctf_mask
             % FFT
@@ -188,6 +189,23 @@ if exist( 'interactive_mode', 'var' ) && isfield( interactive_mode, 'phase_retri
                 
                 % Slab, pad, FT                
                 dz = round( slab_size / 2 );
+                
+                
+                
+                % Calculate required slab size: Spiral CT condition
+                if numel( tomo.vert_shift ) > 1
+                    dz = dz + floor( max( abs( tomo.vert_shift ) ) );
+                    rmode = '3d';
+                    slab_size = dz;
+                else
+                    rmode = lower( tomo.reco_mode );
+                end
+                if slice - dz < 0 || slice + dz > num_row
+                    fprintf( '\nWARNING: Spiral CT requires larger sinogram volume. Better choose a more central slice or a smaller tilts.')
+                end
+                
+                
+                
                 rows = slice + (-dz:dz);
                 rows = rows - max( 0, max( rows(:) - size( proj, 2) ) );
                 num_row_slab = numel( rows );
@@ -213,14 +231,21 @@ if exist( 'interactive_mode', 'var' ) && isfield( interactive_mode, 'phase_retri
                 fprintf( ' %.1f s.', toc - t)
                 t = toc;
                 fprintf( ' real o ifft:' )
-                slab = -real( ifft2( tmp ) );
-                sino = slab(1:num_pix,dz + 1,:);
+                slab = -real( ifft2( tmp ) );                
                 fprintf( ' %.1f s.', toc - t)
                 
                 % Tomography
                 t = toc;
-                fprintf( ' tomo:' )
-                reco = astra_parallel2D( tomo, permute( sino, [3 1 2]) );
+                fprintf( ' tomo:' )                               
+                switch rmode
+                    case '3d'                        
+                        sino = slab(1:num_pix,1:num_row_slab,:);                        
+                        reco = astra_parallel3D( tomo, permute( sino, [1 3 2]) );                        
+                    case 'slice'
+                        sino = slab(1:num_pix,dz + 1,:);
+                        reco = astra_parallel2D( tomo, permute( sino, [3 1 2]) );
+                end
+                
                 %im = FilterOutlier( im );
                 pha(:,:,nn) = reco;
                 fprintf( ' %.1f s.', toc - t)
@@ -489,11 +514,20 @@ else
     fprintf( '\n reco_phase_path : %s', write.reco_phase_path)
     fprintf( '\n Setting reco_path to reco_phase_path' )
     
+    [mem_free, mem_avail_cpu, mem_total_cpu] = free_memory;
+    fprintf( '\n RAM: free, available, total : %.0f GiB (%g%%), %.0f GiB (%g%%), %.0f GiB', round([mem_free/1024^3, 100 * mem_free/mem_total_cpu, mem_avail_cpu/1024^3, 100*mem_avail_cpu/mem_total_cpu mem_total_cpu/1024^3]) )
+    proj_mem = Bytes( proj );
+    fprintf( '\n volume memory : %.2f GiB', proj_mem / 1024^3 )
+    
     %% Retrieval
-    fprintf( '\nPhase retrieval: ')
+    fprintf( '\nPhase retrieval: ')    
     parfor nn = 1:size(proj, 3)
-        im = padarray( proj(:,:,nn), padding * im_shape, 'symmetric', 'post' );
-        im = real( ifft2( phase_filter .* fft2( im ) ) );
+        im = proj(:,:,nn);
+        im = padarray( im, padding * im_shape, 'symmetric', 'post' );
+        im = fft2( im );
+        im = phase_filter .* im ;
+        im = ifft2( im )
+        im = real( im );        
         proj(:,:,nn) = im(1:im_shape(1), 1:im_shape(2));
         % combined GPU and parfor usage requires memory management
         %im = padarray( gpuArray( proj(:,:,nn) ), raw_im_shape_binned, 'post', 'symmetric' );

@@ -296,6 +296,8 @@ assign_default( 'tomo.reco_mode', '3D' )
 assign_default( 'tomo.rot_axis_tilt_camera', 0 )
 assign_default( 'tomo.rot_axis_tilt_lamino', 0 )
 assign_default( 'tomo.flip_scan_position', 0 )
+assign_default( 'tomo.MinConstraint', [])
+assign_default( 'tomo.MaxConstraint', [])
 assign_default( 'write.scan_name_appendix', '' )
 assign_default( 'interactive_mode.rot_axis_pos_default_search_range', -4:0.5:4 ) % binned pixel
 assign_default( 'interactive_mode.rot_axis_tilt_default_search_range', -0.005:0.001:0.005 ) % radian
@@ -417,7 +419,7 @@ PrintVerbose( phase_retrieval.apply & write.phase_sino, '\n sino_phase_path:\n  
 fprintf( '\n user :  %s', getenv( 'USER' ) );
 fprintf( '\n hostname : %s', getenv( 'HOSTNAME' ) );
 [mem_free, mem_avail_cpu, mem_total_cpu] = free_memory;
-fprintf( '\n RAM: free, available, total : %.0f GiB, %.0f GiB, %.0f GiB', round([mem_free/1024^3, mem_avail_cpu/1024^3, mem_total_cpu/1024^3]) )
+fprintf( '\n RAM: free, available, total : %.0f GiB (%g%%), %.0f GiB (%g%%), %.0f GiB', round([mem_free/1024^3, 100 * mem_free/mem_total_cpu, mem_avail_cpu/1024^3, 100*mem_avail_cpu/mem_total_cpu mem_total_cpu/1024^3]) )
 if isempty( tomo.astra_gpu_index )
     tomo.astra_gpu_index = 1:gpuDeviceCount;
 end
@@ -1560,6 +1562,7 @@ if ~read_flatcor && ~read_sino
     
     %% Sinogramm
     nn = round( size( proj, 2) / 2);
+    clear sino_mid
     if isscalar( vert_shift )
         sino_mid = squeeze( proj(:,nn,:) );
     else
@@ -2222,7 +2225,8 @@ if tomo.run
             
             if tomo.butterworth_filter
                 [b, a] = butter(tomo.butterworth_filter_order, tomo.butterworth_filter_frequ_cutoff);
-                bw = freqz(b, a, numel(filt) );
+                bw = abs( freqz(b, a, round( numel(filt) / 2 ) ) );
+                bw = [bw; flipud( bw ) ];
                 filt = filt .* bw;
             end
             proj_shape1 = size( proj, 1);
