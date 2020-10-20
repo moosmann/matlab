@@ -1,4 +1,4 @@
-function raw_roi = set_raw_roi( raw_roi, par, im_shape_raw, im_raw, tif_info, dtype, im_trafo, scan_path, fig_path, ref_names, dark_names )
+function raw_roi = set_raw_roi( par, im_raw,  scan_path, fig_path, ref_names, dark_names )
 % Set raw ROI.
 %
 % ARGUMENT
@@ -20,6 +20,17 @@ function raw_roi = set_raw_roi( raw_roi, par, im_shape_raw, im_raw, tif_info, dt
 % Written by Julian Moosmann.
 %
 % raw_roi = set_raw_roi( raw_roi, par, im_shape_raw, im_raw, tif_info, dtype, im_trafo, scan_path, fig_path, ref_names, dark_names )
+% raw_roi = set_raw_roi( raw_roi, par, im_shape_raw, im_raw, tif_info, dtype, im_trafo, scan_path, fig_path, ref_names, dark_names )
+
+%% Default arguments
+assign_from_struct( par, 'raw_roi',  []);
+assign_from_struct( par, 'im_shape_raw',  []);
+assign_from_struct( par, 'tif_info',  []);
+assign_from_struct( par, 'dtype',  []);
+assign_from_struct( par, 'im_trafo',  []);
+
+
+% old: par.raw_roi = set_raw_roi( par.raw_roi, par, par.im_shape_raw, im_raw, par.tif_info, par.dtype, par.im_trafo, scan_path, fig_path, ref_names, dark_names );
 
 if ~isempty( raw_roi ) % else AUTO ROI
     if numel( raw_roi ) > 1
@@ -63,9 +74,9 @@ if ~isempty( raw_roi ) % else AUTO ROI
     else
         if raw_roi(1) < 1 % indicate AUTO ROI
             % Make roi_fac dependent on dark field
-            if raw_roi(1) == -1
+            if raw_roi(1) == 0
                 roi_fac = 4;
-            elseif raw_roi(1) < -1
+            else
                 roi_fac = abs( raw_roi );
             end
             % Read first non-zero flat
@@ -73,16 +84,19 @@ if ~isempty( raw_roi ) % else AUTO ROI
             while mean2( im_raw ) == 0
                 mm = mm + 1;
                 filename = sprintf('%s%s', scan_path, ref_names{mm});
-                im_raw = read_image( filename, '', [], tif_info, im_shape_raw, dtype, im_trafo );
+                %im_raw = read_image( filename, '', [], tif_info, im_shape_raw, dtype, im_trafo );
+                im_raw = read_image( filename, par, 1 );
             end
             % Read last non-zero flat
             mm = numel( ref_names );
             filename = sprintf('%s%s', scan_path, ref_names{mm});
-            im_raw2 = read_image( filename, '', [], tif_info, im_shape_raw, dtype, im_trafo );
+            %im_raw2 = read_image( filename, '', [], tif_info, im_shape_raw, dtype, im_trafo );
+            im_raw2 = read_image( filename, par, 1 );
             while mean2( im_raw2 ) == 0
                 mm = mm - 1;
                 filename = sprintf('%s%s', scan_path, ref_names{mm});
-                im_raw2 = read_image( filename, '', [], tif_info, im_shape_raw, dtype, im_trafo );
+                %im_raw2 = read_image( filename, '', [], tif_info, im_shape_raw, dtype, im_trafo );
+                im_raw2 = read_image( filename, par, 1);
             end
             % Read non-zero dark
             mm = 1;
@@ -90,7 +104,8 @@ if ~isempty( raw_roi ) % else AUTO ROI
             while mean2( im_raw_dark ) == 0
                 mm = mm + 1;
                 filename = sprintf('%s%s', scan_path, dark_names{mm});
-                im_raw_dark = read_image( filename, '', [], tif_info, im_shape_raw, dtype, im_trafo );
+                %im_raw_dark = read_image( filename, '', [], tif_info, im_shape_raw, dtype, im_trafo );
+                im_raw_dark = read_image( filename, par, 1 );
             end
             % Threshold
             im_raw_line = median( im_raw / 2 + im_raw2 / 2, 1);

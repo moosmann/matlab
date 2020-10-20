@@ -1,6 +1,6 @@
-function [phi,xi,eta,s,w] ... 
-= RecoSchwingGauss(dataslice,sn_smax,lambda,distance,pixelsize,padding,padvalue,compute_correction)
-                                                  
+function [phi,xi,eta,s,w] ...
+    = RecoSchwingGauss(dataslice,sn_smax,lambda,distance,pixelsize,padding,padvalue,compute_correction)
+
 % Phase retrieval algorithm to leading, next-to-leading and
 % next-to-next-to-leading order in z (sample-detector distance). Input is
 % pure phase-contrast intensity pattern given at z. Three output stacks:
@@ -12,12 +12,12 @@ function [phi,xi,eta,s,w] ...
 % encountered when inverting the Laplacian. This effects the absolut value
 % of the retrieved phase.
 
-if nargin<3,lambda=1;end;
-if nargin<4,distance=1;end;
-if nargin<5,pixelsize=1;end;
-if nargin<6,padding = 1;end;
-if nargin<7,padvalue = 0;end;
-if nargin<8,compute_correction=0;end;
+if nargin<3,lambda=1;end
+if nargin<4,distance=1;end
+if nargin<5,pixelsize=1;end
+if nargin<6,padding = 1;end
+if nargin<7,padvalue = 0;end
+if nargin<8,compute_correction=0;end
 
 prefactor = pixelsize^2/(2*pi*lambda*distance);
 sn    = sn_smax(1);
@@ -30,7 +30,7 @@ dimy        = padding*2^nextpow2(dim2);
 % Filters.
 [s,w] = lgwt(sn,0,smax);
 s = s';w = w';
-[xi,eta,s]   = meshgrid(-1/2:1/(dimy):1/2-1/(dimy),-1/2:1/(dimx):1/2-1/(dimx),s);
+[~,~,s]   = meshgrid(-1/2:1/(dimy):1/2-1/(dimy),-1/2:1/(dimx):1/2-1/(dimx),s);
 [xi,eta,w]   = meshgrid(-1/2:1/(dimy):1/2-1/(dimy),-1/2:1/(dimx):1/2-1/(dimx),w);
 % xi = matrix of identic row ranging accroding to the first entry of
 % meshgrid, the rows are repeated according to the length of the vector
@@ -51,39 +51,39 @@ phi1 = sum(ifft2(selap.*repmat(fft2(g),[1,1,sn])).*w,3);
 phi1        = phi1-mean(phi1(:));
 
 % Next-to-leading order.
-if compute_correction==1,
-phi1_ft     = fft2(phi1);
-phi1_ftx    = fft(phi1,[],1);
-phi1_fty    = fft(phi1,[],2);
-phi_dx1     = ifft(eta(:,:,1)   .*phi1_ftx,[],1);
-phi_dx2     = ifft(eta(:,:,1).^2.*phi1_ftx,[],1);
-phi_dx3     = ifft(eta(:,:,1).^3.*phi1_ftx,[],1);
-phi_dy1     = ifft( xi(:,:,1)   .*phi1_fty,[],2);
-phi_dy2     = ifft( xi(:,:,1).^2.*phi1_fty,[],2);
-phi_dy3     = ifft( xi(:,:,1).^3.*phi1_fty,[],2);
-phi_dx1dy1  = ifft2(xieta.*phi1_ft);
-phi_dx1dy2  = ifft2( xi(:,:,1).*xieta.*phi1_ft);
-phi_dx2dy1  = ifft2(eta(:,:,1).*xieta.*phi1_ft);
-lap_phi2    = -(phi_dx1.*(phi_dx3+phi_dx1dy2) + phi_dy1.*(phi_dx2dy1+phi_dy3) ...
-            + phi_dx2.^2 + phi_dx2.*phi_dy2 + phi_dx1dy1.^2 + phi_dy2.^2);
-lap_phi2    = real(lap_phi2);
-%lap_phi2    = lap_phi2  - mean(lap_phi2(:));
-% Inversion of Laplacian with Schwinger regularization.
-phi2 = sum(ifft2(selap.*repmat(fft2(lap_phi2),[1,1,sn])).*w,3);
-% Rescaling, mean value subtraction and stacking.
-phi1        = prefactor*real(phi1);
-phi2        = prefactor*real(phi2);
-phi2        = phi2-mean(phi2(:));
-% Stack Images.
-phi         = cat(3,phi1,phi2);
+if compute_correction==1
+    phi1_ft     = fft2(phi1);
+    phi1_ftx    = fft(phi1,[],1);
+    phi1_fty    = fft(phi1,[],2);
+    phi_dx1     = ifft(eta(:,:,1)   .*phi1_ftx,[],1);
+    phi_dx2     = ifft(eta(:,:,1).^2.*phi1_ftx,[],1);
+    phi_dx3     = ifft(eta(:,:,1).^3.*phi1_ftx,[],1);
+    phi_dy1     = ifft( xi(:,:,1)   .*phi1_fty,[],2);
+    phi_dy2     = ifft( xi(:,:,1).^2.*phi1_fty,[],2);
+    phi_dy3     = ifft( xi(:,:,1).^3.*phi1_fty,[],2);
+    phi_dx1dy1  = ifft2(xieta.*phi1_ft);
+    phi_dx1dy2  = ifft2( xi(:,:,1).*xieta.*phi1_ft);
+    phi_dx2dy1  = ifft2(eta(:,:,1).*xieta.*phi1_ft);
+    lap_phi2    = -(phi_dx1.*(phi_dx3+phi_dx1dy2) + phi_dy1.*(phi_dx2dy1+phi_dy3) ...
+        + phi_dx2.^2 + phi_dx2.*phi_dy2 + phi_dx1dy1.^2 + phi_dy2.^2);
+    lap_phi2    = real(lap_phi2);
+    %lap_phi2    = lap_phi2  - mean(lap_phi2(:));
+    % Inversion of Laplacian with Schwinger regularization.
+    phi2 = sum(ifft2(selap.*repmat(fft2(lap_phi2),[1,1,sn])).*w,3);
+    % Rescaling, mean value subtraction and stacking.
+    phi1        = prefactor*real(phi1);
+    phi2        = prefactor*real(phi2);
+    phi2        = phi2-mean(phi2(:));
+    % Stack Images.
+    phi         = cat(3,phi1,phi2);
 else
-% Rescaling and stacking.
+    % Rescaling and stacking.
     phi1        = prefactor*real(phi1);
     phi = cat(3,phi1,phi1);
-end;
+end
 
 % Take real part and clip zero-padded matrices to original size
-if dimx~=dim1 || dimy~=dim2,
+if dimx~=dim1 || dimy~=dim2
     xcut  = 1+ceil((dimx-dim1)/2):floor((dimx+dim1)/2);
     ycut  = 1+ceil((dimy-dim2)/2):floor((dimy+dim2)/2);
     %fprintf('xcut min: %g, xcut max: %g, range: %g \n',min(xcut),max(xcut),max(xcut)-min(xcut));
@@ -93,6 +93,6 @@ if dimx~=dim1 || dimy~=dim2,
     phi(:,:,2) = phi(:,:,2) - mean(mean(phi(:,:,2)));
 else
     phi  = real(phi);
-end;
+end
 
 
