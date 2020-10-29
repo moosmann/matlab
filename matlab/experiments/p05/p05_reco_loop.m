@@ -25,7 +25,7 @@ try
     %% Main %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     fprintf( '\nDATA SETS:')
     for nn = 1:numel( PARAMETER_CELL)
-        [~, name] = fileparts( PARAMETER_CELL{nn}.scan_path );
+        [~, name] = fileparts( PARAMETER_CELL{nn}.par.scan_path );
         fprintf('\n%3u : %s', nn, name )
     end
     
@@ -34,7 +34,7 @@ try
         for nn = 1:numel( SUBSETS )
             num = SUBSETS(nn);
             external_parameter = PARAMETER_CELL{num};
-            [~, name] = fileparts( external_parameter.scan_path );
+            [~, name] = fileparts( external_parameter.par.scan_path );
             if ~isempty(PRINT_PARAMETERS)
                 if nn == 1
                     fprintf( '\n' )
@@ -83,7 +83,7 @@ try
             num = SUBSETS(nn);
             
             external_parameter = PARAMETER_CELL{num};
-            [~, name] = fileparts( external_parameter.scan_path );
+            [~, name] = fileparts( external_parameter.par.scan_path );
             fprintf('\nRECONSTRUCTION OF DATA SET NUMBER %u : %s\n', num, name )
             
             p05_reco

@@ -1,4 +1,4 @@
-function [proj, write, tint] = pp_phase_retrieval( proj, phase_retrieval, tomo, write, interactive_mode )
+function [proj, write, tomo, tint] = pp_phase_retrieval( proj, phase_retrieval, tomo, write, interactive_mode )
 % Phase retrieval for P05 data.
 %
 % Written by Julian Moosmann, 2018-01-11, last version: 2018-07-27
@@ -579,3 +579,8 @@ if write.phase_sino
     pause(0.01)
     fprintf( ' done in %.1f s (%.2f min)', toc - t, (toc - t) / 60)
 end
+
+% Adjust rotation axis offset and volume size and shape for post phase retrieval binning
+tomo.rot_axis_position = tomo.rot_axis_position / phase_bin;
+tomo.rot_axis_offset = tomo.rot_axis_offset / phase_bin;
+[tomo.vol_shape, tomo.vol_size] = volshape_volsize( proj, tomo.vol_shape, tomo.vol_size, tomo.rot_axis_offset, 1 );

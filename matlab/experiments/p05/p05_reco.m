@@ -40,9 +40,10 @@ dbstop if error
 % Just copy parameter and turn on quick switch
 par.quick_switch = 1;
 par.raw_bin = 4;
-par.raw_roi = -0.4;%[0.4 0.6];
+par.raw_roi = -0.2;%[0.4 0.6];
 par.proj_range = 4;
-par.ref_range = 2;
+par.ref_range = 1;
+par.ref_path = {'test_162'};
 write.to_scratch = 1;
 interactive_mode.rot_axis_pos = 0;
 interactive_mode.phase_retrieval = 0;
@@ -51,7 +52,7 @@ interactive_mode.phase_retrieval = 0;
 pp_parameter_switch % DO NOT DELETE THIS LINE
 
 %%% SCAN %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%l%%%%%%%%%%%
-scan_path = pwd; % string/pwd. pwd: change to directory of the scan to be reconstructed, string: absolute scan path
+par.scan_path = pwd; % string/pwd. pwd: change to directory of the scan to be reconstructed, string: absolute scan path
 par.ref_path = {}; % cell of strings. Additonal data sets to be included for the correlation of projections and reference images
 par.read_flatcor = 0; % read preprocessed flatfield-corrected projections. CHECK if negative log has to be taken!
 par.read_flatcor_path = ''; % subfolder of 'flat_corrected' containing projections
@@ -194,7 +195,7 @@ write.uint8_segmented = 0; % experimental: threshold segmentaion for histograms 
 %%% INTERACTION %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 par.visual_output = 1; % show images and plots during reconstruction
 interactive_mode.rot_axis_pos = 1; % reconstruct slices with dif+ferent rotation axis offsets
-ainteractive_mode.rot_axis_pos_default_search_range = []; % if empty: asks for search range when entering interactive mode
+interactive_mode.rot_axis_pos_default_search_range = []; % if empty: asks for search range when entering interactive mode
 interactive_mode.rot_axis_tilt = 0; % reconstruct slices with different offset AND tilts of the rotation axis
 interactive_mode.rot_axis_tilt_default_search_range = []; % if empty: asks for search range when entering interactive mode
 interactive_mode.lamino = 0; % find laminography tilt instead camera tilt
@@ -222,7 +223,7 @@ vert_shift = 0;
 offset_shift = 0;
 scan_position = [];
 logpar = [];
-raw_data = 0;
+par.raw_data = 0;
 s_stage_z_str =  '';
 imlogcell = [];
 
@@ -242,7 +243,7 @@ if exist( 'external_parameter' ,'var')
 end
 
 %%% QUICK SWITCH PARAMETERS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-if par.quick_switch
+if isfield( par, 'quick_switch' ) && par.quick_switch
     % Loop over parameter structs
     for sn = 1:par_quick_switch.num_structs
         % Parameter struct name
@@ -366,12 +367,13 @@ fprintf( 'START RECONSTRUCTION: ')
 %% Folders
 
 % Scan path
-while scan_path(end) == filesep
-    scan_path(end) = [];
+while par.scan_path(end) == filesep
+    par.scan_path(end) = [];
 end
-[raw_path, scan_name] = fileparts(scan_path);
-scan_path = [scan_path, filesep];
-[beamtime_path, raw_folder] = fileparts(raw_path);
+[par.raw_path, scan_name] = fileparts(par.scan_path);
+par.scan_path = [par.scan_path, filesep];
+scan_path = par.scan_path;
+[beamtime_path, raw_folder] = fileparts(par.raw_path);
 [~, beamtime_id] = fileparts(beamtime_path);
 if ~strcmp(raw_folder, 'raw') && ~par.read_sino && ~par.read_flatcor
     error('Given path does not contain a ''raw'' folder: %s', raw_folder)
@@ -398,7 +400,7 @@ end
 % Save raw path to file for shell short cut
 filename = [userpath, filesep, 'path_to_raw'];
 fid = fopen( filename , 'w' );
-fprintf( fid, '%s', raw_path );
+fprintf( fid, '%s', par.raw_path );
 fclose( fid );
 
 fprintf( '%s', scan_name )
@@ -468,10 +470,6 @@ for mm = 1:numel( tomo.astra_gpu_index )
     fprintf( ' [%u %.3g]', nn, mem_total_gpu )
 end
 
-% Start parallel CPU pool
-parpool_tmp_folder = [beamtime_path filesep 'scratch_cc'];
-[poolobj, par.poolsize] = OpenParpool( par.poolsize, par.use_cluster, parpool_tmp_folder, 0, [] );
-
 % GPU info
 for mm = numel( tomo.astra_gpu_index ):-1:1
     nn = tomo.astra_gpu_index(mm);
@@ -481,21 +479,13 @@ for mm = numel( tomo.astra_gpu_index ):-1:1
     fprintf( '\n GPU %u memory available : %.3g GiB (%.2f%%) of %.3g GiB', nn, mem_avail_gpu(nn)/1024^3, 100*mem_avail_gpu(nn)/mem_total_gpu(nn), mem_total_gpu(nn)/1024^3 )
 end
 
+% Start parallel CPU pool
+parpool_tmp_folder = [beamtime_path filesep 'scratch_cc'];
+[poolobj, par.poolsize] = OpenParpool( par.poolsize, par.use_cluster, parpool_tmp_folder, 0, [] );
+
 if ~par.read_flatcor && ~par.read_sino
     
-    % Wait until scan finishes
-    filename = sprintf( '%s%sscan.log', scan_path, scan_name );
-    if ~exist( filename, 'file' )
-        % back up for older log file name schemes
-        str = dir( sprintf( '%s*scan.log', scan_path) );
-        filename = sprintf( '%s/%s', str.folder, str.name);
-    end
-    while exist(filename, 'file' ) && ~getfield( dir( filename ) ,'bytes')
-        fprintf( '\nWaiting for scan to finish.' )
-        pause(1);
-    end
-    
-        % Projection range to read
+    % Projection range to read
     if isempty( par.proj_range )
         par.proj_range = 1;
     end
@@ -541,6 +531,7 @@ if ~par.read_flatcor && ~par.read_sino
         % File names
         proj_names = fns(im_key==0)';
         ref_names = fns(im_key==1)';
+        ref_full_path = cellfun( @(a) [scan_path a], ref_names, 'UniformOutput', 0 );
         dark_names = fns( im_key == 2 )';
         
         if numel( par.proj_range ) == 1
@@ -552,73 +543,8 @@ if ~par.read_flatcor && ~par.read_sino
         angles = im_angle( im_key == 0);
         angles = angles( par.proj_range );
         
-    else
-        
-        % Projection file names
-        proj_names = FilenameCell( [scan_path, '*.img'] );
-        raw_data = 0;
-        if isempty( proj_names )
-            proj_names =  FilenameCell( [scan_path, '*img*.tif'] );
-            raw_data = 0;
-        end
-        if isempty( proj_names )
-            proj_names =  FilenameCell( [scan_path, '*img*.raw'] );
-            raw_data = 1;
-        end
-        if isempty( proj_names )
-            proj_names =  FilenameCell( [scan_path, '*proj*.tif'] );
-            raw_data = 0;
-        end
-        if isempty( proj_names )
-            proj_names =  FilenameCell( [scan_path, '*proj*.raw'] );
-            raw_data = 1;
-        end
-        % Ref file names
-        ref_names = FilenameCell( [scan_path, '*.ref'] );
-        if isempty( ref_names )
-            ref_names = FilenameCell( [scan_path, '*ref.tif'] );
-        end
-        if isempty( ref_names )
-            ref_names =  FilenameCell( [scan_path, '*flat*.tif'] );
-        end
-        if isempty( ref_names )
-            ref_names =  FilenameCell( [scan_path, '*ref*.raw'] );
-        end
-        if isempty( ref_names )
-            ref_names =  FilenameCell( [scan_path, '*flat*.raw'] );
-        end
-        if isempty( ref_names )
-            ref_names = FilenameCell( [scan_path, '*ref*.tif'] );
-        end
-        % Dark file names
-        dark_names = FilenameCell( [scan_path, '*.dar'] );
-        if isempty( dark_names )
-            dark_names = FilenameCell( [scan_path, '*dar.tif'] );
-        end
-        if isempty( dark_names )
-            dark_names =  FilenameCell( [scan_path, '*dar*.raw'] );
-        end
-        if isempty( dark_names )
-            dark_names = FilenameCell( [scan_path, '*dar*.tif'] );
-        end
-        
-        %% Hack due to rewriting of tomoscan_flikit
-        if isempty( ref_names )
-            h5log = dir( sprintf('%s*_nexus.h5', scan_path) );
-            h5log = [h5log.folder filesep h5log.name];
-            % images
-            stimg_name.value = unique( h5read( h5log, '/entry/scan/data/image_file/value') );
-            stimg_name.time = h5read( h5log,'/entry/scan/data/image_file/time');
-            stimg_key.value = h5read( h5log,'/entry/scan/data/image_key/value');
-            stimg_key.time = double( h5read( h5log,'/entry/scan/data/image_key/time') );
-            
-            % File names
-            proj_names = stimg_name.value(stimg_key.value==0)';
-            ref_names = stimg_name.value(stimg_key.value==1)';
-            dark_names = stimg_name.value(stimg_key.value == 2 )';
-            %% name check for petra iii current is now useless
-        end
-        
+    else        
+        [proj_names, ref_names, ref_full_path, dark_names, par] =  pp_get_filenames( par );        
     end
 
     num_dark = numel(dark_names);
@@ -633,9 +559,7 @@ if ~par.read_flatcor && ~par.read_sino
     end
     if numel( par.proj_range ) == 1
         par.proj_range = 1:par.proj_range:num_proj_found;
-    end
-    ref_names_mat = NameCellToMat( ref_names(par.ref_range) );
-    ref_nums = CellString2Vec( ref_names(par.ref_range) );
+    end        
     dark_nums = CellString2Vec( dark_names );
     proj_nums = CellString2Vec( proj_names(par.proj_range) );
     num_ref_used = numel( par.ref_range );
@@ -650,18 +574,18 @@ if ~par.read_flatcor && ~par.read_sino
     
     %% Log files %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     % hdf5 log from statussever
-    h5log = dir( sprintf('%s*_nexus.h5', scan_path) );
-    if numel( h5log ) == 1
-        h5log = [h5log.folder filesep h5log.name];
+    nexuslog_name = dir( sprintf('%s*_nexus.h5', scan_path) );
+    if numel( nexuslog_name ) == 1
+        nexuslog_name = [nexuslog_name.folder filesep nexuslog_name.name];
     end
     % old scan-log, still needed
-    filename = sprintf( '%s%sscan.log', scan_path, scan_name );
-    if ~exist( filename, 'file' )
+    scanlog_name = sprintf( '%s%sscan.log', scan_path, scan_name );
+    if ~exist( scanlog_name, 'file' )
         % back up for older log file name schemes
         str = dir( sprintf( '%s*scan.log', scan_path) );
-        filename = sprintf( '%s/%s', str.folder, str.name);
+        scanlog_name = sprintf( '%s/%s', str.folder, str.name);
     end
-    [logpar, cur, cam] = p05_log( filename );
+    [logpar, cur, cam] = p05_log( scanlog_name );
     if isempty( par.eff_pixel_size )
         par.eff_pixel_size = logpar.eff_pixel_size;
     end
@@ -684,10 +608,11 @@ if ~par.read_flatcor && ~par.read_sino
     if isempty( par.sample_detector_distance )
         par.sample_detector_distance = logpar.sample_detector_distance;
     end
-    if ~exist( h5log, 'file')
+    if ~exist( nexuslog_name, 'file')
         % Image shape and ROI
-        filename = sprintf('%s%s', scan_path, ref_names{1});
-        if ~raw_data
+        %filename = sprintf('%s%s', scan_path, ref_names{1});
+        filename = ref_full_path{1};
+        if ~par.raw_data
             %[im_raw, par.tif_info] = read_image( filename, '', [], [], [], '', par.im_trafo );
             [im_raw, par.tif_info] = read_image( filename, par);
             par.im_shape_raw = size( im_raw );
@@ -705,27 +630,27 @@ if ~par.read_flatcor && ~par.read_sino
         end
     else
         % HDF5 log
-        h5log_info = h5info( h5log );
+        h5log_info = h5info( nexuslog_name );
         % energy, exposure time, image shape
         switch lower( cam )
             %%% CHECK h5 entry of camera1 / camera2 !!
             case 'ehd'
-                exposure_time = double(h5read( h5log, '/entry/hardware/camera1/calibration/exptime') );
+                exposure_time = double(h5read( nexuslog_name, '/entry/hardware/camera1/calibration/exptime') );
                 %par.im_shape_raw = [3056 3056];                
             case 'kit'
-                exposure_time = double(h5read( h5log, '/entry/hardware/camera2/calibration/exptime') );
+                exposure_time = double(h5read( nexuslog_name, '/entry/hardware/camera2/calibration/exptime') );
                 %par.im_shape_raw = [5120 3840];
         end
         par.dtype = 'uint16';
         eff_pixel_size_binned = raw_bin * par.eff_pixel_size;
         
         % Image shape
-        filename = sprintf('%s%s', scan_path, ref_names{1});
-        
+        %filename = sprintf('%s%s', scan_path, ref_names{1});        
+        filename = ref_full_path{1};
         % mod: breaks raw data support
         % Fixed: 2019-07-10
         % CLEAN UP required
-        if raw_data
+        if par.raw_data
             switch lower( cam )
                 case 'ehd'
                     par.im_shape_raw = [3056 3056];
@@ -742,32 +667,30 @@ if ~par.read_flatcor && ~par.read_sino
         end
         par.im_shape_raw = size( im_raw );
         
-        h_setup = h5info(h5log, '/entry/scan/setup/' );
-        if sum(strcmpi('pos_p05_energy',{ h_setup.Datasets.Name }))
-            par.energy = double( h5read( h5log, '/entry/scan/setup/pos_p05_energy' ) );
+        nexus_setup = h5info(nexuslog_name, '/entry/scan/setup/' );
+        if sum(strcmpi('pos_p05_energy',{ nexus_setup.Datasets.Name }))
+            par.energy = double( h5read( nexuslog_name, '/entry/scan/setup/pos_p05_energy' ) );
             par.energy = par.energy( end );
         end
-        if ~isempty( imlogcell )        
-            
-        else
+        if isempty( imlogcell )
             % images
-            stimg_name.value = unique( h5read( h5log, '/entry/scan/data/image_file/value') );
-            stimg_name.time = h5read( h5log,'/entry/scan/data/image_file/time');
-            stimg_key.value = h5read( h5log,'/entry/scan/data/image_key/value');
-            stimg_key.time = double( h5read( h5log,'/entry/scan/data/image_key/time') );
+            stimg_name.value = unique( h5read( nexuslog_name, '/entry/scan/data/image_file/value') );
+            stimg_name.time = h5read( nexuslog_name,'/entry/scan/data/image_file/time');
+            stimg_key.value = h5read( nexuslog_name,'/entry/scan/data/image_key/value');
+            stimg_key.time = double( h5read( nexuslog_name,'/entry/scan/data/image_key/time') );
             % PETRA ring current
-            [petra.time, index] = unique( h5read( h5log,'/entry/hardware/beam_current/current/time') );
-            petra.current = h5read( h5log,'/entry/hardware/beam_current/current/value');
+            [petra.time, index] = unique( h5read( nexuslog_name,'/entry/hardware/beam_current/current/time') );
+            petra.current = h5read( nexuslog_name,'/entry/hardware/beam_current/current/value');
             petra.current = petra.current(index);
             % rotation axis
-            s_rot.time = double( h5read( h5log, '/entry/scan/data/s_rot/time') );
-            s_rot.value = h5read( h5log, '/entry/scan/data/s_rot/value');
+            s_rot.time = double( h5read( nexuslog_name, '/entry/scan/data/s_rot/time') );
+            s_rot.value = h5read( nexuslog_name, '/entry/scan/data/s_rot/value');
             % lateral shift
-            h5log_group = h5info(h5log, '/entry/scan/data/' );
+            h5log_group = h5info(nexuslog_name, '/entry/scan/data/' );
             if sum( strcmp('/entry/scan/data/s_stage_x',{h5log_group.Groups.Name}))
                 % Read out lateral rotation axis shift form log file
-                s_stage_x.time = double( h5read( h5log, '/entry/scan/data/s_stage_x/time') );
-                s_stage_x.value = h5read( h5log, '/entry/scan/data/s_stage_x/value');
+                s_stage_x.time = double( h5read( nexuslog_name, '/entry/scan/data/s_stage_x/time') );
+                s_stage_x.value = h5read( nexuslog_name, '/entry/scan/data/s_stage_x/value');
                 if ~isempty( s_stage_x.value )
                     offset_shift_mm = s_stage_x.value( ~boolean( stimg_key.value(logpar.n_dark+1:end) ) );
                 else
@@ -775,7 +698,7 @@ if ~par.read_flatcor && ~par.read_sino
                 end
             end
             % spiral CT translation
-            h5log_group = h5info(h5log, '/entry/scan/data/' );
+            h5log_group = h5info(nexuslog_name, '/entry/scan/data/' );
             s_stage_z_str = '/entry/scan/data/s_stage_z';
         end
         % Display PETRA current
@@ -814,8 +737,8 @@ if ~par.read_flatcor && ~par.read_sino
                 % Tranform to integer pixel-wise shifts
                 tmp = offset_shift;
                 offset_shift = round( offset_shift );
-                if std( offset_shift - tmp ) > 1e-2
-                    warning( 'Offset shift not on integer pixel scale' )
+                if std( offset_shift - tmp ) > 1e-2                    
+                    cprintf( 'Red', '\nOffset shift not on integer pixel scale.\n' )
                 end
                 
                 % Lateral scanning
@@ -898,8 +821,8 @@ if ~par.read_flatcor && ~par.read_sino
         %% Vertical shift
         if ~isempty( s_stage_z_str ) && sum( strcmp( s_stage_z_str, {h5log_group.Groups.Name}))
             % Read out vertical shift form HDF5 log file
-            s_stage_z.time = double( h5read( h5log, [s_stage_z_str '/time']) );
-            s_stage_z.value = h5read( h5log, [s_stage_z_str '/value']);
+            s_stage_z.time = double( h5read( nexuslog_name, [s_stage_z_str '/time']) );
+            s_stage_z.value = h5read( nexuslog_name, [s_stage_z_str '/value']);
             
             % Static or shift?
             if numel( s_stage_z.value ) % is not empty
@@ -921,8 +844,7 @@ if ~par.read_flatcor && ~par.read_sino
                     
                     % Check
                     vert_shift = vert_shift_micron * 1e-3 / eff_pixel_size_binned;
-                    vert_shift = SubtractMean( vert_shift );
-                    
+                    vert_shift = SubtractMean( vert_shift );                    
                     fprintf( '\n vertical shift absolute / micron : [%g %g]', min( vert_shift_micron ), max( vert_shift_micron ) )
                     fprintf( '\n vertical shift relative / binned pixel : [%g %g] ', min( vert_shift), max( vert_shift) )
                     dz_micron = max( vert_shift_micron ) - min(vert_shift_micron);
@@ -1017,11 +939,11 @@ if ~par.read_flatcor && ~par.read_sino
                 cur.proj(nn).ind = str2double(cur.proj(nn).name(end-7:end-4));
             end
         end
-    end % if ~exist( h5log, 'file')
+    end % if ~exist( nexuslog_name, 'file')
     
     %% Raw ROI
     %par.raw_roi = set_raw_roi( par.raw_roi, par, par.im_shape_raw, im_raw, par.tif_info, par.dtype, par.im_trafo, scan_path, fig_path, ref_names, dark_names );
-    par.raw_roi = set_raw_roi(  par, im_raw, scan_path, fig_path, ref_names, dark_names );
+    par = set_raw_roi(  par, im_raw, scan_path, fig_path, ref_full_path, dark_names );
     
     %% Print info
     %im_roi = read_image( filename, '', par.raw_roi, par.tif_info, par.im_shape_raw, par.dtype, par.im_trafo );
@@ -1149,12 +1071,13 @@ if ~par.read_flatcor && ~par.read_sino
     % Parallel loop over refs
     startS = ticBytes( gcp );
     % read_image_par = read_image( filename, '', par.raw_roi, par.tif_info, par.im_shape_raw, par.dtype, par.im_trafo );
+    %ref_names_mat = NameCellToMat( ref_names(par.ref_range) );
     read_image_par = @(filename) read_image( filename, par );
     parfor ( nn = 1:num_ref_used, poolsize_max_gpu )
         
         % Read
-        filename = sprintf('%s%s', scan_path, ref_names_mat(nn,:));
-        
+        %filename = sprintf('%s%s', scan_path, ref_names_mat(nn,:));        
+        filename = ref_full_path{nn};
         %im_int = read_image( filename, par );
         im_int = read_image_par( filename );
         
@@ -1193,8 +1116,8 @@ if ~par.read_flatcor && ~par.read_sino
     flat_max = max( flat(:) );
     
     % Ring current normalization
-    if par.ring_current_normalization
-        ref_ind_from_filenames = ref_nums;
+    if par.ring_current_normalization && isempty( par.ref_path )      
+        ref_ind_from_filenames = CellString2Vec( ref_names(par.ref_range) );
         ref_ind_from_log = [cur.ref(par.ref_range).ind];
         if isequal( ref_ind_from_filenames, ref_ind_from_log )
             ref_rc = [cur.ref(par.ref_range).val];
@@ -1211,15 +1134,17 @@ if ~par.read_flatcor && ~par.read_sino
                 drawnow
             end
         else
-            cprintf( 'Red', '\n WARNING: flat fields not normalized by ring current. Names read from directory and log-file are inconsistent.\n')
+            cprintf( 'Red', '\nWARNING: Flat fields not normalized by ring current. Names read from directory and log-file are inconsistent.\n')            
         end
+    else
+        cprintf( 'Red', '\nWARNING: Flat fields not normalized by ring current.\n')        
     end
     
     flat_min2 = min( flat(:) );
     flat_max2 = max( flat(:) );
     nn =  sum( flat(:) < 1 );
     if nn > 0
-        fprintf('\n WARNING: flat field contains %u zeros\n', nn)
+        cprintf( 'Red', '\nWARNING: Flat field contains %u zeros\n', nn)
     end
     
     nn = sum( ~refs_to_use(:) );
@@ -1422,7 +1347,7 @@ if ~par.read_flatcor && ~par.read_sino
     raw_max = max( proj(:) );
     
     % Ring current normalization
-    if par.ring_current_normalization
+    if par.ring_current_normalization && isempty( par.ref_path )
         proj_ind_from_filenames = proj_nums;
         proj_ind_from_log = [cur.proj(par.proj_range).ind];
         if isequal( proj_ind_from_filenames,  proj_ind_from_log )
@@ -1441,6 +1366,7 @@ if ~par.read_flatcor && ~par.read_sino
                     hrc = figure( 'Name', name, 'WindowState', window_state );
                 end
                 subplot(1,1,1);
+                ref_nums = 1:numel( ref_names(par.ref_range) );
                 plot( ref_nums, ref_rc(:), '.',proj_nums, proj_rc(:), '.' )
                 axis tight
                 xlabel( 'image no.' )
@@ -1452,8 +1378,10 @@ if ~par.read_flatcor && ~par.read_sino
                 saveas( hrc, sprintf( '%s%s.png', fig_path, regexprep( hrc.Name, '\ |:', '_') ) );
             end
         else
-            cprintf( 'Red', '\n WARNING: projections not normalized by ring current. Names read from directory and log-file are inconsistent.\n')
+            cprintf( 'Red', '\nWARNING: Projections not normalized by ring current. Names read from directory and log-file are inconsistent.\n')
         end
+    else
+        cprintf( 'Red', '\nWARNING: Projections not normalized by ring current.\n')
     end
     
     raw_min2 = min( proj(:) );
@@ -1548,7 +1476,7 @@ if ~par.read_flatcor && ~par.read_sino
             else
                 angles = angles(par.proj_range);
             end
-        elseif exist( h5log, 'file')
+        elseif exist( nexuslog_name, 'file')
             angles = s_rot.value( ~boolean( stimg_key.value(logpar.n_dark+1:end) ) ) * pi / 180;
             angles = angles(par.proj_range);
         else
@@ -1731,10 +1659,7 @@ if phase_retrieval.apply
         end
         if phase_retrieval.apply_before
             % Retrieval
-            [proj, write, tint_phase] = pp_phase_retrieval( proj, phase_retrieval, tomo, write, interactive_mode );
-            tomo.rot_axis_position = tomo.rot_axis_position / phase_bin;
-            tomo.rot_axis_offset = tomo.rot_axis_offset / phase_bin;
-            [tomo.vol_shape, tomo.vol_size] = volshape_volsize( proj, tomo.vol_shape, tomo.vol_size, tomo.rot_axis_offset, verbose );
+            [proj, write, tomo, tint_phase] = pp_phase_retrieval( proj, phase_retrieval, tomo, write, interactive_mode );            
         end
         
     else
@@ -2043,11 +1968,7 @@ end
 if phase_retrieval.apply && ~dpc_reco
     if ~phase_retrieval.apply_before
         % Retrieval
-        [proj, write, tint_phase] = pp_phase_retrieval( proj, phase_retrieval, tomo, write, interactive_mode );
-        % Post phase retrieval binning
-        tomo.rot_axis_position = tomo.rot_axis_position / phase_bin;
-        tomo.rot_axis_offset = tomo.rot_axis_offset / phase_bin;
-        [tomo.vol_shape, tomo.vol_size] = volshape_volsize( proj, tomo.vol_shape, tomo.vol_size, tomo.rot_axis_offset, verbose );
+        [proj, write, tomo, tint_phase] = pp_phase_retrieval( proj, phase_retrieval, tomo, write, interactive_mode );        
     end
 end
 
@@ -2500,7 +2421,7 @@ if write.reco
         fprintf(fid, 'phase_retrieval.regularisation_parameter : %f\n', phase_retrieval.reg_par);
         fprintf(fid, 'phase_retrieval.binary_filter_threshold : %f\n', phase_retrieval.bin_filt);
         fprintf(fid, 'phase_retrieval.cutoff_frequency : %f pi\n', phase_retrieval.cutoff_frequ / pi);
-        fprintf(fid, 'phase_retrieval.post_binning_factor : %u\n', phase_bin);
+        fprintf(fid, 'phase_retrieval.post_binning_factor : %u\n', phase_retrieval.post_binning_factor);
     end
     if tomo.run
         % Volume
@@ -2586,7 +2507,7 @@ PrintVerbose( interactive_mode.rot_axis_pos, '\nTime elapsed in interactive rota
 PrintVerbose( interactive_mode.phase_retrieval, '\nTime elapsed in interactive phase retrieval mode: %g s (%.2f min)', tint_phase, tint_phase / 60 );
 fprintf( '\nTime elapsed for computation: %g s (%.2f min)', toc - tint -tint_phase, (toc - tint - tint_phase) / 60 );
 fprintf( '\nFINISHED: %s at %s\n', scan_name, datetime )
-if par.quick_switch
+if isfield( par, 'quick_switch' ) && par.quick_switch
     cprintf( 'Red', '\nATTENTION: fast reco mode was turned on!\n' )
 end
 fprintf( '\n')

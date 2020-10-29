@@ -1,4 +1,4 @@
-function raw_roi = set_raw_roi( par, im_raw,  scan_path, fig_path, ref_names, dark_names )
+function par = set_raw_roi( par, im_raw,  scan_path, fig_path, ref_full_path, dark_names )
 % Set raw ROI.
 %
 % ARGUMENT
@@ -31,7 +31,7 @@ assign_from_struct( par, 'im_trafo',  []);
 
 
 % old: par.raw_roi = set_raw_roi( par.raw_roi, par, par.im_shape_raw, im_raw, par.tif_info, par.dtype, par.im_trafo, scan_path, fig_path, ref_names, dark_names );
-
+par.raw_roi_old = raw_roi;
 if ~isempty( raw_roi ) % else AUTO ROI
     if numel( raw_roi ) > 1
         % relative indexing
@@ -83,18 +83,21 @@ if ~isempty( raw_roi ) % else AUTO ROI
             mm = 1;
             while mean2( im_raw ) == 0
                 mm = mm + 1;
-                filename = sprintf('%s%s', scan_path, ref_names{mm});
+                %filename = sprintf('%s%s', scan_path, ref_names{mm});
+                filename = ref_full_path{mm};
                 %im_raw = read_image( filename, '', [], tif_info, im_shape_raw, dtype, im_trafo );
                 im_raw = read_image( filename, par, 1 );
             end
             % Read last non-zero flat
-            mm = numel( ref_names );
-            filename = sprintf('%s%s', scan_path, ref_names{mm});
+            mm = numel( ref_full_path );
+            %filename = sprintf('%s%s', scan_path, ref_names{mm});
+            filename = ref_full_path{mm};
             %im_raw2 = read_image( filename, '', [], tif_info, im_shape_raw, dtype, im_trafo );
             im_raw2 = read_image( filename, par, 1 );
             while mean2( im_raw2 ) == 0
                 mm = mm - 1;
-                filename = sprintf('%s%s', scan_path, ref_names{mm});
+                %filename = sprintf('%s%s', scan_path, ref_names{mm});
+                filename = ref_full_path{mm};
                 %im_raw2 = read_image( filename, '', [], tif_info, im_shape_raw, dtype, im_trafo );
                 im_raw2 = read_image( filename, par, 1);
             end
@@ -158,3 +161,4 @@ if ~isempty( raw_roi ) % else AUTO ROI
     end
 end
 
+par.raw_roi = raw_roi;

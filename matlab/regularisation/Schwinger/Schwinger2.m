@@ -68,9 +68,11 @@ int = imMask .* int;
 % dx^2))) is close the value of pfs(2,1)=pfs(1,2), pfs(1,1) = 0. There
 % are/could be smaller values close to higher order of zeros, but the order
 % of magnitude should be the same
-tMax = -log( 2 * eps('single'))/pfs(2,1);
-dt = 0.2;0.25;%tMax/1000;
-t = dt:dt:tMax;
+tMax = -1 / 2 * log( eps('single'))/pfs(2,1); % Reduce by another 1/2
+%dt = 0.2;0.25;%tMax/1000;
+num_iter_max = 10000;
+dt = tMax / num_iter_max;
+t = 0:dt:tMax;
 num_t = numel( t );
 % integrate using a loop
 phi = 0;
@@ -78,6 +80,20 @@ phiuo = 0;
 fprintf( '\n Schwinger integration parameter: [dt, tMax, num_t] = [%g, %g %g]', dt, tMax, num_t )
 %phi = zeros([size(int) numel(t)]);
 nn_break = 0;
+
+figure( 'Name', 'Integration weight band' )
+pfs_max = max2( pfs );
+pfs_med = median( pfs(:));
+pfs_mean = mean( pfs(:));
+pfs_min = pfs(1,2);
+wmin = exp( -t .* pfs_max)';
+wmed = exp( -t .* pfs_med)';
+wmean = exp( -t .* pfs_mean)';
+wmax = exp( -t .* pfs_min)';
+plot( [wmin, wmed, wmean, wmax ] )
+title( sprintf( 'sampling points: %u', numel( t ) ))
+legend( {sprintf( 'low: %f', pfs_max ), sprintf('med: %g', pfs_med ), sprintf('mean: %g', pfs_mean ), sprintf('high: %g', pfs_min )} )
+
 figure( 'Name', 'Schwinger iteration' )
 phidiff_old = 0;
 nn_delta = 0;
@@ -89,11 +105,11 @@ for nn = 1:1:num_t
     delta_phidiff = abs( phidiff_old - phidiff ); 
     if delta_phidiff < eps('single')
          nn_delta = nn_delta + 1;
-         if nn_delta > 10
+         if nn > 1 && nn_delta > 10
             nn_break = nn;
          end
     end
-    if phidiff < 10^-6
+    if nn > 1 && phidiff < eps('single')
         fprintf('\nAbort loop after %u iterations. Difference norm between subsequent updates: %g\n',nn,phidiff);
         nn_break = nn;        
     end    
@@ -113,8 +129,8 @@ for nn = 1:1:num_t
         drawnow
         pause( 0.1 )
     end
-    if nn == nn_break
-        keyboard
+    if nn == nn_break && nn > 1
+        %keyboard
         break
     end
     phiuo = phiu;
