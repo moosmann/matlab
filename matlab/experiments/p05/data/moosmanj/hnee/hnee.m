@@ -55,13 +55,24 @@ p.readhdf5 = 1;
 
 % GERISSEN, 9 scans, 8 steps
 p.scan_name = 'hnee18_pappel_tensionWood';
-p05_load_force_values( p )
+%p05_load_force_values( p )
 
 % GERISSEN, vor 8. scan %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Good one, broke during wait before last scan
 p.scan_name = 'hnee19_pappel_oppositeWood';
+%p05_load_force_values( p )
+
+p.scan_name = 'hnee20_pappel_tensionWood';
 p05_load_force_values( p )
 
 % GERISSEN nach 5. scan, bei ca 35 N
 p.scan_name = 'hnee21_pappel_oppositeWood';
+%p05_load_force_values( p )
+
+p.scan_name = 'hnee22_pappel_oppositeWood';
 p05_load_force_values( p )
+
+p.scan_name = 'hnee23_pappel_tensionWood';
+p05_load_force_values( p )
+
+

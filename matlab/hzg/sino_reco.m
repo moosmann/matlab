@@ -36,7 +36,8 @@ close all hidden % close all open windows
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %%% SCAN %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-scan_path = pwd;
+scan_path = '/asap3/petra3/gpfs/p07/2020/data/11010206/processed/mgbone05_19118_ti_8m';
+%pwd;
     '/asap3/petra3/gpfs/p05/2020/data/11008823/processed/nova004_pyrochroa_coccinea_a';
     '/asap3/petra3/gpfs/p05/2020/data/11008823/processed/nova003_pentatomidae';
     '/asap3/petra3/gpfs/p07/2019/data/11006991/processed/hzg_ind_01_cork_a/';
@@ -48,9 +49,9 @@ raw_bin = 4; % projection binning factor: integer
 read_sino_folder = sprintf( 'trans%02u', raw_bin);
 read_sino = 1; % read preprocessed sinograms. CHECK if negative log has to be taken!
 read_sino_trafo = @(x) (x);%rot90(x); % anonymous function applied to the image which is read e.g. @(x) rot90(x)
-energy = 59120.342381723924;32999.982; % in eV!
-sample_detector_distance = 50.010600;0.4; % in m
-eff_pixel_size = 0.00106398;1.26646e-6; % in m
+energy = [];%59120.342381723924;32999.982; % in eV!
+sample_detector_distance = [];%50.010600;0.4; % in m
+eff_pixel_size = [];%0.00106398;1.26646e-6; % in m
 tomo.rot_angle_full_range = 2*pi; % in radians. if []: full angle of rotation including additional increment, or array of angles. if empty full rotation angles is determined automatically to pi or 2 pi
 %%% PHASE RETRIEVAL %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 phase_retrieval.apply = 0; % See 'PhaseFilter' for detailed description of parameters !
@@ -295,7 +296,9 @@ sino_names_mat = NameCellToMat( sino_names );
 
 % Parameters
 filename = sprintf('%s%s', sino_path, sino_names_mat( round( im_shape_binned2 / 2 ), :));
-[sino, tiff_info] = read_image( filename, '', '', [], [], [], '', 0 );
+ par.tifftrafo = 0;
+%[sino, tiff_info] = read_image( filename, '', '', [], [], [], '', 0 );
+[sino, tiff_info] = read_image( filename, par );
 sino = read_sino_trafo( sino );
 im_shape_cropbin1 = size( sino, 2 );
 num_proj_read = size( sino, 1 );

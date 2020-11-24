@@ -11,7 +11,7 @@ function im = FilterMedian(im,Neigborhood_Ver_Hor,Padding)
 % im = FilterMedian(im,Neigborhood_Ver_Hor,Padding)
 
 %% Defaults
-if nargin < 2;
+if nargin < 2
     Neigborhood_Ver_Hor = [3 3];
 end
 if nargin < 3

@@ -67,6 +67,11 @@ switch method
         corr_curr.par.size.flat = size( flat );
         corr_curr.par.flat_corr_area1 = flat_corr_area1;
         corr_curr.par.flat_corr_area2 = flat_corr_area2;
+        corr_curr.par.image_correlation_filter = image_correlation.filter;
+        if image_correlation.filter
+            corr_curr.par.image_correlation_filter_type = image_correlation.filter_type;
+            corr_curr.par.image_correlation_filter_parameter = image_correlation.filter_parameter;
+        end
         
         %% Search for previously calculated correlation matrix
         % Loop over processed and scratch_cc

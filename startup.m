@@ -1,3 +1,4 @@
+distcomp.feature( 'LocalUseMpiexec', false );
 %% Paths
 % TODO: adapt for cases where there is another matlab folder already in use
 
@@ -31,7 +32,10 @@ fprintf( '\nMATLAB_PATH : %s', getenv( 'MATLAB_PATH' ) );
 %% Git repository version
 %fprintf( '\nGit commit ID : %s', git_commit_id );
 
-%% Set default color map to grayscale instead of jet
+%% Default figure properties
+% Set default color map to grayscale instead of jet
 set(groot, 'DefaultFigureColormap', gray)
+set(groot,'DefaultFigureGraphicsSmoothing','off')
+set( groot, 'DefaultFigureRenderer', 'painter')
 
 fprintf( '\n' )

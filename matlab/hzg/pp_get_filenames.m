@@ -120,8 +120,8 @@ if isempty( ref_names )
     
     ref_full_path = cellfun( @(a) [scan_path filesep a], ref_names, 'UniformOutput', 0 );
     
-    %% name check for petra iii current is now useless
-    warning( '\n HACK. USELESS CROSS CHECK OF FILENAMES AND LOGFILE' )
+    %% name check for petra iii current is now useless    
+    cprintf( 'Red', '\nWarning: HACK. USELESS CROSS CHECK OF FILENAMES AND LOGFILE' )
 end
 
 function [ref_names, ref_full_path] = get_ref_names( scan_path )
