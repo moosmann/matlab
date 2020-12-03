@@ -8,7 +8,9 @@ export CUDA_PATH=/usr/local/cuda-10.1
 export PYTHONPATH=$CUDA_PATH/lib64/:$PYTHONPATH
 
 # MATLAB
-export MATLAB_VERSION=R2018a
+#export MATLAB_VERSION=R2018a
+export MATLAB_VERSION=R2020a # requires toolbox cache to be disabled
+#export MATLAB_VERSION=R2020b # h5info issue
 export MATLAB_USER_PATH=$PWD
 
 # ASTRA
@@ -31,4 +33,5 @@ echo -e 'MATLAB_PATH:' $MATLAB_PATH
 echo -e 'GIT_COMMIT_ID:' $GIT_COMMIT_ID
 echo -e 'Starting MATLAB.\n'
 
+ulimit -u 63536
 matlab_$MATLAB_VERSION

@@ -1,4 +1,4 @@
-function p05_reco
+function p05_reco( external_parameter )
 % P05 reconstruction pipeline: preprocessing, filtering, phase retrieval,
 % tomographic reconstruction, ...
 %
@@ -26,12 +26,6 @@ function p05_reco
 %
 % Written by Julian Moosmann.
 
-if ~exist( 'external_parameter' ,'var')
-    clearvars
-end
-close all hidden % close all open windows
-dbstop if error
-
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% PARAMETERS / SETTINGS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -41,7 +35,7 @@ dbstop if error
 % Just copy parameter and turn on quick switch
 par.quick_switch = 1;
 par.raw_bin = 3;
-par.raw_roi = [];[0.3 0.7];
+par.raw_roi = [];%[0.3 0.7];
 par.proj_range = 1;
 par.ref_range = 1;
 par.ref_path = {};
@@ -236,18 +230,20 @@ s_stage_z_str =  '';
 imlogcell = [];
 
 %%% Parameters set by reconstruction loop script 'p05_reco_loop' %%%%%%%%%%
-if exist( 'external_parameter' ,'var')
+if nargin == 1 %exist( 'external_parameter' ,'var')
+    % Fields of parameter struct from loop script
+    field_name_cell = fieldnames( external_parameter );
+    for nn = 1:numel( field_name_cell )
+        field_name = field_name_cell{nn};
+        %var_val = getfield( external_parameter, var_name );        
+        %assignin('caller', var_name, var_val )
+        field_value = external_parameter.(field_name);
+        eval( sprintf( '%s = field_value;', field_name) );
+    end
+    clear external_parameter field_name_cell field_name field_value
+    par.quick_switch = 0;
     par.visual_output = 0;
     interactive_mode.rot_axis_pos = 0;
-    par.quick_switch = 0;
-    fn = fieldnames( external_parameter );
-    for nn = 1:numel( fn )
-        var_name = fn{nn};
-        var_val = getfield( external_parameter, var_name );
-        assignin('caller', var_name, var_val )
-    end
-    clear external_parameter;
-    %dbstop if error
 end
 
 %%% QUICK SWITCH PARAMETERS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -641,7 +637,7 @@ if ~par.read_flatcor && ~par.read_sino
     end
     if exist( nexuslog_name{1}, 'file')
         % HDF5 log
-        h5log_info = h5info( nexuslog_name{1} );
+        %h5log_info = h5info( nexuslog_name{1} );
         % energy, exposure time, image shape
         par.dtype = 'uint16';
         eff_pixel_size_binned = raw_bin * par.eff_pixel_size;
@@ -1476,7 +1472,8 @@ if ~par.read_flatcor && ~par.read_sino
     end
     
     %% Projection/flat field correlation and flat field correction %%%%%%%%
-    [proj, corr, toc_bytes] = proj_flat_correlation( proj, flat, image_correlation, par, write, roi_proj, roi_flat, toc_bytes );
+    [proj, ~, toc_bytes] = proj_flat_correlation( proj, flat, image_correlation, par, write, roi_proj, roi_flat, toc_bytes );
+    %[proj, corr, toc_bytes] = proj_flat_correlation( proj, flat, image_correlation, par, write, roi_proj, roi_flat, toc_bytes );
     %%%% STOP HERE TO CHECK FLATFIELD CORRELATION MAPPING %%%%%%%%%%%%%%%%%
     %%%% use 'proj_flat_sequ' to show results of the correlation
     
@@ -2272,7 +2269,8 @@ if tomo.run
                     
                     % segmentation
                     if write.uint8_segmented
-                        [vol, ~] = segment_volume(vol, 2^10, par.visual_output, verbose);
+                        [vol, out] = segment_volume(vol, 2^10, par.visual_output, verbose);
+                        write_volume( 1, vol/255, 'uint8', write, raw_bin, phase_bin, reco_bin, 0, verbose, '_segmented' );
                         save_path = write_volume( 1, vol/255, 'uint8', write, raw_bin, phase_bin, reco_bin, 0, verbose, '_segmented' );
                         save( sprintf( '%ssegmentation_info.m', save_path), 'out', '-mat', '-v7.3')
                     end

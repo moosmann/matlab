@@ -44,7 +44,7 @@ end
 CheckAndMakePath( tmp_folder )
 
 % Desired poolsize
-if poolsize < 1 && poolsize > 0
+if poolsize <= 1 && poolsize > 0
     numCores = feature('numCores');
     poolsize = max( floor( poolsize * numCores ), 1 );
 end

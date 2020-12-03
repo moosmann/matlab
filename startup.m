@@ -1,9 +1,9 @@
-distcomp.feature( 'LocalUseMpiexec', false );
 %% Paths
 % TODO: adapt for cases where there is another matlab folder already in use
 
 % User path
-userpath( fileparts( mfilename('fullpath') ) );
+startup_file =  mfilename('fullpath');
+userpath( fileparts( startup_file ) );
 % Search path
 addpath( genpath( [ userpath filesep 'matlab' ] ) );
 
@@ -12,6 +12,7 @@ user = getenv('USER');
 hostname = getenv('HOSTNAME');
 fprintf( 'USER : %s', user );
 fprintf( '\nHOSTNAME : %s', hostname );
+fprintf( '\nstartup file : %s', startup_file )
 fprintf( '\nuserpath : %s', userpath );
 fprintf( '\nCUDA_PATH : %s', getenv( 'CUDA_PATH' ) );
 
@@ -38,4 +39,9 @@ set(groot, 'DefaultFigureColormap', gray)
 set(groot,'DefaultFigureGraphicsSmoothing','off')
 set( groot, 'DefaultFigureRenderer', 'painter')
 
-fprintf( '\n' )
+%% Core info
+%[~, ulim] = unix( 'ulimit -u;' );
+fprintf( '\nulimit -u : ' )
+unix( 'ulimit -u;' );
+fprintf( evalc('feature(''numcores'');') );
+%fprintf( '\n' )
