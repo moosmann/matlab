@@ -1,7 +1,7 @@
 function out = Coherence(E_keV,SourceSample_m,SourceSize_micron,SampleDetector_m,Bandwidth,PixelSize_micron)
 
 if nargin < 1
-    E_keV = 30;
+    E_keV = 97;
 end
 if nargin < 2
     %SourceSample_m =  145;
@@ -76,7 +76,6 @@ end
 
 %% all outpus in micron
 
-ca
 font_size = 18;
 line_width = 6;
 

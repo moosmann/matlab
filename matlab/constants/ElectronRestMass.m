@@ -1,4 +1,4 @@
-function m = electron_rest_mass(units)
+function m = ElectronRestMass(units)
 % Return the electron rest mass in kilogram ('kg'), in Joule over c^2
 % ('J_c2'), in electron volts over c^2 ('eV_c2'), or in mega electron volts
 % over c^2 ('MeV_c2').

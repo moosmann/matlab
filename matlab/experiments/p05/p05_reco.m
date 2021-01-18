@@ -373,6 +373,11 @@ warning( 'off', 'MATLAB:imagesci:rtifc:missingPhotometricTag' );
 warning( 'off', 'MATLAB:hg:AutoSoftwareOpenGL' );
 warning( 'off', 'parallel:gpu:device:DeviceDeprecated' )
 
+weblink_url = 'https://github.com/moosmann/matlab';
+weblink_name = 'code reposiory on github';
+weblink = sprintf('<a href = "%s">%s</a>', weblink_url, weblink_name);
+fprintf( weblink );
+
 fprintf( 'START RECONSTRUCTION: ')
 %% Folders
 

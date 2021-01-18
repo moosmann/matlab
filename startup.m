@@ -12,7 +12,7 @@ user = getenv('USER');
 hostname = getenv('HOSTNAME');
 fprintf( 'USER : %s', user );
 fprintf( '\nHOSTNAME : %s', hostname );
-fprintf( '\nstartup file : %s', startup_file )
+fprintf( '\nstartup file : %s.m', startup_file )
 fprintf( '\nuserpath : %s', userpath );
 fprintf( '\nCUDA_PATH : %s', getenv( 'CUDA_PATH' ) );
 
