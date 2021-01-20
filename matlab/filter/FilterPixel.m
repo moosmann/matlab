@@ -33,6 +33,8 @@ function [im_int, threshold_hot, threshold_dark] = FilterPixel( im_int, par, gpu
 %
 % [im, thresholds, percentages] = FilterPixelGPU( im, par )
 
+warning( 'off', 'parallel:gpu:device:DeviceDeprecated' )
+
 %% Default arguments %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 if nargin < 2
     par.use_gpu = 0;

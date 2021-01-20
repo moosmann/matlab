@@ -520,20 +520,36 @@ else
     fprintf( '\n volume memory : %.2f GiB', proj_mem / 1024^3 )
     
     %% Retrieval
-    fprintf( '\nPhase retrieval: ')    
-    parfor nn = 1:size(proj, 3)
-        im = proj(:,:,nn);
-        im = padarray( im, padding * im_shape, 'symmetric', 'post' );
-        im = fft2( im );
-        im = phase_filter .* im ;
-        im = ifft2( im )
-        im = real( im );        
-        proj(:,:,nn) = im(1:im_shape(1), 1:im_shape(2));
-        % combined GPU and parfor usage requires memory management
-        %im = padarray( gpuArray( proj(:,:,nn) ), raw_im_shape_binned, 'post', 'symmetric' );
-        %proj(:,:,nn) = gather( im(1:raw_im_shape_binned1, 1:raw_im_shape_binned2) );
+    fprintf( '\nPhase retrieval: ')
+    if phase_retrieval.use_parpool
+        fprintf( 'using parpool' )
+        parfor nn = 1:size(proj, 3)
+            im = proj(:,:,nn);
+            im = padarray( im, padding * im_shape, 'symmetric', 'post' );
+            im = fft2( im );
+            im = phase_filter .* im ;
+            im = ifft2( im );
+            im = real( im );
+            proj(:,:,nn) = im(1:im_shape(1), 1:im_shape(2));
+            % combined GPU and parfor usage requires memory management
+            %im = padarray( gpuArray( proj(:,:,nn) ), raw_im_shape_binned, 'post', 'symmetric' );
+            %proj(:,:,nn) = gather( im(1:raw_im_shape_binned1, 1:raw_im_shape_binned2) );
+        end
+    else
+        fprintf( 'without parpool' )
+        for nn = 1:size(proj, 3)
+            im = proj(:,:,nn);
+            im = padarray( im, padding * im_shape, 'symmetric', 'post' );
+            im = fft2( im );
+            im = phase_filter .* im ;
+            im = ifft2( im );
+            im = real( im );
+            proj(:,:,nn) = im(1:im_shape(1), 1:im_shape(2));
+            % combined GPU and parfor usage requires memory management
+            %im = padarray( gpuArray( proj(:,:,nn) ), raw_im_shape_binned, 'post', 'symmetric' );
+            %proj(:,:,nn) = gather( im(1:raw_im_shape_binned1, 1:raw_im_shape_binned2) );
+        end
     end
-    pause(0.01)
     fprintf( '\n done in %g s (%.2f min)', toc-t-tint, (toc-t-tint)/60)
 end
 

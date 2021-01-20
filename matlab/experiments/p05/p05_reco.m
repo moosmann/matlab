@@ -18,7 +18,7 @@ function p05_reco( external_parameter )
 %
 % Please cite following article in the case of publication:
 % Moosmann, J. et al. Time-lapse X-ray phase-contrast microtomography for
-% in vivo imaging and analysis of morphogenesis Nat. Protocols 9, 294-304
+% in vivo imaging and ansdfadsfaalysis of morphogenesis Nat. Protocols 9, 294-304
 % (2014)
 % Also cite the ASTRA Toolbox, see http://www.astra-toolbox.com/
 %
@@ -34,16 +34,18 @@ function p05_reco( external_parameter )
 % !!! OVERWRITES PARAMETERS BELOW QUICK SWITCH SECTION !!!
 % Just copy parameter and turn on quick switch
 par.quick_switch = 1;
-par.raw_bin = 3;
-par.raw_roi = [];%[0.3 0.7];
-par.proj_range = 1;
-par.ref_range = 1;
+par.raw_bin = 5;
+par.raw_roi = [0.3 0.7];
+par.proj_range = 4;
+par.ref_range = 10;
 par.ref_path = {};
-phase_retrieval.apply = 0;
+tomo.rot_axis_offset = 5 * 5.6 / par.raw_bin;
+phase_retrieval.apply = 1;
 write.to_scratch = 1;
-interactive_mode.rot_axis_pos = 1;
+interactive_mode.rot_axis_pos = 0;
 interactive_mode.phase_retrieval = 1;
-par.poolsize = 0.99;
+par.poolsize = 0.8;
+phase_retrieval.use_parpool = 0;
 % END OF QUICK SWITCH TO ALTERNATIVE SET OF PARAMETERS %%%%%%%%%%%%%%%%%%%%
 
 pp_parameter_switch % DO NOT DELETE THIS LINE
@@ -214,10 +216,16 @@ tomo.astra_link_data = 1; % ASTRA data objects become references to Matlab array
 tomo.astra_gpu_index = []; % GPU Device index to use, Matlab notation: index starts from 1. default: [], uses all
 par.gpu_index = tomo.astra_gpu_index;
 par.use_gpu_in_parfor = 1;
+phase_retrieval.use_parpool = 0; % bool. Disable parpool when out-of-memory error occurs during phase retrieval.
 par.window_state = 'normal';'maximized'; 'minimized';
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%% END OF PARAMETERS / SETTINGS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+weblink_url = 'https://github.com/moosmann/matlab';
+weblink_name = 'code reposiory on github';
+weblink = sprintf('<a href = "%s">%s</a>\n', weblink_url, weblink_name);
+fprintf( weblink );
 
 tic
 verbose = 1;
@@ -325,6 +333,7 @@ assign_default( 'par.virt_s_pos', 0 );
 assign_default( 'par.wo_crop', 1);
 assign_default( 'par.ring_current_normalization', 1);
 assign_default( 'phase_retrieval.take_neg_log', 0 )
+assign_default( 'phase_retrieval.use_parpool', 0 );
 assign_default( 'phase_retrieval.dpc_steps', 5 );
 assign_default( 'phase_retrieval.dpc_bin', 4 );
 assign_default( 'tomo.reco_mode', '3D' )
@@ -372,11 +381,6 @@ NameCellToMat = @(name_cell) reshape(cell2mat(name_cell), [numel(name_cell{1}), 
 warning( 'off', 'MATLAB:imagesci:rtifc:missingPhotometricTag' );
 warning( 'off', 'MATLAB:hg:AutoSoftwareOpenGL' );
 warning( 'off', 'parallel:gpu:device:DeviceDeprecated' )
-
-weblink_url = 'https://github.com/moosmann/matlab';
-weblink_name = 'code reposiory on github';
-weblink = sprintf('<a href = "%s">%s</a>', weblink_url, weblink_name);
-fprintf( weblink );
 
 fprintf( 'START RECONSTRUCTION: ')
 %% Folders
