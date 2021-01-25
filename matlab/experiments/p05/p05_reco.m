@@ -333,9 +333,9 @@ assign_default( 'par.virt_s_pos', 0 );
 assign_default( 'par.wo_crop', 1);
 assign_default( 'par.ring_current_normalization', 1);
 assign_default( 'phase_retrieval.take_neg_log', 0 )
-assign_default( 'phase_retrieval.use_parpool', 0 );
 assign_default( 'phase_retrieval.dpc_steps', 5 );
 assign_default( 'phase_retrieval.dpc_bin', 4 );
+assign_default( 'phase_retrieval.use_parpool', 0 );
 assign_default( 'tomo.reco_mode', '3D' )
 assign_default( 'tomo.rot_axis_offset', 0 )
 assign_default( 'tomo.rot_axis_tilt_camera', 0 )

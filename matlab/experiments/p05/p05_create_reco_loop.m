@@ -131,7 +131,7 @@ fprintf(fid, '\n%s', middle_2);
 fprintf(fid, '\nraw_path = ''%s/'';', raw_path);
 for nn = 1:numel( folders )
     fprintf(fid, '\n' );
-    fprintf(fid, '\nscan_path = [raw_path ''%s'']; ADD', folders{nn});    
+    fprintf(fid, '\npar.scan_path = [raw_path ''%s'']; ADD', folders{nn});    
 end
 
 % Write bottom: call reco loop

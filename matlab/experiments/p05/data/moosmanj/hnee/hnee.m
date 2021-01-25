@@ -4,7 +4,7 @@
 %% Tomo reco loop
 %/asap3/petra3/gpfs/common/p05/jm/matlab/experiments/p05/data/moosmanj/p05_reco_loop_hnee_tension_wood_000.m
 edit p05_reco_loop_hnee_tension_wood_000
-edit p05_reco_loop_hnee.m
+edit p05_reco_loop_hnee
 
 %% Load sequence processing
 p.proc_path = '/asap3/petra3/gpfs/p05/2018/data/11004450/processed';
