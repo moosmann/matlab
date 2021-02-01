@@ -1,16 +1,20 @@
 function [c, m] = contact_area( vol, val1, val2 )
-% Calculate number of voxel surfaces in 'vol' that are in contact given two
-% labels with values 'val1' and 'val2', respectively. 
+% Calculate the number of voxels (and surface) of the label with value
+% 'val1' which are in contact with the labels with value 'val2'. Note that
+% the number of contact voxels 'c' of 'contact_area( vol, val1, val2 )' is
+% the same as 'contact_area( vol, val2, val1 )', the contact surface 'm' is
+% not since the surface lies in label 1 in the former case and in the lable
+% 2 in the latter case.
 %
-% ARGUEMNTS
-% vol : 3D array, segmented volume with distinct labels
+% ARGUMENTS
+% vol : 3D array, segmented volume with distinct labels with values 'val1
+%   and 'val2'
 % val1 : scalar, value of label 1
 % val2 : scalar, value of label 2
 %
 % OUTPUT
-% c : scalar, number of voxel surfaces which lie in between label 1 and
-%   label 2 
-% m : binary 3D array, voxels of label 1 which are in contact with label 2
+% c : scalar. Number of voxels of label 1 which are in contact with label 2 
+% m : binary 3D array. Voxels of label 1 which are in contact with label 2 
 %
 % Written by Julian Moosmann
 %
@@ -22,16 +26,9 @@ if nargin < 1
     %vol( 2:8, 2:8, 2:8 ) = 20;
     %vol( 4:6, 4:6, 4:6 ) = 30;
     vol = round( 100 * phantom3d( 'modified shepp-logan', 512 ) );
-end
-if nargin < 2
     val1 = 20;
-end
-if nargin < 3
     val2 = 30;
 end
-
-%% To do %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% use linear indexing for speed up
 
 %% Main %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 if isequal( val1, val2 )
@@ -39,7 +36,7 @@ if isequal( val1, val2 )
 end
 
 tic
-fprintf( '\nCalculating contact surface:' )
+fprintf( 'Calculating contact surface:' )
 m = zeros( size( vol ) );
 [sx, sy, sz] = size( vol );
 c = 0;
@@ -80,9 +77,12 @@ for x = 1:sx
         end
     end
 end
+m(m >= 1) = 1;
 t = toc;
 fprintf( '\n label 1 value : %g', val1 )
 fprintf( '\n label 2 value : %g', val2 )
-fprintf( '\n number of voxel surfaces in contact : %u', c )
+num_voxel = numel( vol );
+fprintf( '\n number of voxel surfaces in contact : %u (%g%%)', c, 100 * c / num_voxel )
+fprintf( '\n number of voxel: %u', num_voxel )
 fprintf( '\n time elapsed : %f s', t )
 fprintf( '\n' )
