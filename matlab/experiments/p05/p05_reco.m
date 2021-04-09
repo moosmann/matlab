@@ -59,7 +59,7 @@ par.read_flatcor_trafo = @(im) im; %fliplr( im ); % anonymous function applied t
 par.read_sino = 0; % read preprocessed sinograms. CHECK if negative log has to be taken!
 par.read_sino_folder = ''; % subfolder to scan path
 par.read_sino_trafo = @(x) (x);%rot90(x); % anonymous function applied to the image which is read e.g. @(x) rot90(x)
-par.energy = []; % eV! if empty: read from log file (log file values can be ambiguous or even missing sometimes)
+par.energy = 20000;[]; % eV! if empty: read from log file (log file values can be ambiguous or even missing sometimes)
 par.sample_detector_distance = []; % in m. if empty: read from log file
 par.eff_pixel_size = []; %1.07e-6; % in m. if empty: read from log lfile. effective pixel size =  detector pixel size / magnification
 par.pixel_scaling = []; % to account for mismatch of eff_pixel_size with, ONLY APPLIED BEFORE TOMOGRAPHIC RECONSTRUCTION, HAS TO BE CHANGED!
@@ -121,7 +121,7 @@ ring_filter.jm_median_width = 11; % multiple widths are applied consecutively, e
 par.strong_abs_thresh = 1; % if 1: does nothing, if < 1: flat-corrected values below threshold are set to one. Try with algebratic reco techniques.
 par.norm_sino = 0; % not recommended, can introduce severe artifacts, but sometimes improves quality
 %%% PHASE RETRIEVAL %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-phase_retrieval.apply = 0; % See 'PhaseFilter' for detailed description of parameters !
+phase_retrieval.apply = 1; % See 'PhaseFilter' for detailed description of parameters !
 phase_retrieval.apply_before = 0; % before stitching, interactive mode, etc. For phase-contrast data with an excentric rotation axis phase retrieval should be done afterwards. To find the rotataion axis position use this option in a first run, and then turn it of afterwards.
 phase_retrieval.post_binning_factor = 1; % Binning factor after phase retrieval, but before tomographic reconstruction
 phase_retrieval.method = 'tie';'tieNLO_Schwinger';'dpc';'tie';'qp';'qpcut'; %'qp' 'ctf' 'tie' 'qp2' 'qpcut'
@@ -223,7 +223,7 @@ par.window_state = 'normal';'maximized'; 'minimized';
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 weblink_url = 'https://github.com/moosmann/matlab';
-weblink_name = 'code reposiory on github';
+weblink_name = sprintf( 'code reposiory on github: %s', weblink_url );
 weblink = sprintf('<a href = "%s">%s</a>\n', weblink_url, weblink_name);
 fprintf( weblink );
 
@@ -676,7 +676,7 @@ if ~par.read_flatcor && ~par.read_sino
         par.im_shape_raw = size( im_raw );
         
         nexus_setup = h5info(nexuslog_name{1}, '/entry/scan/setup/' );
-        if sum(strcmpi('pos_p05_energy',{ nexus_setup.Datasets.Name }))
+        if sum(strcmpi('pos_p05_energy',{ nexus_setup.Datasets.Name })) && isempty( par.energy )
             par.energy = double( h5read( nexuslog_name{1}, '/entry/scan/setup/pos_p05_energy' ) );
             par.energy = par.energy( end );
         end
@@ -1692,18 +1692,16 @@ end
 
 %% Phase retrieval before interactive mode %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 tint_phase = 0;
+phase_retrieval.energy = par.energy;
+phase_retrieval.sample_detector_distance = par.sample_detector_distance;
+phase_retrieval.eff_pixel_size_binned = eff_pixel_size_binned;
+if isempty( tomo.take_neg_log )
+    tomo.take_neg_log = 0;
+end
 if phase_retrieval.apply
-    
     if ~strcmp( phase_retrieval.method, 'dpc' )
-        
-        phase_retrieval.energy = par.energy;
-        phase_retrieval.sample_detector_distance = par.sample_detector_distance;
-        phase_retrieval.eff_pixel_size_binned = eff_pixel_size_binned;
-        if isempty( tomo.take_neg_log )
-            tomo.take_neg_log = 0;
-        end
+        % Non-DPC phase retrieval
         if phase_retrieval.apply_before
-            % Retrieval
             [proj, write, tomo, tint_phase] = pp_phase_retrieval( proj, phase_retrieval, tomo, write, interactive_mode );
         end
         
