@@ -33,14 +33,14 @@ function p05_reco( external_parameter )
 % !!! QUICK SWITCH TO ALTERNATIVE SET OF PARAMETERS !!!
 % !!! OVERWRITES PARAMETERS BELOW QUICK SWITCH SECTION !!!
 % Just copy parameter and turn on quick switch
-par.quick_switch = 1;
+par.quick_switch = 0;
 par.raw_bin = 5;
 par.raw_roi = [0.3 0.7];
 par.proj_range = 4;
 par.ref_range = 10;
 par.ref_path = {};
-tomo.rot_axis_offset = 5 * 5.6 / par.raw_bin;
-phase_retrieval.apply = 1;
+%tomo.rot_axis_offset = 5 * 5.6 / par.raw_bin;
+%phase_retrieval.apply = 1;
 write.to_scratch = 1;
 interactive_mode.rot_axis_pos = 0;
 interactive_mode.phase_retrieval = 1;
@@ -64,7 +64,7 @@ par.sample_detector_distance = []; % in m. if empty: read from log file
 par.eff_pixel_size = []; %1.07e-6; % in m. if empty: read from log lfile. effective pixel size =  detector pixel size / magnification
 par.pixel_scaling = []; % to account for mismatch of eff_pixel_size with, ONLY APPLIED BEFORE TOMOGRAPHIC RECONSTRUCTION, HAS TO BE CHANGED!
 %%% PREPROCESSING %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-par.raw_bin = 2; % projection binning factor: integer
+par.raw_bin = 4; % projection binning factor: integer
 par.raw_roi = []; % vertical and/or horizontal ROI; (1,1) coordinate = top left pixel; supports absolute, relative, negative, and mixed indexing.
 % []: use full image;
 % [y0 y1]: vertical ROI, skips first raw_roi(1)-1 lines, reads until raw_roi(2); if raw_roi(2) < 0 reads until end - |raw_roi(2)|; relative indexing similar.
@@ -226,6 +226,8 @@ weblink_url = 'https://github.com/moosmann/matlab';
 weblink_name = 'code reposiory on github';
 weblink = sprintf('<a href = "%s">%s</a>\n', weblink_url, weblink_name);
 fprintf( weblink );
+
+close all;
 
 tic
 verbose = 1;
@@ -610,6 +612,7 @@ if ~par.read_flatcor && ~par.read_sino
         s_in_pos_mm = logpar.s_in_pos;
     else
         s_in_pos_mm = [];
+        s_in_pos = [];
     end
     if isfield( logpar, 'pos_s_pos_x' ) && isfield( logpar, 'pos_s_pos_y' )
         pos_s_pos_x_mm = logpar.pos_s_pos_x;
@@ -2422,8 +2425,10 @@ if write.reco
     fprintf(fid, 'par.eff_pixel_size_binned : %g micron\n', eff_pixel_size_binned * 1e6);
     fprintf(fid, 'par.energy : %g eV\n', par.energy);
     fprintf(fid, 'par.sample_detector_distance : %f m\n', par.sample_detector_distance);
-    fprintf(fid, 's_in_pos : %f', s_in_pos);
-    fprintf(fid, 's_in_pos_mm : %f', s_in_pos_mm);
+    if exist( 's_in_pos' ,'var' )
+        fprintf(fid, 's_in_pos : %f', s_in_pos);
+        fprintf(fid, 's_in_pos_mm : %f', s_in_pos_mm);
+    end
     if ~par.read_sino && ~par.read_flatcor
         fprintf(fid, 'camera : %s\n', cam);
         fprintf(fid, 'exposure_time : %f\n', exposure_time);

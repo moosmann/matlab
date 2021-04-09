@@ -22,10 +22,12 @@ end
 lambda = EnergyConverter(energy);
 
 N = apertureRadius^2/(lambda*distance);
+N2 = pixelsize^2/(lambda*distance);
 
 if printInfo
     fprintf('\n')
     fprintf(' Fresnel number: N = a^2/(lambda*z) = %g\n',N);
+    fprintf(' Fresnel number: N = pixelsize^2/(lambda*z) = %g\n',N2);
     fprintf(' Fresnel diffraction: N >~ 1\n Fraunhofer diffraction: N << 1\n Geometrical optics: N >> 1\n');
     fprintf('\n')
     fprintf(' Energy: E = %g keV\n',energy)

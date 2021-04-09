@@ -8,7 +8,7 @@ function lambda=EnergyConverter(keV)
 %q      = 1.60217733e-16; %  J / eV [= h_J_s / h_eV_s ]
 %lambda = h*c./(keV*q);
 
-lambda = PlanckConstant('eVs') * speedOfLight / keV / 1000;
+lambda = PlanckConstant('eVs') * SpeedOfLight / keV / 1000;
 
 
 

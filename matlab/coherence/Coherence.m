@@ -1,25 +1,25 @@
 function out = Coherence(E_keV,SourceSample_m,SourceSize_micron,SampleDetector_m,Bandwidth,PixelSize_micron)
 
 if nargin < 1
-    E_keV = 97;
+    E_keV = 15;
 end
 if nargin < 2
     %SourceSample_m =  145;
     SourceSample_m = 87;
 end
 if nargin < 3
-    SourceSize_micron = sigma_to_FWHM( 90 );% P05 low beta section
+    SourceSize_micron = sigma_to_FWHM( 36 );% P05 low beta section
     %sigma_to_FWHM(89.4); % PETRA III horizontal
 end
 if nargin < 4
-    SampleDetector_m = 1.4;
+    SampleDetector_m = 0.8;
 end
 if nargin < 5
    Bandwidth = 10^-4;
 end
 if nargin < 6
     %PixelSize_micron = 1.68 ; % micron CMOS 5 x
-    PixelSize_micron = 2 ; % micron, CMOS 10x
+    PixelSize_micron = 1 ; % micron, CMOS 10x
 end
 
 %% Beamline parameters
