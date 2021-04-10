@@ -59,13 +59,13 @@ par.read_flatcor_trafo = @(im) im; %fliplr( im ); % anonymous function applied t
 par.read_sino = 0; % read preprocessed sinograms. CHECK if negative log has to be taken!
 par.read_sino_folder = ''; % subfolder to scan path
 par.read_sino_trafo = @(x) (x);%rot90(x); % anonymous function applied to the image which is read e.g. @(x) rot90(x)
-par.energy = 20000;[]; % eV! if empty: read from log file (log file values can be ambiguous or even missing sometimes)
+par.energy = []; % eV! if empty: read from log file (log file values can be ambiguous or even missing sometimes)
 par.sample_detector_distance = []; % in m. if empty: read from log file
 par.eff_pixel_size = []; %1.07e-6; % in m. if empty: read from log lfile. effective pixel size =  detector pixel size / magnification
 par.pixel_scaling = []; % to account for mismatch of eff_pixel_size with, ONLY APPLIED BEFORE TOMOGRAPHIC RECONSTRUCTION, HAS TO BE CHANGED!
 %%% PREPROCESSING %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 par.raw_bin = 4; % projection binning factor: integer
-par.raw_roi = []; % vertical and/or horizontal ROI; (1,1) coordinate = top left pixel; supports absolute, relative, negative, and mixed indexing.
+par.raw_roi = -3;[]; % vertical and/or horizontal ROI; (1,1) coordinate = top left pixel; supports absolute, relative, negative, and mixed indexing.
 % []: use full image;
 % [y0 y1]: vertical ROI, skips first raw_roi(1)-1 lines, reads until raw_roi(2); if raw_roi(2) < 0 reads until end - |raw_roi(2)|; relative indexing similar.
 % [y0 y1 x0 x1]: vertical + horzontal ROI, each ROI as above
@@ -121,7 +121,7 @@ ring_filter.jm_median_width = 11; % multiple widths are applied consecutively, e
 par.strong_abs_thresh = 1; % if 1: does nothing, if < 1: flat-corrected values below threshold are set to one. Try with algebratic reco techniques.
 par.norm_sino = 0; % not recommended, can introduce severe artifacts, but sometimes improves quality
 %%% PHASE RETRIEVAL %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-phase_retrieval.apply = 1; % See 'PhaseFilter' for detailed description of parameters !
+phase_retrieval.apply = 0; % See 'PhaseFilter' for detailed description of parameters !
 phase_retrieval.apply_before = 0; % before stitching, interactive mode, etc. For phase-contrast data with an excentric rotation axis phase retrieval should be done afterwards. To find the rotataion axis position use this option in a first run, and then turn it of afterwards.
 phase_retrieval.post_binning_factor = 1; % Binning factor after phase retrieval, but before tomographic reconstruction
 phase_retrieval.method = 'tie';'tieNLO_Schwinger';'dpc';'tie';'qp';'qpcut'; %'qp' 'ctf' 'tie' 'qp2' 'qpcut'
@@ -909,15 +909,20 @@ if ~par.read_flatcor && ~par.read_sino
             stimg_name.current = (interp1( X, V, Xq, 'next', extrap_val) + interp1( X, V, Xq + exposure_time, 'previous', extrap_val) ) / 2;
         end
         cur_ref_val = stimg_name.current( stimg_key.scan.value == 1 );
-        cur_ref_names = stimg_name.value( stimg_key.scan.value == 1 );
-        re = regexp( cur_ref_names{1}, '\d{6,6}');
-        len = 6;
+        cur_ref_name = stimg_name.value( stimg_key.scan.value == 1 );
+        cur_ref_time = stimg_name.time( stimg_key.scan.value == 1 );
+        re = regexp( cur_ref_name{1}, '\d{7,7}');
+        len = 7;
         if isempty( re )
-            re = regexp( cur_ref_names{1}, '\d{5,5}');
+            re = regexp( cur_ref_name{1}, '\d{6,6}');
+            len = 6;
+        end        
+        if isempty( re )
+            re = regexp( cur_ref_name{1}, '\d{5,5}');
             len = 5;
         end
         if isempty( re )
-            re = regexp( cur_ref_names{1}, '\d{4,4}');
+            re = regexp( cur_ref_name{1}, '\d{4,4}');
             len = 4;
         end
         if isempty( re)
@@ -931,9 +936,10 @@ if ~par.read_flatcor && ~par.read_sino
         elseif strcmpi( ref_names{1}(end-11:end-9), 'ref' )
             imtype_str_flag = '119'; % 1
         end
-        for nn = numel( cur_ref_names ):-1:1
+        for nn = numel( cur_ref_name ):-1:1
             cur.ref(nn).val = cur_ref_val(nn);
-            cur.ref(nn).name = cur_ref_names{nn};
+            cur.ref(nn).name = cur_ref_name{nn};
+            cur.ref(nn).time = cur_ref_time(nn);
             if imtype_str_flag >= 0
                 if ~isempty( len )
                     cur.ref(nn).ind = str2double(cur.ref(nn).name(imtype_str_flag + (0:len-1)));
@@ -948,9 +954,11 @@ if ~par.read_flatcor && ~par.read_sino
         end
         cur_proj_val = stimg_name.current( stimg_key.scan.value == 0);
         cur_proj_name = stimg_name.scan.value( stimg_key.scan.value == 0);
+        cur_proj_time = stimg_name.time( stimg_key.scan.value == 0);
         for nn = numel( cur_proj_name ):-1:1
             cur.proj(nn).val = cur_proj_val(nn);
             cur.proj(nn).name = cur_proj_name{nn};
+            cur.proj(nn).time = cur_proj_time(nn);
             if imtype_str_flag >= 0
                 if ~isempty( len )
                     cur.proj(nn).ind = str2double(cur.proj(nn).name(imtype_str_flag + (0:len-1)));
@@ -963,6 +971,8 @@ if ~par.read_flatcor && ~par.read_sino
                 cur.proj(nn).ind = str2double(cur.proj(nn).name(end-7:end-4));
             end
         end
+        
+        t0 = min( [cur_proj_time; cur_ref_time] );
     end % if ~exist( nexuslog_name, 'file')
     
     %% Raw ROI
@@ -1159,13 +1169,17 @@ if ~par.read_flatcor && ~par.read_sino
         ref_ind_from_log = [cur.ref(par.ref_range).ind];
         if isequal( ref_ind_from_filenames, ref_ind_from_log )
             ref_rc = [cur.ref(par.ref_range).val];
+            ref_t = ([cur.ref(par.ref_range).time] - t0 ) / 1000 / 60;
+            ref_ind = [cur.ref(par.ref_range).ind];
             ref_rcm = mean( ref_rc(:) );
             scale_factor = 100 ./ shiftdim( ref_rc(refs_to_use), -1 );
             flat = fun_times( flat, scale_factor );
             if par.visual_output
                 hrc = figure( 'Name', 'PETRA III beam current: Interpolation at image time stamps', 'WindowState', window_state );
                 subplot(1,1,1);
-                plot( ref_rc(:), '.' )
+                %plot( ref_rc(:), '.' )
+                %plot( ref_t(:), ref_rc(:), '.' )
+                plot( ref_ind(:), ref_rc(:), '.' )
                 axis tight
                 title(sprintf('ring current: flat fields'))
                 legend( sprintf( 'mean: %.2f mA', ref_rcm) )
@@ -1394,6 +1408,7 @@ if ~par.read_flatcor && ~par.read_sino
         proj_ind_from_log = [cur.proj(par.proj_range).ind];
         if isequal( proj_ind_from_filenames,  proj_ind_from_log )
             proj_rc = [cur.proj(par.proj_range).val];
+            proj_ind = [cur.proj(par.proj_range).ind];
             proj_rcm = mean( proj_rc(:) );
             scale_factor = 100 ./ shiftdim( proj_rc(projs_to_use), -1 );
             fprintf( '\n Ring current normalization' )
@@ -1409,8 +1424,8 @@ if ~par.read_flatcor && ~par.read_sino
                     hrc = figure( 'Name', name, 'WindowState', window_state );
                 end
                 subplot(1,1,1);
-                ref_nums = 1:numel( ref_names(par.ref_range) );
-                plot( ref_nums, ref_rc(:), '.',proj_nums, proj_rc(:), '.' )
+                %ref_nums = 1:numel( ref_names(par.ref_range) );
+                plot( ref_ind(:), ref_rc(:), '.', proj_ind(:), proj_rc(:), '.' )
                 axis tight
                 xlabel( 'image no.' )
                 ylabel( 'current / mA' )

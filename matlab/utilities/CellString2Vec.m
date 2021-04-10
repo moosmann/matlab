@@ -15,8 +15,12 @@ format = cc{1}(end-2:end);
 
 
 % position of running index
-re = regexp( cc{1}, '\d{6,6}');
-len = 6;
+re = regexp( cc{1}, '\d{7,7}');
+len = 7;
+if isempty( re )
+    re = regexp( cc{1}, '\d{6,6}');
+    len = 6;
+end
 if isempty( re )
     re = regexp( cc{1}, '\d{5,5}');
     len = 5;
