@@ -34,16 +34,16 @@ function p05_reco( external_parameter )
 % !!! OVERWRITES PARAMETERS BELOW QUICK SWITCH SECTION !!!
 % Just copy parameter and turn on quick switch
 par.quick_switch = 0;
-par.raw_bin = 5;
+par.raw_bin = 4;
 par.raw_roi = [0.3 0.7];
 par.proj_range = 4;
 par.ref_range = 10;
 par.ref_path = {};
 %tomo.rot_axis_offset = 5 * 5.6 / par.raw_bin;
-%phase_retrieval.apply = 1;
+phase_retrieval.apply = 0;
 write.to_scratch = 1;
 interactive_mode.rot_axis_pos = 0;
-interactive_mode.phase_retrieval = 1;
+interactive_mode.phase_retrieval = 0;
 par.poolsize = 0.8;
 phase_retrieval.use_parpool = 0;
 % END OF QUICK SWITCH TO ALTERNATIVE SET OF PARAMETERS %%%%%%%%%%%%%%%%%%%%
@@ -65,7 +65,7 @@ par.eff_pixel_size = []; %1.07e-6; % in m. if empty: read from log lfile. effect
 par.pixel_scaling = []; % to account for mismatch of eff_pixel_size with, ONLY APPLIED BEFORE TOMOGRAPHIC RECONSTRUCTION, HAS TO BE CHANGED!
 %%% PREPROCESSING %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 par.raw_bin = 4; % projection binning factor: integer
-par.raw_roi = -3;[]; % vertical and/or horizontal ROI; (1,1) coordinate = top left pixel; supports absolute, relative, negative, and mixed indexing.
+par.raw_roi = []; % vertical and/or horizontal ROI; (1,1) coordinate = top left pixel; supports absolute, relative, negative, and mixed indexing.
 % []: use full image;
 % [y0 y1]: vertical ROI, skips first raw_roi(1)-1 lines, reads until raw_roi(2); if raw_roi(2) < 0 reads until end - |raw_roi(2)|; relative indexing similar.
 % [y0 y1 x0 x1]: vertical + horzontal ROI, each ROI as above
@@ -138,7 +138,7 @@ phase_retrieval.dpc_bin = 4;
 tomo.run = 1; % run tomographic reconstruction
 tomo.run_interactive_mode = 1; % if tomo.run = 0, use to determine rot axis positions without processing the full tomogram;
 tomo.reco_mode = '3D';'slice';  % slice-wise or full 3D backprojection. 'slice': volume must be centered at origin & no support of rotation axis tilt, reco binning, save compressed
-tomo.vol_size = [];%[-1.5 1.5 -1.5 1.5 -0.5 0.5];% 6-component vector [xmin xmax ymin ymax zmin zmax], for excentric rot axis pos / extended FoV;. if empty, volume is centerd within tomo.vol_shape. unit voxel size is assumed. if smaller than 10 values are interpreted as relative size w.r.t. the detector size. Take care bout minus signs! Note that if empty vol_size is dependent on the rotation axis position.
+tomo.vol_size = []; %[-1.5 1.5 -1.5 1.5 -0.5 0.5];% 6-component vector [xmin xmax ymin ymax zmin zmax], for excentric rot axis pos / extended FoV;. if empty, volume is centerd within tomo.vol_shape. unit voxel size is assumed. if smaller than 10 values are interpreted as relative size w.r.t. the detector size. Take care bout minus signs! Note that if empty vol_size is dependent on the rotation axis position.
 tomo.vol_shape = []; %[1 1 1] shape (# voxels) of reconstruction volume. used for excentric rot axis pos. if empty, inferred from 'tomo.vol_size'. in absolute numbers of voxels or in relative number w.r.t. the default volume which is given by the detector width and height.
 tomo.rot_angle_full_range = [];% 2 * pi ;[]; % in radians. if []: full angle of rotation including additional increment, or array of angles. if empty full rotation angles is determined automatically to pi or 2 pi
 tomo.rot_angle_offset = pi; % global rotation of reconstructed volume
@@ -252,8 +252,8 @@ if nargin == 1 %exist( 'external_parameter' ,'var')
     end
     clear external_parameter field_name_cell field_name field_value
     par.quick_switch = 0;
-    par.visual_output = 0;
-    interactive_mode.rot_axis_pos = 0;
+    par.visual_output = 1;
+   % interactive_mode.rot_axis_pos = 0;
 end
 
 %%% QUICK SWITCH PARAMETERS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -1169,7 +1169,7 @@ if ~par.read_flatcor && ~par.read_sino
         ref_ind_from_log = [cur.ref(par.ref_range).ind];
         if isequal( ref_ind_from_filenames, ref_ind_from_log )
             ref_rc = [cur.ref(par.ref_range).val];
-            ref_t = ([cur.ref(par.ref_range).time] - t0 ) / 1000 / 60;
+            %ref_t = ([cur.ref(par.ref_range).time] - t0 ) / 1000 / 60;
             ref_ind = [cur.ref(par.ref_range).ind];
             ref_rcm = mean( ref_rc(:) );
             scale_factor = 100 ./ shiftdim( ref_rc(refs_to_use), -1 );
@@ -1396,6 +1396,10 @@ if ~par.read_flatcor && ~par.read_sino
     if ~isempty( scan_position )
         scan_position(~projs_to_use) = [];
     end
+    if exist( 'scan_position_index', 'var' )
+        scan_position_index(~projs_to_use) = [];
+    end
+    
     
     tomo.scan_position = scan_position;
     

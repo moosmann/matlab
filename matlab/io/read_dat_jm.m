@@ -30,7 +30,11 @@ end
 %% Main %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % Open file for reading
-fid = fopen(filename, 'r');
+%fid = fopen(filename, 'r');
+permission = 'r';
+machinefmt = 'n';
+encodingIn = 'UTF-8';
+fid = fopen(filename,permission,machinefmt,encodingIn);
 if (fid < 0)
   error(['Could not open file for reading:'  filename]);
 end
@@ -78,6 +82,8 @@ switch type
     case 'L'
         cl = 'uint32';
         byt = 4;
+    case 'I'
+        byt = 'int16';
     otherwise
         error(['Data type not supported:' type]);
 end

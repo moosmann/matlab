@@ -26,7 +26,11 @@ end
 
 
 % Open file for reading
-fid = fopen(filename, 'r');
+%fid = fopen(filename, 'r');
+permission = 'r';
+machinefmt = 'n';
+encodingIn = 'UTF-8';
+fid = fopen(filename,permission,machinefmt,encodingIn);
 if (fid < 0)
   error(['Could not open file for reading:'  filename]);
 end

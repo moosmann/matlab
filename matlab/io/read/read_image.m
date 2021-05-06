@@ -126,21 +126,35 @@ switch lower( im_format )
                 %                 end
 
                 
+                % Check for KIT camera
+                if tif_info.Width == 5120
+                    x0 = 1;
+                    x1 = tif_info.Height;                    
+                    y0 = 1;
+                    y1 = tif_info.Width;                    
+                    
+                    if numel( raw_roi ) > 1
+                        x0 = max( (raw_roi(1)+1), 1 );
+                        x1 = min( (raw_roi(2)+1), tif_info.Height);
+                    end
                 
-                %% MOD: 2020-09-03 Ximea sCMOS
-                x0 = 1;
-                x1 = tif_info.Height;
-                %                 x1 = tif_info.Width;
-                y0 = 1;
-                y1 = tif_info.Width;
-                %                 y1 = tif_info.Height;
-                if numel( raw_roi ) > 1
-                    x0 = max( (tif_info.Height-raw_roi(2)+1), 1 );
-                    x1 = min( (tif_info.Height-raw_roi(1)+1), tif_info.Height);
-                end
-                if numel( raw_roi ) == 4
-                    y0 = max( raw_roi(3), 1);
-                    y1 = min( raw_roi(4), tif_info.Width);
+                else
+                    
+                    %% MOD: 2020-09-03 Ximea sCMOS
+                    x0 = 1;
+                    x1 = tif_info.Height;
+                    %                 x1 = tif_info.Width;
+                    y0 = 1;
+                    y1 = tif_info.Width;
+                    %                 y1 = tif_info.Height;
+                    if numel( raw_roi ) > 1
+                        x0 = max( (tif_info.Height-raw_roi(2)+1), 1 );
+                        x1 = min( (tif_info.Height-raw_roi(1)+1), tif_info.Height);
+                    end
+                    if numel( raw_roi ) == 4
+                        y0 = max( raw_roi(3), 1);
+                        y1 = min( raw_roi(4), tif_info.Width);
+                    end
                 end
                 try
                     im = rot90( imread( filename, 'tif', 'PixelRegion', {[x0 x1 ], [y0 y1]} ), 1 );
