@@ -19,6 +19,8 @@ beamtime = { ...
 
 %% Read scans %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Loop over beamtimes
+s(1).name = '';
+cc = 1;
 for nn = 1:size( beamtime, 1 )
     
     % beamtime folder
@@ -43,6 +45,10 @@ for nn = 1:size( beamtime, 1 )
     % Loop over scans
     for mm = 1:length( scan_struct )
         name = scan_struct(mm).name;
+        s(cc).name = name;
+        s(cc).beamtime_year = beamtime_year;
+        s(cc).beamtime_id = beamtime_id;
+        cc = cc + 1;
         fprintf( '\n %s', name )
         
     end
