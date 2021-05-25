@@ -79,7 +79,7 @@ p.adc2force = weight * gconst / voltage;
 p.scan_name = 'syn007_47L_Peek_12w';
 p.steps = [5:22 24 26:33];
 p.scan_name = 'syn008_47R_Ti_12w';
-
+p05_load_force_values( p )
 
 %% 2016 
 

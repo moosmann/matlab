@@ -18,7 +18,8 @@ if par.read_sino
     
     % Parameters
     filename = sprintf('%s%s', write.sino_path, sino_names_mat( round( par.im_shape_binned2 / 2 ), :));
-    [sino, par.tiff_info] = read_image( filename );
+    par.tifftrafo = 0;
+    [sino, par.tiff_info] = read_image( filename, par );
     read_sino_trafo = par.read_sino_trafo;
     sino = read_sino_trafo( sino );
     par.im_shape_cropbin1 = size( sino, 2 );
@@ -79,8 +80,8 @@ if par.read_sino
         
         drawnow
         
-        CheckAndMakePath( par.fig_path )
-        saveas( f, sprintf( '%s%s.png', par.fig_path, regexprep( f.Name, '\ |:', '_') ) );
+        CheckAndMakePath( write.fig_path )
+        saveas( f, sprintf( '%s%s.png', write.fig_path, regexprep( f.Name, '\ |:', '_') ) );
     end
     fprintf( ' done in %.1f s (%.2f min)', toc - t, ( toc - t ) / 60 )
 end

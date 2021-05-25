@@ -52,7 +52,7 @@ pixel_filter_threshold_dark = [0.01 0.005]; % Dark fields: threshold parameter f
 pixel_filter_threshold_flat = [0.02 0.005]; % Flat fields: threshold parameter for hot/dark pixel filter, for details see 'FilterPixel'
 pixel_filter_threshold_proj = [0.02 0.005]; % Raw projection: threshold parameter for hot/dark pixel filter, for details see 'FilterPixel'
 pixel_filter_radius = [5 5]; % Increase only if blobs of zeros or other artefacts are expected. Can increase processing time heavily.
-par.ring_current_normalization = 0; % normalize flat fields and projections by ring current
+par.ring_current_normalization = 1; % normalize flat fields and projections by ring current
 image_correlation.method = 'ssim-ml';'entropy';'median';'none';'ssim';'ssim-g';'std';'cov';'corr';'diff1-l1';'diff1-l2';'diff2-l1';'diff2-l2';'cross-entropy-12';'cross-entropy-21';'cross-entropy-x';
 % Correlation of projections and flat fields. Essential for DCM data. Typically improves reconstruction quality of DMM data, too.
 % Available methods ('ssim-ml'/'entropy' usually work best):
@@ -123,7 +123,7 @@ tomo.butterworth_filter = 0; % use butterworth filter in addition to FBP filter
 tomo.butterworth_filter_order = 1;
 tomo.butterworth_filter_frequ_cutoff = 0.9;
 tomo.astra_pixel_size = 1; % detector pixel size for reconstruction: if different from one 'tomo.vol_size' must to be ajusted, too!
-tomo.take_neg_log = []; % take negative logarithm. if empty, use 1 for attenuation contrast, 0 for phase contrast
+tomo.take_neg_log = 1; % take negative logarithm. if empty, use 1 for attenuation contrast, 0 for phase contrast
 tomo.algorithm =  'fbp';'cgls';'sirt';'sart';'em';'fbp-astra'; % SART/EM only work for 3D reco mode
 tomo.iterations = 50; % for iterateive algorithms: 'sirt', 'cgls', 'sart', 'em'
 tomo.MinConstraint = []; % sirt3D/sirt2d/sart2d only. If specified, all values below MinConstraint will be set to MinConstraint. This can be used to enforce non-negative reconstructions, for example.
@@ -364,35 +364,35 @@ par.scan_path = [raw_path 'syn82_cor_P2_7']; tomo.rot_axis_offset = 1.5 ; ADD
 %% Check Rot axis
 
 par.scan_path = [raw_path 'syn83_cor_P3_1']; ADD; 
-
 par.scan_path = [raw_path 'syn84_cor_P3_2']; ADD
-
 par.scan_path = [raw_path 'syn85_cor_P3_3']; ADD
-
 par.scan_path = [raw_path 'syn86_cor_P3_4']; ADD
-
 par.scan_path = [raw_path 'syn87_cor_P3_5']; ADD
-
 par.scan_path = [raw_path 'syn88_cor_P3_6']; ADD
-
 par.scan_path = [raw_path 'syn89_cor_P3_7']; ADD
 
-interactive_mode.rot_axis_pos = 1;
+interactive_mode.rot_axis_pos = 0;
+tomo.rot_axis_offset = 3 * -1.4 / par.raw_bin;
 write.scan_name_appendix = '_Mg5Gd_12w'; 
 par.scan_path = [raw_path 'syn90_70L']; ADD
 
+tomo.rot_axis_offset = 3 * -0.5 / par.raw_bin;
 write.scan_name_appendix = '_Mg5Gd_12w'; 
 par.scan_path = [raw_path 'syn91_72L']; ADD
 
+tomo.rot_axis_offset = 3 * -1.4 / par.raw_bin;
 write.scan_name_appendix = '_Mg5Gd_8w'; 
 par.scan_path = [raw_path 'syn92_93R']; ADD
 
+tomo.rot_axis_offset = 3 * -0.6 / par.raw_bin;
 write.scan_name_appendix = '_Mg5G_8w'; 
 par.scan_path = [raw_path 'syn93_76L']; ADD
 
+tomo.rot_axis_offset = 3 * -1.9 / par.raw_bin;
 write.scan_name_appendix = '_Mg5Gd_8w'; 
 par.scan_path = [raw_path 'syn94_96R']; ADD
 
+tomo.rot_axis_offset = 3 * -0.9 / par.raw_bin;
 write.scan_name_appendix = '_Mg5Gd_12w'; 
 par.scan_path = [raw_path 'syn95_69L']; ADD
 
