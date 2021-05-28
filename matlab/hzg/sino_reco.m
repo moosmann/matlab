@@ -297,7 +297,6 @@ sino_names_mat = NameCellToMat( sino_names );
 % Parameters
 filename = sprintf('%s%s', sino_path, sino_names_mat( round( im_shape_binned2 / 2 ), :));
 par.tifftrafo = 0;
-%[sino, tiff_info] = read_image( filename, '', '', [], [], [], '', 0 );
 [sino, tiff_info] = read_image( filename, par );
 sino = read_sino_trafo( sino );
 im_shape_cropbin1 = size( sino, 2 );

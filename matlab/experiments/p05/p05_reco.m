@@ -46,6 +46,10 @@ interactive_mode.rot_axis_pos = 1;
 interactive_mode.phase_retrieval = 1;
 par.poolsize = 0.8;
 phase_retrieval.use_parpool = 0;
+par.read_sino = 1; 
+par.read_sino_folder = 'trans02_test';
+tomo.rot_angle_full_range = 2 * pi;
+par.poolsize = 6;
 % END OF QUICK SWITCH TO ALTERNATIVE SET OF PARAMETERS %%%%%%%%%%%%%%%%%%%%
 
 pp_parameter_switch % DO NOT DELETE THIS LINE
