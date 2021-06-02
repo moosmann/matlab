@@ -4,22 +4,22 @@
 % 1 Gy = 1 J / kg = m^2 / s^2
 
 %ca
-clear all
+%clear all
 sample_type = 'real';
-%sample_type = 'cylinder';
+sample_type = 'cylinder';
 num_proj_phan = 1200;
 %scintillator_factor = cdwo300.absorption.value;
 
 eV_to_J = 1 / 6.24e18;
 
 bin = 4;
-energy = 30000:1000:80000;
+energy = 35000:5000:45000;
 fprintf( ' energy: min : %g keV, max : %g keV, steps : %u', min( energy )/1000, max( energy )/1000, numel( energy ) )
 voxel_size.value = bin * 2 * 3.115e-6;
 voxel_size.unit = 'm';
 fprintf( '\n voxel_size : %g micron', voxel_size.value * 1000^2)
 phantom_diameter = 7e-3;
-exp_time_per_image.value = 50e-3;
+exp_time_per_image.value = 34e-3;
 exp_time_per_image.unit = 's';
 
 font_size = 18;
@@ -189,7 +189,7 @@ flux_density.unit = 'photons / s / m^2';
 area = size( projected_thickness_bone, 1) * size( projected_thickness_bone, 2) * voxel_size.value^2;
 fprintf( '\ndetector area : %g mm x %g mm', size( projected_thickness_bone, 1) * voxel_size.value * 1000, size( projected_thickness_bone, 2) * voxel_size.value * 1000 )
 %flux_density.value * area;
-flux.value = 5.4 * 1e10 * ones( [1  numel( energy ) ] ) ;
+flux.value = 1 * 1e11 * ones( [1  numel( energy ) ] ) ;
 
 figure( 'Name', sprintf( 'Flux' ) );
 plot( energy / 1000, flux.value )

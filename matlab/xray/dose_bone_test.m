@@ -12,7 +12,7 @@
 clear all
 eV_to_J = 1 / 6.24e18;
 
-E = (30:5:45)*1e3;
+E = (40)*1e3;
   
 % Energy in eV
 % X-ray mass attenuation coefficient mu/rho in m^2 / kg
@@ -20,7 +20,7 @@ E = (30:5:45)*1e3;
 [energy_wl, mac_wl] = read_nist_txt( 'water_liquid' );
 
 % thickness_bone in m
-thickness_bone = ((1:3:4)*1e-3)'; 
+thickness_bone = ((4)*1e-3)'; 
 
 % water density in kg / m^3
 water_density = 1.0 * 1000;
@@ -39,7 +39,7 @@ fprintf( '\n thickness bone : %f mm', thickness_bone * 1000)
 fprintf( '\n absorption bone: %f', absorption * 100 )
 
 % Flux area
-flux = 1095734443447;
+flux = 1e12;1095734443447;%1.0957e+12
 filename = '/asap3/petra3/gpfs/p05/2019/data/11005842/raw/dosetest/flux_window.tif';
 im = double( imread( filename ) );
 m = im > 1000;
@@ -51,14 +51,14 @@ fprintf( '\n flux density : %g photons / s / m^2', flux_density )
 fprintf( '\n pixelsize : %f micron', pixelsize * 1e6)
 fprintf( '\n area: %f mm^2', area *1e6 )
 
-full_exposure_time = 1; % seconds
+full_exposure_time = 0.034*1200; % seconds
 mass = bone_density * area .* thickness_bone;
 
 fprintf( '\n mass : %f mg ', mass * 1e6)
 
 dose = transmission_water .* absorption * flux * full_exposure_time .* E * eV_to_J ./ mass;
 
-fprintf( '\n dose : %f Gy', dose  )
+fprintf( '\n dose : %f Gy = %f kGy', dose, dose/1000  )
 figure('Name', 'Dose vs energy' )
 plot( E, dose )
 xlabel( 'energy' )

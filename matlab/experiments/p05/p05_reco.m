@@ -33,11 +33,11 @@ function p05_reco( external_parameter )
 % !!! QUICK SWITCH TO ALTERNATIVE SET OF PARAMETERS !!!
 % !!! OVERWRITES PARAMETERS BELOW QUICK SWITCH SECTION !!!
 % Just copy parameter and turn on quick switch
-par.quick_switch = 1;
-par.raw_bin = 1;
-par.raw_roi = [0.3 0.7];
+par.quick_switch = 0;
+par.raw_bin = 5;
+par.raw_roi = [];
 par.proj_range = 1;
-par.ref_range = 1;
+par.ref_range = 12;
 par.ref_path = {};
 %tomo.rot_axis_offset = 5 * 5.6 / par.raw_bin;
 phase_retrieval.apply = 0;
@@ -46,10 +46,6 @@ interactive_mode.rot_axis_pos = 1;
 interactive_mode.phase_retrieval = 1;
 par.poolsize = 0.8;
 phase_retrieval.use_parpool = 0;
-par.read_sino = 1; 
-par.read_sino_folder = 'trans02_test';
-tomo.rot_angle_full_range = 2 * pi;
-par.poolsize = 6;
 % END OF QUICK SWITCH TO ALTERNATIVE SET OF PARAMETERS %%%%%%%%%%%%%%%%%%%%
 
 pp_parameter_switch % DO NOT DELETE THIS LINE
@@ -162,7 +158,7 @@ tomo.butterworth_filter = 0; % use butterworth filter in addition to FBP filter
 tomo.butterworth_filter_order = 1;
 tomo.butterworth_filter_frequ_cutoff = 0.9;
 tomo.astra_pixel_size = 1; % detector pixel size for reconstruction: if different from one 'tomo.vol_size' must to be ajusted, too!
-tomo.take_neg_log = []; % take negative logarithm. if empty, use 1 for attenuation contrast, 0 for phase contrast
+tomo.take_neg_log = 1; % take negative logarithm. if empty, use 1 for attenuation contrast, 0 for phase contrast
 tomo.algorithm =  'fbp';'cgls';'sirt';'sart';'em';'fbp-astra'; % SART/EM only work for 3D reco mode
 tomo.iterations = 50; % for iterateive algorithms: 'sirt', 'cgls', 'sart', 'em'
 tomo.MinConstraint = []; % sirt3D/sirt2d/sart2d only. If specified, all values below MinConstraint will be set to MinConstraint. This can be used to enforce non-negative reconstructions, for example.
@@ -192,7 +188,7 @@ write.uint16_binned = 0; % save binned 16bit unsigned integer tiff using 'write.
 write.uint8_binned = 0; % save binned 8bit unsigned integer tiff using 'wwrite.compression_method'
 write.reco_binning_factor = 2; % IF BINNED VOLUMES ARE SAVED: binning factor of reconstructed volume
 write.compression_method = 'outlier';'histo';'full'; 'std'; 'threshold'; % method to compression dynamic range into [0, 1]
-write.compression_parameter = [0.02 0.02]; % compression-method specific parameter
+write.compression_parameter = [0.02 0.02]; % compression-method specific parametere
 % dynamic range is compressed s.t. new dynamic range assumes
 % 'outlier' : [LOW, HIGH] = write.compression_parameter, eg. [0.01 0.03], outlier given in percent, if scalear LOW = HIGH.
 % 'full' : full dynamic range is used
@@ -204,9 +200,9 @@ write.uint8_segmented = 0; % experimental: threshold segmentaion for histograms 
 par.visual_output = 1; % show images and plots during reconstruction
 interactive_mode.rot_axis_pos = 1; % reconstruct slices with dif+ferent rotation axis offsets
 interactive_mode.rot_axis_pos_default_search_range = []; % if empty: asks for search range when entering interactive mode
-interactive_mode.rot_axis_tilt = 1; % reconstruct slices with different offset AND tilts of the rotation axis
+interactive_mode.rot_axis_tilt = 0; % reconstruct slices with different offset AND tilts of the rotation axis
 interactive_mode.rot_axis_tilt_default_search_range = []; % if empty: asks for search range when entering interactive mode
-interactive_mode.lamino = 1; % find laminography tilt instead camera tilt
+interactive_mode.lamino = 0; % find laminography tilt instead camera tilt
 interactive_mode.angles = 0; % reconstruct slices with different scalings of angles
 interactive_mode.angle_scaling_default_search_range = []; % if empty: use a variaton of -/+5 * (angle increment / maximum angle)
 interactive_mode.slice_number = 0.5; % default slice number. if in [0,1): relative, if in (1, N]: absolute
@@ -214,8 +210,8 @@ interactive_mode.phase_retrieval = 1; % Interactive retrieval to determine regul
 interactive_mode.phase_retrieval_default_search_range = []; % if empty: asks for search range when entering interactive mode, otherwise directly start with given search range
 %%% HARDWARE / SOFTWARE %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 par.use_cluster = 0; % if available: on MAXWELL nodes disp/nova/wga/wgs cluster computation can be used. Recommended only for large data sets since parpool creation and data transfer implies a lot of overhead.
-par.poolsize = 0.8; % number of workers used in a local parallel pool. if 0: use current config. if >= 1: absolute number. if 0 < poolsize < 1: relative amount of all cores to be used. if SLURM scheduling is available, a default number of workers is used.
-par.poolsize_gpu_limit_factor = 0.8; % Relative amount of GPU memory used for preprocessing during parloop. High values speed up Proprocessing, but increases out-of-memory failure
+par.poolsize = 0.9; % number of workers used in a local parallel pool. if 0: use current config. if >= 1: absolute number. if 0 < poolsize < 1: relative amount of all cores to be used. if SLURM scheduling is available, a default number of workers is used.
+par.poolsize_gpu_limit_factor = 0.7; % Relative amount of GPU memory used for preprocessing during parloop. High values speed up Proprocessing, but increases out-of-memory failure
 tomo.astra_link_data = 1; % ASTRA data objects become references to Matlab arrays. Reduces memory issues.
 tomo.astra_gpu_index = []; % GPU Device index to use, Matlab notation: index starts from 1. default: [], uses all
 par.gpu_index = tomo.astra_gpu_index;
@@ -361,6 +357,7 @@ assign_default( 'write.sino_shift_cropped', 0 )
 assign_default( 'write.deleteFiles', 0)
 assign_default( 'write.beamtimeID', '' )
 assign_default( 'write.scan_name_appendix', '' )
+assign_default( 'write.uint8_segmented', 0 )
 assign_default( 'interactive_mode.rot_axis_pos_default_search_range', -4:0.5:4 ) % binned pixel
 assign_default( 'interactive_mode.rot_axis_tilt_default_search_range', -0.005:0.001:0.005 ) % radian
 assign_default( 'interactive_mode.phase_retrieval_default_search_range', [] )
@@ -1718,7 +1715,11 @@ phase_retrieval.energy = par.energy;
 phase_retrieval.sample_detector_distance = par.sample_detector_distance;
 phase_retrieval.eff_pixel_size_binned = eff_pixel_size_binned;
 if isempty( tomo.take_neg_log )
-    tomo.take_neg_log = 0;
+    if phase_retrieval.apply
+        tomo.take_neg_log = 0;
+    else
+        tomo.take_neg_log = 1;
+    end
 end
 if phase_retrieval.apply
     if ~strcmp( phase_retrieval.method, 'dpc' )
