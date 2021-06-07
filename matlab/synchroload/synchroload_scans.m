@@ -9,9 +9,13 @@ beamtime = { ...
     2018 11004263
     2018 11004936
     2018 11005553
-    2019 11006704
+    2019 11005842
     2019 11006704
     2019 11006991
+    2020 11010056
+    2020 11010206
+    2021 11009431
+    2021 11008741
     };
 
 %% Output directory
@@ -49,7 +53,7 @@ for nn = 1:size( beamtime, 1 )
         s(cc).beamtime_year = beamtime_year;
         s(cc).beamtime_id = beamtime_id;
         cc = cc + 1;
-        fprintf( '\n %s', name )
+        fprintf( '\n %u %u %s', beamtime_year, beamtime_id, name )
         
     end
 end

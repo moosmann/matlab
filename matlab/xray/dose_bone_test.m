@@ -51,7 +51,7 @@ fprintf( '\n flux density : %g photons / s / m^2', flux_density )
 fprintf( '\n pixelsize : %f micron', pixelsize * 1e6)
 fprintf( '\n area: %f mm^2', area *1e6 )
 
-full_exposure_time = 0.034*1200; % seconds
+full_exposure_time = 0.034*1200 * 10; % seconds
 mass = bone_density * area .* thickness_bone;
 
 fprintf( '\n mass : %f mg ', mass * 1e6)

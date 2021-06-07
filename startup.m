@@ -25,7 +25,7 @@ fprintf( '\nASTRA_PATH : %s', ASTRA_PATH );
 fprintf( '\nAdd ASTRA path : %s', astra_path );
 astra_samples_path = '/asap3/petra3/gpfs/common/p05/astra/git/astra-toolbox/samples/matlab';
 fprintf( '\nAdd ASTRA samples path : %s', astra_samples_path );
-rmpath( '/asap3/petra3/gpfs/common/p05/jm/matlab/matlab/astra/samples' ) 
+%rmpath( '/asap3/petra3/gpfs/common/p05/jm/matlab/matlab/astra/samples' )
 addpath( genpath( astra_samples_path ) );
 %% MATLAB path
 fprintf( '\nMATLAB_PATH : %s', getenv( 'MATLAB_PATH' ) );
