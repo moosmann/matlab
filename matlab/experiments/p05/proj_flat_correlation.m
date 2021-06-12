@@ -47,6 +47,8 @@ x0 = par.offset_shift_x0;
 %x1 = par.offset_shift_x1;
 outpath = write.parpath;
 
+corr_num_flats = min( [size(flat,3), corr_num_flats]);
+
 %% CORRELATION %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 switch method
     

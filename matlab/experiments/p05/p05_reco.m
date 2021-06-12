@@ -32,19 +32,20 @@ function p05_reco( external_parameter )
 
 % !!! QUICK SWITCH TO ALTERNATIVE SET OF PARAMETERS !!!
 % !!! OVERWRITES PARAMETERS BELOW QUICK SWITCH SECTION !!!
-% Just copy parameter and turn on quick switch
-par.quick_switch = 1;
-par.raw_bin = 4;
-par.raw_roi = [];cd 
+% Just copy parameter and set quick switch to 1
+par.quick_switch = 0;
+par.raw_bin = 2;
+par.raw_roi = -1;
 par.proj_range = 1;
-par.ref_range = 100;
+par.ref_range = 1;
 par.ref_path = {};
-%tomo.rot_axis_offset = 5 * 5.6 / par.raw_bin;
 phase_retrieval.apply = 0;
 write.to_scratch = 0;
 interactive_mode.rot_axis_pos = 1;
 interactive_mode.phase_retrieval = 0;
-
+tomo.rot_axis_offset = 0;%4 * 2.9 / par.raw_bin;
+tomo.rot_axis_tilt_camera = -0.001; 
+%write.subfolder_reco = 'tilt-0p001'; % subfolder in 'reco'
 % END OF QUICK SWITCH TO ALTERNATIVE SET OF PARAMETERS %%%%%%%%%%%%%%%%%%%%
 
 pp_parameter_switch % DO NOT DELETE THIS LINE
@@ -102,7 +103,7 @@ image_correlation.method = 'ssim-ml';'entropy';'median';'none';'ssim';'ssim-g';'
 % 'diff1/2-l1/2': L1/L2-norm of anisotropic (diff1-l*) or isotropic (diff2-l*) difference of projections and flat fields
 % 'cross-entropy-*' : asymmetric (12,21) and symmetric (x) cross entropy
 image_correlation.force_calc = 0; % bool. force compuation of correlation even though a (previously computed) corrlation matrix exists
-image_correlation.num_flats = 9; % number of best maching flat fields used for correction
+image_correlation.num_flats = 3; % number of best maching flat fields used for correction
 image_correlation.area_width = [1 100];%[-100 1];% correlation area: index vector or relative/absolute position of [first pix, last pix], negative indexing is supported
 image_correlation.area_height = [0.2 0.8]; % correlation area: index vector or relative/absolute position of [first pix, last pix]
 image_correlation.filter = 1; % bool, filter ROI before correlation
@@ -137,15 +138,15 @@ phase_retrieval.dpc_bin = 4;
 tomo.run = 1; % run tomographic reconstruction
 tomo.run_interactive_mode = 1; % if tomo.run = 0, use to determine rot axis positions without processing the full tomogram;
 tomo.reco_mode = '3D';'slice';  % slice-wise or full 3D backprojection. 'slice': volume must be centered at origin & no support of rotation axis tilt, reco binning, save compressed
-tomo.vol_size = [-1.5 1.5 -1.5 1.5 -0.5 0.5];% 6-component vector [xmin xmax ymin ymax zmin zmax], for excentric rot axis pos / extended FoV;. if empty, volume is centerd within tomo.vol_shape. unit voxel size is assumed. if smaller than 10 values are interpreted as relative size w.r.t. the detector size. Take care bout minus signs! Note that if empty vol_size is dependent on the rotation axis position.
+tomo.vol_size = [];%[-1.5 1.5 -1.5 1.5 -0.5 0.5];% 6-component vector [xmin xmax ymin ymax zmin zmax], for excentric rot axis pos / extended FoV;. if empty, volume is centerd within tomo.vol_shape. unit voxel size is assumed. if smaller than 10 values are interpreted as relative size w.r.t. the detector size. Take care bout minus signs! Note that if empty vol_size is dependent on the rotation axis position.
 tomo.vol_shape = []; %[1 1 1] shape (# voxels) of reconstruction volume. used for excentric rot axis pos. if empty, inferred from 'tomo.vol_size'. in absolute numbers of voxels or in relative number w.r.t. the default volume which is given by the detector width and height.
 tomo.rot_angle_full_range = [];% 2 * pi ;[]; % in radians. if []: full angle of rotation including additional increment, or array of angles. if empty full rotation angles is determined automatically to pi or 2 pi
 tomo.rot_angle_offset = pi; % global rotation of reconstructed volume
-tomo.rot_axis_offset = -1.25; % rotation axis offset w.r.t to the image center. Assuming the rotation axis position to be centered in the FOV for standard scan, the offset should be close to zero.
+tomo.rot_axis_offset = []; % rotation axis offset w.r.t to the image center. Assuming the rotation axis position to be centered in the FOV for standard scan, the offset should be close to zero.
 tomo.rot_axis_position = []; % if empty use automatic computation. EITHER OFFSET OR posITION MUST BE EMPTY. YOU MUST NOT USE BOTH!
 tomo.rot_axis_offset_shift = []; %[]; % absolute lateral movement in pixels during fly-shift-scan, overwrite lateral shift read out from hdf5 log
 tomo.flip_scan_position = 0; % for debugging
-tomo.rot_axis_tilt_camera = -0.001; % in rad. camera tilt w.r.t rotation axis.
+tomo.rot_axis_tilt_camera = 0; % in rad. camera tilt w.r.t rotation axis.
 tomo.rot_axis_tilt_lamino = 0; % in rad. lamino tilt w.r.t beam.
 tomo.rot_axis_corr_area1 = []; % ROI to correlate projections at angles 0 & pi. Use [0.75 1] or so for scans with an excentric rotation axis
 tomo.rot_axis_corr_area2 = []; % ROI to correlate projections at angles 0 & pi
@@ -168,7 +169,7 @@ write.to_scratch = 0; % write to 'scratch_cc' instead of 'processed'
 write.deleteFiles = 0; % delete files already existing in output folders. Useful if number or names of files differ when reprocessing.
 write.beamtimeID = ''; % string (regexp),typically beamtime ID, mandatory if 'write.deleteFiles' is true (safety check)
 write.scan_name_appendix = ''; % appendix to the output folder name which defaults to the scan name
-write.parfolder = '';% sprintf( '%s%04u', tomo.algorithm, tomo.iterations); '';% parent folder to 'reco', 'sino', 'phase', and 'flat_corrected'
+write.parfolder = '';% sprintf( '%s%04u, tomo.algorithm, tomo.iterations); '';% parent folder to 'reco', 'sino', 'phase', and 'flat_corrected'
 write.subfolder_flatcor = ''; % subfolder in 'flat_corrected'
 write.subfolder_phase_map = ''; % subfolder in 'phase_map'
 write.subfolder_sino = ''; % subfolder in 'sino'
@@ -187,7 +188,7 @@ write.uint16_binned = 0; % save binned 16bit unsigned integer tiff using 'write.
 write.uint8_binned = 0; % save binned 8bit unsigned integer tiff using 'wwrite.compression_method'
 write.reco_binning_factor = 2; % IF BINNED VOLUMES ARE SAVED: binning factor of reconstructed volume
 write.compression_method = 'outlier';'histo';'full'; 'std'; 'threshold'; % method to compression dynamic range into [0, 1]
-write.compression_parameter = [0.02 0.02]; % compression-method specific parametere
+write.compression_parameter = [0.02 0.02]; % compression-method specific parameters
 % dynamic range is compressed s.t. new dynamic range assumes
 % 'outlier' : [LOW, HIGH] = write.compression_parameter, eg. [0.01 0.03], outlier given in percent, if scalear LOW = HIGH.
 % 'full' : full dynamic range is used
@@ -199,7 +200,7 @@ write.uint8_segmented = 0; % experimental: threshold segmentaion for histograms 
 par.visual_output = 1; % show images and plots during reconstruction
 interactive_mode.rot_axis_pos = 0; % reconstruct slices with dif+ferent rotation axis offsets
 interactive_mode.rot_axis_pos_default_search_range = []; % if empty: asks for search range when entering interactive mode
-interactive_mode.rot_axis_tilt = 0; % reconstruct slices with different offset AND tilts of the rotation axis
+interactive_mode.rot_axis_tilt = 1; % reconstruct slices with different offset AND tilts of the rotation axis
 interactive_mode.rot_axis_tilt_default_search_range = []; % if empty: asks for search range when entering interactive mode
 interactive_mode.lamino = 0; % find laminography tilt instead camera tilt
 interactive_mode.angles = 0; % reconstruct slices with different scalings of angles
@@ -216,7 +217,7 @@ tomo.astra_gpu_index = []; % GPU Device index to use, Matlab notation: index sta
 par.gpu_index = tomo.astra_gpu_index;
 par.use_gpu_in_parfor = 1;
 phase_retrieval.use_parpool = 0; % bool. Disable parpool when out-of-memory error occurs during phase retrieval.
-par.window_state = 'normal';'maximized'; 'minimized';
+par.window_state = 'minimized';'normal';'maximized'; 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%% END OF PARAMETERS / SETTINGS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -226,7 +227,8 @@ weblink_name = sprintf( 'code reposiory on github: %s', weblink_url );
 weblink = sprintf('<a href = "%s">%s</a>\n', weblink_url, weblink_name);
 fprintf( weblink );
 
-close all;
+close all hidden;
+close all force;
 
 tic
 verbose = 1;
@@ -372,6 +374,7 @@ par.raw_bin = single( par.raw_bin );
 raw_bin = par.raw_bin;
 phase_bin = phase_retrieval.post_binning_factor; % alias for readablity
 eff_pixel_size_binned = raw_bin * par.eff_pixel_size;
+window_state = par.window_state;
 
 astra_clear % if reco was aborted, ASTRA memory is not cleared
 
@@ -483,7 +486,7 @@ if isempty( tomo.astra_gpu_index )
 end
 
 % GPU info
-fprintf( '\n GPUs : [index, total memory/GiB] =' )
+fprintf( '\n GPUs : [index, total memory/GiB] =\n ' )
 for mm = 1:numel( tomo.astra_gpu_index )
     nn = tomo.astra_gpu_index(mm);
     gpu = parallel.gpu.GPUDevice.getDevice( nn );
@@ -880,7 +883,7 @@ if ~par.read_flatcor && ~par.read_sino
                     fprintf( '\n vertical shift / #proj / unbinned pixel : %g', dz / num_proj_found * raw_bin );
                     
                     % Plot vertical shift
-                    if par.visual_output
+                    if par.visual_output && std(vert_shift) ~= 0
                         name = 'spiral scan: vertical shift';
                         f = figure( 'Name', name, 'WindowState', window_state );
                         plot( vert_shift, '.')
@@ -971,7 +974,7 @@ if ~par.read_flatcor && ~par.read_sino
             end
         end
         
-        t0 = min( [cur_proj_time; cur_ref_time] );
+        %t0 = min( [cur_proj_time; cur_ref_time] );
     end % if ~exist( nexuslog_name, 'file')
     
     %% Raw ROI
@@ -1236,11 +1239,6 @@ if ~par.read_flatcor && ~par.read_sino
         
         % Correlation area
         if ~strcmp( image_correlation.method, 'none' )            
-%             if exist( 'h_corr_roi' , 'var' ) && isvalid( h_corr_roi )
-%                 figure( h_corr_roi )
-%             else
-%                 h_corr_roi = figure( 'Name', 'image correlation roi', 'WindowState', window_state );
-%             end
             h_corr_roi = figure( 'Name', 'image correlation roi', 'WindowState', window_state );
             subplot(2,2,1)
             im = mean( flat, 3);

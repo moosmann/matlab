@@ -85,7 +85,7 @@ switch lower( ring_filter.method )
         fprintf( '\n ring filter mask min/max: %f, %f', min( mask(:) ), max( mask(:) ) )
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         if par.visual_output
-            figure('Name', 'Sinogram and ring filter', 'WindowState', 'maximized');
+            figure('Name', 'Sinogram and ring filter', 'WindowState', window_state);
             
             subplot(2,2,1)
             imsc( sino_unfilt )

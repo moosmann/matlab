@@ -14,6 +14,7 @@ imsc1 = @(im) imsc( rot90( im ) );
 tint = 0;
 angle_scaling = [];
 lamino = interactive_mode.lamino;
+window_state = par.window_state;
 if isempty( tomo.rot_axis_offset )
     tomo.rot_axis_offset = 0;
 end
@@ -236,7 +237,7 @@ if tomo.run || tomo.run_interactive_mode
                 end
 
                 % Plot metrics
-                h_rot_off = figure('Name', 'OFFSET: metrics', 'WindowState', 'maximized');
+                h_rot_off = figure('Name', 'OFFSET: metrics', 'WindowState', window_state);
                 ind = 2:7; %[1:4 6:7];
                 Y = cell2mat({metrics_offset(ind).val});
                 plot( offset, Y, '-+');
@@ -349,7 +350,7 @@ if tomo.run || tomo.run_interactive_mode
                             end
                             
                             % Plot metrics
-                            h_rot_tilt = figure('Name', 'TILT: metrics', 'WindowState', 'maximized');
+                            h_rot_tilt = figure('Name', 'TILT: metrics', 'WindowState', window_state);
                             ind = 6:7;
                             Y = cell2mat({metrics_tilt(ind).val});
                             plot( tilt, Y, '-+');
@@ -398,6 +399,9 @@ if tomo.run || tomo.run_interactive_mode
                             if tform_int.T(3,2) > 10
                                 tform_int.T(3,2) = 0;
                             end
+                            fprintf( '\n registration matrix translation: x, y = %f %f', tform_int.T(3,1), tform_int.T(3,2) );
+                            fprintf( '\n registration matrix scale: x, y = %f %f', tform_int.T(1,1), tform_int.T(2,2) );
+                            fprintf( '\n registration matrix shear: x, y = %f %f', tform_int.T(1,2), tform_int.T(2,1) );
                             % Translation: [1 0 0, 0 1 0, t_x t_y 0]
                             % Scale: [s_x 0 0, 0 s_y 0, 0 0 1]
                             % Shear: [1 sh_y 0, sh_x 1 0, 0 0 1]
@@ -528,7 +532,7 @@ if tomo.run || tomo.run_interactive_mode
                             end
                             
                             % Plot metrics
-                            h_rot_angle_scaling = figure('Name', 'ANGLES: metrics', 'WindowState', 'maximized');
+                            h_rot_angle_scaling = figure('Name', 'ANGLES: metrics', 'WindowState', window_state);
                             ind = 1:7;
                             Y = cell2mat({metrics_angle_scaling(ind).val});
                             plot( angle_scaling, Y, '-+');
@@ -610,7 +614,7 @@ if tomo.run || tomo.run_interactive_mode
     
     %% Display 0/pi projection: original and registered with tilt
     if par.visual_output && interactive_mode.rot_axis_tilt && lamino
-        figure('Name','TILT: Projections at 0 and pi cropped symmetrically to rotation center');
+        figure('Name','TILT: Projections at 0 and pi cropped symmetrically to rotation center', 'WindowState', window_state);
         n = 2;
         m = 2;
         
