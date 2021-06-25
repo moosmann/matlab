@@ -1,4 +1,4 @@
-function itool(im,varargin)
+function h = itool(im,varargin)
 % Show input image 'im' using imshow with dynamic range [] and
 % 'InitialMagnification' 'fit'. Optional input arguments are the name of
 % the figure to show (ischar), the slice (isscalar) to show if 'im' is a 3D

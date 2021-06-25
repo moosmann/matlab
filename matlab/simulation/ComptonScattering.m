@@ -6,7 +6,7 @@ function ComptonScattering()
 %[csp, cst] = KN_partial_cs( 30e3, 1, 1000 );
 [csp, cst] = KN_partial_cs( 30e3, 180, 10000 );
 csp / cst
-cst2 = KN_total_cs( 30e3)
+cst2 = KN_total_cs( 30e3);
 cst2/cst
 
 

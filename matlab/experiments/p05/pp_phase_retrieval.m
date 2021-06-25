@@ -15,7 +15,6 @@ reg_par = phase_retrieval.reg_par;
 bin_filt = phase_retrieval.bin_filt;
 cutoff_frequ = phase_retrieval.cutoff_frequ;
 edp = [phase_retrieval.energy, phase_retrieval.sample_detector_distance, phase_retrieval.eff_pixel_size_binned];
-%take_neg_log = phase_retrieval.take_neg_log;
 if edp(1) <= 0
     error( 'Energy is zero!' );
 end
@@ -529,7 +528,7 @@ else
             im = fft2( im );
             im = phase_filter .* im ;
             im = ifft2( im );
-            im = real( im );
+            im = -real( im );
             proj(:,:,nn) = im(1:im_shape(1), 1:im_shape(2));
             % combined GPU and parfor usage requires memory management
             %im = padarray( gpuArray( proj(:,:,nn) ), raw_im_shape_binned, 'post', 'symmetric' );
@@ -543,7 +542,7 @@ else
             im = fft2( im );
             im = phase_filter .* im ;
             im = ifft2( im );
-            im = real( im );
+            im = -real( im );
             proj(:,:,nn) = im(1:im_shape(1), 1:im_shape(2));
             % combined GPU and parfor usage requires memory management
             %im = padarray( gpuArray( proj(:,:,nn) ), raw_im_shape_binned, 'post', 'symmetric' );

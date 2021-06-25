@@ -1,4 +1,4 @@
-function ttool(ImageNumber,FilenamePattern,WorkspaceVariableName)
+function h = ttool(ImageNumber,FilenamePattern,WorkspaceVariableName)
 % Read tif file and display image.
 %
 % Written by Julian Moosmann, last version 2013-1024
@@ -29,7 +29,7 @@ end
 imName = imStruct{ImageNumber};
 im = double(imread(imName));
 %% Show image
-itool(im,imName)
+h = itool(im,imName);
 %% Assign image to workspace
 if isempty(WorkspaceVariableName)
    WorkspaceVariableName = lower([imName(1:3) num2str(ImageNumber,'%04u')]);          

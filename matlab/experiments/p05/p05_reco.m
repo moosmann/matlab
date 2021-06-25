@@ -33,19 +33,22 @@ function p05_reco( external_parameter )
 % !!! QUICK SWITCH TO ALTERNATIVE SET OF PARAMETERS !!!
 % !!! OVERWRITES PARAMETERS BELOW QUICK SWITCH SECTION !!!
 % Just copy parameter and set quick switch to 1
-par.quick_switch = 0;
-par.raw_bin = 2;
-par.raw_roi = -1;
+par.quick_switch = 1;
+par.raw_bin = 1;
+par.raw_roi = [];
 par.proj_range = 1;
 par.ref_range = 1;
 par.ref_path = {};
 phase_retrieval.apply = 0;
 write.to_scratch = 0;
-interactive_mode.rot_axis_pos = 1;
+tomo.rot_axis_offset = [];
+tomo.rot_axis_tilt_camera = [];
+%par.pixel_scaling = 0.9985;
+image_correlation.method = 'median';
+interactive_mode.rot_axis_pos = 0;
 interactive_mode.phase_retrieval = 0;
-tomo.rot_axis_offset = 0;%4 * 2.9 / par.raw_bin;
-tomo.rot_axis_tilt_camera = -0.001; 
-%write.subfolder_reco = 'tilt-0p001'; % subfolder in 'reco'
+tomo.rot_axis_offset = 14.1 * 3 / par.raw_bin;
+%write.subfolder_reco = 'tilt-0p001';
 % END OF QUICK SWITCH TO ALTERNATIVE SET OF PARAMETERS %%%%%%%%%%%%%%%%%%%%
 
 pp_parameter_switch % DO NOT DELETE THIS LINE
@@ -63,8 +66,9 @@ par.energy = []; % eV! if empty: read from log file (log file values can be ambi
 par.sample_detector_distance = []; % in m. if empty: read from log file
 par.eff_pixel_size = []; %1.07e-6; % in m. if empty: read from log lfile. effective pixel size =  detector pixel size / magnification
 par.pixel_scaling = []; % to account for mismatch of eff_pixel_size with, ONLY APPLIED BEFORE TOMOGRAPHIC RECONSTRUCTION, HAS TO BE CHANGED!
+par.read_image_log = 0; % bool, default: 0. Read metadata from image log instead hdf5, if image log exists
 %%% PREPROCESSING %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-par.raw_bin = 4; % projection binning factor: integer
+par.raw_bin = 2; % projection binning factor: integer
 par.raw_roi = []; % vertical and/or horizontal ROI; (1,1) coordinate = top left pixel; supports absolute, relative, negative, and mixed indexing.
 % []: use full image;
 % [y0 y1]: vertical ROI, skips first raw_roi(1)-1 lines, reads until raw_roi(2); if raw_roi(2) < 0 reads until end - |raw_roi(2)|; relative indexing similar.
@@ -81,7 +85,7 @@ par.stitch_method = 'sine'; 'step';'linear'; %  ! CHECK correlation area !
 % 'sine' : sinusoidal interpolation of overlap region
 par.proj_range = []; % range of projections to be used (from all found, if empty or 1: all, if scalar: stride, if range: start:incr:end
 par.ref_range = []; % range of flat fields to be used (from all found), if empty or 1: all. if scalar: stride, if range: start:incr:end
-par.wo_crop = 1; % Do not crop images to account for random lateral shift
+par.wo_crop = 0; % Do not crop images to account for random lateral shift
 par.virt_s_pos = 0; % Correct sample position in reconsructed volume if virtual sample position motors are used
 pixel_filter_threshold_dark = [0.01 0.005]; % Dark fields: threshold parameter for hot/dark pixel filter, for details see 'FilterPixel'
 pixel_filter_threshold_flat = [0.02 0.005]; % Flat fields: threshold parameter for hot/dark pixel filter, for details see 'FilterPixel'
@@ -103,7 +107,7 @@ image_correlation.method = 'ssim-ml';'entropy';'median';'none';'ssim';'ssim-g';'
 % 'diff1/2-l1/2': L1/L2-norm of anisotropic (diff1-l*) or isotropic (diff2-l*) difference of projections and flat fields
 % 'cross-entropy-*' : asymmetric (12,21) and symmetric (x) cross entropy
 image_correlation.force_calc = 0; % bool. force compuation of correlation even though a (previously computed) corrlation matrix exists
-image_correlation.num_flats = 3; % number of best maching flat fields used for correction
+image_correlation.num_flats = 9; % number of best maching flat fields used for correction
 image_correlation.area_width = [1 100];%[-100 1];% correlation area: index vector or relative/absolute position of [first pix, last pix], negative indexing is supported
 image_correlation.area_height = [0.2 0.8]; % correlation area: index vector or relative/absolute position of [first pix, last pix]
 image_correlation.filter = 1; % bool, filter ROI before correlation
@@ -111,7 +115,7 @@ image_correlation.filter_type = 'median'; % string. correlation ROI filter type,
 image_correlation.filter_parameter = {[3 3], 'symmetric'}; % cell. filter paramaters to be parsed with {:}
 % 'median' : using medfilt2, parameters: {[M N]-neighboorhood, 'padding'}
 % 'wiener' : using wiender2, parameters: {[M N]-neighboorhood}
-ring_filter.apply = 1; % ring artifact filter (use only for scans without lateral sample movement)
+ring_filter.apply = 0; % ring artifact filter (use only for scans without lateral sample movement)
 ring_filter.apply_before_stitching = 1; % ! Consider when phase retrieval is applied !
 ring_filter.method = 'jm'; 'wavelet-fft';
 ring_filter.waveletfft_dec_levels = 1:6; % decomposition levels for 'wavelet-fft'
@@ -142,7 +146,7 @@ tomo.vol_size = [];%[-1.5 1.5 -1.5 1.5 -0.5 0.5];% 6-component vector [xmin xmax
 tomo.vol_shape = []; %[1 1 1] shape (# voxels) of reconstruction volume. used for excentric rot axis pos. if empty, inferred from 'tomo.vol_size'. in absolute numbers of voxels or in relative number w.r.t. the default volume which is given by the detector width and height.
 tomo.rot_angle_full_range = [];% 2 * pi ;[]; % in radians. if []: full angle of rotation including additional increment, or array of angles. if empty full rotation angles is determined automatically to pi or 2 pi
 tomo.rot_angle_offset = pi; % global rotation of reconstructed volume
-tomo.rot_axis_offset = []; % rotation axis offset w.r.t to the image center. Assuming the rotation axis position to be centered in the FOV for standard scan, the offset should be close to zero.
+tomo.rot_axis_offset = -1.7 * 3 / par.raw_bin;%[]; % rotation axis offset w.r.t to the image center. Assuming the rotation axis position to be centered in the FOV for standard scan, the offset should be close to zero.
 tomo.rot_axis_position = []; % if empty use automatic computation. EITHER OFFSET OR posITION MUST BE EMPTY. YOU MUST NOT USE BOTH!
 tomo.rot_axis_offset_shift = []; %[]; % absolute lateral movement in pixels during fly-shift-scan, overwrite lateral shift read out from hdf5 log
 tomo.flip_scan_position = 0; % for debugging
@@ -158,7 +162,7 @@ tomo.butterworth_filter = 0; % use butterworth filter in addition to FBP filter
 tomo.butterworth_filter_order = 1;
 tomo.butterworth_filter_frequ_cutoff = 0.9;
 tomo.astra_pixel_size = 1; % detector pixel size for reconstruction: if different from one 'tomo.vol_size' must to be ajusted, too!
-tomo.take_neg_log = 1; % take negative logarithm. if empty, use 1 for attenuation contrast, 0 for phase contrast
+tomo.take_neg_log = []; % take negative logarithm. if empty, use 1 for attenuation contrast, 0 for phase contrast
 tomo.algorithm =  'fbp';'cgls';'sirt';'sart';'em';'fbp-astra'; % SART/EM only work for 3D reco mode
 tomo.iterations = 50; % for iterateive algorithms: 'sirt', 'cgls', 'sart', 'em'
 tomo.MinConstraint = []; % sirt3D/sirt2d/sart2d only. If specified, all values below MinConstraint will be set to MinConstraint. This can be used to enforce non-negative reconstructions, for example.
@@ -198,11 +202,11 @@ write.compression_parameter = [0.02 0.02]; % compression-method specific paramet
 write.uint8_segmented = 0; % experimental: threshold segmentaion for histograms with 2 distinct peaks: __/\_/\__
 %%% INTERACTION %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 par.visual_output = 1; % show images and plots during reconstruction
-interactive_mode.rot_axis_pos = 0; % reconstruct slices with dif+ferent rotation axis offsets
+interactive_mode.rot_axis_pos = 1; % reconstruct slices with dif+ferent rotation axis offsets
 interactive_mode.rot_axis_pos_default_search_range = []; % if empty: asks for search range when entering interactive mode
-interactive_mode.rot_axis_tilt = 1; % reconstruct slices with different offset AND tilts of the rotation axis
+interactive_mode.rot_axis_tilt = 0; % reconstruct slices with different offset AND tilts of the rotation axis
 interactive_mode.rot_axis_tilt_default_search_range = []; % if empty: asks for search range when entering interactive mode
-interactive_mode.lamino = 0; % find laminography tilt instead camera tilt
+interactive_mode.lamino = 1; % find laminography tilt instead camera tilt
 interactive_mode.angles = 0; % reconstruct slices with different scalings of angles
 interactive_mode.angle_scaling_default_search_range = []; % if empty: use a variaton of -/+5 * (angle increment / maximum angle)
 interactive_mode.slice_number = 0.5; % default slice number. if in [0,1): relative, if in (1, N]: absolute
@@ -310,6 +314,15 @@ end
 if ~isempty( tomo.rot_axis_offset ) && ~isempty( tomo.rot_axis_position )
     error('tomo.rot_axis_offset (%f) and tomo.rot_axis_position (%f) cannot be used simultaneously. One must be empty.', tomo.rot_axis_offset, tomo.rot_axis_position)
 end
+% Apply negative logarithm for attenuation contrast, but not for phase
+% contrast
+if isempty( tomo.take_neg_log )
+    if phase_retrieval.apply
+        tomo.take_neg_log = 0;
+    else
+        tomo.take_neg_log = 1;
+    end
+end
 
 %% Default assignment if non-existing or empty!
 assign_default( 'par.raw_bin', 2 );
@@ -335,7 +348,6 @@ assign_default( 'par.stitch_method', 'sine' );
 assign_default( 'par.virt_s_pos', 0 );
 assign_default( 'par.wo_crop', 1);
 assign_default( 'par.ring_current_normalization', 1);
-assign_default( 'phase_retrieval.take_neg_log', 0 )
 assign_default( 'phase_retrieval.dpc_steps', 5 );
 assign_default( 'phase_retrieval.dpc_bin', 4 );
 assign_default( 'phase_retrieval.use_parpool', 0 );
@@ -367,7 +379,6 @@ assign_default( 'interactive_mode.angle_scaling_default_search_range', [] );
 assign_default( 'par.window_state', 'normal' );
 assign_default( 'par.strong_abs_thresh', 1 );
 assign_default( 'par.norm_sino', 0 );
-window_state = par.window_state;
 
 % Define variables from struct fields for convenience
 par.raw_bin = single( par.raw_bin );
@@ -449,7 +460,6 @@ end
 % Figure path
 write.fig_path = [write.path, filesep, 'figures', filesep];
 fig_path = write.fig_path;
-CheckAndMakePath( fig_path )
 
 % Path to flat-field corrected projections
 flatcor_path = sprintf( '%s/flat_corrected/rawBin%u/', write.path, raw_bin );
@@ -475,6 +485,11 @@ if ~isempty( write.subfolder_sino )
 end
 PrintVerbose( write.sino, '\n sino_path:\n  %s', write.sino_path)
 PrintVerbose( phase_retrieval.apply & write.phase_sino, '\n sino_phase_path:\n  %s', write.sino_phase_path)
+
+CheckAndMakePath( write.path )
+filename = sprintf( '%s/parameters.mat', write.path );
+save( filename )
+CheckAndMakePath( fig_path )
 
 % Memory
 fprintf( '\n user :  %s', getenv( 'USER' ) );
@@ -515,7 +530,7 @@ if ~par.read_flatcor && ~par.read_sino
     end    
     %% Read image log
     imlog = dir( sprintf('%s*image.log', scan_path) );
-    if ~isempty( imlog )
+    if par.read_image_log && ~isempty( imlog )
         imlog = [imlog.folder filesep imlog.name];
         fid = fopen( imlog );
         % name time image_key angle s_stage_x piezo petra
@@ -1105,7 +1120,6 @@ if ~par.read_flatcor && ~par.read_sino
     filt_pix_par.threshold_dark = pixel_filter_threshold_flat(2);
     
     % image correlation filter function
-    %imcf = image_correlation.filter;
     switch image_correlation.filter_type
         case 'median'
             imcf_filter = @(im) medfilt2( im, image_correlation.filter_parameter{:} );
@@ -1527,7 +1541,7 @@ if ~par.read_flatcor && ~par.read_sino
     fprintf( '\n sinogram size = [%g, %g, %g]', size( proj ) )
     
     %%% Angles %%
-    if isempty( imlog )
+    if isempty( imlog ) || ~par.read_image_log
         if exist('cur', 'var') && isfield(cur, 'proj') && isfield( cur.proj, 'angle')
             % for KIT cam this includes missing angles
             angles = [cur.proj.angle] / 180 * pi;
@@ -1711,13 +1725,6 @@ tint_phase = 0;
 phase_retrieval.energy = par.energy;
 phase_retrieval.sample_detector_distance = par.sample_detector_distance;
 phase_retrieval.eff_pixel_size_binned = eff_pixel_size_binned;
-if isempty( tomo.take_neg_log )
-    if phase_retrieval.apply
-        tomo.take_neg_log = 0;
-    else
-        tomo.take_neg_log = 1;
-    end
-end
 if phase_retrieval.apply
     if ~strcmp( phase_retrieval.method, 'dpc' )
         % Non-DPC phase retrieval
@@ -1823,6 +1830,9 @@ if dpc_reco
     [tomo.vol_shape, tomo.vol_size] = volshape_volsize( dpc_att, tomo.vol_shape, tomo.vol_size, tomo.rot_axis_offset, verbose );
     [tomo, angles, tint] = interactive_mode_rot_axis( par, logpar, phase_retrieval, tomo, write, interactive_mode, dpc_att, angles);
 else
+    %%%%
+    %%%% TODO: FIX error if tilt check is 1 but pos check is 0
+    %%%%
     [tomo, angles, tint] = interactive_mode_rot_axis( par, logpar, phase_retrieval, tomo, write, interactive_mode, proj, angles);
 end
 
@@ -2091,10 +2101,6 @@ if tomo.run
             rot_axis_offset_reco = tomo.rot_axis_position - size( proj, 1) / 2;
         else
             rot_axis_offset_reco = tomo.rot_axis_offset;
-        end
-        
-        if isempty( tomo.take_neg_log )
-            tomo.take_neg_log = 1;
         end
         
         % Delete redundant projection and angle
@@ -2578,6 +2584,12 @@ fprintf( '\nFINISHED: %s at %s\n', scan_name, datetime )
 if isfield( par, 'quick_switch' ) && par.quick_switch
     cprintf( 'Red', '\nATTENTION: Quick parameter switch was turned on!\n' )
 end
+
+weblink_url = 'https://www.nature.com/articles/nprot.2014.033';
+weblink_name = sprintf( 'Please cite the following paper when using this reconstruction pipeline: %s', weblink_url );
+weblink = sprintf('<a href = "%s">%s</a>\n', weblink_url, weblink_name);
+
+fprintf( weblink );
 fprintf( '\n')
 % END %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 dbclear if error
