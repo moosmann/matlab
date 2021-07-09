@@ -15,6 +15,9 @@ edit synchroload2018nov_11005553.m
 edit synchroload2019may_11005842.m
 edit synchroload2019july_11006704.m
 edit synchroload2019dec_11006991.m
+edit synchroload2021june_11008741.m
+
+edit mgsafe_p07_11012079.m
 
 %% Other scripts
 edit synchroload_samples.m
@@ -35,6 +38,7 @@ edit stitch_volumes.m
 edit dose_synchroload.m
 edit dose_bone_test.m
 edit synchroload_normalization.m
+edit synchroload2021june_11008741.m
 
 %% Segmentation
 % High quality

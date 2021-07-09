@@ -36,8 +36,8 @@ close all hidden % close all open windows
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %%% SCAN %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-scan_path = '/asap3/petra3/gpfs/p07/2020/data/11010206/processed/mgbone05_19118_ti_8m';
-%pwd;
+scan_path = pwd;
+    '/asap3/petra3/gpfs/p07/2020/data/11010206/processed/mgbone05_19118_ti_8m';
     '/asap3/petra3/gpfs/p05/2020/data/11008823/processed/nova004_pyrochroa_coccinea_a';
     '/asap3/petra3/gpfs/p05/2020/data/11008823/processed/nova003_pentatomidae';
     '/asap3/petra3/gpfs/p07/2019/data/11006991/processed/hzg_ind_01_cork_a/';
@@ -45,7 +45,7 @@ scan_path = '/asap3/petra3/gpfs/p07/2020/data/11010206/processed/mgbone05_19118_
     '/asap3/petra3/gpfs/p05/2020/data/11010107/processed/bmc07_v67r';
     '/asap3/petra3/gpfs/p05/2019/data/11007580/processed/smf_09_be_3033';
     '/asap3/petra3/gpfs/p07/2019/data/11007454/processed/bmc06_tooth1';
-raw_bin = 4; % projection binning factor: integer
+raw_bin = 2; % projection binning factor: integer
 read_sino_folder = sprintf( 'trans%02u', raw_bin);
 read_sino = 1; % read preprocessed sinograms. CHECK if negative log has to be taken!
 read_sino_trafo = @(x) (x);%rot90(x); % anonymous function applied to the image which is read e.g. @(x) rot90(x)
@@ -128,7 +128,7 @@ interactive_mode.phase_retrieval = 1; % Interactive retrieval to determine regul
 interactive_mode.phase_retrieval_default_search_range = []; % if empty: asks for search range when entering interactive mode, otherwise directly start with given search range
 %%% HARDWARE / SOFTWARE %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 par.use_cluster = 0; % if available: on MAXWELL nodes disp/nova/wga/wgs cluster computation can be used. Recommended only for large data sets since parpool creation and data transfer implies a lot of overhead.
-par.poolsize = 0.8; % number of workers used in a local parallel pool. if 0: use current config. if >= 1: absolute number. if 0 < poolsize < 1: relative amount of all cores to be used. if SLURM scheduling is available, a default number of workers is used.
+par.poolsize = 0.5; % number of workers used in a local parallel pool. if 0: use current config. if >= 1: absolute number. if 0 < poolsize < 1: relative amount of all cores to be used. if SLURM scheduling is available, a default number of workers is used.
 par.poolsize_gpu_limit_factor = 0.8; % Relative amount of GPU memory used for preprocessing during parloop. High values speed up Proprocessing, but increases out-of-memory failure
 tomo.astra_link_data = 1; % ASTRA data objects become references to Matlab arrays. Reduces memory issues.
 tomo.astra_gpu_index = []; % GPU Device index to use, Matlab notation: index starts from 1. default: [], uses all
@@ -178,6 +178,7 @@ assign_default( 'interactive_mode.phase_retrieval_default_search_range', [] )
 assign_default( 'interactive_mode.angles', 0 );
 assign_default( 'interactive_mode.angle_scaling_default_search_range', [] );
 assign_default( 'tomo.rot_axis_corr_area2', [0.1 0.9] );
+assign_default( 'par.window_state', 'normal' );
 
 % Define variables from struct fields for convenience
 raw_bin = single( raw_bin );

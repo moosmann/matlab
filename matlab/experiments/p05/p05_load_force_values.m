@@ -113,7 +113,7 @@ for nn = 1:num_steps
     end
     
     filename = sprintf( '%s/force.dat',p);
-    if exist( filename, 'file' )        
+    if exist( filename, 'file' )
         
         fw = read_dat( filename );
         wait_force = [wait_force fw(2:end-1)];
@@ -165,8 +165,10 @@ for nn = 1:num_steps
     if readhdf5 && exist( filename, 'file')
         fprintf( ' nexus.h5' )
         %h5i = h5info( filename );
-        t = double( h5read( filename, '/entry/hardware/adc1/Value/time') );
-        v = double( h5read( filename, '/entry/hardware/adc1/Value/value') );
+        %t = double( h5read( filename, '/entry/hardware/adc1/Value/time') );
+        %v = double( h5read( filename, '/entry/hardware/adc1/Value/value') );
+        v = double( h5read( filename, '/entry/hardware/adc1/value') );
+        t = double( h5read( filename, '/entry/hardware/adc1/time') );
         tomo_time = [tomo_time t(2:end-1)'];
         tomo_force = [tomo_force adc2force * v(2:end-1)'];
         
@@ -200,8 +202,11 @@ for nn = 1:num_steps
         if readhdf5 && exist( filename, 'file')
             fprintf( ' nexus.h5' )
             %h5i = h5info( filename );
-            t = double( h5read( filename, '/entry/hardware/adc1/Value/time') );
-            v = double( h5read( filename, '/entry/hardware/adc1/Value/value') );
+            %t = double( h5read( filename, '/entry/hardware/adc1/Value/time') );
+            %v = double( h5read( filename, '/entry/hardware/adc1/Value/value') );
+            v = double( h5read( filename, '/entry/hardware/adc1/value') );
+            t = double( h5read( filename, '/entry/hardware/adc1/time') );
+            
             setforce_time = [setforce_time t(2:end-1)'];
             setforce_force = [setforce_force adc2force * v(2:end-1)'];
             
@@ -272,10 +277,10 @@ if ~isempty( setforce_force )
     
     filename = sprintf( '%s/%s_force_values.mat', out_path, scan_name);
     save( filename, 'time_setforce', 'time_tomo', 'force_setforce', 'force_tomo' )
-
+    
     
     %%
-
+    
 else
     if isempty( wait_time ) && isempty( tomo_time )
         

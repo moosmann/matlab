@@ -34,21 +34,21 @@ function p05_reco( external_parameter )
 % !!! OVERWRITES PARAMETERS BELOW QUICK SWITCH SECTION !!!
 % Just copy parameter and set quick switch to 1
 par.quick_switch = 1;
-par.raw_bin = 1;
-par.raw_roi = [];
-par.proj_range = 1;
-par.ref_range = 1;
+par.raw_bin = 10;
+par.raw_roi = [0.2 0.8];
+par.proj_range = 8;
+par.ref_range = 10;
 par.ref_path = {};
 phase_retrieval.apply = 0;
 write.to_scratch = 0;
-tomo.rot_axis_offset = [];
+tomo.rot_axis_offset = [];%-9.95 * 2 / par.raw_bin;
 tomo.rot_axis_tilt_camera = [];
-%par.pixel_scaling = 0.9985;
 image_correlation.method = 'median';
-interactive_mode.rot_axis_pos = 0;
+interactive_mode.rot_axis_pos = 1;
+interactive_mode.rot_axis_tilt = 0; 
 interactive_mode.phase_retrieval = 0;
-tomo.rot_axis_offset = 14.1 * 3 / par.raw_bin;
 %write.subfolder_reco = 'tilt-0p001';
+%par.pixel_scaling = 0.9985;
 % END OF QUICK SWITCH TO ALTERNATIVE SET OF PARAMETERS %%%%%%%%%%%%%%%%%%%%
 
 pp_parameter_switch % DO NOT DELETE THIS LINE
@@ -115,7 +115,7 @@ image_correlation.filter_type = 'median'; % string. correlation ROI filter type,
 image_correlation.filter_parameter = {[3 3], 'symmetric'}; % cell. filter paramaters to be parsed with {:}
 % 'median' : using medfilt2, parameters: {[M N]-neighboorhood, 'padding'}
 % 'wiener' : using wiender2, parameters: {[M N]-neighboorhood}
-ring_filter.apply = 0; % ring artifact filter (use only for scans without lateral sample movement)
+ring_filter.apply = 1; % ring artifact filter (use only for scans without lateral sample movement)
 ring_filter.apply_before_stitching = 1; % ! Consider when phase retrieval is applied !
 ring_filter.method = 'jm'; 'wavelet-fft';
 ring_filter.waveletfft_dec_levels = 1:6; % decomposition levels for 'wavelet-fft'
@@ -691,12 +691,15 @@ if ~par.read_flatcor && ~par.read_sino
         end
         [im_raw, par.tif_info] = read_image( filename, par, 1 );
         par.im_shape_raw = size( im_raw );
-        
         nexus_setup = h5info(nexuslog_name{1}, '/entry/scan/setup/' );
         if sum(strcmpi('pos_p05_energy',{ nexus_setup.Datasets.Name })) && isempty( par.energy )
             par.energy = double( h5read( nexuslog_name{1}, '/entry/scan/setup/pos_p05_energy' ) );
             par.energy = par.energy( end );
         end
+        if sum(strcmpi('p07_energy',{ nexus_setup.Datasets.Name })) && isempty( par.energy )
+            par.energy = double( h5read( nexuslog_name{1}, '/entry/scan/setup/p07_energy' ) );
+            par.energy = par.energy( end );
+        end   
         if isempty( imlogcell )
             % Get image name, key, time stamp and P3 current from log
             %[stimg_name, stimg_key, petra, petra_scan] = pp_stimg_petra( nexuslog_name );
@@ -750,7 +753,7 @@ if ~par.read_flatcor && ~par.read_sino
         end
         
         %% Lateral shift
-        if numel( s_stage_x.value )
+        if numel( offset_shift_mm ) && abs( std( offset_shift_mm) ) * 1000 > 1
             % Shift or static position
             if std( offset_shift_mm ) > 10 * eps
                 offset_shift_mm = offset_shift_mm(par.proj_range);
@@ -861,6 +864,8 @@ if ~par.read_flatcor && ~par.read_sino
                     saveas( f, sprintf( '%s%s.png', fig_path, regexprep( f.Name, '\ |:', '_') ) );
                 end
             end % if std( offset_shift_mm )
+        else
+            par.wo_crop = 1;
         end % if numel( s_stage_x.value )
         
         %% Vertical shift
@@ -2586,7 +2591,7 @@ if isfield( par, 'quick_switch' ) && par.quick_switch
 end
 
 weblink_url = 'https://www.nature.com/articles/nprot.2014.033';
-weblink_name = sprintf( 'Please cite the following paper when using this reconstruction pipeline: %s', weblink_url );
+weblink_name = sprintf( 'When using this reconstruction pipeline please cite %s and the ASTRA toolbox', weblink_url );
 weblink = sprintf('<a href = "%s">%s</a>\n', weblink_url, weblink_name);
 
 fprintf( weblink );

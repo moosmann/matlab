@@ -1,6 +1,47 @@
-function p07_reco_loop_rpower_11009496( SUBSETS, RUN_RECO, PRINT_PARAMETERS)
-
-% Created on 18-Jun-2021 by moosmanj
+function mgsafe_p07_11012079( SUBSETS, RUN_RECO, PRINT_PARAMETERS)
+% Template function to loop over data sets given in the 'PARAMETER / DATA
+% SETS' section below. The 'DEFAULT PARAMETERS' section defines the default
+% paramters. To add a data / parameter to the loop, define your
+% reconstruction parameters followed by 'ADD'. Using 'ADD('r') restores the
+% default parameters after a datat set is added. Default parameters are
+% defined with 'SET_DEFAULT' (or 'ADD_DEFAULT' or 'ADD('d')' or
+% 'ADD('default')'.
+%
+% Caution: if parameters are changed, they remain changed after a data set
+% was added unless 'ADD('r')' ('ADD('restore')) is used which restores 
+% all parameters as defined in the 'DEFAULT PARAMETER' section by
+% 'SET_DEFAULT'.
+%
+% Caution: all parameters not defined within the file are taken from main
+% reconstruction script 'p05_reco'.
+%
+% Caution: if default parameters are not defined by closing the DEFAULT
+% PARAMETER section with a 'SET_DEFAULT' statement, then the first call of
+% 'ADD' will define default parameters.
+% 
+% Workflow:
+% - Copy this file.
+% - Check, modify, or copy parameter from 'p05_reco' in  'DEFAULT
+%   PARAMETERS' section.
+% - Add parameter / data sets to loop over in the ''PARAMETER / DATA SETS'
+%   section. 
+% - Type 'F5' or call without arguments to list all added data sets.
+% - Choose subset of added data sets to loop over by indices (see SUBSETS
+%   arguments below).
+% - Use RUN_RECO equals 0 with PRINT_PARAMETERS (see below) to check
+%   parameters setting.
+% - Set RUN_RECO equals 1 to start the loop.
+% 
+% ARGUMENTS
+% SUBSETS : 1D array of integers. subset of added data sets to be looped over
+% RUN_RECO : bool. default: 0. 0: loops over the subsets but does not start
+% reconstructions, 1: start the reconstruction loop.
+% PRINT_PARAMETERS : string or cell of strings, eg {'raw_roi',
+% 'parfolder'}. Parameter setting to be printed at each loop iteration.
+% Useful in combination with RUN_RECO = 0 to check parameter setting for
+% the subset to loop over
+%
+% Created on 06-Jul-2021 by moosmanj
 
 if nargin < 1
     SUBSETS = [];
@@ -16,13 +57,10 @@ end
 %% DEFAULT PARAMETERS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-% !!! QUICK SWITCH TO ALTERNATIVE SET OF PARAMETERS !!!
-% !!! OVERWRITES PARAMETERS BELOW QUICK SWITCH SECTION !!!
-% Just copy parameter and set quick switch to 1
-par.quick_switch = 0;
-% END OF QUICK SWITCH TO ALTERNATIVE SET OF PARAMETERS %%%%%%%%%%%%%%%%%%%%
+% Define parameter here. Otherwise parameters are taken from the current
+% version of 'p05_reco' if not set in the section below.
 
-pp_parameter_switch % DO NOT DELETE THIS LINE
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %%% SCAN %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%l%%%%%%%%%%%
 par.scan_path = pwd; % string/pwd. pwd: change to directory of the scan to be reconstructed, string: absolute scan path
@@ -39,7 +77,7 @@ par.eff_pixel_size = []; %1.07e-6; % in m. if empty: read from log lfile. effect
 par.pixel_scaling = []; % to account for mismatch of eff_pixel_size with, ONLY APPLIED BEFORE TOMOGRAPHIC RECONSTRUCTION, HAS TO BE CHANGED!
 par.read_image_log = 0; % bool, default: 0. Read metadata from image log instead hdf5, if image log exists
 %%% PREPROCESSING %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-par.raw_bin = 3; % projection binning factor: integer
+par.raw_bin = 2; % projection binning factor: integer
 par.raw_roi = []; % vertical and/or horizontal ROI; (1,1) coordinate = top left pixel; supports absolute, relative, negative, and mixed indexing.
 % []: use full image;
 % [y0 y1]: vertical ROI, skips first raw_roi(1)-1 lines, reads until raw_roi(2); if raw_roi(2) < 0 reads until end - |raw_roi(2)|; relative indexing similar.
@@ -86,12 +124,12 @@ image_correlation.filter_type = 'median'; % string. correlation ROI filter type,
 image_correlation.filter_parameter = {[3 3], 'symmetric'}; % cell. filter paramaters to be parsed with {:}
 % 'median' : using medfilt2, parameters: {[M N]-neighboorhood, 'padding'}
 % 'wiener' : using wiender2, parameters: {[M N]-neighboorhood}
-ring_filter.apply = 0; % ring artifact filter (use only for scans without lateral sample movement)
+ring_filter.apply = 1; % ring artifact filter (use only for scans without lateral sample movement)
 ring_filter.apply_before_stitching = 1; % ! Consider when phase retrieval is applied !
 ring_filter.method = 'jm'; 'wavelet-fft';
 ring_filter.waveletfft_dec_levels = 1:6; % decomposition levels for 'wavelet-fft'
 ring_filter.waveletfft_wname = 'db7';'db25';'db30'; % wavelet type, see 'FilterStripesCombinedWaveletFFT' or 'waveinfo'
-ring_filter.waveletfft_sigma = 3; %  suppression factor for 'wavelet-fft'
+ring_filter.waveletfft_sigma = [3 11 21 31 39]; %  suppression factor for 'wavelet-fft'
 ring_filter.jm_median_width = 11; % multiple widths are applied consecutively, eg [3 11 21 31 39];
 par.strong_abs_thresh = 1; % if 1: does nothing, if < 1: flat-corrected values below threshold are set to one. Try with algebratic reco techniques.
 par.norm_sino = 0; % not recommended, can introduce severe artifacts, but sometimes improves quality
@@ -117,7 +155,7 @@ tomo.vol_size = [];%[-1.5 1.5 -1.5 1.5 -0.5 0.5];% 6-component vector [xmin xmax
 tomo.vol_shape = []; %[1 1 1] shape (# voxels) of reconstruction volume. used for excentric rot axis pos. if empty, inferred from 'tomo.vol_size'. in absolute numbers of voxels or in relative number w.r.t. the default volume which is given by the detector width and height.
 tomo.rot_angle_full_range = [];% 2 * pi ;[]; % in radians. if []: full angle of rotation including additional increment, or array of angles. if empty full rotation angles is determined automatically to pi or 2 pi
 tomo.rot_angle_offset = pi; % global rotation of reconstructed volume
-tomo.rot_axis_offset = []; % rotation axis offset w.r.t to the image center. Assuming the rotation axis position to be centered in the FOV for standard scan, the offset should be close to zero.
+tomo.rot_axis_offset = -1.7 * 3 / par.raw_bin;%[]; % rotation axis offset w.r.t to the image center. Assuming the rotation axis position to be centered in the FOV for standard scan, the offset should be close to zero.
 tomo.rot_axis_position = []; % if empty use automatic computation. EITHER OFFSET OR posITION MUST BE EMPTY. YOU MUST NOT USE BOTH!
 tomo.rot_axis_offset_shift = []; %[]; % absolute lateral movement in pixels during fly-shift-scan, overwrite lateral shift read out from hdf5 log
 tomo.flip_scan_position = 0; % for debugging
@@ -164,16 +202,10 @@ write.uint8_binned = 0; % save binned 8bit unsigned integer tiff using 'wwrite.c
 write.reco_binning_factor = 2; % IF BINNED VOLUMES ARE SAVED: binning factor of reconstructed volume
 write.compression_method = 'outlier';'histo';'full'; 'std'; 'threshold'; % method to compression dynamic range into [0, 1]
 write.compression_parameter = [0.02 0.02]; % compression-method specific parameters
-% dynamic range is compressed s.t. new dynamic range assumes
-% 'outlier' : [LOW, HIGH] = write.compression_parameter, eg. [0.01 0.03], outlier given in percent, if scalear LOW = HIGH.
-% 'full' : full dynamic range is used
-% 'threshold' : [LOW HIGH] = write.compression_parameter, eg. [-0.01 1]
-% 'std' : NUM = write.compression_parameter, mean +/- NUM*std, dynamic range is rescaled to within -/+ NUM standard deviations around the mean value
-% 'histo' : [LOW HIGH] = write.compression_parameter (100*LOW)% and (100*HIGH)% of the original histogram, e.g. [0.02 0.02]
 write.uint8_segmented = 0; % experimental: threshold segmentaion for histograms with 2 distinct peaks: __/\_/\__
 %%% INTERACTION %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 par.visual_output = 1; % show images and plots during reconstruction
-interactive_mode.rot_axis_pos = 0; % reconstruct slices with dif+ferent rotation axis offsets
+interactive_mode.rot_axis_pos = 1; % reconstruct slices with dif+ferent rotation axis offsets
 interactive_mode.rot_axis_pos_default_search_range = []; % if empty: asks for search range when entering interactive mode
 interactive_mode.rot_axis_tilt = 0; % reconstruct slices with different offset AND tilts of the rotation axis
 interactive_mode.rot_axis_tilt_default_search_range = []; % if empty: asks for search range when entering interactive mode
@@ -185,7 +217,7 @@ interactive_mode.phase_retrieval = 1; % Interactive retrieval to determine regul
 interactive_mode.phase_retrieval_default_search_range = []; % if empty: asks for search range when entering interactive mode, otherwise directly start with given search range
 %%% HARDWARE / SOFTWARE %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 par.use_cluster = 0; % if available: on MAXWELL nodes disp/nova/wga/wgs cluster computation can be used. Recommended only for large data sets since parpool creation and data transfer implies a lot of overhead.
-par.poolsize = 0.9; % number of workers used in a local parallel pool. if 0: use current config. if >= 1: absolute number. if 0 < poolsize < 1: relative amount of all cores to be used. if SLURM scheduling is available, a default number of workers is used.
+par.poolsize = 0.5; % number of workers used in a local parallel pool. if 0: use current config. if >= 1: absolute number. if 0 < poolsize < 1: relative amount of all cores to be used. if SLURM scheduling is available, a default number of workers is used.
 par.poolsize_gpu_limit_factor = 0.7; % Relative amount of GPU memory used for preprocessing during parloop. High values speed up Proprocessing, but increases out-of-memory failure
 tomo.astra_link_data = 1; % ASTRA data objects become references to Matlab arrays. Reduces memory issues.
 tomo.astra_gpu_index = []; % GPU Device index to use, Matlab notation: index starts from 1. default: [], uses all
@@ -200,293 +232,112 @@ SET_DEFAULT
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% PARAMETER / DATA SETS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-raw_path = '/asap3/petra3/gpfs/p07/2021/data/11009496/raw/';
-
-% 80 mm
-tomo.rot_axis_offset = -1.7 * 3 / par.raw_bin;
-par.scan_path = [raw_path 'rpower001_fk01']; ADD
-
-% 630 mm
-tomo.rot_axis_offset = 1.60 * 3 / par.raw_bin;
-par.scan_path = [raw_path 'rpower002_fk01_630mm']; ADD
-
-par.raw_bin = 2;
-tomo.rot_axis_offset = 2.9 * 3 / par.raw_bin;
-par.scan_path = [raw_path 'rpower003_fk01_300mm']; ADD
+raw_path = '/asap3/petra3/gpfs/p07/2021/data/11012079/raw/';
 
 par.raw_bin = 3;
-tomo.rot_axis_offset = 5.1 * 3 / par.raw_bin;
-par.scan_path = [raw_path 'rpower004_cr94']; ADD
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-par.ring_current_normalization = 0;
-% PETRA stability problems, beam current info lost after half of the scan
-par.scan_path = [raw_path 'rpower005_cmol05'];
-ADD
-par.ring_current_normalization = 1;
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-par.scan_path = [raw_path 'rpower006_cmol145']; 
-
-par.raw_bin = 2; 
-tomo.rot_axis_offset = 5.1 * 3 / par.raw_bin;
-ADD
-
-par.raw_bin = 3;
-tomo.rot_axis_offset = 5.1 * 3 / par.raw_bin;
-ADD
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-par.scan_path = [raw_path 'rpower006_cmol145_b']; 
-
-par.raw_bin = 2; 
-tomo.rot_axis_offset = 5.1 * 3 / par.raw_bin;
-ADD
-
-par.raw_bin = 3;
-tomo.rot_axis_offset = 5.1 * 3 / par.raw_bin;
-ADD
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% pixel scaling determined from 0.5 aperture scan
-par.pixel_scaling = 0.9982;
-par.scan_path = [raw_path 'rpower007_cmol145_a_oaperture0p5']; 
-
-par.raw_bin = 2; 
-tomo.rot_axis_offset = 5.1 * 3 / par.raw_bin;
-ADD
-
-par.scan_path = [raw_path 'rpower008_cmol145_a_oaperture0p5_singleFOV_proj20k']; 
-
-par.raw_bin = 2; 
-tomo.rot_axis_offset = 5.1 * 3 / par.raw_bin;
-ADD
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-par.pixel_scaling = 1;
-interactive_mode.rot_axis_pos = 0;
-par.raw_roi = [0.2 0.8];
-par.proj_range = 2;
-par.raw_bin = 4; 
-tomo.rot_axis_offset = 17.0 * 3 / par.raw_bin;
-
-par.scan_path = [raw_path 'rpower009_cm03_a']; ADD
-par.scan_path = [raw_path 'rpower009_cm03_b']; ADD
-par.scan_path = [raw_path 'rpower009_cm03_c']; ADD
-par.scan_path = [raw_path 'rpower009_cm03_d']; ADD
-par.scan_path = [raw_path 'rpower009_cm03_e']; ADD
-par.scan_path = [raw_path 'rpower009_cm03_f']; ADD
-
-%% CHECK axis
-tomo.rot_axis_offset = (17.0 * 3 +  500 / 1.127298)/ par.raw_bin;
-par.scan_path = [raw_path 'rpower010_bb02_a']; ADD
-par.scan_path = [raw_path 'rpower010_bb02_b']; ADD
-
-tomo.rot_axis_offset = 17.0 * 3 / par.raw_bin;
-par.scan_path = [raw_path 'rpower012_oc125_a']; ADD
-par.scan_path = [raw_path 'rpower012_oc125_b']; ADD
-par.scan_path = [raw_path 'rpower013_en006_a']; ADD
-par.scan_path = [raw_path 'rpower013_en006_b']; ADD
-par.scan_path = [raw_path 'rpower013_en006_c']; ADD
-par.scan_path = [raw_path 'rpower014_ra2011p']; ADD
-par.scan_path = [raw_path 'rpower015_ra2011m']; ADD
-par.scan_path = [raw_path 'rpower016_ra2026_a']; ADD
-par.scan_path = [raw_path 'rpower016_ra2026_b']; ADD
-% 2 x 1
-par.scan_path = [raw_path 'rpower017_cmol3']; ADD
-% 2 x 2
-par.scan_path = [raw_path 'rpower018_ra2037_a']; ADD
-par.scan_path = [raw_path 'rpower018_ra2037_b']; ADD
-% 2 x 1
-par.scan_path = [raw_path 'rpower019_tai006']; ADD
-% 3 x 2
-par.scan_path = [raw_path 'rpower020_cmol17_a']; ADD
-par.scan_path = [raw_path 'rpower020_cmol17_b']; ADD
-% 3 x 1
-par.scan_path = [raw_path 'rpower021_tai007']; ADD
-% 2 x 1, wrong name, real name: tai008
-par.scan_path = [raw_path 'rpower022_ra2004']; ADD
-% 2 x 1
-par.scan_path = [raw_path 'rpower026_ra2029b']; ADD
-% 2 x 1
-par.scan_path = [raw_path 'rpower027_ra2004']; ADD
-% 1 x 2
-par.scan_path = [raw_path 'rpower028_csv041_a']; ADD
-par.scan_path = [raw_path 'rpower028_csv041_b']; ADD
-
-interactive_mode.rot_axis_pos = 0;
-phase_retrieval.apply = 0;
-par.wo_crop = 1;
-par.pixel_scaling = 1;
 par.raw_roi = [];
 par.proj_range = 1;
-image_correlation.method = 'ssim-ml';
-image_correlation.force_calc = 0;
-image_correlation.num_flats = 12; 
-image_correlation.area_width = [1 100];
-image_correlation.area_height = [0.6 0.9];
-
-% 1 x 1
-par.scan_path = [raw_path 'rpower025_cm02a']; 
-par.raw_bin = 2; tomo.rot_axis_offset = 20.275 * 2 / par.raw_bin; ADD;
-par.raw_bin = 3; tomo.rot_axis_offset = 20.275 * 2 / par.raw_bin; ADD;
-
-% 1 x 1
-par.scan_path = [raw_path 'rpower029_oc141'];
-par.raw_bin = 2; tomo.rot_axis_offset = 34.5 * 2 / par.raw_bin; ADD;
-par.raw_bin = 3; tomo.rot_axis_offset = 34.5 * 2 / par.raw_bin; ADD;
-
-% 1 x 1
-par.scan_path = [raw_path 'rpower030_fk02'];
-par.raw_bin = 2; tomo.rot_axis_offset = 35.3 * 2 / par.raw_bin; ADD;
-par.raw_bin = 3; tomo.rot_axis_offset = 35.3 * 2 / par.raw_bin; ADD;
-
-% 1 x 1
-par.scan_path = [raw_path 'rpower031_bb010'];
-par.raw_bin = 2; tomo.rot_axis_offset = 36.8 * 2 / par.raw_bin; ADD;
-par.raw_bin = 3; tomo.rot_axis_offset = 36.8 * 2 / par.raw_bin; ADD;
-
-% 1 x 1
-par.scan_path = [raw_path 'rpower032_cm01']; 
-par.raw_bin = 2; tomo.rot_axis_offset = 37.6 * 2 / par.raw_bin; ADD;
-par.raw_bin = 3; tomo.rot_axis_offset = 37.6 * 2 / par.raw_bin; ADD;
-
-% 1 x 1
-par.scan_path = [raw_path 'rpower033_bb12']; 
-par.raw_bin = 2; tomo.rot_axis_offset = 38.8 * 2 / par.raw_bin; ADD;
-par.raw_bin = 3; tomo.rot_axis_offset = 38.8 * 2 / par.raw_bin; ADD;
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-phase_retrieval.apply = 1;
+par.ref_range = 1;
+par.ref_path = {};
+image_correlation.num_flats = 19;
+%image_correlation.method = 'median';
+phase_retrieval.apply = 0;
 interactive_mode.phase_retrieval = 0;
-phase_retrieval.use_parpool = 0;
-phase_retrieval.reg_par = 2.2;
+write.to_scratch = 0;
+tomo.rot_axis_offset = 2 * 3 / par.raw_bin;
+tomo.rot_axis_tilt_camera = [];
+interactive_mode.rot_axis_pos = 0;
+interactive_mode.rot_axis_tilt = 0; 
+%tomo.vol_size = [-1.1 1.1 -1.1 1.1 -0.5 0.5];
 
-% 1 x 1
-par.scan_path = [raw_path 'rpower025_cm02a']; 
-par.raw_bin = 2; tomo.rot_axis_offset = 20.275 * 2 / par.raw_bin; ADD;
-par.raw_bin = 3; tomo.rot_axis_offset = 20.275 * 2 / par.raw_bin; ADD;
+% Redo
+par.scan_path = [raw_path 'mgsafe001_272_a']; ADD
+par.scan_path = [raw_path 'mgsafe001_272_b']; ADD
+par.scan_path = [raw_path 'mgsafe001_272_c']; ADD
 
-% 1 x 1
-par.scan_path = [raw_path 'rpower029_oc141'];
-par.raw_bin = 2; tomo.rot_axis_offset = 34.5 * 2 / par.raw_bin; ADD;
-par.raw_bin = 3; tomo.rot_axis_offset = 34.5 * 2 / par.raw_bin; ADD;
+% Redo
+par.scan_path = [raw_path 'mgsafe002_273_a']; ADD
+par.scan_path = [raw_path 'mgsafe002_273_b']; ADD
+par.scan_path = [raw_path 'mgsafe002_273_c']; ADD
 
-% 1 x 1
-par.scan_path = [raw_path 'rpower030_fk02'];
-par.raw_bin = 2; tomo.rot_axis_offset = 35.3 * 2 / par.raw_bin; ADD;
-par.raw_bin = 3; tomo.rot_axis_offset = 35.3 * 2 / par.raw_bin; ADD;
+% Good
+par.scan_path = [raw_path 'mgsafe003_281_a']; ADD
+par.scan_path = [raw_path 'mgsafe003_281_b']; ADD
+par.scan_path = [raw_path 'mgsafe003_281_c']; ADD
 
-% 1 x 1
-par.scan_path = [raw_path 'rpower031_bb010'];
-par.raw_bin = 2; tomo.rot_axis_offset = 36.8 * 2 / par.raw_bin; ADD;
-par.raw_bin = 3; tomo.rot_axis_offset = 36.8 * 2 / par.raw_bin; ADD;
+% Good
+par.scan_path = [raw_path 'mgsafe004_282_a']; ADD
+par.scan_path = [raw_path 'mgsafe004_282_b']; ADD
+par.scan_path = [raw_path 'mgsafe004_282_c']; ADD
 
-% 1 x 1
-par.scan_path = [raw_path 'rpower032_cm01']; 
-par.raw_bin = 2; tomo.rot_axis_offset = 37.6 * 2 / par.raw_bin; ADD;
-par.raw_bin = 3; tomo.rot_axis_offset = 37.6 * 2 / par.raw_bin; ADD;
+% Good
+par.scan_path = [raw_path 'mgsafe005_279_a']; ADD
+par.scan_path = [raw_path 'mgsafe005_279_b']; ADD
+par.scan_path = [raw_path 'mgsafe005_279_c']; ADD
 
-% 1 x 1
-par.scan_path = [raw_path 'rpower033_bb12']; 
-par.raw_bin = 2; tomo.rot_axis_offset = 38.8 * 2 / par.raw_bin; ADD;
-par.raw_bin = 3; tomo.rot_axis_offset = 38.8 * 2 / par.raw_bin; ADD;
+% Good
+par.scan_path = [raw_path 'mgsafe006_449_a']; ADD
+par.scan_path = [raw_path 'mgsafe006_449_b']; ADD
+par.scan_path = [raw_path 'mgsafe006_449_c']; ADD
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-par.raw_bin = 2;
-par.raw_roi = [0.3 0.6];
-interactive_mode.phase_retrieval = 0;
-phase_retrieval.apply = 1;
-phase_retrieval.reg_par = 2.2;
-par.scan_path = [raw_path 'rpower029_oc141'];
-tomo.rot_axis_offset = 34.5 * 2 / par.raw_bin;
-phase_retrieval.reg_par = 2.2; % regularization parameter. larger values tend to blurrier images. smaller values tend to original data.
-phase_retrieval.bin_filt = 0.1; % threshold for quasiparticle retrieval 'qp', 'qp2'
-phase_retrieval.cutoff_frequ = 2 * pi; % in radian. frequency cutoff in Fourier space for 'qpcut' phase retrieval
-phase_retrieval.padding = 1; % padding of intensities before phase retrieval, 0: no padding
-phase_retrieval.tieNLO_Schwinger.sn = 10; % Schwinger regularization: points of support
-phase_retrieval.tieNLO_Schwinger.smax = 10; % Schwinger regularization: maximumg support range
+% Redo
+par.scan_path = [raw_path 'mgsafe007_589_a']; ADD
+par.scan_path = [raw_path 'mgsafe007_589_b']; ADD
+par.scan_path = [raw_path 'mgsafe007_589_c']; ADD
 
-phase_retrieval.method = 'tie';ADD
-phase_retrieval.method = 'qp'; ADD
-phase_retrieval.method = 'tieNLO_Schwinger'; ADD
+% Good
+par.scan_path = [raw_path 'mgsafe008_447_a']; ADD
+par.scan_path = [raw_path 'mgsafe008_447_b']; ADD
 
+% Good
+par.scan_path = [raw_path 'mgsafe009_505_a']; ADD
+par.scan_path = [raw_path 'mgsafe009_505_b']; ADD
+par.scan_path = [raw_path 'mgsafe009_505_c']; ADD
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% %par.scan_path = [raw_path 'rpower007_cmol145_a_oaperture0p5']; 
-% par.scan_path = [raw_path 'rpower009_cm03_c'];
-% par.raw_roi = [0.1 0.9];
-% par.raw_bin = 4;
-% par.ref_range = 4;
-% par.wo_crop = 0;
-% tomo.rot_axis_offset = 5.1 * 3 / par.raw_bin;
-% image_correlation.method = 'median';
-% 
-% 
-% par.pixel_scaling = 0.9972;
-% write.subfolder_reco = sprintf('pixscal%.4f',par.pixel_scaling);
-% ADD
-% 
-% par.pixel_scaling = 0.9974;
-% write.subfolder_reco = sprintf('pixscal%.4f',par.pixel_scaling);
-% ADD
-% 
-% par.pixel_scaling = 0.9976;
-% write.subfolder_reco = sprintf('pixscal%.4f',par.pixel_scaling);
-% ADD
-% 
-% par.pixel_scaling = 0.9978;
-% write.subfolder_reco = sprintf('pixscal%.4f',par.pixel_scaling);
-% ADD
-% 
-% par.pixel_scaling = 0.9980;
-% write.subfolder_reco = sprintf('pixscal%.4f',par.pixel_scaling);
-% ADD
-% 
-% par.pixel_scaling = 0.9982;
-% write.subfolder_reco = sprintf('pixscal%.4f',par.pixel_scaling);
-% ADD
-% 
-% par.pixel_scaling = 0.9984;
-% write.subfolder_reco = sprintf('pixscal%.4f',par.pixel_scaling);
-% ADD
-% 
-% par.pixel_scaling = 0.9986;
-% write.subfolder_reco = sprintf('pixscal%.4f',par.pixel_scaling);
-% ADD
-% 
-% par.pixel_scaling = 0.9988;
-% write.subfolder_reco = sprintf('pixscal%.4f',par.pixel_scaling);
-% ADD
-% 
-% par.pixel_scaling = 0.9990;
-% write.subfolder_reco = sprintf('pixscal%.4f',par.pixel_scaling);
-% ADD
-% 
-% par.pixel_scaling = 0.9992;
-% write.subfolder_reco = sprintf('pixscal%.4f',par.pixel_scaling);
-% ADD
-% 
-% par.pixel_scaling = 0.9994;
-% write.subfolder_reco = sprintf('pixscal%.4f',par.pixel_scaling);
-% ADD
-% 
-% par.pixel_scaling = 0.9996;
-% write.subfolder_reco = sprintf('pixscal%.4f',par.pixel_scaling);
-% ADD
-% 
-% par.pixel_scaling = 0.9998;
-% write.subfolder_reco = sprintf('pixscal%.4f',par.pixel_scaling);
-% ADD
-% 
-% par.pixel_scaling = 1.0000;
-% write.subfolder_reco = sprintf('pixscal%.4f',par.pixel_scaling);
-% ADD
-% 
-% write.subfolder_reco = '';
-% par.pixel_scaling = 0.9985;
-% par.ref_range = 1;
+% Good
+par.scan_path = [raw_path 'mgsafe010_503_a']; ADD
+par.scan_path = [raw_path 'mgsafe010_503_b']; ADD
 
+% Redo
+par.scan_path = [raw_path 'mgsafe011_473_a']; ADD
+par.scan_path = [raw_path 'mgsafe011_473_b']; ADD
+
+% Good (Maybe Redo)
+par.scan_path = [raw_path 'mgsafe012_507_a']; ADD
+par.scan_path = [raw_path 'mgsafe012_507_b']; ADD
+par.scan_path = [raw_path 'mgsafe012_507_c']; ADD
+
+% Redo
+par.scan_path = [raw_path 'mgsafe013_542_a']; ADD
+par.scan_path = [raw_path 'mgsafe013_542_b']; ADD
+
+% Good
+par.scan_path = [raw_path 'mgsafe014_588_a']; ADD
+par.scan_path = [raw_path 'mgsafe014_588_b']; ADD
+
+% Good
+par.scan_path = [raw_path 'mgsafe015_280_a']; ADD
+par.scan_path = [raw_path 'mgsafe015_280_b']; ADD
+
+% Redo
+par.scan_path = [raw_path 'mgsafe016_462_a']; ADD
+par.scan_path = [raw_path 'mgsafe016_462_b']; ADD
+par.scan_path = [raw_path 'mgsafe016_462_c']; ADD
+par.scan_path = [raw_path 'mgsafe016_462_d']; ADD
+par.scan_path = [raw_path 'mgsafe016_462_e']; ADD
+par.scan_path = [raw_path 'mgsafe016_462_f']; ADD
+
+% Maybe
+par.scan_path = [raw_path 'mgsafe017_544_a']; ADD
+par.scan_path = [raw_path 'mgsafe017_544_b']; ADD
+
+% Good
+par.scan_path = [raw_path 'mgsafe018_540_a']; ADD
+par.scan_path = [raw_path 'mgsafe018_540_b']; ADD
+
+% Good
+par.scan_path = [raw_path 'mgsafe019_541_a']; ADD
+par.scan_path = [raw_path 'mgsafe019_541_b']; ADD
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
