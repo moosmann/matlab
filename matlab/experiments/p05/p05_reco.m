@@ -34,21 +34,22 @@ function p05_reco( external_parameter )
 % !!! OVERWRITES PARAMETERS BELOW QUICK SWITCH SECTION !!!
 % Just copy parameter and set quick switch to 1
 par.quick_switch = 1;
-par.raw_bin = 10;
-par.raw_roi = [0.2 0.8];
-par.proj_range = 8;
-par.ref_range = 10;
+par.raw_bin = 3;
+par.raw_roi = [];
+par.proj_range = 1;
+par.ref_range = 1;
 par.ref_path = {};
 phase_retrieval.apply = 0;
-write.to_scratch = 0;
-tomo.rot_axis_offset = [];%-9.95 * 2 / par.raw_bin;
+write.to_scratch = 1;
+tomo.rot_axis_offset = 2 * 3 / par.raw_bin;
 tomo.rot_axis_tilt_camera = [];
-image_correlation.method = 'median';
+image_correlation.num_flats = 19;
+%image_correlation.method = 'median';
 interactive_mode.rot_axis_pos = 1;
 interactive_mode.rot_axis_tilt = 0; 
 interactive_mode.phase_retrieval = 0;
-%write.subfolder_reco = 'tilt-0p001';
-%par.pixel_scaling = 0.9985;
+tomo.interpolate_missing_angles = 1;
+%write.subfolder_reco = 'interpolate_missing_angles';
 % END OF QUICK SWITCH TO ALTERNATIVE SET OF PARAMETERS %%%%%%%%%%%%%%%%%%%%
 
 pp_parameter_switch % DO NOT DELETE THIS LINE
@@ -227,7 +228,7 @@ par.window_state = 'minimized';'normal';'maximized';
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 weblink_url = 'https://github.com/moosmann/matlab';
-weblink_name = sprintf( 'code reposiory on github: %s', weblink_url );
+weblink_name = sprintf( 'code repository on github: %s', weblink_url );
 weblink = sprintf('<a href = "%s">%s</a>\n', weblink_url, weblink_name);
 fprintf( weblink );
 
@@ -360,6 +361,7 @@ assign_default( 'tomo.rot_axis_corr_area2', [0.1 0.9] );
 assign_default( 'tomo.angle_scaling', 1 );
 assign_default( 'tomo.MinConstraint', [])
 assign_default( 'tomo.MaxConstraint', [])
+assign_default( 'tomo.interpolate_missing_angles', 0)
 assign_default( 'write.path', '' )
 assign_default( 'write.parfolder', '' )
 assign_default( 'write.subfolder_reco', '' )
@@ -889,7 +891,7 @@ if ~par.read_flatcor && ~par.read_sino
                     otherwise
                         vert_shift_micron = s_stage_z.value( 1:num_proj_found );
                 end
-                if std( vert_shift_micron )
+                if abs(std( SubtractMean( vert_shift_micron ) )) > 1e-3
                     vert_shift_micron = vert_shift_micron(par.proj_range);
                     
                     % Check

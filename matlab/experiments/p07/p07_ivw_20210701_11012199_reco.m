@@ -1,47 +1,5 @@
-function mgsafe_p07_11012079( SUBSETS, RUN_RECO, PRINT_PARAMETERS)
-% Template function to loop over data sets given in the 'PARAMETER / DATA
-% SETS' section below. The 'DEFAULT PARAMETERS' section defines the default
-% paramters. To add a data / parameter to the loop, define your
-% reconstruction parameters followed by 'ADD'. Using 'ADD('r') restores the
-% default parameters after a datat set is added. Default parameters are
-% defined with 'SET_DEFAULT' (or 'ADD_DEFAULT' or 'ADD('d')' or
-% 'ADD('default')'.
-%
-% Caution: if parameters are changed, they remain changed after a data set
-% was added unless 'ADD('r')' ('ADD('restore')) is used which restores 
-% all parameters as defined in the 'DEFAULT PARAMETER' section by
-% 'SET_DEFAULT'.
-%
-% Caution: all parameters not defined within the file are taken from main
-% reconstruction script 'p05_reco'.
-%
-% Caution: if default parameters are not defined by closing the DEFAULT
-% PARAMETER section with a 'SET_DEFAULT' statement, then the first call of
-% 'ADD' will define default parameters.
-% 
-% Workflow:
-% - Copy this file.
-% - Check, modify, or copy parameter from 'p05_reco' in  'DEFAULT
-%   PARAMETERS' section.
-% - Add parameter / data sets to loop over in the ''PARAMETER / DATA SETS'
-%   section. 
-% - Type 'F5' or call without arguments to list all added data sets.
-% - Choose subset of added data sets to loop over by indices (see SUBSETS
-%   arguments below).
-% - Use RUN_RECO equals 0 with PRINT_PARAMETERS (see below) to check
-%   parameters setting.
-% - Set RUN_RECO equals 1 to start the loop.
-% 
-% ARGUMENTS
-% SUBSETS : 1D array of integers. subset of added data sets to be looped over
-% RUN_RECO : bool. default: 0. 0: loops over the subsets but does not start
-% reconstructions, 1: start the reconstruction loop.
-% PRINT_PARAMETERS : string or cell of strings, eg {'raw_roi',
-% 'parfolder'}. Parameter setting to be printed at each loop iteration.
-% Useful in combination with RUN_RECO = 0 to check parameter setting for
-% the subset to loop over
-%
-% Created on 06-Jul-2021 by moosmanj
+function p07_ivw_20210701_11012199_reco( SUBSETS, RUN_RECO, PRINT_PARAMETERS)
+% Created on 12-Jul-2021 by moosmanj
 
 if nargin < 1
     SUBSETS = [];
@@ -62,6 +20,7 @@ end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+
 %%% SCAN %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%l%%%%%%%%%%%
 par.scan_path = pwd; % string/pwd. pwd: change to directory of the scan to be reconstructed, string: absolute scan path
 par.ref_path = {}; % cell of strings. Additonal data sets to be included for the correlation of projections and reference images
@@ -79,19 +38,11 @@ par.read_image_log = 0; % bool, default: 0. Read metadata from image log instead
 %%% PREPROCESSING %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 par.raw_bin = 2; % projection binning factor: integer
 par.raw_roi = []; % vertical and/or horizontal ROI; (1,1) coordinate = top left pixel; supports absolute, relative, negative, and mixed indexing.
-% []: use full image;
-% [y0 y1]: vertical ROI, skips first raw_roi(1)-1 lines, reads until raw_roi(2); if raw_roi(2) < 0 reads until end - |raw_roi(2)|; relative indexing similar.
-% [y0 y1 x0 x1]: vertical + horzontal ROI, each ROI as above
-% if scalar = 0: auto roi, selects vertical ROI automatically. Use only for DCM. Not working for *.raw data where images are flipped and DMM data.
-% if scalar < 1: Threshold is set as min(proj(:,:,[1 end])) + abs(raw_roi)*median(dark(:)). raw_roi=-1 defaults to min(proj(:,:,[1 end])) + 4*median(dark(:))
 par.im_trafo = '';% 'rot90(im,1)'; % string to be evaluated after reading data in the case the image is flipped/rotated/etc due to changes at the beamline, e.g. 'rot90(im)'
 % STITCHING/CROPPING only for scans without lateral movment. Legacy support
 par.crop_at_rot_axis = 0; % for recos of scans with excentric rotation axis but WITHOUT projection stitching
 par.stitch_projections = 0; % for 2 pi cans: stitch projection at rotation axis position. Recommended with phase retrieval to reduce artefacts. Standard absorption contrast data should work well without stitching. Subpixel stitching not supported (non-integer rotation axis position is rounded, less/no binning before reconstruction can be used to improve precision).
 par.stitch_method = 'sine'; 'step';'linear'; %  ! CHECK correlation area !
-% 'step' : no interpolation, use step function
-% 'linear' : linear interpolation of overlap region
-% 'sine' : sinusoidal interpolation of overlap region
 par.proj_range = []; % range of projections to be used (from all found, if empty or 1: all, if scalar: stride, if range: start:incr:end
 par.ref_range = []; % range of flat fields to be used (from all found), if empty or 1: all. if scalar: stride, if range: start:incr:end
 par.wo_crop = 0; % Do not crop images to account for random lateral shift
@@ -102,21 +53,8 @@ pixel_filter_threshold_proj = [0.02 0.005]; % Raw projection: threshold paramete
 pixel_filter_radius = [5 5]; % Increase only if blobs of zeros or other artefacts are expected. Can increase processing time heavily.
 par.ring_current_normalization = 1; % normalize flat fields and projections by ring current
 image_correlation.method = 'ssim-ml';'entropy';'median';'none';'ssim';'ssim-g';'std';'cov';'corr';'diff1-l1';'diff1-l2';'diff2-l1';'diff2-l2';'cross-entropy-12';'cross-entropy-21';'cross-entropy-x';
-% Correlation of projections and flat fields. Essential for DCM data. Typically improves reconstruction quality of DMM data, too.
-% Available methods ('ssim-ml'/'entropy' usually work best):
-% 'none' : no correlation, for DPC
-% 'median' or '': use median flat
-% 'ssim-ml' : Matlab's structural similarity index (SSIM), includes Gaussian smoothing
-% 'entropy' : entropy measure of proj over flat, usually similar result to SSIM, but faster
-% 'ssim' : own implementation of SSIM without smoothing, usually worse, but sometimes better than 'ssim-ml'
-% 'ssim-g' : 'ssim' with smoothing (Gaussian blurring)
-% 'cov' : cross covariance
-% 'corr' : cross correlation = normalized cross covariance
-% 'std' : standard deviation of proj over flat
-% 'diff1/2-l1/2': L1/L2-norm of anisotropic (diff1-l*) or isotropic (diff2-l*) difference of projections and flat fields
-% 'cross-entropy-*' : asymmetric (12,21) and symmetric (x) cross entropy
 image_correlation.force_calc = 0; % bool. force compuation of correlation even though a (previously computed) corrlation matrix exists
-image_correlation.num_flats = 9; % number of best maching flat fields used for correction
+image_correlation.num_flats = 19; % number of best maching flat fields used for correction
 image_correlation.area_width = [1 100];%[-100 1];% correlation area: index vector or relative/absolute position of [first pix, last pix], negative indexing is supported
 image_correlation.area_height = [0.2 0.8]; % correlation area: index vector or relative/absolute position of [first pix, last pix]
 image_correlation.filter = 1; % bool, filter ROI before correlation
@@ -129,7 +67,7 @@ ring_filter.apply_before_stitching = 1; % ! Consider when phase retrieval is app
 ring_filter.method = 'jm'; 'wavelet-fft';
 ring_filter.waveletfft_dec_levels = 1:6; % decomposition levels for 'wavelet-fft'
 ring_filter.waveletfft_wname = 'db7';'db25';'db30'; % wavelet type, see 'FilterStripesCombinedWaveletFFT' or 'waveinfo'
-ring_filter.waveletfft_sigma = [3 11 21 31 39]; %  suppression factor for 'wavelet-fft'
+ring_filter.waveletfft_sigma = 3; %  suppression factor for 'wavelet-fft'
 ring_filter.jm_median_width = 11; % multiple widths are applied consecutively, eg [3 11 21 31 39];
 par.strong_abs_thresh = 1; % if 1: does nothing, if < 1: flat-corrected values below threshold are set to one. Try with algebratic reco techniques.
 par.norm_sino = 0; % not recommended, can introduce severe artifacts, but sometimes improves quality
@@ -155,7 +93,6 @@ tomo.vol_size = [];%[-1.5 1.5 -1.5 1.5 -0.5 0.5];% 6-component vector [xmin xmax
 tomo.vol_shape = []; %[1 1 1] shape (# voxels) of reconstruction volume. used for excentric rot axis pos. if empty, inferred from 'tomo.vol_size'. in absolute numbers of voxels or in relative number w.r.t. the default volume which is given by the detector width and height.
 tomo.rot_angle_full_range = [];% 2 * pi ;[]; % in radians. if []: full angle of rotation including additional increment, or array of angles. if empty full rotation angles is determined automatically to pi or 2 pi
 tomo.rot_angle_offset = pi; % global rotation of reconstructed volume
-tomo.rot_axis_offset = -1.7 * 3 / par.raw_bin;%[]; % rotation axis offset w.r.t to the image center. Assuming the rotation axis position to be centered in the FOV for standard scan, the offset should be close to zero.
 tomo.rot_axis_position = []; % if empty use automatic computation. EITHER OFFSET OR posITION MUST BE EMPTY. YOU MUST NOT USE BOTH!
 tomo.rot_axis_offset_shift = []; %[]; % absolute lateral movement in pixels during fly-shift-scan, overwrite lateral shift read out from hdf5 log
 tomo.flip_scan_position = 0; % for debugging
@@ -217,7 +154,7 @@ interactive_mode.phase_retrieval = 1; % Interactive retrieval to determine regul
 interactive_mode.phase_retrieval_default_search_range = []; % if empty: asks for search range when entering interactive mode, otherwise directly start with given search range
 %%% HARDWARE / SOFTWARE %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 par.use_cluster = 0; % if available: on MAXWELL nodes disp/nova/wga/wgs cluster computation can be used. Recommended only for large data sets since parpool creation and data transfer implies a lot of overhead.
-par.poolsize = 0.5; % number of workers used in a local parallel pool. if 0: use current config. if >= 1: absolute number. if 0 < poolsize < 1: relative amount of all cores to be used. if SLURM scheduling is available, a default number of workers is used.
+par.poolsize = 0.6;
 par.poolsize_gpu_limit_factor = 0.7; % Relative amount of GPU memory used for preprocessing during parloop. High values speed up Proprocessing, but increases out-of-memory failure
 tomo.astra_link_data = 1; % ASTRA data objects become references to Matlab arrays. Reduces memory issues.
 tomo.astra_gpu_index = []; % GPU Device index to use, Matlab notation: index starts from 1. default: [], uses all
@@ -232,113 +169,237 @@ SET_DEFAULT
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% PARAMETER / DATA SETS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-raw_path = '/asap3/petra3/gpfs/p07/2021/data/11012079/raw/';
+raw_path = '/asap3/petra3/gpfs/p07/2021/data/11012199/raw/';
 
-par.raw_bin = 3;
-par.raw_roi = [];
-par.proj_range = 1;
-par.ref_range = 1;
-par.ref_path = {};
 image_correlation.num_flats = 19;
-%image_correlation.method = 'median';
-phase_retrieval.apply = 0;
-interactive_mode.phase_retrieval = 0;
-write.to_scratch = 0;
-tomo.rot_axis_offset = 2 * 3 / par.raw_bin;
-tomo.rot_axis_tilt_camera = [];
+image_correlation.area_width = [301 400];
+image_correlation.area_height = [0.2 0.8];
 tomo.interpolate_missing_angles = 1;
 interactive_mode.rot_axis_pos = 0;
-interactive_mode.rot_axis_tilt = 0; 
-%tomo.vol_size = [-1.1 1.1 -1.1 1.1 -0.5 0.5];
 
-% Redo
-par.scan_path = [raw_path 'mgsafe001_272_a']; ADD
-par.scan_path = [raw_path 'mgsafe001_272_b']; ADD
-par.scan_path = [raw_path 'mgsafe001_272_c']; ADD
+tomo.vol_size = [-0.25 0.25 -0.25 0.25 -0.5 0.5];
+tomo.rot_axis_offset = 1.5 * 2 / par.raw_bin;
+par.scan_path = [raw_path 'ivw0015_referenzblau02c']; ADD
 
-% Redo
-par.scan_path = [raw_path 'mgsafe002_273_a']; ADD
-par.scan_path = [raw_path 'mgsafe002_273_b']; ADD
-par.scan_path = [raw_path 'mgsafe002_273_c']; ADD
+tomo.vol_size = [-0.5 0 -0.25 0.25 -0.5 0.5];
+tomo.rot_axis_offset = -1.25 * 2 / par.raw_bin;
+par.scan_path = [raw_path 'ivw0015_referenzblau_1_000']; ADD
+par.scan_path = [raw_path 'ivw0015_referenzblau_1_001']; ADD
+par.scan_path = [raw_path 'ivw0015_referenzblau_1_002']; ADD
+par.scan_path = [raw_path 'ivw0015_referenzblau_1_003']; ADD
+par.scan_path = [raw_path 'ivw0015_referenzblau_1_004']; ADD
+par.scan_path = [raw_path 'ivw0015_referenzblau_1_005']; ADD
+par.scan_path = [raw_path 'ivw0015_referenzblau_1_006']; ADD
+par.scan_path = [raw_path 'ivw0015_referenzblau_1_007']; ADD
+par.scan_path = [raw_path 'ivw0015_referenzblau_1_008']; ADD
 
-% Good
-par.scan_path = [raw_path 'mgsafe003_281_a']; ADD
-par.scan_path = [raw_path 'mgsafe003_281_b']; ADD
-par.scan_path = [raw_path 'mgsafe003_281_c']; ADD
+tomo.vol_size = [-0.25 0.25 -0.25 0.25 -0.5 0.5];
+interactive_mode.rot_axis_pos = 0;
+par.scan_path = [raw_path 'ivw0015_referenzblau_2_000']; ADD
+par.scan_path = [raw_path 'ivw0015_referenzblau_2_001']; ADD
+par.scan_path = [raw_path 'ivw0015_referenzblau_2_002']; ADD
+par.scan_path = [raw_path 'ivw0015_referenzblau_2_003']; ADD
+par.scan_path = [raw_path 'ivw0015_referenzblau_2_004']; ADD
+par.scan_path = [raw_path 'ivw0015_referenzblau_2_005']; ADD
+par.scan_path = [raw_path 'ivw0015_referenzblau_2_006']; ADD
+par.scan_path = [raw_path 'ivw0015_referenzblau_2_007']; ADD
+par.scan_path = [raw_path 'ivw0015_referenzblau_2_008']; ADD
+par.scan_path = [raw_path 'ivw0015_referenzblau_2_009']; ADD
+par.scan_path = [raw_path 'ivw0015_referenzblau_2_010']; ADD
+par.scan_path = [raw_path 'ivw0015_referenzblau_2_011']; ADD
+par.scan_path = [raw_path 'ivw0015_referenzblau_2_012']; ADD
+par.scan_path = [raw_path 'ivw0015_referenzblau_2_013']; ADD
+par.scan_path = [raw_path 'ivw0015_referenzblau_2_014']; ADD
+par.scan_path = [raw_path 'ivw0015_referenzblau_2_015']; ADD
+par.scan_path = [raw_path 'ivw0015_referenzblau_2_016']; ADD
+par.scan_path = [raw_path 'ivw0015_referenzblau_2_017']; ADD
 
-% Good
-par.scan_path = [raw_path 'mgsafe004_282_a']; ADD
-par.scan_path = [raw_path 'mgsafe004_282_b']; ADD
-par.scan_path = [raw_path 'mgsafe004_282_c']; ADD
+tomo.vol_size = [-0.25 0.25 -0.25 0.25 -0.5 0.5];
+par.scan_path = [raw_path 'ivw0015_referenzblau_2b_000']; ADD
+par.scan_path = [raw_path 'ivw0015_referenzblau_2b_001']; ADD
+par.scan_path = [raw_path 'ivw0015_referenzblau_2b_002']; ADD
 
-% Good
-par.scan_path = [raw_path 'mgsafe005_279_a']; ADD
-par.scan_path = [raw_path 'mgsafe005_279_b']; ADD
-par.scan_path = [raw_path 'mgsafe005_279_c']; ADD
+tomo.vol_size = [-0.25 0.25 -0.25 0.25 -0.5 0.5];
+%% check rot axis
+par.scan_path = [raw_path 'ivw0015_referenzblau_2c_000']; ADD
 
-% Good
-par.scan_path = [raw_path 'mgsafe006_449_a']; ADD
-par.scan_path = [raw_path 'mgsafe006_449_b']; ADD
-par.scan_path = [raw_path 'mgsafe006_449_c']; ADD
+tomo.vol_size = [-0.25 0.25 -0.25 0.25 -0.5 0.5];
+par.scan_path = [raw_path 'ivw0016_referenzblau_3_000']; ADD
+par.scan_path = [raw_path 'ivw0016_referenzblau_3_001']; ADD
+par.scan_path = [raw_path 'ivw0016_referenzblau_3_002']; ADD
+par.scan_path = [raw_path 'ivw0016_referenzblau_3_003']; ADD
+par.scan_path = [raw_path 'ivw0016_referenzblau_3_004']; ADD
+par.scan_path = [raw_path 'ivw0016_referenzblau_3_005']; ADD
+par.scan_path = [raw_path 'ivw0016_referenzblau_3_006']; ADD
+par.scan_path = [raw_path 'ivw0016_referenzblau_3_007']; ADD
+par.scan_path = [raw_path 'ivw0016_referenzblau_3_008']; ADD
+par.scan_path = [raw_path 'ivw0016_referenzblau_3_009']; ADD
+par.scan_path = [raw_path 'ivw0016_referenzblau_3_010']; ADD
+par.scan_path = [raw_path 'ivw0016_referenzblau_3_011']; ADD
 
-% Redo
-par.scan_path = [raw_path 'mgsafe007_589_a']; ADD
-par.scan_path = [raw_path 'mgsafe007_589_b']; ADD
-par.scan_path = [raw_path 'mgsafe007_589_c']; ADD
+tomo.vol_size = [-0.4 0.1 -0.25 0.25 -0.5 0.5];
+par.scan_path = [raw_path 'ivw0017_Struktur1_gruen_1_000']; ADD
+par.scan_path = [raw_path 'ivw0017_Struktur1_gruen_1_001']; ADD
+par.scan_path = [raw_path 'ivw0017_Struktur1_gruen_1_002']; ADD
+par.scan_path = [raw_path 'ivw0017_Struktur1_gruen_1_003']; ADD
+par.scan_path = [raw_path 'ivw0017_Struktur1_gruen_1_004']; ADD
+par.scan_path = [raw_path 'ivw0017_Struktur1_gruen_1_005']; ADD
+par.scan_path = [raw_path 'ivw0017_Struktur1_gruen_1_006']; ADD
+par.scan_path = [raw_path 'ivw0017_Struktur1_gruen_1_007']; ADD
+par.scan_path = [raw_path 'ivw0017_Struktur1_gruen_1_008']; ADD
+par.scan_path = [raw_path 'ivw0017_Struktur1_gruen_1_009']; ADD
+par.scan_path = [raw_path 'ivw0017_Struktur1_gruen_1_010']; ADD
+par.scan_path = [raw_path 'ivw0017_Struktur1_gruen_1_011']; ADD
+par.scan_path = [raw_path 'ivw0017_Struktur1_gruen_1_012']; ADD
+par.scan_path = [raw_path 'ivw0017_Struktur1_gruen_1_013']; ADD
+par.scan_path = [raw_path 'ivw0017_Struktur1_gruen_1_014']; ADD
+par.scan_path = [raw_path 'ivw0017_Struktur1_gruen_1_015']; ADD
+par.scan_path = [raw_path 'ivw0017_Struktur1_gruen_1_016']; ADD
 
-% Good
-par.scan_path = [raw_path 'mgsafe008_447_a']; ADD
-par.scan_path = [raw_path 'mgsafe008_447_b']; ADD
+tomo.vol_size = [-0.4 0.1 -0.25 0.25 -0.5 0.5];
+par.scan_path = [raw_path 'ivw0018_Struktur1_gruen_1b_000']; ADD
+par.scan_path = [raw_path 'ivw0018_Struktur1_gruen_1b_001']; ADD
+par.scan_path = [raw_path 'ivw0018_Strukturierung1gruen_1b']; ADD
 
-% Good
-par.scan_path = [raw_path 'mgsafe009_505_a']; ADD
-par.scan_path = [raw_path 'mgsafe009_505_b']; ADD
-par.scan_path = [raw_path 'mgsafe009_505_c']; ADD
+tomo.vol_size = [0 0.25 0 0.25 -0.5 0.5];
+par.scan_path = [raw_path 'ivw0019_Strukturierung1gruen_2_nullscan']; ADD
 
-% Good
-par.scan_path = [raw_path 'mgsafe010_503_a']; ADD
-par.scan_path = [raw_path 'mgsafe010_503_b']; ADD
+tomo.vol_size = [-0.2 0.2 -0.2 0.2 -0.5 0.5];
+par.scan_path = [raw_path 'ivw0020_Struktur1_gruen_2_000']; ADD
+par.scan_path = [raw_path 'ivw0020_Struktur1_gruen_2_001']; ADD
+par.scan_path = [raw_path 'ivw0020_Struktur1_gruen_2_002']; ADD
+par.scan_path = [raw_path 'ivw0020_Struktur1_gruen_2_003']; ADD
+par.scan_path = [raw_path 'ivw0020_Struktur1_gruen_2_004']; ADD
+par.scan_path = [raw_path 'ivw0020_Struktur1_gruen_2_005']; ADD
+par.scan_path = [raw_path 'ivw0020_Struktur1_gruen_2_006']; ADD
+par.scan_path = [raw_path 'ivw0020_Struktur1_gruen_2_007']; ADD
+par.scan_path = [raw_path 'ivw0020_Struktur1_gruen_2_008']; ADD
+par.scan_path = [raw_path 'ivw0020_Struktur1_gruen_2_009']; ADD
+par.scan_path = [raw_path 'ivw0020_Struktur1_gruen_2_010']; ADD
+par.scan_path = [raw_path 'ivw0020_Struktur1_gruen_2_011']; ADD
+par.scan_path = [raw_path 'ivw0020_Struktur1_gruen_2_012']; ADD
+par.scan_path = [raw_path 'ivw0020_Struktur1_gruen_2_013']; ADD
+par.scan_path = [raw_path 'ivw0020_Struktur1_gruen_2_014']; ADD
+par.scan_path = [raw_path 'ivw0020_Struktur1_gruen_2_015']; ADD
+par.scan_path = [raw_path 'ivw0020_Struktur1_gruen_2_016']; ADD
 
-% Redo
-par.scan_path = [raw_path 'mgsafe011_473_a']; ADD
-par.scan_path = [raw_path 'mgsafe011_473_b']; ADD
+tomo.vol_size = [-0.2 0.2 -0.2 0.2 -0.5 0.5];
+par.scan_path = [raw_path 'ivw0021_Struktur1_gruen_2b_000']; ADD
+par.scan_path = [raw_path 'ivw0021_Struktur1_gruen_2b_001']; ADD
+par.scan_path = [raw_path 'ivw0021_Struktur1_gruen_2b_002']; ADD
+par.scan_path = [raw_path 'ivw0021_Struktur1_gruen_2b_003']; ADD
+par.scan_path = [raw_path 'ivw0021_Struktur1_gruen_2b_004']; ADD
 
-% Good (Maybe Redo)
-par.scan_path = [raw_path 'mgsafe012_507_a']; ADD
-par.scan_path = [raw_path 'mgsafe012_507_b']; ADD
-par.scan_path = [raw_path 'mgsafe012_507_c']; ADD
+tomo.vol_size = [-0.2 0.2 -0.2 0.2 -0.5 0.5];
+par.scan_path = [raw_path 'ivw0022_Struktur1_gruen_2c_000']; ADD
+par.scan_path = [raw_path 'ivw0022_Struktur1_gruen_2c_001']; ADD
+par.scan_path = [raw_path 'ivw0022_Struktur1_gruen_2c_002']; ADD
 
-% Redo
-par.scan_path = [raw_path 'mgsafe013_542_a']; ADD
-par.scan_path = [raw_path 'mgsafe013_542_b']; ADD
+tomo.vol_size = [-0.2 0.2 -0.3 0.1 -0.5 0.5];
+par.scan_path = [raw_path 'ivw0023_Struktur1_gruen_3_000']; ADD
 
-% Good
-par.scan_path = [raw_path 'mgsafe014_588_a']; ADD
-par.scan_path = [raw_path 'mgsafe014_588_b']; ADD
+tomo.vol_size = [-0.25 0.25 -0.25 0.25 -0.5 0.5];
+par.scan_path = [raw_path 'ivw0025_Struktur1_gruen_3_000']; ADD
+par.scan_path = [raw_path 'ivw0025_Struktur1_gruen_3_001']; ADD
+par.scan_path = [raw_path 'ivw0025_Struktur1_gruen_3_002']; ADD
+par.scan_path = [raw_path 'ivw0025_Struktur1_gruen_3_003']; ADD
+par.scan_path = [raw_path 'ivw0025_Struktur1_gruen_3_004']; ADD
+par.scan_path = [raw_path 'ivw0025_Struktur1_gruen_3_005']; ADD
+par.scan_path = [raw_path 'ivw0025_Struktur1_gruen_3_006']; ADD
+par.scan_path = [raw_path 'ivw0025_Struktur1_gruen_3_007']; ADD
+par.scan_path = [raw_path 'ivw0025_Struktur1_gruen_3_008']; ADD
+par.scan_path = [raw_path 'ivw0025_Struktur1_gruen_3_009']; ADD
+par.scan_path = [raw_path 'ivw0025_Struktur1_gruen_3_010']; ADD
+par.scan_path = [raw_path 'ivw0025_Struktur1_gruen_3_011']; ADD
+par.scan_path = [raw_path 'ivw0025_Struktur1_gruen_3_012']; ADD
+par.scan_path = [raw_path 'ivw0025_Struktur1_gruen_3_013']; ADD
+par.scan_path = [raw_path 'ivw0025_Struktur1_gruen_3_014']; ADD
+par.scan_path = [raw_path 'ivw0025_Struktur1_gruen_3_015']; ADD
+par.scan_path = [raw_path 'ivw0025_Struktur1_gruen_3_016']; ADD
+par.scan_path = [raw_path 'ivw0025_Struktur1_gruen_3_017']; ADD
+par.scan_path = [raw_path 'ivw0025_Struktur1_gruen_3_018']; ADD
+par.scan_path = [raw_path 'ivw0025_Struktur1_gruen_3_019']; ADD
+par.scan_path = [raw_path 'ivw0025_Struktur1_gruen_3_020']; ADD
 
-% Good
-par.scan_path = [raw_path 'mgsafe015_280_a']; ADD
-par.scan_path = [raw_path 'mgsafe015_280_b']; ADD
+tomo.vol_size = [-0.25 0.25 -0.25 0.25 -0.5 0.5];
+par.scan_path = [raw_path 'ivw0026_Struktur2_pink_1_000']; ADD
+par.scan_path = [raw_path 'ivw0026_Struktur2_pink_1_001']; ADD
+par.scan_path = [raw_path 'ivw0026_Struktur2_pink_1_002']; ADD
+par.scan_path = [raw_path 'ivw0026_Struktur2_pink_1_003']; ADD
+par.scan_path = [raw_path 'ivw0026_Struktur2_pink_1_004']; ADD
+par.scan_path = [raw_path 'ivw0026_Struktur2_pink_1_005']; ADD
+par.scan_path = [raw_path 'ivw0026_Struktur2_pink_1_006']; ADD
+par.scan_path = [raw_path 'ivw0026_Struktur2_pink_1_007']; ADD
+par.scan_path = [raw_path 'ivw0026_Struktur2_pink_1_008']; ADD
+par.scan_path = [raw_path 'ivw0026_Struktur2_pink_1_009']; ADD
+par.scan_path = [raw_path 'ivw0026_Struktur2_pink_1_010']; ADD
+par.scan_path = [raw_path 'ivw0026_Struktur2_pink_1_011']; ADD
+par.scan_path = [raw_path 'ivw0026_Struktur2_pink_1_012']; ADD
+par.scan_path = [raw_path 'ivw0026_Struktur2_pink_1_013']; ADD
 
-% Redo
-par.scan_path = [raw_path 'mgsafe016_462_a']; ADD
-par.scan_path = [raw_path 'mgsafe016_462_b']; ADD
-par.scan_path = [raw_path 'mgsafe016_462_c']; ADD
-par.scan_path = [raw_path 'mgsafe016_462_d']; ADD
-par.scan_path = [raw_path 'mgsafe016_462_e']; ADD
-par.scan_path = [raw_path 'mgsafe016_462_f']; ADD
+tomo.vol_size = [-0.5 0 -0.25 0.25 -0.5 0.5];
+par.scan_path = [raw_path 'ivw0027_Struktur2_pink_1b_000']; ADD
+par.scan_path = [raw_path 'ivw0027_Struktur2_pink_1b_001']; ADD
+par.scan_path = [raw_path 'ivw0027_Struktur2_pink_1b_002']; ADD
+par.scan_path = [raw_path 'ivw0027_Struktur2_pink_1b_003']; ADD
+par.scan_path = [raw_path 'ivw0027_Struktur2_pink_1b_004']; ADD
+par.scan_path = [raw_path 'ivw0027_Struktur2_pink_1b_005']; ADD
+par.scan_path = [raw_path 'ivw0027_Struktur2_pink_1b_006']; ADD
 
-% Maybe
-par.scan_path = [raw_path 'mgsafe017_544_a']; ADD
-par.scan_path = [raw_path 'mgsafe017_544_b']; ADD
+tomo.vol_size = [-0.25 0.25 -0.25 0.25 -0.5 0.5];
+par.scan_path = [raw_path 'ivw0027_Struktur2_pink_2_000']; ADD
+par.scan_path = [raw_path 'ivw0027_Struktur2_pink_2_001']; ADD
+par.scan_path = [raw_path 'ivw0027_Struktur2_pink_2_002']; ADD
+par.scan_path = [raw_path 'ivw0027_Struktur2_pink_2_003']; ADD
+par.scan_path = [raw_path 'ivw0027_Struktur2_pink_2_004']; ADD
+par.scan_path = [raw_path 'ivw0027_Struktur2_pink_2_005']; ADD
+par.scan_path = [raw_path 'ivw0027_Struktur2_pink_2_006']; ADD
+par.scan_path = [raw_path 'ivw0027_Struktur2_pink_2_007']; ADD
+par.scan_path = [raw_path 'ivw0027_Struktur2_pink_2_008']; ADD
+par.scan_path = [raw_path 'ivw0027_Struktur2_pink_2_009']; ADD
 
-% Good
-par.scan_path = [raw_path 'mgsafe018_540_a']; ADD
-par.scan_path = [raw_path 'mgsafe018_540_b']; ADD
+tomo.vol_size = [-0.3 0.2 -0.3  0.2 -0.5 0.5];
+par.scan_path = [raw_path 'ivw0028_Struktur2_pink_1c_000']; ADD
+par.scan_path = [raw_path 'ivw0028_Struktur2_pink_2c_000']; ADD
 
-% Good
-par.scan_path = [raw_path 'mgsafe019_541_a']; ADD
-par.scan_path = [raw_path 'mgsafe019_541_b']; ADD
+tomo.vol_size = [-0.2 0.2 -0.2  0.2 -0.5 0.5];
+par.scan_path = [raw_path 'ivw0029_Struktur2_pink_2c_aperture05_000']; ADD
+
+tomo.vol_size = [-0.2 0.2 -0.2  0.2 -0.5 0.5];
+par.scan_path = [raw_path 'ivw0030_Struktur2_pink_2c_aperture07_000']; ADD
+
+tomo.vol_size = [-0.2 0.2 -0.2  0.2 -0.5 0.5];
+par.scan_path = [raw_path 'ivw0031_Struktur2_pink_2c_8001proj_000']; ADD
+
+tomo.vol_size = [-0.5 0.0 -0.25 0.25 -0.5 0.5];
+par.scan_path = [raw_path 'ivw0032_Referenz_blau_4_000']; ADD
+
+tomo.vol_size = [-0.5 0.0 -0.25 0.25 -0.5 0.5];
+par.scan_path = [raw_path 'ivw0033_Referenz_blau_5_000']; ADD
+par.scan_path = [raw_path 'ivw0033_Referenz_blau_5_001']; ADD
+par.scan_path = [raw_path 'ivw0033_Referenz_blau_5_002']; ADD
+par.scan_path = [raw_path 'ivw0033_Referenz_blau_5_003']; ADD
+par.scan_path = [raw_path 'ivw0033_Referenz_blau_5_004']; ADD
+
+tomo.vol_size = [-0.25 0.25 -0.25 0.25 -0.5 0.5];
+par.scan_path = [raw_path 'ivw0034_Referenz_blau_6_35N']; ADD
+
+tomo.vol_size = [-0.25 0.25 -0.25 0.25 -0.5 0.5];
+par.scan_path = [raw_path 'ivw0035_Struktur2_pink_3_000']; ADD
+par.scan_path = [raw_path 'ivw0035_Struktur2_pink_3_001']; ADD
+par.scan_path = [raw_path 'ivw0035_Struktur2_pink_3_002']; ADD
+par.scan_path = [raw_path 'ivw0035_Struktur2_pink_3_003']; ADD
+par.scan_path = [raw_path 'ivw0035_Struktur2_pink_3_004']; ADD
+par.scan_path = [raw_path 'ivw0035_Struktur2_pink_3_005']; ADD
+par.scan_path = [raw_path 'ivw0035_Struktur2_pink_3_006']; ADD
+par.scan_path = [raw_path 'ivw0035_Struktur2_pink_3_007']; ADD
+par.scan_path = [raw_path 'ivw0035_Struktur2_pink_3_008']; ADD
+par.scan_path = [raw_path 'ivw0035_Struktur2_pink_3_009']; ADD
+par.scan_path = [raw_path 'ivw0035_Struktur2_pink_3_010']; ADD
+par.scan_path = [raw_path 'ivw0035_Struktur2_pink_3_011']; ADD
+par.scan_path = [raw_path 'ivw0035_Struktur2_pink_3_012']; ADD
+par.scan_path = [raw_path 'ivw0035_Struktur2_pink_3_013']; ADD
+par.scan_path = [raw_path 'ivw0035_Struktur2_pink_3_014']; ADD
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

@@ -130,8 +130,13 @@ fprintf(fid, '\n%s', middle_2);
 % Write Data Sets
 fprintf(fid, '\nraw_path = ''%s/'';', raw_path);
 for nn = 1:numel( folders )
+    fn = folders{nn};
+    % Skip non tomo folders from in situ measurements
+    if numel( fn ) > 7 && strcmp( fn(end-7:end), 'setforce')
+        continue
+    end
     fprintf(fid, '\n' );
-    fprintf(fid, '\npar.scan_path = [raw_path ''%s'']; ADD', folders{nn});    
+    fprintf(fid, '\npar.scan_path = [raw_path ''%s'']; ADD', fn );    
 end
 
 % Write bottom: call reco loop

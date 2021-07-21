@@ -1,4 +1,4 @@
-function p07_reco_loop_rpower_11009496( SUBSETS, RUN_RECO, PRINT_PARAMETERS)
+function p07_rpower_11009496( SUBSETS, RUN_RECO, PRINT_PARAMETERS)
 
 % Created on 18-Jun-2021 by moosmanj
 

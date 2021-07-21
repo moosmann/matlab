@@ -15,7 +15,6 @@ p.readhdf5 = 1;
 p.adc2force = -19.92;
 
 p.scan_name = 'ivw0015_referenzblau_1'; p05_load_force_values(p)
-
 p.scan_name = 'ivw0015_referenzblau_2'; p05_load_force_values(p)
 p.scan_name = 'ivw0015_referenzblau_2b'; p05_load_force_values(p)
 p.scan_name = 'ivw0015_referenzblau_2c'; p05_load_force_values(p)
@@ -31,8 +30,11 @@ p.scan_name = 'ivw0026_Struktur2_pink_1'; p05_load_force_values(p)
 p.scan_name = 'ivw0027_Struktur2_pink_1b'; p05_load_force_values(p)
 p.scan_name = 'ivw0027_Struktur2_pink_2'; p05_load_force_values(p)
 p.scan_name = 'ivw0028_Struktur2_pink_1c'; p05_load_force_values(p)
-
-
-
-
-
+p.scan_name = 'ivw0028_Struktur2_pink_1c'; p05_load_force_values(p)
+p.scan_name = 'ivw0028_Struktur2_pink_2c'; p05_load_force_values(p)
+p.scan_name = 'ivw0029_Struktur2_pink_2c_aperture05'; p05_load_force_values(p)
+p.scan_name = 'ivw0030_Struktur2_pink_2c_aperture07'; p05_load_force_values(p)
+p.scan_name = 'ivw0031_Struktur2_pink_2c_8001proj'; p05_load_force_values(p)
+p.scan_name = 'ivw0032_Referenz_blau_4'; p05_load_force_values(p)
+p.scan_name = 'ivw0033_Referenz_blau_5'; p05_load_force_values(p)
+p.scan_name = 'ivw0035_Struktur2_pink_3'; p05_load_force_values(p)

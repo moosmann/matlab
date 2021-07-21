@@ -65,16 +65,39 @@ MaxConstraint = assign_from_struct( tomo, 'MaxConstraint', [] );
 gpu_index = assign_from_struct( tomo, 'astra_gpu_index', [] );
 link_data = assign_from_struct( tomo, 'astra_link_data', 0 );
 offset_shift = assign_from_struct( tomo, 'offset_shift', 0 );
+interpolate_missing_angles = assign_from_struct( tomo, 'interpolate_missing_angles', 0 );
 
- 
 %% Main %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
 
 rotation_axis_offset = rotation_axis_offset + offset_shift;
 
-
 angles = double( angles );
 %rotation_axis_offset = double( rotation_axis_offset );
+
+if interpolate_missing_angles
+    angles0 = angles; % orginal range
+    da = angles(2) - angles(1); % angle increment
+    a0 = angles(1); % First angle
+    a1 = angles(end); % last original angle
+    a2 = ceil( a1 / pi ) * pi; % supposed to be final angle plus one inc
+    angles_missing = (a1+da:da:a2)';
+    
+    % Interpolation
+    angles_query = [a1, a2 + a0];
+    [X1, X2, X3] = meshgrid( angles_query, 1:size( sino, 1), 1:size( sino, 3) );    
+    [X1q, X2q, X3q] = meshgrid( angles_missing, 1:size( sino, 1), 1:size( sino, 3) );
+    V = cat(2, sino(:,end,:), sino(:,1,:));
+    switch ndims( sino )
+        case 2
+            sino_missing = interp2(X1,X2,V,X1q,X2q);
+        case 3
+            sino_missing = interp3(X1,X2,X3,V,X1q,X2q,X3q);
+    end    
+    
+    % Concatenation
+    angles = cat(1, angles0, angles_missing); % new angle range
+    sino = cat(2, sino, sino_missing);    
+end
 
 % GPU
 if isempty( gpu_index )
