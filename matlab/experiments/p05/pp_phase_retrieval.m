@@ -543,7 +543,8 @@ else
             im = phase_filter .* im ;
             im = ifft2( im );
             im = -real( im );
-            proj(:,:,nn) = im(1:im_shape(1), 1:im_shape(2));
+            im = im(1:im_shape(1), 1:im_shape(2));
+            proj(:,:,nn) = im;
             % combined GPU and parfor usage requires memory management
             %im = padarray( gpuArray( proj(:,:,nn) ), raw_im_shape_binned, 'post', 'symmetric' );
             %proj(:,:,nn) = gather( im(1:raw_im_shape_binned1, 1:raw_im_shape_binned2) );

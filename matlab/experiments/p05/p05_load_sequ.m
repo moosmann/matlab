@@ -26,7 +26,7 @@ auto_roi_center = assign_from_struct( p , 'auto_roi_center', 0 );
 crop_roi = assign_from_struct( p , 'crop_roi', [] );
 barcol = assign_from_struct( p , 'barcol', 'white' );
 voxel_size = assign_from_struct( p , 'voxel_size', [] );
-
+proj_type = assign_from_struct( p , 'proj_type', 'max' );
 % TO DO
 % get outlier thresholds from several slices
 
@@ -118,13 +118,22 @@ end
 [sx, sy, sz, ~] = size( vol );
 fprintf( '\n Read data in %.1f s', toc - t);
 
-vol_mean4 = mean( vol, 4 );
+switch proj_type
+    case 'mean'
+        vol_proj = mean( vol,4 );
+    case 'median'
+        vol_proj = median( vol,4 );
+    case 'max'
+        vol_proj = max( vol, [],4 );
+    case 'min'
+        vol_proj = min( vol, [],4 );
+end
 
 %% Vertical ROI
-im1max = normat(  double( squeeze(max( vol_mean4,[],1)) ) );
-im1min = normat( -double( squeeze(min( vol_mean4,[],1)) ) );
-im2max = normat(  double( squeeze(max( vol_mean4,[],2)) ) );
-im2min = normat( -double( squeeze(min( vol_mean4,[],2)) ) );
+im1max = normat(  double( squeeze(max( vol_proj,[],1)) ) );
+im1min = normat( -double( squeeze(min( vol_proj,[],1)) ) );
+im2max = normat(  double( squeeze(max( vol_proj,[],2)) ) );
+im2min = normat( -double( squeeze(min( vol_proj,[],2)) ) );
 figure('Name', 'Extrema projections' )
 subplot( 2, 2, 1 )
 imsc( im1max )
@@ -161,7 +170,7 @@ fprintf( '\n vertical ROI: %u %u', z0, z1 )
 if auto_roi_center
     roi_cen = zeros( [3, 2] );
     for nn = 1:3
-        im = squeeze( mean( squeeze( vol_mean4 ), nn ) );
+        im = squeeze( mean( squeeze( vol_proj ), nn ) );
         for mm = 1:2
             im_std = squeeze( std( squeeze( im ), 0, mm ) ) ;
             im_std = SubtractMean( im_std );
@@ -178,7 +187,7 @@ else
     zz = round( size( vol, 3) / 2);
 end
 fprintf( '\n roi center : x,y,z = %u,%u,%u',xx,yy,zz)
-if ~isempty( crop_roi )
+if ~isempty( crop_roi ) && crop_roi
     cx = round( crop_roi(1) / 2 );
     cy = round( crop_roi(2) / 2 );
     x0 = max( 1, xx - cx );
@@ -205,6 +214,9 @@ if register
         elseif strcmp( regdir, 'y' )
             im1 = squeeze( vol(100:end-100,yy,100:end-100,nn));
             im2 = squeeze( vol(100:end-100,yy,100:end-100,nn + 1));
+        elseif strcmp( regdir, 'z' )
+            im1 = squeeze( vol(100:end-100,100:end-100,zz,nn));
+            im2 = squeeze( vol(100:end-100,100:end-100,zz,nn + 1));
         end
         out = ImageCorrelation(im1,im2);
         shift(nn+1) = round( out.shift2);

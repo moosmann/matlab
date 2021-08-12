@@ -33,22 +33,23 @@ function p05_reco( external_parameter )
 % !!! QUICK SWITCH TO ALTERNATIVE SET OF PARAMETERS !!!
 % !!! OVERWRITES PARAMETERS BELOW QUICK SWITCH SECTION !!!
 % Just copy parameter and set quick switch to 1
-par.quick_switch = 1;
-par.raw_bin = 3;
-par.raw_roi = [];
-par.proj_range = 1;
+par.quick_switch = 0;
+par.raw_bin = 8;
+par.raw_roi = [0.45 0.55];
+par.proj_range = 2:2:5002;
 par.ref_range = 1;
 par.ref_path = {};
 phase_retrieval.apply = 0;
 write.to_scratch = 1;
 tomo.rot_axis_offset = 2 * 3 / par.raw_bin;
 tomo.rot_axis_tilt_camera = [];
-image_correlation.num_flats = 19;
+image_correlation.num_flats = 3;
 %image_correlation.method = 'median';
 interactive_mode.rot_axis_pos = 1;
 interactive_mode.rot_axis_tilt = 0; 
 interactive_mode.phase_retrieval = 0;
 tomo.interpolate_missing_angles = 1;
+image_correlation.method = 'median';
 %write.subfolder_reco = 'interpolate_missing_angles';
 % END OF QUICK SWITCH TO ALTERNATIVE SET OF PARAMETERS %%%%%%%%%%%%%%%%%%%%
 
@@ -147,7 +148,8 @@ tomo.vol_size = [];%[-1.5 1.5 -1.5 1.5 -0.5 0.5];% 6-component vector [xmin xmax
 tomo.vol_shape = []; %[1 1 1] shape (# voxels) of reconstruction volume. used for excentric rot axis pos. if empty, inferred from 'tomo.vol_size'. in absolute numbers of voxels or in relative number w.r.t. the default volume which is given by the detector width and height.
 tomo.rot_angle_full_range = [];% 2 * pi ;[]; % in radians. if []: full angle of rotation including additional increment, or array of angles. if empty full rotation angles is determined automatically to pi or 2 pi
 tomo.rot_angle_offset = pi; % global rotation of reconstructed volume
-tomo.rot_axis_offset = -1.7 * 3 / par.raw_bin;%[]; % rotation axis offset w.r.t to the image center. Assuming the rotation axis position to be centered in the FOV for standard scan, the offset should be close to zero.
+tomo.interpolate_missing_angles = 0; % limited or missing angle tomography
+tomo.rot_axis_offset = []; % rotation axis offset w.r.t to the image center. Assuming the rotation axis position to be centered in the FOV for standard scan, the offset should be close to zero.
 tomo.rot_axis_position = []; % if empty use automatic computation. EITHER OFFSET OR posITION MUST BE EMPTY. YOU MUST NOT USE BOTH!
 tomo.rot_axis_offset_shift = []; %[]; % absolute lateral movement in pixels during fly-shift-scan, overwrite lateral shift read out from hdf5 log
 tomo.flip_scan_position = 0; % for debugging
