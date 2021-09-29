@@ -34,22 +34,22 @@ function p05_reco( external_parameter )
 % !!! OVERWRITES PARAMETERS BELOW QUICK SWITCH SECTION !!!
 % Just copy parameter and set quick switch to 1
 par.quick_switch = 0;
-par.raw_bin = 8;
-par.raw_roi = [0.45 0.55];
-par.proj_range = 2:2:5002;
+par.raw_bin = 2;
+par.raw_roi = [];[0.45 0.55];
+par.proj_range = 1;
 par.ref_range = 1;
 par.ref_path = {};
-phase_retrieval.apply = 0;
+phase_retrieval.apply = 1;
 write.to_scratch = 1;
-tomo.rot_axis_offset = 2 * 3 / par.raw_bin;
+tomo.rot_axis_offset = 0 * 2 / par.raw_bin;
 tomo.rot_axis_tilt_camera = [];
 image_correlation.num_flats = 3;
-%image_correlation.method = 'median';
+image_correlation.method = 'median';
 interactive_mode.rot_axis_pos = 1;
 interactive_mode.rot_axis_tilt = 0; 
-interactive_mode.phase_retrieval = 0;
+interactive_mode.phase_retrieval = 1;
 tomo.interpolate_missing_angles = 1;
-image_correlation.method = 'median';
+write.subfolder_reco = ''; 
 %write.subfolder_reco = 'interpolate_missing_angles';
 % END OF QUICK SWITCH TO ALTERNATIVE SET OF PARAMETERS %%%%%%%%%%%%%%%%%%%%
 
@@ -109,7 +109,7 @@ image_correlation.method = 'ssim-ml';'entropy';'median';'none';'ssim';'ssim-g';'
 % 'diff1/2-l1/2': L1/L2-norm of anisotropic (diff1-l*) or isotropic (diff2-l*) difference of projections and flat fields
 % 'cross-entropy-*' : asymmetric (12,21) and symmetric (x) cross entropy
 image_correlation.force_calc = 0; % bool. force compuation of correlation even though a (previously computed) corrlation matrix exists
-image_correlation.num_flats = 9; % number of best maching flat fields used for correction
+image_correlation.num_flats = 20; % number of best maching flat fields used for correction
 image_correlation.area_width = [1 100];%[-100 1];% correlation area: index vector or relative/absolute position of [first pix, last pix], negative indexing is supported
 image_correlation.area_height = [0.2 0.8]; % correlation area: index vector or relative/absolute position of [first pix, last pix]
 image_correlation.filter = 1; % bool, filter ROI before correlation
@@ -127,12 +127,12 @@ ring_filter.jm_median_width = 11; % multiple widths are applied consecutively, e
 par.strong_abs_thresh = 1; % if 1: does nothing, if < 1: flat-corrected values below threshold are set to one. Try with algebratic reco techniques.
 par.norm_sino = 0; % not recommended, can introduce severe artifacts, but sometimes improves quality
 %%% PHASE RETRIEVAL %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-phase_retrieval.apply = 0; % See 'PhaseFilter' for detailed description of parameters !
+phase_retrieval.apply = 1; % See 'PhaseFilter' for detailed description of parameters !
 phase_retrieval.apply_before = 0; % before stitching, interactive mode, etc. For phase-contrast data with an excentric rotation axis phase retrieval should be done afterwards. To find the rotataion axis position use this option in a first run, and then turn it of afterwards.
 phase_retrieval.post_binning_factor = 1; % Binning factor after phase retrieval, but before tomographic reconstruction
 phase_retrieval.method = 'tie';'tieNLO_Schwinger';'dpc';'tie';'qp';'qpcut'; %'qp' 'ctf' 'tie' 'qp2' 'qpcut'
 % Interactive phase retrieval not supported for method 'tieNLO_Schwinger'
-phase_retrieval.reg_par = 1.1; % regularization parameter. larger values tend to blurrier images. smaller values tend to original data.
+phase_retrieval.reg_par = 2.0; % regularization parameter. larger values tend to blurrier images. smaller values tend to original data.
 phase_retrieval.bin_filt = 0.1; % threshold for quasiparticle retrieval 'qp', 'qp2'
 phase_retrieval.cutoff_frequ = 2 * pi; % in radian. frequency cutoff in Fourier space for 'qpcut' phase retrieval
 phase_retrieval.padding = 1; % padding of intensities before phase retrieval, 0: no padding
@@ -149,7 +149,7 @@ tomo.vol_shape = []; %[1 1 1] shape (# voxels) of reconstruction volume. used fo
 tomo.rot_angle_full_range = [];% 2 * pi ;[]; % in radians. if []: full angle of rotation including additional increment, or array of angles. if empty full rotation angles is determined automatically to pi or 2 pi
 tomo.rot_angle_offset = pi; % global rotation of reconstructed volume
 tomo.interpolate_missing_angles = 0; % limited or missing angle tomography
-tomo.rot_axis_offset = []; % rotation axis offset w.r.t to the image center. Assuming the rotation axis position to be centered in the FOV for standard scan, the offset should be close to zero.
+tomo.rot_axis_offset = [] / 2 * par.raw_bin; % rotation axis offset w.r.t to the image center. Assuming the rotation axis position to be centered in the FOV for standard scan, the offset should be close to zero.
 tomo.rot_axis_position = []; % if empty use automatic computation. EITHER OFFSET OR posITION MUST BE EMPTY. YOU MUST NOT USE BOTH!
 tomo.rot_axis_offset_shift = []; %[]; % absolute lateral movement in pixels during fly-shift-scan, overwrite lateral shift read out from hdf5 log
 tomo.flip_scan_position = 0; % for debugging
@@ -187,8 +187,8 @@ write.sino = 0; % save sinograms (after preprocessing & before FBP filtering and
 write.phase_sino = 0; % save sinograms of phase maps
 write.reco = 1; % save reconstructed slices (if tomo.run=1)
 write.float = 1; % single precision (32-bit float) tiff
-write.uint16 = 0; % save 16bit unsigned integer tiff using 'write.compression_method'
-write.uint8 = 0; % save binned 8bit unsigned integer tiff using 'write.compression_method'
+write.uint16 = 1; % save 16bit unsigned integer tiff using 'write.compression_method'
+write.uint8 = 1; % save binned 8bit unsigned integer tiff using 'write.compression_method'
 % Optionally save binned reconstructions, only works in '3D' reco_mode
 write.float_binned = 0; % save binned single precision (32-bit float) tiff
 write.uint16_binned = 0; % save binned 16bit unsigned integer tiff using 'write.compression_method'
@@ -217,13 +217,13 @@ interactive_mode.phase_retrieval = 1; % Interactive retrieval to determine regul
 interactive_mode.phase_retrieval_default_search_range = []; % if empty: asks for search range when entering interactive mode, otherwise directly start with given search range
 %%% HARDWARE / SOFTWARE %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 par.use_cluster = 0; % if available: on MAXWELL nodes disp/nova/wga/wgs cluster computation can be used. Recommended only for large data sets since parpool creation and data transfer implies a lot of overhead.
-par.poolsize = 0.9; % number of workers used in a local parallel pool. if 0: use current config. if >= 1: absolute number. if 0 < poolsize < 1: relative amount of all cores to be used. if SLURM scheduling is available, a default number of workers is used.
-par.poolsize_gpu_limit_factor = 0.7; % Relative amount of GPU memory used for preprocessing during parloop. High values speed up Proprocessing, but increases out-of-memory failure
+par.poolsize = 0.5; % number of workers used in a local parallel pool. if 0: use current config. if >= 1: absolute number. if 0 < poolsize < 1: relative amount of all cores to be used. if SLURM scheduling is available, a default number of workers is used.
+par.poolsize_gpu_limit_factor = 0.5; % Relative amount of GPU memory used for preprocessing during parloop. High values speed up Proprocessing, but increases out-of-memory failure
 tomo.astra_link_data = 1; % ASTRA data objects become references to Matlab arrays. Reduces memory issues.
 tomo.astra_gpu_index = []; % GPU Device index to use, Matlab notation: index starts from 1. default: [], uses all
 par.gpu_index = tomo.astra_gpu_index;
 par.use_gpu_in_parfor = 1;
-phase_retrieval.use_parpool = 0; % bool. Disable parpool when out-of-memory error occurs during phase retrieval.
+phase_retrieval.use_parpool = 1; % bool. Disable parpool when out-of-memory error occurs during phase retrieval.
 par.window_state = 'minimized';'normal';'maximized'; 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%% END OF PARAMETERS / SETTINGS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -520,6 +520,15 @@ for mm = numel( tomo.astra_gpu_index ):-1:1
     mem_avail_gpu(nn) = gpu(nn).AvailableMemory;
     mem_total_gpu(nn) = gpu(nn).TotalMemory;
     fprintf( '\n GPU %u memory available : %.3g GiB (%.2f%%) of %.3g GiB', nn, mem_avail_gpu(nn)/1024^3, 100*mem_avail_gpu(nn)/mem_total_gpu(nn), mem_total_gpu(nn)/1024^3 )
+end
+
+% Renderer
+d = opengl('data');
+r = d.Renderer;
+fprintf('\n OpenGL renderer : %s', r)
+if d.Software
+    fprintf( '\n' )
+    warning(' Software rendering is used. For improved GUI performance, log in directly to the Maxwell node with FastX to enable hardware accerlation.')
 end
 
 % Start parallel CPU pool
@@ -1582,7 +1591,7 @@ if ~par.read_flatcor && ~par.read_sino
         if exist( 'h1' , 'var' ) && isvalid( h1 )
             figure(h1)
         else
-            h1 = figure( 'Name', 'data and flat-and-dark-field correction', 'WindowState', window_state );
+            h1 = figure( 'Name', 'data and flat-and-dark-field correction', 'WindowState', 'maximized' );
         end
         
         subplot(2,3,4)
@@ -2593,12 +2602,23 @@ fprintf( '\nFINISHED: %s at %s\n', scan_name, datetime )
 if isfield( par, 'quick_switch' ) && par.quick_switch
     cprintf( 'Red', '\nATTENTION: Quick parameter switch was turned on!\n' )
 end
+% Citations
+weblink1_url = 'https://www.nature.com/articles/nprot.2014.033';
+weblink1_name = sprintf( 'Moosmann et al, Nat Protoc 9, 294 (2014): %s', weblink1_url );
+weblink1 = sprintf('<a href = "%s">%s</a>\n', weblink1_url, weblink1_name);
 
-weblink_url = 'https://www.nature.com/articles/nprot.2014.033';
-weblink_name = sprintf( 'When using this reconstruction pipeline please cite %s and the ASTRA toolbox', weblink_url );
-weblink = sprintf('<a href = "%s">%s</a>\n', weblink_url, weblink_name);
+weblink2_url = 'https://doi.org/10.5281/zenodo.5118737';
+weblink2_name = sprintf( 'github: %s', weblink2_url );
+weblink2 = sprintf('<a href = "%s">%s</a>\n', weblink2_url, weblink2_name);
 
-fprintf( weblink );
+weblink3_url = 'https://www.astra-toolbox.com';
+weblink3_name = sprintf( 'ASTRA toolbox: %s', weblink3_url );
+weblink3 = sprintf('<a href = "%s">%s</a>\n', weblink3_url, weblink3_name);
+
+fprintf( '\nFor data reconstruction, please the cite:\n');
+fprintf( weblink1 );
+fprintf( weblink2 );
+fprintf( weblink3 );
 fprintf( '\n')
 % END %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 dbclear if error
