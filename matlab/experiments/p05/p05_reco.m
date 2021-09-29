@@ -34,10 +34,10 @@ function p05_reco( external_parameter )
 % !!! OVERWRITES PARAMETERS BELOW QUICK SWITCH SECTION !!!
 % Just copy parameter and set quick switch to 1
 par.quick_switch = 0;
-par.raw_bin = 2;
-par.raw_roi = [];[0.45 0.55];
-par.proj_range = 1;
-par.ref_range = 1;
+par.raw_bin = 8;
+par.raw_roi = [0.45 0.55];
+par.proj_range = 10;
+par.ref_range = 10;
 par.ref_path = {};
 phase_retrieval.apply = 1;
 write.to_scratch = 1;
@@ -94,7 +94,7 @@ pixel_filter_threshold_flat = [0.02 0.005]; % Flat fields: threshold parameter f
 pixel_filter_threshold_proj = [0.02 0.005]; % Raw projection: threshold parameter for hot/dark pixel filter, for details see 'FilterPixel'
 pixel_filter_radius = [5 5]; % Increase only if blobs of zeros or other artefacts are expected. Can increase processing time heavily.
 par.ring_current_normalization = 1; % normalize flat fields and projections by ring current
-image_correlation.method = 'ssim-ml';'entropy';'median';'none';'ssim';'ssim-g';'std';'cov';'corr';'diff1-l1';'diff1-l2';'diff2-l1';'diff2-l2';'cross-entropy-12';'cross-entropy-21';'cross-entropy-x';
+image_correlation.method = 'median';'ssim-ml';'entropy';'median';'none';'ssim';'ssim-g';'std';'cov';'corr';'diff1-l1';'diff1-l2';'diff2-l1';'diff2-l2';'cross-entropy-12';'cross-entropy-21';'cross-entropy-x';
 % Correlation of projections and flat fields. Essential for DCM data. Typically improves reconstruction quality of DMM data, too.
 % Available methods ('ssim-ml'/'entropy' usually work best):
 % 'none' : no correlation, for DPC
@@ -128,11 +128,11 @@ par.strong_abs_thresh = 1; % if 1: does nothing, if < 1: flat-corrected values b
 par.norm_sino = 0; % not recommended, can introduce severe artifacts, but sometimes improves quality
 %%% PHASE RETRIEVAL %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 phase_retrieval.apply = 1; % See 'PhaseFilter' for detailed description of parameters !
-phase_retrieval.apply_before = 0; % before stitching, interactive mode, etc. For phase-contrast data with an excentric rotation axis phase retrieval should be done afterwards. To find the rotataion axis position use this option in a first run, and then turn it of afterwards.
+phase_retrieval.apply_before = 1.5; % before stitching, interactive mode, etc. For phase-contrast data with an excentric rotation axis phase retrieval should be done afterwards. To find the rotataion axis position use this option in a first run, and then turn it of afterwards.
 phase_retrieval.post_binning_factor = 1; % Binning factor after phase retrieval, but before tomographic reconstruction
 phase_retrieval.method = 'tie';'tieNLO_Schwinger';'dpc';'tie';'qp';'qpcut'; %'qp' 'ctf' 'tie' 'qp2' 'qpcut'
 % Interactive phase retrieval not supported for method 'tieNLO_Schwinger'
-phase_retrieval.reg_par = 2.0; % regularization parameter. larger values tend to blurrier images. smaller values tend to original data.
+phase_retrieval.reg_par = 1.5; % regularization parameter. larger values tend to blurrier images. smaller values tend to original data.
 phase_retrieval.bin_filt = 0.1; % threshold for quasiparticle retrieval 'qp', 'qp2'
 phase_retrieval.cutoff_frequ = 2 * pi; % in radian. frequency cutoff in Fourier space for 'qpcut' phase retrieval
 phase_retrieval.padding = 1; % padding of intensities before phase retrieval, 0: no padding
@@ -213,7 +213,7 @@ interactive_mode.lamino = 1; % find laminography tilt instead camera tilt
 interactive_mode.angles = 0; % reconstruct slices with different scalings of angles
 interactive_mode.angle_scaling_default_search_range = []; % if empty: use a variaton of -/+5 * (angle increment / maximum angle)
 interactive_mode.slice_number = 0.5; % default slice number. if in [0,1): relative, if in (1, N]: absolute
-interactive_mode.phase_retrieval = 1; % Interactive retrieval to determine regularization parameter
+interactive_mode.phase_retrieval = 0; % Interactive retrieval to determine regularization parameter
 interactive_mode.phase_retrieval_default_search_range = []; % if empty: asks for search range when entering interactive mode, otherwise directly start with given search range
 %%% HARDWARE / SOFTWARE %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 par.use_cluster = 0; % if available: on MAXWELL nodes disp/nova/wga/wgs cluster computation can be used. Recommended only for large data sets since parpool creation and data transfer implies a lot of overhead.
@@ -230,9 +230,10 @@ par.window_state = 'minimized';'normal';'maximized';
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 weblink_url = 'https://github.com/moosmann/matlab';
-weblink_name = sprintf( 'code repository on github: %s', weblink_url );
+weblink_name = sprintf( '%s', weblink_url );
 weblink = sprintf('<a href = "%s">%s</a>\n', weblink_url, weblink_name);
-fprintf( weblink );
+fprintf( '\n code repository on github: ' )
+fprintf( weblink )
 
 close all hidden;
 close all force;
@@ -649,9 +650,12 @@ if ~par.read_flatcor && ~par.read_sino
         pos_s_pos_y_mm = logpar.pos_s_pos_y;
     end
     if isempty( par.energy )
-        if isfield( logpar, 'energy')
+        energy_was_empty = 1;
+        if isfield( logpar, 'energy')            
             par.energy = logpar.energy;
         end
+    else
+        energy_was_empty = 0;
     end
     if isempty( par.sample_detector_distance )
         par.sample_detector_distance = logpar.sample_detector_distance;
@@ -705,11 +709,11 @@ if ~par.read_flatcor && ~par.read_sino
         [im_raw, par.tif_info] = read_image( filename, par, 1 );
         par.im_shape_raw = size( im_raw );
         nexus_setup = h5info(nexuslog_name{1}, '/entry/scan/setup/' );
-        if sum(strcmpi('pos_p05_energy',{ nexus_setup.Datasets.Name })) && isempty( par.energy )
+        if sum(strcmpi('pos_p05_energy',{ nexus_setup.Datasets.Name })) && energy_was_empty
             par.energy = double( h5read( nexuslog_name{1}, '/entry/scan/setup/pos_p05_energy' ) );
             par.energy = par.energy( end );
         end
-        if sum(strcmpi('p07_energy',{ nexus_setup.Datasets.Name })) && isempty( par.energy )
+        if sum(strcmpi('p07_energy',{ nexus_setup.Datasets.Name })) && energy_was_empty
             par.energy = double( h5read( nexuslog_name{1}, '/entry/scan/setup/p07_energy' ) );
             par.energy = par.energy( end );
         end   
@@ -1591,7 +1595,7 @@ if ~par.read_flatcor && ~par.read_sino
         if exist( 'h1' , 'var' ) && isvalid( h1 )
             figure(h1)
         else
-            h1 = figure( 'Name', 'data and flat-and-dark-field correction', 'WindowState', 'maximized' );
+            h1 = figure( 'Name', 'data and flat-and-dark-field correction', 'WindowState', window_state );
         end
         
         subplot(2,3,4)
