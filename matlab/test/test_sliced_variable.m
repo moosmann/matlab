@@ -1,10 +1,10 @@
 function test_sliced_variable()
 
 phase_retrieval.method = 'tie';
-phase_retrieval.use_parpool = 0;
+phase_retrieval.use_parpool = 1;
 
 fprintf( '\n Create array' )
-proj = ones( [2001,2000, 2000], 'single');
+proj = ones( 6450 + [0, 1, 2], 'single');
 fprintf( '\n size: %u, %u, %u, %u, %u', size(proj));
 proj(1,1) = 10;
 proj(end,end) = 0;

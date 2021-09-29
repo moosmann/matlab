@@ -118,8 +118,8 @@ for nn = 1:num_scans
     
     % Effective pixelsize
     for ll = 1:numel( c )
-        t = regexp( c{ll}, 'effective_pixel_size' );
-        if t
+        t = regexp( c{ll}, {'effective_pixel_size', 'eff_pixel_size', 'par.eff_pixel_size'} );
+        if sum( [t{:}] )
             cc = textscan( c{ll}, '%*s : %f %*s');
             effective_pixel_size = cc{1};
             break

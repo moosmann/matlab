@@ -80,8 +80,8 @@ else
             im = phase_filter .* im ;
             im = ifft2( im );
             im = -real( im );
-            proj(:,:,nn) = im(1:im_shape(1), 1:im_shape(2));
-
+            im = im(1:im_shape(1), 1:im_shape(2));
+            proj(:,:,nn) = im;
         end
     else
         fprintf( 'without parpool' )
