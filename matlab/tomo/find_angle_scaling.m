@@ -61,8 +61,8 @@ if slice - dz < 0 || slice + dz > num_row
     fprintf( '\nWARNING: Inclination of reconstruction plane, slice %u, exceeds sinogram volume. Better choose a more central slice or a smaller tilts.', slice)
 end
 % Calculate required slab size: Spiral CT condition
-if numel( tomo.vert_shift ) > 1
-   dz = dz + floor( max( abs( tomo.vert_shift ) ) );
+if numel( vert_shift ) > 1
+   dz = dz + floor( max( abs( vert_shift ) ) );
 end
 if slice - dz < 0 || slice + dz > num_row
     fprintf( '\nWARNING: Spiral CT requires larger sinogram volume. Better choose a more central slice or a smaller tilts.')
@@ -115,7 +115,7 @@ end
 % Backprojection
 for nn = 1:numel( angle_scaling )
     
-    tomo.angles = tomo.rot_angle.offset + angle_scaling(nn) * angles;
+    tomo.angles = tomo.rot_angle_offset + angle_scaling(nn) * angles;
     
     %% Reco
     switch lower( tomo.reco_mode )

@@ -33,24 +33,27 @@ function p05_reco( external_parameter )
 % !!! QUICK SWITCH TO ALTERNATIVE SET OF PARAMETERS !!!
 % !!! OVERWRITES PARAMETERS BELOW QUICK SWITCH SECTION !!!
 % Just copy parameter and set quick switch to 1
-par.quick_switch = 0;
-par.raw_bin = 8;
+par.quick_switch = 1;
+par.scan_path = '/asap3/petra3/gpfs/p07/2021/data/11013375/raw/hereon21_alag_mel1trab_b';
+par.raw_bin = 2;
 par.raw_roi = [0.45 0.55];
-par.proj_range = 10;
+par.proj_range = 1;
 par.ref_range = 10;
 par.ref_path = {};
-phase_retrieval.apply = 1;
+phase_retrieval.apply = 0;
 write.to_scratch = 1;
-tomo.rot_axis_offset = 0 * 2 / par.raw_bin;
 tomo.rot_axis_tilt_camera = [];
-image_correlation.num_flats = 3;
+image_correlation.num_flats = 9;
 image_correlation.method = 'median';
-interactive_mode.rot_axis_pos = 1;
+interactive_mode.rot_axis_pos = 0;
 interactive_mode.rot_axis_tilt = 0; 
-interactive_mode.phase_retrieval = 1;
-tomo.interpolate_missing_angles = 1;
+interactive_mode.phase_retrieval = 0;
+tomo.interpolate_missing_angles = 0;
 write.subfolder_reco = ''; 
-%write.subfolder_reco = 'interpolate_missing_angles';
+tomo.rot_axis_pos_search_range = -6:0.1:-2;
+tomo.rot_axis_pos_search_metric = 'neg';
+tomo.rot_axis_pos_search_verbose = 0;
+write.subfolder_reco = '';
 % END OF QUICK SWITCH TO ALTERNATIVE SET OF PARAMETERS %%%%%%%%%%%%%%%%%%%%
 
 pp_parameter_switch % DO NOT DELETE THIS LINE
@@ -94,7 +97,7 @@ pixel_filter_threshold_flat = [0.02 0.005]; % Flat fields: threshold parameter f
 pixel_filter_threshold_proj = [0.02 0.005]; % Raw projection: threshold parameter for hot/dark pixel filter, for details see 'FilterPixel'
 pixel_filter_radius = [5 5]; % Increase only if blobs of zeros or other artefacts are expected. Can increase processing time heavily.
 par.ring_current_normalization = 1; % normalize flat fields and projections by ring current
-image_correlation.method = 'median';'ssim-ml';'entropy';'median';'none';'ssim';'ssim-g';'std';'cov';'corr';'diff1-l1';'diff1-l2';'diff2-l1';'diff2-l2';'cross-entropy-12';'cross-entropy-21';'cross-entropy-x';
+image_correlation.method = 'ssim-ml';'entropy';'median';'none';'ssim';'ssim-g';'std';'cov';'corr';'diff1-l1';'diff1-l2';'diff2-l1';'diff2-l2';'cross-entropy-12';'cross-entropy-21';'cross-entropy-x';
 % Correlation of projections and flat fields. Essential for DCM data. Typically improves reconstruction quality of DMM data, too.
 % Available methods ('ssim-ml'/'entropy' usually work best):
 % 'none' : no correlation, for DPC
@@ -117,7 +120,7 @@ image_correlation.filter_type = 'median'; % string. correlation ROI filter type,
 image_correlation.filter_parameter = {[3 3], 'symmetric'}; % cell. filter paramaters to be parsed with {:}
 % 'median' : using medfilt2, parameters: {[M N]-neighboorhood, 'padding'}
 % 'wiener' : using wiender2, parameters: {[M N]-neighboorhood}
-ring_filter.apply = 1; % ring artifact filter (use only for scans without lateral sample movement)
+ring_filter.apply = 0; % ring artifact filter (use only for scans without lateral sample movement)
 ring_filter.apply_before_stitching = 1; % ! Consider when phase retrieval is applied !
 ring_filter.method = 'jm'; 'wavelet-fft';
 ring_filter.waveletfft_dec_levels = 1:6; % decomposition levels for 'wavelet-fft'
@@ -127,8 +130,8 @@ ring_filter.jm_median_width = 11; % multiple widths are applied consecutively, e
 par.strong_abs_thresh = 1; % if 1: does nothing, if < 1: flat-corrected values below threshold are set to one. Try with algebratic reco techniques.
 par.norm_sino = 0; % not recommended, can introduce severe artifacts, but sometimes improves quality
 %%% PHASE RETRIEVAL %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-phase_retrieval.apply = 1; % See 'PhaseFilter' for detailed description of parameters !
-phase_retrieval.apply_before = 1.5; % before stitching, interactive mode, etc. For phase-contrast data with an excentric rotation axis phase retrieval should be done afterwards. To find the rotataion axis position use this option in a first run, and then turn it of afterwards.
+phase_retrieval.apply = 0; % See 'PhaseFilter' for detailed description of parameters !
+phase_retrieval.apply_before = 1; % before stitching, interactive mode, etc. For phase-contrast data with an excentric rotation axis phase retrieval should be done afterwards. To find the rotataion axis position use this option in a first run, and then turn it of afterwards.
 phase_retrieval.post_binning_factor = 1; % Binning factor after phase retrieval, but before tomographic reconstruction
 phase_retrieval.method = 'tie';'tieNLO_Schwinger';'dpc';'tie';'qp';'qpcut'; %'qp' 'ctf' 'tie' 'qp2' 'qpcut'
 % Interactive phase retrieval not supported for method 'tieNLO_Schwinger'
@@ -170,6 +173,9 @@ tomo.algorithm =  'fbp';'cgls';'sirt';'sart';'em';'fbp-astra'; % SART/EM only wo
 tomo.iterations = 50; % for iterateive algorithms: 'sirt', 'cgls', 'sart', 'em'
 tomo.MinConstraint = []; % sirt3D/sirt2d/sart2d only. If specified, all values below MinConstraint will be set to MinConstraint. This can be used to enforce non-negative reconstructions, for example.
 tomo.MaxConstraint = []; % sirt3D/sirt2d/sart2d only. If specified, all values above MaxConstraint will be set to MaxConstraint.
+tomo.rot_axis_pos_search_range = [];
+tomo.rot_axis_pos_search_metric = '';
+tomo.rot_axis_pos_search_extrema = 'max';
 %%% OUTPUT %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 write.path = ''; %'/gpfs/petra3/scratch/moosmanj'; % absolute path were output data will be stored. !!overwrites the write.to_scratch flag. if empty uses the beamtime directory and either 'processed' or 'scratch_cc'
 write.to_scratch = 0; % write to 'scratch_cc' instead of 'processed'
@@ -187,8 +193,8 @@ write.sino = 0; % save sinograms (after preprocessing & before FBP filtering and
 write.phase_sino = 0; % save sinograms of phase maps
 write.reco = 1; % save reconstructed slices (if tomo.run=1)
 write.float = 1; % single precision (32-bit float) tiff
-write.uint16 = 1; % save 16bit unsigned integer tiff using 'write.compression_method'
-write.uint8 = 1; % save binned 8bit unsigned integer tiff using 'write.compression_method'
+write.uint16 = 0; % save 16bit unsigned integer tiff using 'write.compression_method'
+write.uint8 = 0; % save binned 8bit unsigned integer tiff using 'write.compression_method'
 % Optionally save binned reconstructions, only works in '3D' reco_mode
 write.float_binned = 0; % save binned single precision (32-bit float) tiff
 write.uint16_binned = 0; % save binned 16bit unsigned integer tiff using 'write.compression_method'
@@ -384,6 +390,10 @@ assign_default( 'interactive_mode.angle_scaling_default_search_range', [] );
 assign_default( 'par.window_state', 'normal' );
 assign_default( 'par.strong_abs_thresh', 1 );
 assign_default( 'par.norm_sino', 0 );
+assign_default( 'tomo.rot_axis_pos_search_range', []);
+assign_default( 'tomo.rot_axis_pos_search_metric', '');
+assign_default( 'tomo.rot_axis_pos_search_verbose', 1);
+assign_default( 'tomo.rot_axis_pos_search_extrema', 'max' );
 
 % Define variables from struct fields for convenience
 par.raw_bin = single( par.raw_bin );
@@ -1857,6 +1867,9 @@ else
     %%%%
     [tomo, angles, tint] = interactive_mode_rot_axis( par, logpar, phase_retrieval, tomo, write, interactive_mode, proj, angles);
 end
+
+%% Automatic rot axis determination
+tomo = find_rot_axis_offset_auto(tomo, proj, par, write, interactive_mode);
 
 %% Stitch projections, Lecacy support
 if par.stitch_projections

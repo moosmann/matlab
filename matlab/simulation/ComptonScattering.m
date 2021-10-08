@@ -2,24 +2,22 @@ function ComptonScattering()
 % Compton Scattering analysis based on the Klein Nishina differential
 % cross section.
 
-% Partial cross section
-%[csp, cst] = KN_partial_cs( 30e3, 1, 1000 );
-[csp, cst] = KN_partial_cs( 30e3, 180, 10000 );
-csp / cst
-cst2 = KN_total_cs( 30e3);
-cst2/cst
+fov = 0.003; %m
+d = sqrt(2) * fov;
+fprintf( '\nFOV diagonal : %f cm', d )
 
 
-
-energy = ([5 15 30 90 150 200] * 1e3)'; % eV
-%energy = ([2.75 60 511 1460 10000] * 1e3)'; % eV
+energy = ([5 15 30 60 90 150 200] * 1e3)'; % eV
+%energy = ([2.75 60 511 1460 10000] * 1e3energy)'; % eV
 theta = (0:1:100) / 100 * pi;
 for n = numel( energy):-1:1
     l{n} = sprintf( '%g keV', energy(n) / 1000);
 end
 
-fprintf( '\nenergy : size = [%u %u]', size( energy ) )
-fprintf( '\nangle : size = [%u %u]', size(theta) )
+fprintf( '\n plot energies / keV: [' )
+fprintf( '%u ', energy / 1000 )
+fprintf( ']' )
+fprintf( '\n plot angles: = [%u %u]', theta(1), theta(end) )
 
 figure( 'Name', 'Ratio of photon energy after and before collision' )
 t = theta * 180;
@@ -28,6 +26,7 @@ plot( t / pi, p )
 xlabel( 'angle / degrees' )
 ylabel( 'energy / keV' )
 legend( l )
+
 
 figure( 'Name', 'Klein-Nishina differential cross section' )
 t = theta * 180;
@@ -42,18 +41,63 @@ t = [-theta(end:-1:1) theta];
 dcs = KN_diff_cs( energy, t );
 polarplot( t , dcs )
 legend( l )
-
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+figure( 'Name', 'Klein-Nishina forward scattering' )
+z = [0.01 1.4]; %m
+energy = [30:10:100] * 1e3; % eV
+oa = atan( d ./ z );
+fprintf( '\nz range: [%g %g]', z)
+fprintf( '\nopening angle range: [%g %g]', oa)
+a = oa(1):-range(oa)/100:oa(end);
+zrange = d ./ tan( a);
+r = zeros( [numel(energy), numel(a)]);
+%fprintf( '\nenergy: %f keV', energy / 1000 )
+for m = 1:numel(energy)
+    em = energy( m );
+    for n = 1:numel(a)
+        an = a(n);
+        [csp, cst] = KN_partial_cs( em, an, 10000 );
+        r(m,n) = csp / cst;
+    end
+end
+plot( zrange, r * 100 )
+xlabel( 'z / m')
+ylabel( 'partial / total cross-section in percent' )
+title( 'forward scattering' )
+for n = numel( energy):-1:1
+    l{n} = sprintf( '%g keV', energy(n) / 1000);
+end
+legend( l )
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Geometry
+fprintf( '\n' )
 z = [0.01 1.4]; %m
 fprintf( '\nz = [%f %f] cm', z*100)
-fov = 0.007; %m
-d = sqrt(2) * fov;
-fprintf( '\nFOV diagonal : %f cm', d )
 oa = atan( d ./ z );
 fprintf( '\nopening angle: [%f %f] degree', oa * 180 / pi )
 
 
+fprintf( '\n' )
+% Partial cross section
+%[csp, cst] = KN_partial_cs( 30e3, 1, 1000 );
 
+energy = 10e3;
+opening_angle = 180;
+[csp, cst] = KN_partial_cs( energy, opening_angle, 10000 );
+fprintf( '\nopening angle: %f', opening_angle )
+fprintf( '\nKN partial cross-section: %g', csp )
+fprintf( '\nKN total cross-section: %g', cst )
+fprintf( '\nKN ratio partial/total cross-section: %g', csp / cst )
+
+cst2 = KN_total_cs( energy );
+fprintf( '\nKN total cross-section: %g', cst2 )
+fprintf( '\nKN ratio total/total cross-section: %g', cst2/cst )
+
+fprintf( '\n' )
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % Ratio of photon energy before and after collision P = lambda / lambda'
 function P = P(E_eV, theta)

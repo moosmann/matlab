@@ -52,7 +52,14 @@ read_sino_trafo = @(x) (x);%rot90(x); % anonymous function applied to the image 
 energy = [];%59120.342381723924;32999.982; % in eV!
 sample_detector_distance = [];%50.010600;0.4; % in m
 eff_pixel_size = [];%0.00106398;1.26646e-6; % in m
-tomo.rot_angle_full_range = 2*pi; % in radians. if []: full angle of rotation including additional increment, or array of angles. if empty full rotation angles is determined automatically to pi or 2 pi
+tomo.rot_angle_full_range = pi; % in radians. if []: full angle of rotation including additional increment, or array of angles. if empty full rotation angles is determined automatically to pi or 2 pi
+%%% RING FILTER
+ring_filter.apply = 0; % ring artifact filter (use only for scans without lateral sample movement)
+ring_filter.method = 'jm'; 'wavelet-fft';
+ring_filter.waveletfft_dec_levels = 1:6; % decomposition levels for 'wavelet-fft'
+ring_filter.waveletfft_wname = 'db7';'db25';'db30'; % wavelet type, see 'FilterStripesCombinedWaveletFFT' or 'waveinfo'
+ring_filter.waveletfft_sigma = 3; %  suppression factor for 'wavelet-fft'
+ring_filter.jm_median_width = 11; % multiple widths are applied consecutively, eg [3 11 21 31 39];
 %%% PHASE RETRIEVAL %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 phase_retrieval.apply = 0; % See 'PhaseFilter' for detailed description of parameters !
 phase_retrieval.apply_before = 0; % before stitching, interactive mode, etc. For phase-contrast data with an excentric rotation axis phase retrieval should be done afterwards. To find the rotataion axis position use this option in a first run, and then turn it of afterwards.
@@ -129,7 +136,7 @@ interactive_mode.phase_retrieval_default_search_range = []; % if empty: asks for
 %%% HARDWARE / SOFTWARE %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 par.use_cluster = 0; % if available: on MAXWELL nodes disp/nova/wga/wgs cluster computation can be used. Recommended only for large data sets since parpool creation and data transfer implies a lot of overhead.
 par.poolsize = 0.5; % number of workers used in a local parallel pool. if 0: use current config. if >= 1: absolute number. if 0 < poolsize < 1: relative amount of all cores to be used. if SLURM scheduling is available, a default number of workers is used.
-par.poolsize_gpu_limit_factor = 0.8; % Relative amount of GPU memory used for preprocessing during parloop. High values speed up Proprocessing, but increases out-of-memory failure
+par.poolsize_gpu_limit_factor = 0.5; % Relative amount of GPU memory used for preprocessing during parloop. High values speed up Proprocessing, but increases out-of-memory failure
 tomo.astra_link_data = 1; % ASTRA data objects become references to Matlab arrays. Reduces memory issues.
 tomo.astra_gpu_index = []; % GPU Device index to use, Matlab notation: index starts from 1. default: [], uses all
 tomo.astra_reco_per_gpu = 1;
@@ -413,6 +420,11 @@ if tomo.slab_wise
         % Tomo
         % Delete empty slices
         proj(:,num_slices + 1:end,:) = [];
+        
+        if ring_filter.apply
+            proj = pp_filter_ring_artefacts( ring_filter, proj, angles, par);
+        end
+        
         %% ADJUST tomo struct: volume size and shape
         [tomo.vol_shape, tomo.vol_size] = volshape_volsize( proj, [], [] );
         %[tomo.vol_shape, tomo.vol_size] = volshape_volsize( proj, tomo.vol_shape, tomo.vol_size, tomo.rot_axis_offset, 0 );
