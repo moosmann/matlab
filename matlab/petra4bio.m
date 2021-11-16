@@ -156,7 +156,7 @@ switch coherence
         dist_source_sample = id19_dist_source_sample;
 end
 if ~strcmp( coherence, 'full' )
-    filt = FilterGaussianSource(fshape, sigma_to_FWHM( source_sigma_h_v ), dist_source_sample, dist_sample_detector, pixelsize);
+    filt = FilterGaussianSource(fshape, sigma_to_FWHM( source_sigma_h_v ), dist_source_sample, l, pixelsize);
 end
 parfor nn = 1:size( sino, 2 )
     im = squeeze( sino(:,nn,:) );

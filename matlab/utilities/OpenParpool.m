@@ -10,8 +10,8 @@ function [poolobj, poolsize] = OpenParpool( poolsize, use_cluster, tmp_folder, e
 % poolsize_fac : scalar, default: 0.9; if pool exist, close current pool
 % und open larger one only if
 %
-% Written by Julian Moosmann. Last modification: 2016-10-06, 2018-01-15
-%
+% Written by Julian Moosmann
+
 % [poolobj, poolsize] = OpenParpool(poolsize)
 
 if nargin < 2
@@ -73,7 +73,11 @@ if poolsize > 1
     if isempty( gcp('nocreate') )
         %if not open parpool
         fprintf('\n')
-        poolobj = parpool( clust, poolsize);
+        if strcmp( clust, 'threads' )
+            poolobj = parpool( clust);
+        else
+            poolobj = parpool( clust, poolsize);
+        end
     else
         % get current pool
         poolobj = gcp;

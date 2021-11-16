@@ -83,32 +83,16 @@ switch lower( im_format )
                     im = imread( filename, 'tif', 'PixelRegion', {[y0 y1], [x0 x1 ]} );
                     im = flipud(im);
                 else
-                    x0 = 1;
-                    x1 = tif_info.Height;
-                    y0 = 1;
-                    y1 = tif_info.Width;
-                    
-                    %% Implement horizontal raw_roi
-                    %                 if numel( raw_roi ) > 3
-                    %                     error( 'Horizontal ROI not yet implemented yet' )
-                    %                 end
-                    %                 %im = rot90( imread( filename, 'tif', 'PixelRegion', {[x0 x1 ], [y0 y1]} ), 2);
-                    %% MOD: 2019-10-04 Ximea camera
-                    %                   if numel( raw_roi ) > 1
-                    %                     y0 = max( (tif_info.Width-raw_roi(2)+1), 1 );
-                    %                     y1 = min( (tif_info.Width-raw_roi(1)+1), tif_info.Width);
-                    %                 end
-                    %                 if numel( raw_roi ) > 1
-                    %                     y0 = max( (tif_info.Width-raw_roi(2)+1), 1 );
-                    %                     y1 = min( (tif_info.Width-raw_roi(1)+1), tif_info.Width);
-                    %                 end
-                    %im = fliplr( rot90( imread( filename, 'tif', 'PixelRegion', {[x0 x1 ], [y0 y1]} ), 1 ) );
-                    
-                    %% MOD: 2019-12-12
+                    % hor/vert ROI works for Ximea 50 MP, tested
+                    % 2021/11/16, tested with imsc1
+                    x0 = 1; % top
+                    x1 = tif_info.Height; % bottom
+                    y0 = 1; % left
+                    y1 = tif_info.Width; % right
+                    % MOD: 2019-12-12
                     if numel( raw_roi ) > 1
                         x0 = max( (tif_info.Height-raw_roi(2)+1), 1 );
                         x1 = min( (tif_info.Height-raw_roi(1)+1), tif_info.Height);
-                        
                     end
                     if numel( raw_roi ) == 4
                         y0 = max( raw_roi(3), 1);
@@ -124,7 +108,6 @@ switch lower( im_format )
                 %                     case 2
                 %                         im = flipud( read_tif(filename, tif_info, raw_roi ) );
                 %                 end
-
                 
                 % Check for KIT camera
                 if tif_info.Width == 5120
@@ -132,14 +115,11 @@ switch lower( im_format )
                     x1 = tif_info.Height;                    
                     y0 = 1;
                     y1 = tif_info.Width;                    
-                    
                     if numel( raw_roi ) > 1
                         x0 = max( (raw_roi(1)+1), 1 );
                         x1 = min( (raw_roi(2)+1), tif_info.Height);
                     end
-                
                 else
-                    
                     %% MOD: 2020-09-03 Ximea sCMOS
                     x0 = 1;
                     x1 = tif_info.Height;

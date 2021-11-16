@@ -10,6 +10,7 @@ export PYTHONPATH=$CUDA_PATH/lib64/:$PYTHONPATH
 # MATLAB
 #export MATLAB_VERSION=R2018a
 export MATLAB_VERSION=R2020a # requires toolbox cache to be disabled
+#export MATLAB_VERSION=R2021a # requires nosoftwareopengl for hardware rendering, issues with window and keyboard
 #export MATLAB_VERSION=R2020b # h5info issue
 export MATLAB_USER_PATH=$PWD
 
@@ -34,4 +35,4 @@ echo -e 'GIT_COMMIT_ID:' $GIT_COMMIT_ID
 echo -e 'Starting MATLAB.\n'
 
 ulimit -u 63536
-matlab_$MATLAB_VERSION
+matlab_$MATLAB_VERSION -nosoftwareopengl

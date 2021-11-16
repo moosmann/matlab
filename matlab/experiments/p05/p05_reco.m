@@ -33,27 +33,29 @@ function p05_reco( external_parameter )
 % !!! QUICK SWITCH TO ALTERNATIVE SET OF PARAMETERS !!!
 % !!! OVERWRITES PARAMETERS BELOW QUICK SWITCH SECTION !!!
 % Just copy parameter and set quick switch to 1
-par.quick_switch = 1;
-par.scan_path = '/asap3/petra3/gpfs/p07/2021/data/11013375/raw/hereon21_alag_mel1trab_b';
-par.raw_bin = 2;
-par.raw_roi = [0.45 0.55];
-par.proj_range = 1;
-par.ref_range = 10;
+par.quick_switch = 0;
+par.scan_path = pwd;
+par.raw_bin = 8;
+par.raw_roi = [.25 .75];%[.2 0.8];
+par.proj_range = 1;%:3000;
+par.ref_range = 1;%4;
 par.ref_path = {};
 phase_retrieval.apply = 0;
 write.to_scratch = 1;
 tomo.rot_axis_tilt_camera = [];
 image_correlation.num_flats = 9;
 image_correlation.method = 'median';
-interactive_mode.rot_axis_pos = 0;
+interactive_mode.rot_axis_pos = 0;%1;
 interactive_mode.rot_axis_tilt = 0; 
 interactive_mode.phase_retrieval = 0;
 tomo.interpolate_missing_angles = 0;
-write.subfolder_reco = ''; 
-tomo.rot_axis_pos_search_range = -6:0.1:-2;
-tomo.rot_axis_pos_search_metric = 'neg';
+%tomo.rot_axis_pos_search_range = [];
+%tomo.rot_axis_pos_search_metric = 'neg';
 tomo.rot_axis_pos_search_verbose = 0;
-write.subfolder_reco = '';
+tomo.rot_axis_position = 1;
+par.pixel_scaling = [];
+%write.subfolder_reco = 'proj1'; 
+write.parfolder = '';
 % END OF QUICK SWITCH TO ALTERNATIVE SET OF PARAMETERS %%%%%%%%%%%%%%%%%%%%
 
 pp_parameter_switch % DO NOT DELETE THIS LINE
@@ -89,7 +91,7 @@ par.stitch_method = 'sine'; 'step';'linear'; %  ! CHECK correlation area !
 % 'linear' : linear interpolation of overlap region
 % 'sine' : sinusoidal interpolation of overlap region
 par.proj_range = []; % range of projections to be used (from all found, if empty or 1: all, if scalar: stride, if range: start:incr:end
-par.ref_range = []; % range of flat fields to be used (from all found), if empty or 1: all. if scalar: stride, if range: start:incr:end
+par.ref_range = [];%1:100;[]; % range of flat fields to be used (from all found), if empty or 1: all. if scalar: stride, if range: start:incr:end
 par.wo_crop = 0; % Do not crop images to account for random lateral shift
 par.virt_s_pos = 0; % Correct sample position in reconsructed volume if virtual sample position motors are used
 pixel_filter_threshold_dark = [0.01 0.005]; % Dark fields: threshold parameter for hot/dark pixel filter, for details see 'FilterPixel'
@@ -131,7 +133,7 @@ par.strong_abs_thresh = 1; % if 1: does nothing, if < 1: flat-corrected values b
 par.norm_sino = 0; % not recommended, can introduce severe artifacts, but sometimes improves quality
 %%% PHASE RETRIEVAL %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 phase_retrieval.apply = 0; % See 'PhaseFilter' for detailed description of parameters !
-phase_retrieval.apply_before = 1; % before stitching, interactive mode, etc. For phase-contrast data with an excentric rotation axis phase retrieval should be done afterwards. To find the rotataion axis position use this option in a first run, and then turn it of afterwards.
+phase_retrieval.apply_before = 0; % before stitching, interactive mode, etc. For phase-contrast data with an excentric rotation axis phase retrieval should be done afterwards. To find the rotataion axis position use this option in a first run, and then turn it of afterwards.
 phase_retrieval.post_binning_factor = 1; % Binning factor after phase retrieval, but before tomographic reconstruction
 phase_retrieval.method = 'tie';'tieNLO_Schwinger';'dpc';'tie';'qp';'qpcut'; %'qp' 'ctf' 'tie' 'qp2' 'qpcut'
 % Interactive phase retrieval not supported for method 'tieNLO_Schwinger'
@@ -145,15 +147,15 @@ phase_retrieval.dpc_steps = 5;
 phase_retrieval.dpc_bin = 4;
 %%% TOMOGRAPHY %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 tomo.run = 1; % run tomographic reconstruction
-tomo.run_interactive_mode = 1; % if tomo.run = 0, use to determine rot axis positions without processing the full tomogram;
+tomo.run_interactive_mode = 0; % if tomo.run = 0, use to determine rot axis positions without processing the full tomogram;
 tomo.reco_mode = '3D';'slice';  % slice-wise or full 3D backprojection. 'slice': volume must be centered at origin & no support of rotation axis tilt, reco binning, save compressed
 tomo.vol_size = [];%[-1.5 1.5 -1.5 1.5 -0.5 0.5];% 6-component vector [xmin xmax ymin ymax zmin zmax], for excentric rot axis pos / extended FoV;. if empty, volume is centerd within tomo.vol_shape. unit voxel size is assumed. if smaller than 10 values are interpreted as relative size w.r.t. the detector size. Take care bout minus signs! Note that if empty vol_size is dependent on the rotation axis position.
 tomo.vol_shape = []; %[1 1 1] shape (# voxels) of reconstruction volume. used for excentric rot axis pos. if empty, inferred from 'tomo.vol_size'. in absolute numbers of voxels or in relative number w.r.t. the default volume which is given by the detector width and height.
 tomo.rot_angle_full_range = [];% 2 * pi ;[]; % in radians. if []: full angle of rotation including additional increment, or array of angles. if empty full rotation angles is determined automatically to pi or 2 pi
-tomo.rot_angle_offset = pi; % global rotation of reconstructed volume
+tomo.rot_angle_offset = pi/4; % global rotation of reconstructed volume
 tomo.interpolate_missing_angles = 0; % limited or missing angle tomography
 tomo.rot_axis_offset = [] / 2 * par.raw_bin; % rotation axis offset w.r.t to the image center. Assuming the rotation axis position to be centered in the FOV for standard scan, the offset should be close to zero.
-tomo.rot_axis_position = []; % if empty use automatic computation. EITHER OFFSET OR posITION MUST BE EMPTY. YOU MUST NOT USE BOTH!
+tomo.rot_axis_position = [6.4]; % if empty use automatic computation. EITHER OFFSET OR posITION MUST BE EMPTY. YOU MUST NOT USE BOTH!
 tomo.rot_axis_offset_shift = []; %[]; % absolute lateral movement in pixels during fly-shift-scan, overwrite lateral shift read out from hdf5 log
 tomo.flip_scan_position = 0; % for debugging
 tomo.rot_axis_tilt_camera = 0; % in rad. camera tilt w.r.t rotation axis.
@@ -210,7 +212,7 @@ write.compression_parameter = [0.02 0.02]; % compression-method specific paramet
 % 'histo' : [LOW HIGH] = write.compression_parameter (100*LOW)% and (100*HIGH)% of the original histogram, e.g. [0.02 0.02]
 write.uint8_segmented = 0; % experimental: threshold segmentaion for histograms with 2 distinct peaks: __/\_/\__
 %%% INTERACTION %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-par.visual_output = 1; % show images and plots during reconstruction
+par.visual_output = 0; % show images and plots during reconstruction
 interactive_mode.rot_axis_pos = 1; % reconstruct slices with dif+ferent rotation axis offsets
 interactive_mode.rot_axis_pos_default_search_range = []; % if empty: asks for search range when entering interactive mode
 interactive_mode.rot_axis_tilt = 0; % reconstruct slices with different offset AND tilts of the rotation axis
@@ -219,7 +221,7 @@ interactive_mode.lamino = 1; % find laminography tilt instead camera tilt
 interactive_mode.angles = 0; % reconstruct slices with different scalings of angles
 interactive_mode.angle_scaling_default_search_range = []; % if empty: use a variaton of -/+5 * (angle increment / maximum angle)
 interactive_mode.slice_number = 0.5; % default slice number. if in [0,1): relative, if in (1, N]: absolute
-interactive_mode.phase_retrieval = 0; % Interactive retrieval to determine regularization parameter
+interactive_mode.phase_retrieval = 1; % Interactive retrieval to determine regularization parameter
 interactive_mode.phase_retrieval_default_search_range = []; % if empty: asks for search range when entering interactive mode, otherwise directly start with given search range
 %%% HARDWARE / SOFTWARE %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 par.use_cluster = 0; % if available: on MAXWELL nodes disp/nova/wga/wgs cluster computation can be used. Recommended only for large data sets since parpool creation and data transfer implies a lot of overhead.

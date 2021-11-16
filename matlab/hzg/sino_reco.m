@@ -46,6 +46,7 @@ scan_path = pwd;
     '/asap3/petra3/gpfs/p05/2019/data/11007580/processed/smf_09_be_3033';
     '/asap3/petra3/gpfs/p07/2019/data/11007454/processed/bmc06_tooth1';
 raw_bin = 2; % projection binning factor: integer
+proj_range = 1:2:10000; % projection range
 read_sino_folder = sprintf( 'trans%02u', raw_bin);
 read_sino = 1; % read preprocessed sinograms. CHECK if negative log has to be taken!
 read_sino_trafo = @(x) (x);%rot90(x); % anonymous function applied to the image which is read e.g. @(x) rot90(x)
@@ -96,6 +97,9 @@ tomo.algorithm = 'fbp';'sirt'; 'cgls';'sart';'em';'fbp-astra'; % SART/EM only wo
 tomo.iterations = 40; % for 'sirt' or 'cgls'.
 tomo.sirt_MinConstraint = []; % If specified, all values below MinConstraint will be set to MinConstraint. This can be used to enforce non-negative reconstructions, for example.
 tomo.sirt_MaxConstraint = []; % If specified, all values above MaxConstraint will be set to MaxConstraint.
+tomo.rot_axis_pos_search_range = [];
+tomo.rot_axis_pos_search_metric = '';
+tomo.rot_axis_pos_search_extrema = 'max';
 %%% OUTPUT %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 write.path = ''; % absolute path were output data will be stored. !!overwrites the write.to_scratch flag. if empty uses the beamtime directory and either 'processed' or 'scratch_cc'
 write.to_scratch = 0; % write to 'scratch_cc' instead of 'processed'
@@ -106,7 +110,7 @@ write.parfolder = '';% parent folder to 'reco', 'sino', 'phase', and 'flat_corre
 write.subfolder_flatcor = ''; % subfolder in 'flat_corrected'
 write.subfolder_phase_map = ''; % subfolder in 'phase_map'
 write.subfolder_sino = ''; % subfolder in 'sino'
-write.subfolder_reco = ''; % subfolder in 'reco'
+write.subfolder_reco = 'projHalf1'; % subfolder in 'reco'
 write.flatcor = 0; % save preprocessed flat corrected projections
 write.sino = 0; % save sinograms (after preprocessing & before FBP filtering and phase retrieval)
 write.reco = 1; % save reconstructed slices (if tomo.run=1)
@@ -186,6 +190,9 @@ assign_default( 'interactive_mode.angles', 0 );
 assign_default( 'interactive_mode.angle_scaling_default_search_range', [] );
 assign_default( 'tomo.rot_axis_corr_area2', [0.1 0.9] );
 assign_default( 'par.window_state', 'normal' );
+assign_default( 'tomo.rot_axis_pos_search_metric', '');
+assign_default( 'tomo.rot_axis_pos_search_verbose', 1);
+assign_default( 'tomo.rot_axis_pos_search_extrema', 'max' );
 
 % Define variables from struct fields for convenience
 raw_bin = single( raw_bin );
@@ -309,7 +316,10 @@ par.tifftrafo = 0;
 sino = read_sino_trafo( sino );
 im_shape_cropbin1 = size( sino, 2 );
 num_proj_read = size( sino, 1 );
-num_proj_used = num_proj_read;
+if ~isempty( proj_range )
+    sino = sino(proj_range, :);
+end
+num_proj_used = size( sino, 1 );
 
 % Angles
 if  ~exist( 'angles', 'var' )
@@ -318,12 +328,12 @@ if  ~exist( 'angles', 'var' )
         tomo.rot_angle_full_range = input( '' );
     end
     if isscalar( tomo.rot_angle_full_range )
-        angles = tomo.rot_angle_full_range * (0:num_proj_read - 1) / num_proj_read;
+        angles = tomo.rot_angle_full_range * (0:num_proj_used - 1) / num_proj_used;
     else
         angles = tomo.rot_angle_full_range;
     end
-    if length( angles ) ~= num_proj_read
-        error( 'Number of angles (%u) entered not consistent with sinogram (%u) read.', numel( angles), num_proj_read )
+    if length( angles ) ~= num_proj_used
+        error( 'Number of angles (%u) entered not consistent with sinogram (%u) read.', numel( angles), num_proj_used )
     end
 end
 
@@ -332,12 +342,19 @@ filename = sprintf('%s%s', sino_path, sino_names_mat(nn, :));
 
 sino = read_image( filename );
 sino = read_sino_trafo( sino );
+if ~isempty( proj_range )
+    sino = sino(proj_range, :);
+end
 %[s1, s2] = size( sino );
-proj = reshape( sino, [im_shape_cropbin1, 1, num_proj_read] );
+proj = reshape( sino, [im_shape_cropbin1, 1, num_proj_used] );
 
 %% TOMOGRAPHY: interactive mode to find rotation axis offset and tilt %%%%%
 [tomo, angles, tint] = interactive_mode_rot_axis( par, logpar, phase_retrieval, tomo, write, interactive_mode, proj, angles);
 
+%% Automatic rot axis determination
+tomo = find_rot_axis_offset_auto(tomo, proj, par, write, interactive_mode);
+
+%% Tomographic reconstruction
 fprintf( '\nTomographic reconstruction:')
 fprintf( '\n method : %s', tomo.algorithm )
 fprintf( '\n angle scaling : %g', tomo.angle_scaling )
@@ -374,7 +391,7 @@ if tomo.slab_wise
         num_slices_per_slab = tomo.slices_per_slab;
     end
     num_slabs = ceil( im_shape_binned2 / num_slices_per_slab );
-    proj = zeros( [im_shape_cropbin1, num_slices_per_slab, num_proj_read], 'single' );
+    proj = zeros( [im_shape_cropbin1, num_slices_per_slab, num_proj_used], 'single' );
     fprintf( ' \n number of slices in total : %u', im_shape_binned2 )
     fprintf( ' \n number of slices per slab : %u', num_slices_per_slab )
     fprintf( ' \n number of slabs : %u', num_slabs )
@@ -400,15 +417,19 @@ if tomo.slab_wise
         % Read and filter
         parfor mm = 1:num_slices
             % Read
-            filename = sprintf('%s%s', sino_path, slab_sino_names_mat(mm, :));
+            sino_name = slab_sino_names_mat(mm, :);
+            filename = sprintf('%s%s', sino_path, sino_name);
             sino = read_image( filename );
             sino = read_sino_trafo( sino );
+            if ~isempty( proj_range )
+                sino = sino(proj_range,:,:);
+            end
             % Check for errors
             if sum( sino(:) == 0) || sum( isnan( sino(:) ) ) || sum( isinf( sino(:) ) )
                 fprintf( ' [%u %u]', ll, mm )
             else
                 sino = NegLog( sino, take_neg_log );
-                sino = reshape( sino, [im_shape_cropbin1, 1, num_proj_read] );
+                sino = reshape( sino, [im_shape_cropbin1, 1, num_proj_used] );
                 % Filter
                 sino = padarray( sino, padding * [im_shape_cropbin1 0 0], padding_method, 'post' );
                 sino = real( ifft( bsxfun(@times, fft( sino, [], 1), filt), [], 1, 'symmetric') );
@@ -431,11 +452,11 @@ if tomo.slab_wise
         vol = astra_parallel3D( tomo, permute( proj, [1 3 2]) );
 
         % Save
-        parfor mm = 1:num_slices            
-            filename = sprintf( '%s/%s', save_path, slab_sino_names_mat(mm,:));
+        parfor mm = 1:num_slices
+            sino_name = slab_sino_names_mat(mm,:);
+            filename = sprintf( '%s/%s', save_path, sino_name);
             write32bitTIFfromSingle( filename, vol(:,:,mm) )
         end
-        
     end
     
 else
@@ -446,12 +467,15 @@ else
         filename = sprintf('%s%s', sino_path, sino_names_mat(nn, :));
         sino = read_image( filename );
         sino = read_sino_trafo( sino );
+         if ~isempty( proj_range )
+                sino = sino(proj_range, :);
+         end
         
         if sum( sino(:) == 0) || sum( isnan( sino(:) ) ) || sum( isinf( sino(:) ) )
             fprintf( ' %u', nn )
         else
             sino = NegLog( sino, take_neg_log );
-            sino = reshape( sino, [im_shape_cropbin1, 1, num_proj_read] );
+            sino = reshape( sino, [im_shape_cropbin1, 1, num_proj_used] );
             % Filter
             sino = padarray( sino, padding * [im_shape_cropbin1 0 0], padding_method, 'post' );
             sino = real( ifft( bsxfun(@times, fft( sino, [], 1), filt), [], 1, 'symmetric') );
