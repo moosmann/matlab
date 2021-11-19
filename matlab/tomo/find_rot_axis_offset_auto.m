@@ -1,7 +1,40 @@
 function tomo = find_rot_axis_offset_auto(tomo, proj, par, write, interactive_mode)
+% Routine to automatically determine the rotation axis position by finding
+% the extrema of a metric.
+
+%% move variable check to main script
 
 offset = tomo.rot_axis_pos_search_range;
 search_metric = tomo.rot_axis_pos_search_metric;
+extrema = tomo.rot_axis_pos_search_extrema;
+while isempty(offset)
+    cprintf( 'red', 'Rotation axis search range is undefined. Please enter search range:' );
+    tmp = input( ' ' );
+    if isvector( tmp ) && ~isscalar(tmp)
+        offset = tmp;
+        tomo.rot_axis_pos_search_range = tmp;
+    end
+end
+while isempty(search_metric)
+    cprintf( 'red', 'Rotation axis search metric is undefinded. Enter metric (''neg'',''entropy'',''iso-grad'',''laplacian'',''entropy-ML'',''abs''):' );
+    tmp = input( ' ' );
+    if ischar( tmp )
+        if sum(strcmp( tmp, {'neg','entropy','iso-grad','laplacian','entropy-ML','abs'} )) == 1
+            search_metric = tmp;
+            tomo.rot_axis_pos_search_metric = tmp;
+        end
+    end
+end
+while isempty(extrema)
+    cprintf( 'red', 'Rotation axis search extrema is undefinded. Enter extrema (''max'' or ''min''):' );
+    tmp = input( ' ' );
+    if ischar( tmp )
+        if sum(strcmp( tmp, {'max','min'} )) == 1
+            extrema = tmp;
+           tomo.rot_axis_pos_search_extrema = tmp;
+        end
+    end
+end
 
 if ~isempty(offset) || ~isempty(search_metric)
         fprintf( '\nAutomatic rotation axis position determination.')
@@ -66,17 +99,53 @@ if ~isempty(offset) || ~isempty(search_metric)
     m = strcmp( {metrics_offset.name}, search_metric );
     m = metrics_offset(m);
     m = m.val;
-    % search for extrema and average
-    switch tomo.rot_axis_pos_search_extrema
+    % search for extrema and average if there are multiple
+    switch extrema
         case 'max' 
             v = max(m);
         case 'min'
             v = min(m);
-    end    
+    end
     ind = (1:numel(m))';
     ind = ind( m == v );
-    offset = mean( offset(ind) );
+    metric_mean = mean(m(ind));
+    offset_mean = mean( offset(ind) );
+
+    
+    % Fit metric
+    if tomo.rot_axis_pos_search_fit
+        fprintf( '\n Fit metric %s with polynomial\n', search_metric )
+        [f, gof] = fit(offset(:),m(:),'poly4');
+        disp(gof)
+        % find fit min
+        foffset = min(offset):(max(offset)-min(offset))/numel(offset)/100:max(offset);
+        switch extrema
+            case 'max'
+                [fit_val,fit_pos] = max( f(foffset) );
+            case 'min'
+                [fit_val,fit_pos] = min( f(foffset) );
+        end
+        fit_pos = foffset( fit_pos );
+        h_fit = figure('Name', 'OFFSET AUTO: fit metric', 'WindowState', par.window_state);
+        plot(f,offset,m);
+        hold on
+        plot( offset_mean, metric_mean, 'o', 'MarkerSize', 30)
+        hold on
+        plot( fit_pos, fit_val, 'x', 'MarkerSize', 30)
+        set( gca, 'YTick', [] )
+        axis tight
+        xlabel( 'offset' )
+        ylabel( 'metric' )
+        legend( {search_metric, 'fit', sprintf('metric %s', extrema), sprintf('fit %s', extrema)} )
+        title(sprintf('rotation axis: metric %s VS offset', search_metric))
+        drawnow
+        saveas( h_fit, sprintf( '%s%s.png', write.fig_path, regexprep( h_fit.Name, '\ |:', '_') ) );
         
+        offset = fit_pos;
+    else
+        offset = offset_mean;
+    end
+            
     fprintf( '\n offset found : %g', offset )
     tomo.rot_axis_offset = offset;
     

@@ -33,7 +33,7 @@ function p05_reco( external_parameter )
 % !!! QUICK SWITCH TO ALTERNATIVE SET OF PARAMETERS !!!
 % !!! OVERWRITES PARAMETERS BELOW QUICK SWITCH SECTION !!!
 % Just copy parameter and set quick switch to 1
-par.quick_switch = 0;
+par.quick_switch = 1;
 par.scan_path = pwd;
 par.raw_bin = 8;
 par.raw_roi = [.25 .75];%[.2 0.8];
@@ -45,12 +45,12 @@ write.to_scratch = 1;
 tomo.rot_axis_tilt_camera = [];
 image_correlation.num_flats = 9;
 image_correlation.method = 'median';
-interactive_mode.rot_axis_pos = 0;%1;
+interactive_mode.rot_axis_pos = 0;
 interactive_mode.rot_axis_tilt = 0; 
 interactive_mode.phase_retrieval = 0;
 tomo.interpolate_missing_angles = 0;
-%tomo.rot_axis_pos_search_range = [];
-%tomo.rot_axis_pos_search_metric = 'neg';
+tomo.rot_axis_pos_search_range = [-0.2:0.2:1.8];
+tomo.rot_axis_pos_search_metric = 'neg';
 tomo.rot_axis_pos_search_verbose = 0;
 tomo.rot_axis_position = 1;
 par.pixel_scaling = [];
@@ -175,9 +175,10 @@ tomo.algorithm =  'fbp';'cgls';'sirt';'sart';'em';'fbp-astra'; % SART/EM only wo
 tomo.iterations = 50; % for iterateive algorithms: 'sirt', 'cgls', 'sart', 'em'
 tomo.MinConstraint = []; % sirt3D/sirt2d/sart2d only. If specified, all values below MinConstraint will be set to MinConstraint. This can be used to enforce non-negative reconstructions, for example.
 tomo.MaxConstraint = []; % sirt3D/sirt2d/sart2d only. If specified, all values above MaxConstraint will be set to MaxConstraint.
-tomo.rot_axis_pos_search_range = [];
-tomo.rot_axis_pos_search_metric = '';
-tomo.rot_axis_pos_search_extrema = 'max';
+tomo.rot_axis_pos_search_range = []; % search reach for automatic determination of the rotation axis offset, overwrite interactive result if not empty
+tomo.rot_axis_pos_search_metric = ''; % string: 'neg','entropy','iso-grad','laplacian','entropy-ML','abs'. Metric to find rotation axis offset
+tomo.rot_axis_pos_search_extrema = 'min'; % string: 'min'/'max'. chose min or maximum position
+tomo.rot_axis_pos_search_fit = 1; % bool: fit calculated metrics and find extrema, otherwise use extrema from search range
 %%% OUTPUT %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 write.path = ''; %'/gpfs/petra3/scratch/moosmanj'; % absolute path were output data will be stored. !!overwrites the write.to_scratch flag. if empty uses the beamtime directory and either 'processed' or 'scratch_cc'
 write.to_scratch = 0; % write to 'scratch_cc' instead of 'processed'
@@ -396,6 +397,7 @@ assign_default( 'tomo.rot_axis_pos_search_range', []);
 assign_default( 'tomo.rot_axis_pos_search_metric', '');
 assign_default( 'tomo.rot_axis_pos_search_verbose', 1);
 assign_default( 'tomo.rot_axis_pos_search_extrema', 'max' );
+assign_default( 'tomo.rot_axis_pos_search_fit', 1 );
 
 % Define variables from struct fields for convenience
 par.raw_bin = single( par.raw_bin );
@@ -1185,7 +1187,7 @@ if ~par.read_flatcor && ~par.read_sino
         % Correlation ROI
         roi_flat(:,:,nn) = 1 / 2 / raw_bin^2 * Binning( im_int(flat_corr_area1,flat_corr_area2), 2 * raw_bin );
         
-        % Correlatio ROI filter
+        % Correlation ROI filter
         roi_flat(:,:,nn) = imcf_filter( roi_flat(:,:,nn) );
         
         % Binning
