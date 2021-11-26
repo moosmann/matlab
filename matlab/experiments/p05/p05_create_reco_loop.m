@@ -71,8 +71,13 @@ for nn = 1:numel( folders )
 end
 
 %% Create new, non-existing filename
-
-func_name0 = 'p05_reco_loop_';
+p = raw_path;
+[p,bl] = fileparts(p);
+while ~strcmp(bl(1:2),'p0')
+    [p,bl]=fileparts(p);
+end
+%func_name0 = 'p05_reco_loop_';
+func_name0 = [bl '_reco_loop_'];
 parent_path = out_path;
 if ~isempty( name )
     func_name0 = [func_name0 name '_' ];

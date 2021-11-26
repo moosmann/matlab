@@ -3,16 +3,19 @@ function tomo = find_rot_axis_offset_auto(tomo, proj, par, write, interactive_mo
 % the extrema of a metric.
 
 %% move variable check to main script
+if tomo.rot_axis_search_auto == 0
+    return
+end
 
-offset = tomo.rot_axis_pos_search_range;
-search_metric = tomo.rot_axis_pos_search_metric;
-extrema = tomo.rot_axis_pos_search_extrema;
+offset = tomo.rot_axis_search_range;
+search_metric = tomo.rot_axis_search_metric;
+extrema = tomo.rot_axis_search_extrema;
 while isempty(offset)
     cprintf( 'red', 'Rotation axis search range is undefined. Please enter search range:' );
     tmp = input( ' ' );
     if isvector( tmp ) && ~isscalar(tmp)
         offset = tmp;
-        tomo.rot_axis_pos_search_range = tmp;
+        tomo.rot_axis_search_range = tmp;
     end
 end
 while isempty(search_metric)
@@ -21,7 +24,7 @@ while isempty(search_metric)
     if ischar( tmp )
         if sum(strcmp( tmp, {'neg','entropy','iso-grad','laplacian','entropy-ML','abs'} )) == 1
             search_metric = tmp;
-            tomo.rot_axis_pos_search_metric = tmp;
+            tomo.rot_axis_search_metric = tmp;
         end
     end
 end
@@ -31,7 +34,7 @@ while isempty(extrema)
     if ischar( tmp )
         if sum(strcmp( tmp, {'max','min'} )) == 1
             extrema = tmp;
-           tomo.rot_axis_pos_search_extrema = tmp;
+           tomo.rot_axis_search_extrema = tmp;
         end
     end
 end
@@ -48,7 +51,7 @@ if ~isempty(offset) || ~isempty(search_metric)
     [~, metrics_offset] = find_rot_axis_offset( tomo_auto, proj);
     
     
-    if tomo.rot_axis_pos_search_verbose
+    if tomo.rot_axis_search_verbose
         
         % Metric minima
         [~, min_pos] = min(cell2mat({metrics_offset(:).val}));
@@ -113,7 +116,7 @@ if ~isempty(offset) || ~isempty(search_metric)
 
     
     % Fit metric
-    if tomo.rot_axis_pos_search_fit
+    if tomo.rot_axis_search_fit
         fprintf( '\n Fit metric %s with polynomial\n', search_metric )
         [f, gof] = fit(offset(:),m(:),'poly4');
         disp(gof)
@@ -148,6 +151,7 @@ if ~isempty(offset) || ~isempty(search_metric)
             
     fprintf( '\n offset found : %g', offset )
     tomo.rot_axis_offset = offset;
+    tomo.rot_axis_position = size(proj,1) / 2 + offset;
     
 end
 

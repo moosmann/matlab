@@ -1,4 +1,4 @@
-function volshow(vol, direction, pause_seconds, fit_to_screen, scroll_by_buttonpress)
+function vshow(vol, direction, pause_seconds, fit_to_screen, scroll_by_buttonpress)
 % Show slices of a volume using a figure loop
 %
 % direction: scalar, default: 3. Direction along to scroll.
