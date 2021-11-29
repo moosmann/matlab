@@ -44,7 +44,7 @@ xticklabels({});yticklabels({});axis off equal fill tight image
 % imsc(imd(s1r,s2r))
 % xticklabels({});yticklabels({});axis off equal fill tight image
 
-%% EMBL background filter
+%% EMBL background filter with bilateral filter
 %p = '/asap3/petra3/gpfs/p05/2020/data/11009667/raw/embl_060_200924_dist_1400_zshift_0p2_010';
 
 fn = '/asap3/petra3/gpfs/p05/2020/data/11009667/processed/images/flat_fields_dark_corrected.mat';

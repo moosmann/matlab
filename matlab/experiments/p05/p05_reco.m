@@ -35,8 +35,8 @@ function p05_reco( external_parameter )
 % Just copy parameter and set quick switch to 1
 par.quick_switch = 0;
 par.scan_path = pwd;
-par.raw_bin = 4;
-par.raw_roi = [.3 .7];%[.2 0.8];
+par.raw_bin = 2;
+par.raw_roi = [];%[.2 0.8];
 par.proj_range = 1;%:3000;
 par.ref_range = 1;%4;
 par.ref_path = {};
@@ -75,7 +75,7 @@ par.eff_pixel_size = []; %1.07e-6; % in m. if empty: read from log lfile. effect
 par.pixel_scaling = []; % to account for mismatch of eff_pixel_size with, ONLY APPLIED BEFORE TOMOGRAPHIC RECONSTRUCTION, HAS TO BE CHANGED!
 par.read_image_log = 0; % bool, default: 0. Read metadata from image log instead hdf5, if image log exists
 %%% PREPROCESSING %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-par.raw_bin = 4; % projection binning factor: integer
+par.raw_bin = 2; % projection binning factor: integer
 par.raw_roi = []; % vertical and/or horizontal ROI; (1,1) coordinate = top left pixel; supports absolute, relative, negative, and mixed indexing.
 % []: use full image;
 % [y0 y1]: vertical ROI, skips first raw_roi(1)-1 lines, reads until raw_roi(2); if raw_roi(2) < 0 reads until end - |raw_roi(2)|; relative indexing similar.
@@ -87,7 +87,7 @@ par.filter_ref = @(x) (x);
 par.filter_proj = @(x) (x);
 % STITCHING/CROPPING only for scans without lateral movment. Legacy support
 par.crop_at_rot_axis = 0; % for recos of scans with excentric rotation axis but WITHOUT projection stitching
-par.stitch_projections = 1; % for 2 pi cans: stitch projection at rotation axis position. Recommended with phase retrieval to reduce artefacts. Standard absorption contrast data should work well without stitching. Subpixel stitching not supported (non-integer rotation axis position is rounded, less/no binning before reconstruction can be used to improve precision).
+par.stitch_projections = 0; % for 2 pi cans: stitch projection at rotation axis position. Recommended with phase retrieval to reduce artefacts. Standard absorption contrast data should work well without stitching. Subpixel stitching not supported (non-integer rotation axis position is rounded, less/no binning before reconstruction can be used to improve precision).
 par.stitch_method = 'sine'; 'step';'linear'; %  ! CHECK correlation area !
 % 'step' : no interpolation, use step function
 % 'linear' : linear interpolation of overlap region
@@ -101,7 +101,7 @@ pixel_filter_threshold_flat = [0.02 0.005]; % Flat fields: threshold parameter f
 pixel_filter_threshold_proj = [0.02 0.005]; % Raw projection: threshold parameter for hot/dark pixel filter, for details see 'FilterPixel'
 pixel_filter_radius = [5 5]; % Increase only if blobs of zeros or other artefacts are expected. Can increase processing time heavily.
 par.ring_current_normalization = 1; % normalize flat fields and projections by ring current
-image_correlation.method = 'median';'ssim-ml';'entropy';'none';'ssim';'ssim-g';'std';'cov';'corr';'diff1-l1';'diff1-l2';'diff2-l1';'diff2-l2';'cross-entropy-12';'cross-entropy-21';'cross-entropy-x';
+image_correlation.method = 'ssim-ml';'median';'entropy';'none';'ssim';'ssim-g';'std';'cov';'corr';'diff1-l1';'diff1-l2';'diff2-l1';'diff2-l2';'cross-entropy-12';'cross-entropy-21';'cross-entropy-x';
 % Correlation of projections and flat fields. Essential for DCM data. Typically improves reconstruction quality of DMM data, too.
 % Available methods ('ssim-ml'/'entropy' usually work best):
 % 'none' : no correlation, for DPC
@@ -124,7 +124,7 @@ image_correlation.filter_type = 'median'; % string. correlation ROI filter type,
 image_correlation.filter_parameter = {[3 3], 'symmetric'}; % cell. filter paramaters to be parsed with {:}
 % 'median' : using medfilt2, parameters: {[M N]-neighboorhood, 'padding'}
 % 'wiener' : using wiender2, parameters: {[M N]-neighboorhood}
-ring_filter.apply = 1; % ring artifact filter (use only for scans without lateral sample movement)
+ring_filter.apply = 0; % ring artifact filter (use only for scans without lateral sample movement)
 ring_filter.apply_before_stitching = 1; % ! Consider when phase retrieval is applied !
 ring_filter.method = 'jm'; 'wavelet-fft';
 ring_filter.waveletfft_dec_levels = 1:6; % decomposition levels for 'wavelet-fft'
@@ -151,7 +151,7 @@ phase_retrieval.dpc_bin = 4;
 tomo.run = 1; % run tomographic reconstruction
 tomo.run_interactive_mode = 0; % if tomo.run = 0, use to determine rot axis positions without processing the full tomogram;
 tomo.reco_mode = '3D';'slice';  % slice-wise or full 3D backprojection. 'slice': volume must be centered at origin & no support of rotation axis tilt, reco binning, save compressed
-tomo.vol_size = [-1 1 -1 1 -0.5 0.5];% 6-component vector [xmin xmax ymin ymax zmin zmax], for excentric rot axis pos / extended FoV;. if empty, volume is centerd within tomo.vol_shape. unit voxel size is assumed. if smaller than 10 values are interpreted as relative size w.r.t. the detector size. Take care bout minus signs! Note that if empty vol_size is dependent on the rotation axis position.
+tomo.vol_size = [];[-1 1 -1 1 -0.5 0.5];% 6-component vector [xmin xmax ymin ymax zmin zmax], for excentric rot axis pos / extended FoV;. if empty, volume is centerd within tomo.vol_shape. unit voxel size is assumed. if smaller than 10 values are interpreted as relative size w.r.t. the detector size. Take care bout minus signs! Note that if empty vol_size is dependent on the rotation axis position.
 tomo.vol_shape = []; %[1 1 1] shape (# voxels) of reconstruction volume. used for excentric rot axis pos. if empty, inferred from 'tomo.vol_size'. in absolute numbers of voxels or in relative number w.r.t. the default volume which is given by the detector width and height.
 tomo.rot_angle_full_range = [];% 2 * pi ;[]; % in radians. if []: full angle of rotation including additional increment, or array of angles. if empty full rotation angles is determined automatically to pi or 2 pi
 tomo.rot_angle_offset = 0; % global rotation of reconstructed volume
@@ -177,8 +177,8 @@ tomo.algorithm =  'fbp';'cgls';'sirt';'sart';'em';'fbp-astra'; % SART/EM only wo
 tomo.iterations = 50; % for iterateive algorithms: 'sirt', 'cgls', 'sart', 'em'
 tomo.MinConstraint = []; % sirt3D/sirt2d/sart2d only. If specified, all values below MinConstraint will be set to MinConstraint. This can be used to enforce non-negative reconstructions, for example.
 tomo.MaxConstraint = []; % sirt3D/sirt2d/sart2d only. If specified, all values above MaxConstraint will be set to MaxConstraint.
-tomo.rot_axis_search_auto = 0;
-tomo.rot_axis_search_range = 9:0.25:12.5; % search reach for automatic determination of the rotation axis offset, overwrite interactive result if not empty
+tomo.rot_axis_search_auto = 0; % find extrema of metric within search range
+tomo.rot_axis_search_range = []; % search reach for automatic determination of the rotation axis offset, overwrite interactive result if not empty
 tomo.rot_axis_search_metric = 'neg'; % string: 'neg','entropy','iso-grad','laplacian','entropy-ML','abs'. Metric to find rotation axis offset
 tomo.rot_axis_search_extrema = 'max'; % string: 'min'/'max'. chose min or maximum position
 tomo.rot_axis_search_fit = 1; % bool: fit calculated metrics and find extrema, otherwise use extrema from search range
@@ -2391,43 +2391,40 @@ if tomo.run
                 filename = sprintf( '%sreco_3MidAdaptHisteq.tif', write.reco_path );
                 write32bitTIFfromSingle( filename, rot90(imah(im),0) );
                 
-                % Save mean and min/max projections
-                for dd = 1:3
-                    im = squeeze(max( vol, [], dd ));
-                    filename = sprintf( '%sreco_%uProjMax.tif', write.reco_path,dd );
-                    if dd == 3
-                        write32bitTIFfromSingle( filename, rot90(im, 0) );
-                    else
-                        write32bitTIFfromSingle( filename, rot90(im,-1) );
+                %% Save mean and min/max projections
+                for h = {{'Max', @(vol,dd) max( vol, [], dd )}, ...
+                        {'Min', @(vol,dd) min( vol, [], dd )}, ...
+                        {'Mean', @(vol,dd) mean( vol, dd )}, ...
+                        {'Std', @(vol,dd) std( vol, 0, dd )}, ...
+                        }
+                    f = h{1}{2};
+                    fname = h{1}{1};
+                    for dd = 1:3
+                        im = squeeze( f(vol,dd));
+                        filename = sprintf( '%sreco_%uProj%s.tif', write.reco_path,dd, fname );
+                        write32bitTIFfromSingle( filename, rot90(im, (dd==3) - 1) );
                     end
                 end
-                for dd = 1:3
-                    im = squeeze(min( vol, [], dd ));
-                    filename = sprintf( '%sreco_%uProjMin.tif', write.reco_path,dd );
-                    if dd == 3
-                        write32bitTIFfromSingle( filename, rot90(im, 0) );
-                    else
-                        write32bitTIFfromSingle( filename, rot90(im,-1) );
-                    end
-                end
-                for dd = 1:3
-                    im = squeeze(mean( vol, dd ));
-                    filename = sprintf( '%sreco_%uProjMean.tif', write.reco_path,dd );
-                    if dd == 3
-                        write32bitTIFfromSingle( filename, rot90(im, 0) );
-                    else
-                        write32bitTIFfromSingle( filename, rot90(im,-1) );
-                    end
-                end
-                for dd = 1:3
-                    im = squeeze(std( vol, 0, dd ));
-                    filename = sprintf( '%sreco_%uProjStd.tif', write.reco_path,dd );
-                    if dd == 3
-                        write32bitTIFfromSingle( filename, rot90(im, 0) );
-                    else
-                        write32bitTIFfromSingle( filename, rot90(im,-1) );
-                    end
-                end
+%                 for dd = 1:3
+%                     im = squeeze(max( vol, [], dd ));
+%                     filename = sprintf( '%sreco_%uProjMax.tif', write.reco_path,dd );
+%                     write32bitTIFfromSingle( filename, rot90(im, (d==3) - 1) );
+%                 end
+%                 for dd = 1:3
+%                     im = squeeze(min( vol, [], dd ));
+%                     filename = sprintf( '%sreco_%uProjMin.tif', write.reco_path,dd );
+%                     write32bitTIFfromSingle( filename, rot90(im, (d==3) - 1) );
+%                 end
+%                 for dd = 1:3
+%                     im = squeeze(mean( vol, dd ));
+%                     filename = sprintf( '%sreco_%uProjMean.tif', write.reco_path,dd );
+%                     write32bitTIFfromSingle( filename, rot90(im, (d==3) - 1) );
+%                 end
+%                 for dd = 1:3
+%                     im = squeeze(std( vol, 0, dd ));
+%                     filename = sprintf( '%sreco_%uProjStd.tif', write.reco_path,dd );
+%                     write32bitTIFfromSingle( filename, rot90(im, (d==3) - 1) );
+%                 end
                 fprintf( ' done in %.2f min.', (toc - t3) / 60)
 
                 

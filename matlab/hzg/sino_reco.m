@@ -45,16 +45,16 @@ scan_path = pwd;
     '/asap3/petra3/gpfs/p05/2020/data/11010107/processed/bmc07_v67r';
     '/asap3/petra3/gpfs/p05/2019/data/11007580/processed/smf_09_be_3033';
     '/asap3/petra3/gpfs/p07/2019/data/11007454/processed/bmc06_tooth1';
-raw_bin = 2; % projection binning factor: integer
+raw_bin = 3; % projection binning factor: integer
 proj_range = []; % projection range
 read_sino_folder = sprintf( 'trans%02u', raw_bin);
 read_sino = 1; % read preprocessed sinograms. CHECK if negative log has to be taken!
 read_sino_trafo = @(x) (x);%rot90(x); % anonymous function applied to the image which is read e.g. @(x) rot90(x)
-sino_range = [440 500];
+sino_range = [];[440 500];
 energy = [];%59120.342381723924;32999.982; % in eV!
 sample_detector_distance = [];%50.010600;0.4; % in m
 eff_pixel_size = [];%0.00106398;1.26646e-6; % in m
-tomo.rot_angle_full_range = 2*pi; % in radians. if []: full angle of rotation including additional increment, or array of angles. if empty full rotation angles is determined automatically to pi or 2 pi
+tomo.rot_angle_full_range = 1 * pi; % in radians. if []: full angle of rotation including additional increment, or array of angles. if empty full rotation angles is determined automatically to pi or 2 pi
 %%% RING FILTER
 ring_filter.apply = 0; % ring artifact filter (use only for scans without lateral sample movement)
 ring_filter.method = 'jm'; 'wavelet-fft';
@@ -77,8 +77,8 @@ tomo.run_interactive_mode = 1; % if tomo.run = 0, use to determine rot axis posi
 tomo.reco_mode = '3D'; 'slice'; % slice-wise or full 3D backprojection. 'slice': volume must be centered at origin & no support of rotation axis tilt, reco binning, save compressed
 tomo.vol_size = [];%[-1 1 -1 1 -0.5 0.5];% 6-component vector [xmin xmax ymin ymax zmin zmax], for excentric rot axis pos / extended FoV;. if empty, volume is centerd within tomo.vol_shape. unit voxel size is assumed. if smaller than 10 values are interpreted as relative size w.r.t. the detector size. Take care bout minus signs! Note that if empty vol_size is dependent on the rotation axis position.
 tomo.vol_shape = []; %[1 1 1] shape (# voxels) of reconstruction volume. used for excentric rot axis pos. if empty, inferred from 'tomo.vol_size'. in absolute numbers of voxels or in relative number w.r.t. the default volume which is given by the detector width and height.
-tomo.rot_angle_offset = -0.4259/2; % global rotation of reconstructed volume
-tomo.rot_axis_offset = 0.9;[]; % rotation axis offset w.r.t to the image center. Assuming the rotation axis position to be centered in the FOV for standard scan, the offset should be close to zero.
+tomo.rot_angle_offset = 0; % global rotation of reconstructed volume
+tomo.rot_axis_offset = []; % rotation axis offset w.r.t to the image center. Assuming the rotation axis position to be centered in the FOV for standard scan, the offset should be close to zero.
 tomo.rot_axis_position = []; % if empty use automatic computation. EITHER OFFSET OR POSITION MUST BE EMPTY. YOU MUST NOT USE BOTH!
 tomo.rot_axis_offset_shift = []; %[]; % absolute lateral movement in pixels during fly-shift-scan, overwrite lateral shift read out from hdf5 log
 tomo.rot_axis_tilt_camera = 0; % in rad. camera tilt w.r.t rotation axis.
@@ -127,7 +127,7 @@ write.compression_method = 'outlier';'histo';'full'; 'std'; 'threshold'; % metho
 write.compression_parameter = [0.02 0.02]; % compression-method specific parameter
 %%% INTERACTION %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 par.visual_output = 0; % show images and plots during reconstruction
-interactive_mode.rot_axis_pos = 0; % reconstruct slices with dif+ferent rotation axis offsets
+interactive_mode.rot_axis_pos = 1; % reconstruct slices with dif+ferent rotation axis offsets
 interactive_mode.rot_axis_pos_default_search_range = []; % if empty: asks for search range when entering interactive mode
 interactive_mode.rot_axis_tilt = 0; % reconstruct slices with different offset AND tilts of the rotation axis
 interactive_mode.rot_axis_tilt_default_search_range = []; % if empty: asks for search range when entering interactive mode
@@ -305,12 +305,15 @@ data_struct = dir( [sino_path filesep '*.tif'] );
 if isempty( data_struct )
     error('\n Sinograms not found.')
 else
-    sino_names = {data_struct.name};    
+    sino_names = {data_struct.name};
 end
-if numel( sino_range ) == 2
-    sino_range = sino_range(1):sino_range(2);
+if ~isempty(sino_range)
+    
+    if numel( sino_range ) == 2
+        sino_range = sino_range(1):sino_range(2);
+    end
+    sino_names = sino_names(sino_range);
 end
-sino_names = sino_names(sino_range);
 im_shape_binned2 = numel( sino_names );
 sino_names_mat = NameCellToMat( sino_names );
 
