@@ -70,7 +70,7 @@ end
 % Slab
 slice_range = slice + (-dz:dz);
 sino = proj(:, slice_range, :);
-fprintf( '\n sino slab size : %u %u %u', size(sino) )
+%fprintf( '\n sino slab size : %u %u %u', size(sino) )
 
 if strcmpi( tomo.algorithm, 'fbp' )
     % Ramp filter

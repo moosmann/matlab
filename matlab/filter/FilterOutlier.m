@@ -34,6 +34,7 @@ end
 
 % Sort image values
 im_sorted = sort( im(:) );
+
 PrintVerbose( verbose, '\n image : min, max = %f, %f', im_sorted(1), im_sorted(end) )
 % Lower threshold and index
 ind_low = ceil( threshold(1) * numel( im_sorted ) );

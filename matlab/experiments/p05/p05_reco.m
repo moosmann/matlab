@@ -33,29 +33,33 @@ function p05_reco( external_parameter )
 % !!! QUICK SWITCH TO ALTERNATIVE SET OF PARAMETERS !!!
 % !!! OVERWRITES PARAMETERS BELOW QUICK SWITCH SECTION !!!
 % Just copy parameter and set quick switch to 1
-par.quick_switch = 0;
+par.quick_switch = 1;
 par.scan_path = pwd;
-par.raw_bin = 2;
+par.raw_bin = 8;
 par.raw_roi = [];%[.2 0.8];
-par.proj_range = 1;%:3000;
-par.ref_range = 1;%4;
+par.proj_range = 2;%:3000
+par.ref_range = 4;%4;
 par.ref_path = {};
 phase_retrieval.apply = 0;
 interactive_mode.phase_retrieval = 0;
 write.to_scratch = 0;
-image_correlation.num_flats = 21;
+image_correlation.num_flats = 19;
 image_correlation.method = 'median';
 interactive_mode.rot_axis_pos = 1;
 interactive_mode.rot_axis_tilt = 0; 
 tomo.rot_axis_tilt_camera = [];
 tomo.interpolate_missing_angles = 0;
 tomo.rot_axis_search_auto = 0;
-tomo.rot_axis_search_range = [];
-tomo.rot_axis_search_metric = '';
-tomo.rot_axis_search_verbose = 0;
+tomo.rot_axis_search_range = -2:0.1:2.5;
+tomo.rot_axis_search_metric = 'neg';
+tomo.rot_axis_search_extrema = 'max';
+tomo.rot_axis_search_fit = 0;
+tomo.rot_axis_search_verbose = 1;
 par.pixel_scaling = [];
 %write.subfolder_reco = 'proj1'; 
 write.parfolder = '';
+par.poolsize = 0.8; % number of workers used in a local parallel pool. if 0: use current config. if >= 1: absolute number. if 0 < poolsize < 1: relative amount of all cores to be used. if SLURM scheduling is available, a default number of workers is used.
+par.poolsize_gpu_limit_factor = 0.5; % Relative amount of GPU memory used for preprocessing during parloop. High values speed up Proprocessing, but increases out-of-memory failure
 % END OF QUICK SWITCH TO ALTERNATIVE SET OF PARAMETERS %%%%%%%%%%%%%%%%%%%%
 
 pp_parameter_switch % DO NOT DELETE THIS LINE
@@ -75,7 +79,7 @@ par.eff_pixel_size = []; %1.07e-6; % in m. if empty: read from log lfile. effect
 par.pixel_scaling = []; % to account for mismatch of eff_pixel_size with, ONLY APPLIED BEFORE TOMOGRAPHIC RECONSTRUCTION, HAS TO BE CHANGED!
 par.read_image_log = 0; % bool, default: 0. Read metadata from image log instead hdf5, if image log exists
 %%% PREPROCESSING %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-par.raw_bin = 2; % projection binning factor: integer
+par.raw_bin = 4; % projection binning factor: integer
 par.raw_roi = []; % vertical and/or horizontal ROI; (1,1) coordinate = top left pixel; supports absolute, relative, negative, and mixed indexing.
 % []: use full image;
 % [y0 y1]: vertical ROI, skips first raw_roi(1)-1 lines, reads until raw_roi(2); if raw_roi(2) < 0 reads until end - |raw_roi(2)|; relative indexing similar.
@@ -134,8 +138,8 @@ ring_filter.jm_median_width = 11; % multiple widths are applied consecutively, e
 par.strong_abs_thresh = 1; % if 1: does nothing, if < 1: flat-corrected values below threshold are set to one. Try with algebratic reco techniques.
 par.norm_sino = 0; % not recommended, can introduce severe artifacts, but sometimes improves quality
 %%% PHASE RETRIEVAL %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-phase_retrieval.apply = 0; % See 'PhaseFilter' for detailed description of parameters !
-phase_retrieval.apply_before = 0; % before stitching, interactive mode, etc. For phase-contrast data with an excentric rotation axis phase retrieval should be done afterwards. To find the rotataion axis position use this option in a first run, and then turn it of afterwards.
+phase_retrieval.apply = 1; % See 'PhaseFilter' for detailed description of parameters !
+phase_retrieval.apply_before = 1; % before stitching, interactive mode, etc. For phase-contrast data with an excentric rotation axis phase retrieval should be done afterwards. To find the rotataion axis position use this option in a first run, and then turn it of afterwards.
 phase_retrieval.post_binning_factor = 1; % Binning factor after phase retrieval, but before tomographic reconstruction
 phase_retrieval.method = 'tie';'tieNLO_Schwinger';'dpc';'tie';'qp';'qpcut'; %'qp' 'ctf' 'tie' 'qp2' 'qpcut'
 % Interactive phase retrieval not supported for method 'tieNLO_Schwinger'
@@ -204,7 +208,7 @@ write.uint8 = 0; % save binned 8bit unsigned integer tiff using 'write.compressi
 % Optionally save binned reconstructions, only works in '3D' reco_mode
 write.float_binned = 0; % save binned single precision (32-bit float) tiff
 write.uint16_binned = 0; % save binned 16bit unsigned integer tiff using 'write.compression_method'
-write.uint8_binned = 1; % save binned 8bit unsigned integer tiff using 'wwrite.compression_method'
+write.uint8_binned = 0; % save binned 8bit unsigned integer tiff using 'wwrite.compression_method'
 write.reco_binning_factor = 2; % IF BINNED VOLUMES ARE SAVED: binning factor of reconstructed volume
 write.compression_method = 'outlier';'histo';'full'; 'std'; 'threshold'; % method to compression dynamic range into [0, 1]
 write.compression_parameter = [0.02 0.02]; % compression-method specific parameters
@@ -487,6 +491,10 @@ end
 % Figure path
 write.fig_path = [write.path, filesep, 'figures', filesep];
 fig_path = write.fig_path;
+
+% Image path
+write.im_path = [write.path, filesep, 'images', filesep];
+im_path = write.im_path;
 
 % Path to flat-field corrected projections
 flatcor_path = sprintf( '%s/flat_corrected/rawBin%u/', write.path, raw_bin );
@@ -1123,22 +1131,30 @@ if ~par.read_flatcor && ~par.read_sino
         darks_to_use(nn) = boolean( max2( dark(:,:,nn) )  );
     end
     
-    % Median dark
-    dark = squeeze( median(dark(:,:,darks_to_use), 3) );
+    % Median/Mean dark
+    dark_median = squeeze( median(dark(:,:,darks_to_use), 3) );
+    dark_mean = squeeze( mean(dark(:,:,darks_to_use), 3) );
     dark_med_min = min( dark(:) );
     dark_med_max = max( dark(:) );
+    dark = dark_median;
     
     % Binned dark
-    dark_binned = 1 / raw_bin^2 * Binning( dark, raw_bin);
+    dark_median_binned = 1 / raw_bin^2 * Binning( dark_median, raw_bin);    
+    dark_mean_binned = 1 / raw_bin^2 * Binning( dark_mean, raw_bin);
     fprintf( ' done in %.1f s', toc-t)
     fprintf( '\n min/max of all darks : %g %g', darks_min, darks_max);
     fprintf( '\n min/max of median dark : %g %g', dark_med_min, dark_med_max);
+    
+    % Save dark
+    CheckAndMakePath(im_path)
+    write32bitTIFfromSingle( sprintf('%sdark_median_binned.tif', im_path), rot90(dark_median_binned ) )
+    write32bitTIFfromSingle( sprintf('%sdark_mean_binned.tif', im_path), rot90( dark_mean_binned) )
     
     % Fig: raw + dark field
     if par.visual_output
         h1 = figure( 'Name', 'data and flat-and-dark-field correction', 'WindowState', window_state );
         subplot(2,3,1)
-        imsc1( dark_binned );
+        imsc1( dark_median_binned );
         title(sprintf('median dark field'))
         colorbar
         axis equal tight
@@ -1279,6 +1295,12 @@ if ~par.read_flatcor && ~par.read_sino
             end
         end
     end
+    
+    % Save flat images
+    num_flat12 = round( size(flat,3) / 2 ) ;
+    write32bitTIFfromSingle( sprintf('%sflat_dark_subtracted_beamcurrent_corrected_binned_%06u.tif', im_path, 1), rot90(flat(:,:,1)) )
+    write32bitTIFfromSingle( sprintf('%sflat_dark_subtracted_beamcurrent_corrected_binned_%06u.tif', im_path, num_flat12 ), rot90(flat(:,:,num_flat12)) ) ;
+    write32bitTIFfromSingle( sprintf('%sflat_dark_subtracted_beamcurrent_corrected_binned_%06u.tif', im_path, size(flat,3)), rot90(flat(:,:,end)) )
     
     %% Figure: Flat field
     if par.visual_output
@@ -1527,6 +1549,10 @@ if ~par.read_flatcor && ~par.read_sino
     fprintf( '\n global min/max of projs after filtering and binning:  %6g %6g', raw_min, raw_max)
     fprintf( '\n global min/max of projs after dark-field correction and ring current normalization:  %6g %6g', raw_min2, raw_max2)
     
+    % Save projections
+    write32bitTIFfromSingle( sprintf('%sproj_dark_subtracted_beamcurrent_corrected_binned_%06u.tif', im_path, 1), rot90(proj(:,:,1)) )
+    write32bitTIFfromSingle( sprintf('%sproj_dark_subtracted_beamcurrent_corrected_binned_%06u.tif', im_path, size(proj,3)), rot90(proj(:,:,end)) );
+    
     %% Figure: image correlation roi
     if par.visual_output && ~strcmp( image_correlation.method, 'none' )
         if exist( 'h_corr_roi' , 'var' ) && isvalid( h_corr_roi )
@@ -1753,7 +1779,7 @@ if ~par.read_flatcor && ~par.read_sino
         CheckAndMakePath( flatcor_path, write.deleteFiles, write.beamtimeID )
         parfor nn = 1:size( proj, 3 )
             filename = sprintf('%sproj_%s_%06u.tif', flatcor_path, scan_name, nn );
-            write32bitTIFfromSingle(filename, rot90( proj(:, :, nn) ) );
+            write32bitTIFfromSingle(filename, rot90(proj(:,:,nn)) );
         end
         fprintf( ' done in %.1f (%.2f min)', toc-t, (toc-t)/60)
     end
@@ -2370,25 +2396,25 @@ if tomo.run
                 % Save ortho slices x
                 nn = round( size( vol, 1 ) / 2);
                 im = squeeze( vol(nn,:,:) );
-                filename = sprintf( '%sreco_1Mid.tif', write.reco_path );
+                filename = sprintf( '%sreco_1Mid.tif', im_path );
                 write32bitTIFfromSingle( filename, rot90(im,-1) );
-                filename = sprintf( '%sreco_1MidAdaptHisteq.tif', write.reco_path );
+                filename = sprintf( '%sreco_1MidAdaptHisteq.tif', im_path );
                 write32bitTIFfromSingle( filename, rot90(imah(im),-1) );
                 
                 % Save ortho slices y
                 nn = round( size( vol, 2 ) / 2);
                 im = squeeze( vol(:,nn,:) );
-                filename = sprintf( '%sreco_2Mid.tif', write.reco_path );
+                filename = sprintf( '%sreco_2Mid.tif', im_path );
                 write32bitTIFfromSingle( filename, rot90(im,-1) );
-                filename = sprintf( '%sreco_2MidAdaptHisteq.tif', write.reco_path );
+                filename = sprintf( '%sreco_2MidAdaptHisteq.tif', im_path );
                 write32bitTIFfromSingle( filename, rot90(imah(im),-1) );
                 
                 % Save ortho slices z
                 nn = round( size( vol, 3 ) / 2);
                 im = squeeze( vol(:,:,nn) );
-                filename = sprintf( '%sreco_3Mid.tif', write.reco_path );
+                filename = sprintf( '%sreco_3Mid.tif', im_path );
                 write32bitTIFfromSingle( filename, rot90(im,0) );
-                filename = sprintf( '%sreco_3MidAdaptHisteq.tif', write.reco_path );
+                filename = sprintf( '%sreco_3MidAdaptHisteq.tif', im_path );
                 write32bitTIFfromSingle( filename, rot90(imah(im),0) );
                 
                 %% Save mean and min/max projections
@@ -2401,7 +2427,7 @@ if tomo.run
                     fname = h{1}{1};
                     for dd = 1:3
                         im = squeeze( f(vol,dd));
-                        filename = sprintf( '%sreco_%uProj%s.tif', write.reco_path,dd, fname );
+                        filename = sprintf( '%sreco_%uProj%s.tif', im_path,dd, fname );
                         write32bitTIFfromSingle( filename, rot90(im, (dd==3) - 1) );
                     end
                 end
