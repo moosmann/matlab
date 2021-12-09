@@ -34,7 +34,7 @@ function p05_reco( external_parameter )
 % !!! OVERWRITES PARAMETERS BELOW QUICK SWITCH SECTION !!!
 % Just copy parameter and set quick switch to 1
 par.quick_switch = 1;
-par.scan_path = pwd;
+par.scan_path = pwd;%last_folder_modified('')
 par.raw_bin = 8;
 par.raw_roi = [];%[.2 0.8];
 par.proj_range = 2;%:3000
@@ -65,7 +65,7 @@ par.poolsize_gpu_limit_factor = 0.5; % Relative amount of GPU memory used for pr
 pp_parameter_switch % DO NOT DELETE THIS LINE
 
 %%% SCAN %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%l%%%%%%%%%%%
-par.scan_path = pwd; % string/pwd. pwd: change to directory of the scan to be reconstructed, string: absolute scan path
+par.scan_path = pwd; % string/pwd. pwd: change to directory of the scan to be reconstructed, string: absolute scan path, last_folder_modified('folder')
 par.ref_path = {}; % cell of strings. Additonal data sets to be included for the correlation of projections and reference images
 par.read_flatcor = 0; % read preprocessed flatfield-corrected projections. CHECK if negative log has to be taken!
 par.read_flatcor_path = ''; % subfolder of 'flat_corrected' containing projections
