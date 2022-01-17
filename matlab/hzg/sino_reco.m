@@ -1,3 +1,4 @@
+function sino_reco(scan_path, rot_axis_full_range, rot_axis_search_range)
 % P05 reconstruction pipeline: preprocessing, filtering, phase retrieval,
 % tomographic reconstruction, ...
 %
@@ -25,9 +26,9 @@
 %
 % Written by Julian Moosmann.
 
-if ~exist( 'external_parameter' ,'var')
-    clearvars
-end
+% if ~exist( 'external_parameter' ,'var')
+%     clearvars
+% end
 close all hidden % close all open windows
 %dbstop if error
 
@@ -36,7 +37,7 @@ close all hidden % close all open windows
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %%% SCAN %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-scan_path = pwd;
+%scan_path = pwd;
     '/asap3/petra3/gpfs/p07/2020/data/11010206/processed/mgbone05_19118_ti_8m';
     '/asap3/petra3/gpfs/p05/2020/data/11008823/processed/nova004_pyrochroa_coccinea_a';
     '/asap3/petra3/gpfs/p05/2020/data/11008823/processed/nova003_pentatomidae';
@@ -47,14 +48,14 @@ scan_path = pwd;
     '/asap3/petra3/gpfs/p07/2019/data/11007454/processed/bmc06_tooth1';
 raw_bin = 2; % projection binning factor: integer
 proj_range = []; % projection range
-read_sino_folder = 'height_00000/sino'; %sprintf( 'trans%02u', raw_bin);% string. default: '', picks first trans folder found
-read_sino = 1; % read preprocessed sinograms. CHECK if negative log has to be taken!
+read_sino_folder = sprintf( 'trans%02u', raw_bin);% string. default: '', picks first trans folder found
+%read_sino = 1; % read preprocessed sinograms. CHECK if negative log has to be taken!
 read_sino_trafo = @(x) (x);%rot90(x); % anonymous function applied to the image which is read e.g. @(x) rot90(x)
 sino_range = [];
 energy = []; % in eV!
 sample_detector_distance = []; % in m
 eff_pixel_size = []; % in m
-tomo.rot_angle_full_range = 1 * pi; % in radians. if []: full angle of rotation including additional increment, or array of angles. if empty full rotation angles is determined automatically to pi or 2 pi
+tomo.rot_angle_full_range = rot_axis_full_range; % in radians. if []: full angle of rotation including additional increment, or array of angles. if empty full rotation angles is determined automatically to pi or 2 pi
 %%% RING FILTER
 ring_filter.apply = 0; % ring artifact filter (use only for scans without lateral sample movement)
 ring_filter.method = 'jm'; 'wavelet-fft';
@@ -75,7 +76,7 @@ phase_retrieval.padding = 1; % padding of intensities before phase retrieval, 0:
 tomo.run = 1; % run tomographic reconstruction
 tomo.run_interactive_mode = 1; % if tomo.run = 0, use to determine rot axis positions without processing the full tomogram;
 tomo.reco_mode = '3D'; 'slice';% slice-wise or full 3D backprojection. 'slice': volume must be centered at origin & no support of rotation axis tilt, reco binning, save compressed
-tomo.slab_wise = 0;
+tomo.slab_wise = 1;
 tomo.slices_per_slab = [];
 tomo.vol_size = [];%[-1 1 -1 1 -0.5 0.5];% 6-component vector [xmin xmax ymin ymax zmin zmax], for excentric rot axis pos / extended FoV;. if empty, volume is centerd within tomo.vol_shape. unit voxel size is assumed. if smaller than 10 values are interpreted as relative size w.r.t. the detector size. Take care bout minus signs! Note that if empty vol_size is dependent on the rotation axis position.
 tomo.vol_shape = []; %[1 1 1] shape (# voxels) of reconstruction volume. used for excentric rot axis pos. if empty, inferred from 'tomo.vol_size'. in absolute numbers of voxels or in relative number w.r.t. the default volume which is given by the detector width and height.
@@ -95,17 +96,19 @@ tomo.butterworth_filter = 0; % use butterworth filter in addition to FBP filter
 tomo.butterworth_filter_order = 1;
 tomo.butterworth_filter_frequ_cutoff = 0.9;
 tomo.astra_pixel_size = 1; % detector pixel size for reconstruction: if different from one 'tomo.vol_size' must to be ajusted, too!
-tomo.take_neg_log = 0; % take negative logarithm. if empty, use 1 for attenuation contrast, 0 for phase contrast
+tomo.take_neg_log = 1; % take negative logarithm. if empty, use 1 for attenuation contrast, 0 for phase contrast
 tomo.algorithm = 'fbp';'sirt'; 'cgls';'sart';'em';'fbp-astra'; % SART/EM only work for 3D reco mode
 tomo.iterations = 40; % for 'sirt' or 'cgls'.
 tomo.sirt_MinConstraint = []; % If specified, all values below MinConstraint will be set to MinConstraint. This can be used to enforce non-negative reconstructions, for example.
 tomo.sirt_MaxConstraint = []; % If specified, all values above MaxConstraint will be set to MaxConstraint.
-tomo.rot_axis_pos_search_range = [];
-tomo.rot_axis_pos_search_metric = '';
-tomo.rot_axis_pos_search_extrema = 'max';
+tomo.rot_axis_search_auto = 1; % find extrema of metric within search range
+tomo.rot_axis_search_range = rot_axis_search_range;3:0.1:5.5; % search reach for automatic determination of the rotation axis offset, overwrite interactive result if not empty
+tomo.rot_axis_search_metric = 'neg'; % string: 'neg','entropy','iso-grad','laplacian','entropy-ML','abs'. Metric to find rotation axis offset
+tomo.rot_axis_search_extrema = 'max'; % string: 'min'/'max'. chose min or maximum position
+tomo.rot_axis_search_fit = 1; %
 %%% OUTPUT %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 write.path = ''; % absolute path were output data will be stored. !!overwrites the write.to_scratch flag. if empty uses the beamtime directory and either 'processed' or 'scratch_cc'
-write.to_scratch = 1; % write to 'scratch_cc' instead of 'processed'
+write.to_scratch = 0; % write to 'scratch_cc' instead of 'processed'
 write.deleteFiles = 0; % delete files already existing in output folders. Useful if number or names of files differ when reprocessing.
 write.beamtimeID = ''; % string (regexp),typically beamtime ID, mandatory if 'write.deleteFiles' is true (safety check)
 write.scan_name_appendix = ''; % appendix to the output folder name which defaults to the scan name
@@ -113,7 +116,7 @@ write.parfolder = '';% parent folder to 'reco', 'sino', 'phase', and 'flat_corre
 write.subfolder_flatcor = ''; % subfolder in 'flat_corrected'
 write.subfolder_phase_map = ''; % subfolder in 'phase_map'
 write.subfolder_sino = ''; % subfolder in 'sino'
-write.subfolder_reco = fileparts(read_sino_folder); % subfolder in 'reco'
+write.subfolder_reco = ''; % subfolder in 'reco'
 write.flatcor = 0; % save preprocessed flat corrected projections
 write.sino = 0; % save sinograms (after preprocessing & before FBP filtering and phase retrieval)
 write.reco = 1; % save reconstructed slices (if tomo.run=1)
@@ -129,7 +132,7 @@ write.compression_method = 'outlier';'histo';'full'; 'std'; 'threshold'; % metho
 write.compression_parameter = [0.02 0.02]; % compression-method specific parameter
 %%% INTERACTION %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 par.visual_output = 0; % show images and plots during reconstruction
-interactive_mode.rot_axis_pos = 1; % reconstruct slices with dif+ferent rotation axis offsets
+interactive_mode.rot_axis_pos = 0; % reconstruct slices with dif+ferent rotation axis offsets
 interactive_mode.rot_axis_pos_default_search_range = []; % if empty: asks for search range when entering interactive mode
 interactive_mode.rot_axis_tilt = 0; % reconstruct slices with different offset AND tilts of the rotation axis
 interactive_mode.rot_axis_tilt_default_search_range = []; % if empty: asks for search range when entering interactive mode
@@ -154,10 +157,6 @@ write.uint8_segmented = 0; % experimental: threshold segmentaion for histograms 
 %%% END OF PARAMETERS / SETTINGS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 tic
-verbose = 1;
-vert_shift = 0;
-offset_shift = 0;
-scan_position = [];
 logpar = [];
 if interactive_mode.rot_axis_tilt && strcmpi( tomo.reco_mode, 'slice' )
     error( 'Slicewise reconstruction and reconstruction with tilted rotation axis are not compatible!' )
@@ -193,20 +192,21 @@ assign_default( 'interactive_mode.angles', 0 );
 assign_default( 'interactive_mode.angle_scaling_default_search_range', [] );
 assign_default( 'tomo.rot_axis_corr_area2', [0.1 0.9] );
 assign_default( 'par.window_state', 'normal' );
-assign_default( 'tomo.rot_axis_pos_search_metric', '');
-assign_default( 'tomo.rot_axis_pos_search_verbose', 1);
-assign_default( 'tomo.rot_axis_pos_search_extrema', 'max' );
+assign_default( 'tomo.rot_axis_search_auto', 0);
+assign_default( 'tomo.rot_axis_search_metric', '');
+assign_default( 'tomo.rot_axis_search_verbose', 1);
+assign_default( 'tomo.rot_axis_search_extrema', 'max' );
+assign_default( 'tomo.rot_axis_search_auto', 1);
 
 % Define variables from struct fields for convenience
 raw_bin = single( raw_bin );
 par.raw_bin = raw_bin;
-phase_bin = phase_retrieval.post_binning_factor; % alias for readablity
 eff_pixel_size_binned = raw_bin * eff_pixel_size;
 
 astra_clear % if reco was aborted, ASTRA memory is not cleared
 
 % Utility functions
-imsc1 = @(im) imsc( rot90( im ) );
+%imsc1 = @(im) imsc( rot90( im ) );
 NameCellToMat = @(name_cell) reshape(cell2mat(name_cell), [numel(name_cell{1}), numel(name_cell)])';
 
 % Disable warnings
@@ -223,7 +223,7 @@ end
 [raw_path, scan_name] = fileparts(scan_path);
 scan_path = [scan_path, filesep];
 write.scan_name = scan_name;
-[beamtime_path, raw_folder] = fileparts(raw_path);
+[beamtime_path, ~] = fileparts(raw_path);
 [~, beamtime_id] = fileparts(beamtime_path);
 
 % Output path and folder
@@ -293,7 +293,7 @@ fig_path = write.fig_path;
 CheckAndMakePath( fig_path )
 
 % Start parallel CPU pool %%%
-[poolobj, par.poolsize] = OpenParpool( par.poolsize , par.use_cluster, [beamtime_path filesep 'scratch_cc']);
+[~, par.poolsize] = OpenParpool( par.poolsize , par.use_cluster, [beamtime_path filesep 'scratch_cc']);
 
 t = toc;
 %% Read sinogram %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -329,7 +329,7 @@ sino_names_mat = NameCellToMat( sino_names );
 % Parameters
 filename = sprintf('%s%s', sino_path, sino_names_mat( round( im_shape_binned2 / 2 ), :));
 par.tifftrafo = 0;
-[sino, tiff_info] = read_image( filename, par );
+[sino, ~] = read_image( filename, par );
 sino = read_sino_trafo( sino );
 im_shape_cropbin1 = size( sino, 2 );
 num_proj_read = size( sino, 1 );
@@ -370,7 +370,7 @@ proj = reshape( sino, [im_shape_cropbin1, 1, num_proj_used] );
 [tomo, angles, tint] = interactive_mode_rot_axis( par, logpar, phase_retrieval, tomo, write, interactive_mode, proj, angles);
 
 %% Automatic rot axis determination
-%tomo = find_rot_axis_offset_auto(tomo, proj, par, write, interactive_mode);
+tomo = find_rot_axis_offset_auto(tomo, proj, par, write, interactive_mode);
 
 %% Tomographic reconstruction
 fprintf( '\nTomographic reconstruction:')
@@ -381,7 +381,7 @@ fprintf( '\n volume shape : [%g, %g, %g]', tomo.vol_shape )
 %tomo.angles = tomo.rot_angle_offset + angles;
 
 if write.reco
-    reco_bin = write.reco_binning_factor; % alias for readablity
+    %reco_bin = write.reco_binning_factor; % alias for readablity
     CheckAndMakePath( reco_path, 0 )
     % Save reco path to file
     filename = [userpath, filesep, 'path_to_reco'];
@@ -412,6 +412,7 @@ if tomo.slab_wise
     fprintf( ' \n number of slices per slab : %u', num_slices_per_slab )
     fprintf( ' \n number of slabs : %u', num_slabs )
     % Loop over slab
+    % Hack to continue loop
     if exist('ll', 'var')
         start_slab = ll;
     else
@@ -450,7 +451,7 @@ if tomo.slab_wise
                 sino = padarray( sino, padding * [im_shape_cropbin1 0 0], padding_method, 'post' );
                 sino = real( ifft( bsxfun(@times, fft( sino, [], 1), filt), [], 1, 'symmetric') );
                 sino = sino(1:im_shape_cropbin1,:,:);
-                proj(:, mm, :) = sino;
+                proj(:,mm,:) = sino;
             end
         end
                 
