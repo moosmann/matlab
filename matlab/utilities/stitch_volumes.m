@@ -216,11 +216,7 @@ for nn = 1:num_scans
 end
 
 %% Remove offset %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-if upwards
-    zoffset = min( [s(:).zval] );
-else
-    zoffset = min( [s(:).zval] );
-end
+zoffset = min( [s(:).zval] );
 fap = figure( 'Name', 'Absolute Positions' );
 lgnd = cell( [1 num_scans] );
 for nn = 1:num_scans
@@ -236,6 +232,11 @@ for nn = 1:num_scans
 end
 title( sprintf( '%s scanning (z-axis pointing downwards', dirstr ) )
 legend( lgnd )
+ylabel('absolute shift')
+xlabel('projection number')
+if ~upwards
+    set ( gca, 'ydir', 'reverse' )
+end
 
 %% Noise cut level & Plot vertical cuts
 yy = round( size( s(1).vol, 2 ) / 2 );
@@ -329,7 +330,7 @@ for nn = 1:num_scans - 1
         z1ol_val = zval1(z1ol_pos);
         % Check if first/upper overlap edge of first volume is below lower edge of second volume
         if z1ol_val > zval2(end)
-            z1ol_pos = zval1(1);
+            z1ol_pos = 1;%zval1(1);
             z1ol_val = zval1(z1ol_pos);
         end
         
@@ -339,7 +340,9 @@ for nn = 1:num_scans - 1
         % Check if second/lower overlap edge of second volume is above first
         % volume
         if z2ol_val < zval1(1)
-            z2ol_pos = zval2(end);
+            %z2ol_pos = zval2(end);
+            %z2ol_val = zval2(z2ol_pos);
+            z2ol_pos = numel(zval2);
             z2ol_val = zval2(z2ol_pos);
         end
         
@@ -351,7 +354,7 @@ for nn = 1:num_scans - 1
         % Check if lower overlap edge of first volume is above upper edge
         % of second volume
         if z1ol_val < zval2(1)
-            z1ol_pos = zval1(end);
+            z1ol_pos = numel(zval1);%(end);
             z1ol_val = zval1(z1ol_pos);
         end
         
@@ -361,7 +364,9 @@ for nn = 1:num_scans - 1
         % Check if the lower end of the ROI of the second volume is still
         % larger than the upper end of the first volume
         if z2ol_val > zval1(end)
-            z2ol_pos = zval2(1);
+            %z2ol_pos = zval2(1);
+            %z2ol_val = zval2(z2ol_pos);
+            z2ol_pos = 1;
             z2ol_val = zval2(z2ol_pos);
         end
         
