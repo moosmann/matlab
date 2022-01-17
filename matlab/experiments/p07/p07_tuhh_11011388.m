@@ -22,7 +22,7 @@ end
 
 %% Stitch scans
 fprintf( '\n\nSTITCH SCANS' )
-for n = 106:117%1:numel(s) 
+for n = 135%1:numel(s) 
     name = s{n};
     scan_path = sprintf( '%s%s', proc_path, name);
     scan_subfolder = 'reco_phase/tie_regPar2p00';
