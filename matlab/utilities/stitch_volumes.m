@@ -19,11 +19,13 @@ function [s, vol] = stitch_volumes( scan_path, scan_subfolder, reco_subfolder, c
 
 if nargin < 1
     %scan_path = '/asap3/petra3/gpfs/p05/2017/data/11003950/processed/syn22_77L_Mg5Gd_8w';% upward
-    scan_path = '/asap3/petra3/gpfs/p05/2018/data/11004263/processed/syn004_96R_Mg5Gd_8w'; % downward
+    %scan_path = '/asap3/petra3/gpfs/p05/2018/data/11004263/processed/syn004_96R_Mg5Gd_8w'; % downward
     %scan_path = '/asap3/petra3/gpfs/p05/2018/data/11004263/processed/syn018_35L_PEEK_8w'; %
+    scan_path = '/asap3/petra3/gpfs/p05/2021/data/11009652/processed/zfmk_024_Tenebrio_';
 end
 if nargin < 2
-    scan_subfolder = 'reco';
+    %scan_subfolder = 'reco';
+    scan_subfolder = 'reco_phase/tie_regPar2p40';
 end
 if nargin < 3
     reco_subfolder = 'float_rawBin2';
@@ -37,6 +39,10 @@ end
 if nargin < 6
     stitched_volume_path = '';
 end
+if nargin < 7
+    scan_mask = [];
+    scan_mask = [1 1 1 0];
+end
 
 ca;
 %% Read parameters and data %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -46,6 +52,9 @@ scan_struct = dir( [scan_path '*' ] );
 [~, scan_name ] = fileparts( scan_path );
 mask = ~strcmp( {scan_struct.name}, scan_name );
 scan_struct = scan_struct( mask );
+if ~isempty(scan_mask)    
+    scan_struct = scan_struct( logical( scan_mask ) );
+end
 num_scans = numel( scan_struct );
 % Allocate containing volumes
 s(num_scans) = struct;
