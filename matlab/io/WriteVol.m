@@ -27,7 +27,7 @@ for nn = 1:size(vol,slicing_dimension)
         case 3
             filename = sprintf('%s/%s%07u',path,filename_prefix,nn);
             WriteImage(filename,squeeze(vol(:,:,nn)),'tif')
-        case 27
+        case 2
             filename = sprintf('%s/%s%07u',path,filename_prefix,nn);
             WriteImage(filename,squeeze(vol(:,nn,:)),'tif')
         case 1

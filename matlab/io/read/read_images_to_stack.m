@@ -1,7 +1,7 @@
 function stack = read_images_to_stack(InputPath,StepSize_or_VecOfImagesToRead,FilenamePattern, raw_im_shape, parloop, verbose)
 % Read images (default: tif) into 3D stack.
 %
-% Written by Julian Moosmann, first version: 2010. long ago, 
+% Written by Julian Moosmann, first version: 2010. long ago,
 
 %% Default arguments.
 if nargin < 1
@@ -17,6 +17,9 @@ if nargin < 4
     raw_im_shape = 'kit';
 end
 if nargin < 5
+    parloop = 0;
+end
+if nargin < 6
     verbose = 1;
 end
 
@@ -64,9 +67,19 @@ switch lower(FilenamePattern(end-2:end))
             filename = sprintf('%s%s',InputPath,files{filesToRead(nn)})';
             stack(:,:,nn) = read_raw( filename(1:end-4), raw_im_shape, 'uint16' );
         end
-    otherwise        
-        for nn = NumFilesToRead:-1:1
-            stack(:,:,nn) = imread(sprintf('%s%s',InputPath,files{filesToRead(nn)}));
+    otherwise
+        if parloop
+            im = imread(sprintf('%s%s',InputPath,files{filesToRead(1)}));
+            imsize = size(im);
+            stack = zeros([imsize NumFilesToRead],'single');
+            OpenParpool( 0.8, 0, '', 0, [] );
+            parfor nn = 1:NumFilesToRead
+                stack(:,:,nn) = imread(sprintf('%s%s',InputPath,files{filesToRead(nn)}));
+            end
+        else
+            for nn = NumFilesToRead:-1:1
+                stack(:,:,nn) = imread(sprintf('%s%s',InputPath,files{filesToRead(nn)}));
+            end
         end
 end
 

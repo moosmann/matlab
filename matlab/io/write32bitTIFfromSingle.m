@@ -9,10 +9,13 @@
 % 06/12/2012, 10:00
 % - compatibility with matlab2012a checked
 
-function write32bitTIFfromSingle(filename,A)
+function write32bitTIFfromSingle(filename,A, fmode)
+if nargin < 3
+    fmode = 'w';
+end
 
 % write the image
-tiffOut = Tiff(filename, 'w');
+tiffOut = Tiff(filename, fmode);
 tiffOut.setTag('Photometric',1);
 tiffOut.setTag('ImageLength',size(A,1));
 tiffOut.setTag('ImageWidth',size(A,2));

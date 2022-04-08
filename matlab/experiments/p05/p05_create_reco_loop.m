@@ -1,6 +1,6 @@
-function p05_create_reco_loop( raw_path, scan_name_pattern, out_path, name)
+function p05_create_reco_loop( raw_path, name_pattern, out_path, name, exclude_pattern)
 % Create template script to loop reconstruction over all data sets i.e.
-% folders found under 'raw_path' matching the 'scan_name_pattern'. The
+% folders found under 'raw_path' matching the 'name_pattern'. The
 % created script will be opened immediately in the MATLAB editor for
 % further editing. 
 %
@@ -10,7 +10,7 @@ function p05_create_reco_loop( raw_path, scan_name_pattern, out_path, name)
 % ARGUMTENTS:
 % raw_path : string. Default or if empty: use present working directory, path to scan
 %   for data sets. 
-% scan_name_pattern : string. Default: ''. only add folders matching pattern,
+% name_pattern : string. Default: ''. only add folders matching pattern,
 %   e.g. 'dataSetNamePrefix*'. Asterisk (*) is required to match pattern.
 % out_path : path where loop script will be saved. It's recommended to a
 %   use path within the MATLAB search path. Default:
@@ -20,7 +20,7 @@ function p05_create_reco_loop( raw_path, scan_name_pattern, out_path, name)
 %   
 % Written by Julian Moosmann, 2017-10-10. Last version: 2018-07-22
 %
-% p05_create_reco_loop( raw_path, scan_name_pattern, name, out_path)
+% p05_create_reco_loop( raw_path, name_pattern, name, out_path)
 
 % TODO: Option to overwrite existing file 
 % TODO: file location: add to search path
@@ -30,7 +30,7 @@ if nargin < 1
     raw_path = pwd;
 end
 if nargin < 2
-    scan_name_pattern = '';
+    name_pattern = '';
 end
 if nargin < 3
     out_path = '';
@@ -38,7 +38,9 @@ end
 if nargin < 4
     name = '';
 end
-
+if nargin < 5
+    exclude_pattern = '';
+end
 %% Main %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 if sum( strcmp( raw_path, {'.',''}) )
     raw_path = pwd;
@@ -61,9 +63,18 @@ CheckTrailingSlash( out_path )
 CheckAndMakePath( out_path )
 
 %% Folders to read
-folders = dir( [raw_path filesep scan_name_pattern]);
+folders = dir( [raw_path filesep name_pattern]);
 isub = [folders(:).isdir];
 folders = {folders(isub).name};
+% exclude folders
+if ~isempty( exclude_pattern )
+    for nn = numel(folders):-1:1
+        if contains(folders{nn}, exclude_pattern)
+            folders(nn) = [];
+        end
+    end
+end
+
 fprintf( '\n Found %u data sets in ''%s'' matching the pattern:', numel(folders), raw_path )
 folders(ismember(folders,{'.','..'})) = [];
 for nn = 1:numel( folders )

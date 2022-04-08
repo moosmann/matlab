@@ -411,12 +411,19 @@ switch method
     case 'none'
         fprintf( '\nNO FLAT FIELD CORRECTION')
         
-    case {'', 'median'}
+    case {'', 'median', 'mean'}
         
         % Flat field correction without correlation
-        fprintf( '\nFlat-field correction w/o correlation.')
+        fprintf( '\nFlat-field correction w/o correlation')
         
-        flat_median = median( flat, 3);
+        switch method
+            case 'median'
+                flat_m = median( flat, 3);
+                fprintf(' using median flats')
+            case {'', 'mean'}
+                flat_m = mean( flat, 3);
+                fprintf(' using mean flats')
+        end
         parfor nn = 1:num_proj_used
         %    im = proj(:, :, nn);
             %flat_median_shifted = circshift( flat_median, round( -x0(nn) / raw_bin ), 1 );
@@ -431,10 +438,10 @@ switch method
             if mod( shift_sub, 1 ) ~= 0
                 % crop flat at integer shift, then shift subpixel
                 xx = shift_int + (1:im_shape_cropbin1+1);
-                flat_median_shifted = imtranslate( flat_median(xx,:), [0 -shift_sub], 'linear' );
+                flat_median_shifted = imtranslate( flat_m(xx,:), [0 -shift_sub], 'linear' );
             else
                 xx = shift_int + (1:im_shape_cropbin1);
-                flat_median_shifted = flat_median(xx,:);
+                flat_median_shifted = flat_m(xx,:);
             end
             
             % flat field correction

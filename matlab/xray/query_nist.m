@@ -25,7 +25,8 @@ end
 url = sprintf( 'https://physics.nist.gov/PhysRefData/XrayMassCoef/ElemTab/z%02u.html', atomic_number );
 
 % Query webpage from NIST
-data = webread( url );
+o = weboptions('CertificateFilename','');
+data = webread( url, o );
 
 %% Parse webpage
 num_char = numel( data );
@@ -37,16 +38,47 @@ pos = 0;
 energy = [];
 mass_att_coeff = [];
 energy_abs_coeff = [];
+edge = [];
+edge_energy = [];
+
+% 
+% while pos < num_char
+%     [c, pos] = textscan( data, '%f %f %f', 1, 'HeaderLines', n);
+%     if ~isempty( c{1} )
+%         %disp( c )
+%         energy = cat( 1, energy, c{1} );
+%         mass_att_coeff = cat( 1, mass_att_coeff, c{2} );
+%         energy_abs_coeff = cat( 1, energy_abs_coeff, c{3} );
+%         
+% %         [ce] = textscan( data, '%s %f %f %f',1, 'HeaderLines', n);
+% %         disp(ce{1})
+% %         disp(ce{2})
+% %         if isnumeric(ce{2})
+% %             edge = cat(1, edge, ce{1});
+% %             edge_energy = cat(1, edge_energy, ce{2});
+% %         end    
+%         
+%     end
+%     n = n + 1;
+% end
+
 while pos < num_char
     [c, pos] = textscan( data, '%f %f %f', 'HeaderLines', n);
-    
     if ~isempty( c{1} )
         %disp( c )
         n = n + numel( c{1} ) + 1;
         energy = cat( 1, energy, c{1} );
         mass_att_coeff = cat( 1, mass_att_coeff, c{2} );
         energy_abs_coeff = cat( 1, energy_abs_coeff, c{3} );
-    else
+        
+        [ce] = textscan( data, '%s %f %f %f',1, 'HeaderLines', n);
+        disp(ce{1})
+        disp(ce{2})
+        if isnumeric(ce{2})
+            edge = cat(1, edge, ce{1});
+            edge_energy = cat(1, edge_energy, ce{2});
+        end
+    else        
         n = n + 1;
     end
 

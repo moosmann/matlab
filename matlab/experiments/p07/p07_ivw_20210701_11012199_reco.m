@@ -177,6 +177,13 @@ image_correlation.area_height = [0.2 0.8];
 tomo.interpolate_missing_angles = 1;
 interactive_mode.rot_axis_pos = 0;
 
+
+write.flatcor = 1; 
+write.sino = 1;
+tomo.run = 0;
+write.to_scratch = 1;
+
+
 tomo.vol_size = [-0.25 0.25 -0.25 0.25 -0.5 0.5];
 tomo.rot_axis_offset = 1.5 * 2 / par.raw_bin;
 par.scan_path = [raw_path 'ivw0015_referenzblau02c']; ADD
@@ -400,6 +407,13 @@ par.scan_path = [raw_path 'ivw0035_Struktur2_pink_3_011']; ADD
 par.scan_path = [raw_path 'ivw0035_Struktur2_pink_3_012']; ADD
 par.scan_path = [raw_path 'ivw0035_Struktur2_pink_3_013']; ADD
 par.scan_path = [raw_path 'ivw0035_Struktur2_pink_3_014']; ADD
+
+write.to_scratch = 1;
+write.sino = 1;
+write.flatcor = 1;
+par.scan_path = [raw_path 'ivw0035_Struktur2_pink_3_014']; 
+ADD
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

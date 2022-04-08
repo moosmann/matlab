@@ -1,0 +1,3 @@
+function numcores()
+
+feature('numcores');

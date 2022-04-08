@@ -222,7 +222,8 @@ if tomo.run || tomo.run_interactive_mode
                     if offset(nn) == tomo.rot_axis_offset
                         cprintf( 'Magenta', sprintf('\n%4u%11.3f', nn, offset(nn)))
                     else
-                        cprintf( 'Black', '\n%4u%11.3f', nn, offset(nn))
+                        %cprintf( 'Black', '\n%4u%11.3f', nn, offset(nn))
+                        fprintf( '\n%4u%11.3f', nn, offset(nn))
                     end
                     
                     for mm = 1:numel(metrics_offset)
@@ -231,7 +232,8 @@ if tomo.run || tomo.run_interactive_mode
                         elseif max_pos(mm) == nn
                             cprintf( 'Blue', '%11.2g', metrics_offset(mm).val(nn) )
                         else
-                            cprintf( 'Black', '%11.2g', metrics_offset(mm).val(nn) )
+                            %cprintf( 'Black', '%11.2g', metrics_offset(mm).val(nn) )
+                            fprintf( '%11.2g', metrics_offset(mm).val(nn) )
                         end
                     end
                 end

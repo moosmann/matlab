@@ -1,18 +1,19 @@
 function out = Coherence(E_keV,SourceSample_m,SourceSize_micron,SampleDetector_m,Bandwidth,PixelSize_micron)
 
 if nargin < 1
-    E_keV = 15;
+    E_keV = 50;
 end
 if nargin < 2
     %SourceSample_m =  145;
-    SourceSample_m = 87;
+    SourceSample_m = 100;
 end
 if nargin < 3
-    SourceSize_micron = sigma_to_FWHM( 36 );% P05 low beta section
+    SourceSize_micron = sigma_to_FWHM( 34.6 );%  low beta section hor
+    SourceSize_micron = sigma_to_FWHM( 6.6 );%  low beta section vert
     %sigma_to_FWHM(89.4); % PETRA III horizontal
 end
 if nargin < 4
-    SampleDetector_m = 0.8;
+    SampleDetector_m = 10;
 end
 if nargin < 5
    Bandwidth = 10^-4;
@@ -144,7 +145,7 @@ fprintf('\n frequency cut-off by geometric blur (pixel size / geomtric blur):\n 
 fprintf('\n distance between sample points that interfere due to autocorrelation in micron:\n  %g micron', out.distance.interferenceByAutocorrelation)
 
 %% Plot
-zRange = 0:0.005:1.4;
+zRange = 0:0.005:z;
 b = bg(R,zRange,s);
 [~, zmaxind] = min( abs( b - PixelSize_micron ) );
 zmax = zRange(zmaxind);

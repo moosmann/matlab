@@ -1,4 +1,4 @@
-function sino_reco(scan_path, rot_axis_full_range, rot_axis_search_range)
+function sino_reco(scan_path, rot_angle_full_range, rot_axis_search_range)
 % P05 reconstruction pipeline: preprocessing, filtering, phase retrieval,
 % tomographic reconstruction, ...
 %
@@ -32,6 +32,16 @@ function sino_reco(scan_path, rot_axis_full_range, rot_axis_search_range)
 close all hidden % close all open windows
 %dbstop if error
 
+if nargin < 1
+    scan_path = pwd;
+end
+if nargin < 2
+    rot_angle_full_range = [];
+end
+if nargin < 3
+    rot_axis_search_range = [];
+end
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% PARAMETERS / SETTINGS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -46,7 +56,7 @@ close all hidden % close all open windows
     '/asap3/petra3/gpfs/p05/2020/data/11010107/processed/bmc07_v67r';
     '/asap3/petra3/gpfs/p05/2019/data/11007580/processed/smf_09_be_3033';
     '/asap3/petra3/gpfs/p07/2019/data/11007454/processed/bmc06_tooth1';
-raw_bin = 2; % projection binning factor: integer
+raw_bin = 5; % projection binning factor: integer
 proj_range = []; % projection range
 read_sino_folder = sprintf( 'trans%02u', raw_bin);% string. default: '', picks first trans folder found
 %read_sino = 1; % read preprocessed sinograms. CHECK if negative log has to be taken!
@@ -55,7 +65,7 @@ sino_range = [];
 energy = []; % in eV!
 sample_detector_distance = []; % in m
 eff_pixel_size = []; % in m
-tomo.rot_angle_full_range = rot_axis_full_range; % in radians. if []: full angle of rotation including additional increment, or array of angles. if empty full rotation angles is determined automatically to pi or 2 pi
+tomo.rot_angle_full_range = rot_angle_full_range; %2.000389 * pi% in radians. if []: full angle of rotation including additional increment, or array of angles. if empty full rotation angles is determined automatically to pi or 2 pi
 %%% RING FILTER
 ring_filter.apply = 0; % ring artifact filter (use only for scans without lateral sample movement)
 ring_filter.method = 'jm'; 'wavelet-fft';
@@ -101,8 +111,8 @@ tomo.algorithm = 'fbp';'sirt'; 'cgls';'sart';'em';'fbp-astra'; % SART/EM only wo
 tomo.iterations = 40; % for 'sirt' or 'cgls'.
 tomo.sirt_MinConstraint = []; % If specified, all values below MinConstraint will be set to MinConstraint. This can be used to enforce non-negative reconstructions, for example.
 tomo.sirt_MaxConstraint = []; % If specified, all values above MaxConstraint will be set to MaxConstraint.
-tomo.rot_axis_search_auto = 1; % find extrema of metric within search range
-tomo.rot_axis_search_range = rot_axis_search_range;3:0.1:5.5; % search reach for automatic determination of the rotation axis offset, overwrite interactive result if not empty
+tomo.rot_axis_search_auto = 0; % find extrema of metric within search range
+tomo.rot_axis_search_range = rot_axis_search_range; % search reach for automatic determination of the rotation axis offset, overwrite interactive result if not empty
 tomo.rot_axis_search_metric = 'neg'; % string: 'neg','entropy','iso-grad','laplacian','entropy-ML','abs'. Metric to find rotation axis offset
 tomo.rot_axis_search_extrema = 'max'; % string: 'min'/'max'. chose min or maximum position
 tomo.rot_axis_search_fit = 1; %
@@ -132,7 +142,7 @@ write.compression_method = 'outlier';'histo';'full'; 'std'; 'threshold'; % metho
 write.compression_parameter = [0.02 0.02]; % compression-method specific parameter
 %%% INTERACTION %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 par.visual_output = 0; % show images and plots during reconstruction
-interactive_mode.rot_axis_pos = 0; % reconstruct slices with dif+ferent rotation axis offsets
+interactive_mode.rot_axis_pos = 1; % reconstruct slices with dif+ferent rotation axis offsets
 interactive_mode.rot_axis_pos_default_search_range = []; % if empty: asks for search range when entering interactive mode
 interactive_mode.rot_axis_tilt = 0; % reconstruct slices with different offset AND tilts of the rotation axis
 interactive_mode.rot_axis_tilt_default_search_range = []; % if empty: asks for search range when entering interactive mode
@@ -145,8 +155,8 @@ interactive_mode.phase_retrieval = 1; % Interactive retrieval to determine regul
 interactive_mode.phase_retrieval_default_search_range = []; % if empty: asks for search range when entering interactive mode, otherwise directly start with given search range
 %%% HARDWARE / SOFTWARE %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 par.use_cluster = 0; % if available: on MAXWELL nodes disp/nova/wga/wgs cluster computation can be used. Recommended only for large data sets since parpool creation and data transfer implies a lot of overhead.
-par.poolsize = 0.5; % number of workers used in a local parallel pool. if 0: use current config. if >= 1: absolute number. if 0 < poolsize < 1: relative amount of all cores to be used. if SLURM scheduling is available, a default number of workers is used.
-par.poolsize_gpu_limit_factor = 0.5; % Relative amount of GPU memory used for preprocessing during parloop. High values speed up Proprocessing, but increases out-of-memory failure
+par.poolsize = 0.8; % number of workers used in a local parallel pool. if 0: use current config. if >= 1: absolute number. if 0 < poolsize < 1: relative amount of all cores to be used. if SLURM scheduling is available, a default number of workers is used.
+par.poolsize_gpu_limit_factor = 0.8; % Relative amount of GPU memory used for preprocessing during parloop. High values speed up Proprocessing, but increases out-of-memory failure
 tomo.astra_link_data = 1; % ASTRA data objects become references to Matlab arrays. Reduces memory issues.
 tomo.astra_gpu_index = []; % GPU Device index to use, Matlab notation: index starts from 1. default: [], uses all
 tomo.astra_reco_per_gpu = 1;
@@ -352,6 +362,9 @@ if  ~exist( 'angles', 'var' )
     if length( angles ) ~= num_proj_used
         error( 'Number of angles (%u) entered not consistent with sinogram (%u) read.', numel( angles), num_proj_used )
     end    
+end
+if tomo.rot_angle_full_range > 90
+    error('rotation angle full range, %f, is most likely given in degrees instead of rad', tomo.rot_angle_full_range)
 end
 cprintf( 'Red', '\nrotation angle full range: %g * pi = %g degree', tomo.rot_angle_full_range / pi, tomo.rot_angle_full_range * 180 / pi );
 

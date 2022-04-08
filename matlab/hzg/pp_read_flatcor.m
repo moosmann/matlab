@@ -10,6 +10,13 @@ if par.read_flatcor
     if ~exist( filename, 'file' )
         p = [fileparts( fileparts( par.read_flatcor_path ) ) filesep 'reco'];
         filename = [ p filesep 'angles.mat' ];
+        if ~exist( filename, 'file')
+            p = [ fileparts( par.read_flatcor_path )  filesep 'reco'];
+            filename = [ p filesep 'angles.mat' ];        
+        end
+        if ~exist( filename, 'file')
+            error( 'angles.mat not found' )
+        end
     end
     load( filename, 'angles' );
     
@@ -40,14 +47,15 @@ if par.read_flatcor
     
     % Preallocation
     filename = sprintf('%s/%s', par.read_flatcor_path, proj_names{1});
+    read_flatcor_trafo = par.read_flatcor_trafo;
     im = read_image( filename );
+    im = read_flatcor_trafo( im );
     proj = zeros( [ size( im ), num_proj_used ], 'single' );
     fprintf( ' allocated bytes: %.2f GiB.', Bytes( proj, 3 ) )
     proj_names_mat = NameCellToMat( proj_names );
     
     % Read flat corrected projections
-    read_flatcor_path = par.read_flatcor_path;
-    read_flatcor_trafo = par.read_flatcor_trafo;
+    read_flatcor_path = par.read_flatcor_path;    
     parfor nn = 1:num_proj_used
         filename = sprintf('%s/%s', read_flatcor_path, proj_names_mat(nn, :));
         im = read_image( filename );
