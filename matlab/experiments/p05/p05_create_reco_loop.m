@@ -95,7 +95,8 @@ if ~isempty( name )
 end
 func_name0 = [ func_name0 beamtimeid ];
 nn = 0;
-func_name = sprintf( '%s_%03u', func_name0, nn);
+%func_name = sprintf( '%s_%03u', func_name0, nn);
+func_name = sprintf( '%s', func_name0);
 filename = sprintf( '%s%s.m', parent_path, func_name );
 while exist( filename, 'file')
     nn = nn + 1;

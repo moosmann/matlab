@@ -5,21 +5,15 @@
 % First BT: energy 65 keV
 % Second beamtime: reduce energy
 
-%TUHH B5
+edit p07_ivw_NiTi_tensile_tests_Vogtmann_Gurka.m
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% SECOND BT 11012816 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-edit p07_ivw_NiTi_tensile.m
-edit p07_ivw_20210701_11012199_reco.m
 edit p07_ivw_20220304_11012816.m
 
-
-%% 
-
-
-%% Extract scan names to be stitched
+%% Extract scan names to be stitched %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 fprintf( '\n\nIDENTIFY SCANS TO BE STITCHED:' )
 proc_path = sprintf('/asap3/petra3/gpfs/p07/2022/data/11012816/processed/');
 d = dir( proc_path );
@@ -40,7 +34,7 @@ end
 
 %% Stitch scans
 fprintf( '\n\nSTITCH SCANS' )
-for n = 4:7%1:numel(s) 
+for n = 26%1:numel(s) 
     name = s{n};
     scan_path = sprintf( '%s%s', proc_path, name);
     scan_subfolder = 'reco';
@@ -60,9 +54,31 @@ end
 
 fprintf( '\n' )
 
+%% Load force value: create figure %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%% Extract scan names  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+fprintf( '\n\nIDENTIFY SCANS and EXTRACT LOAD VALUES:' )
+proc_path = sprintf('/asap3/petra3/gpfs/p07/2022/data/11012816/raw/*_000_setforce');
+d = dir( proc_path );
+p.steps = [];
+%p.out_path = '';
+p.raw_path = '/asap3/petra3/gpfs/p07/2022/data/11012816/raw';
+p.out_path = '';
+p.readhdf5 = 1;
+p.adc2force = [];
+
+for n=1:numel(d)
+    p.scan_name = d(n).name(1:end-13);
+    fprintf('\n %2u: %s', n, p.scan_name )
+    load_force_values(p)
+end
+fprintf( '\nLOOP FINISHED' )
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% FIRST BT 11012199 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+edit p07_ivw_20210701_11012199.m
 
 %% Load sequence animation %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -79,7 +95,7 @@ p.reco_sub = 'reco/float_rawBin2';
 p.scan_name = 'ivw0015_referenzblau_1';
 p.auto_roi_center = 0;
 p.crop_roi = 0;
-p05_load_sequ( p );
+load_sequ( p );
 
 %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 p.regdir = 'x';
@@ -91,7 +107,7 @@ p.voxel_size = 2.55e-6;
 p.barcol = 'white';
 p.reco_sub = 'reco/float_rawBin2';
 p.scan_name = 'ivw0015_referenzblau_2';
-vol = p05_load_sequ( p );
+vol = load_sequ( p );
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -104,16 +120,16 @@ p.voxel_size = 2.55e-6;
 p.barcol = 'white';
 p.reco_sub = 'reco/float_rawBin2';
 p.scan_name = 'ivw0015_referenzblau_2';
-p05_load_sequ( p );
+load_sequ( p );
 
-%p.scan_name = 'ivw0017_Struktur1_gruen_1'; p05_load_sequ( p );
-p.scan_name = 'ivw0020_Struktur1_gruen_2'; p05_load_sequ( p );
-p.scan_name = 'ivw0021_Struktur1_gruen_2b';p05_load_sequ( p );
-p.scan_name = 'ivw0025_Struktur1_gruen_3';p05_load_sequ( p );
-p.scan_name = 'ivw0027_Struktur2_pink_1b'; p05_load_sequ( p );
-p.scan_name = 'ivw0027_Struktur2_pink_2'; p05_load_sequ( p );
-p.scan_name = 'ivw0033_Referenz_blau_5';p05_load_sequ( p );
-p.scan_name = 'ivw0035_Struktur2_pink_3';p05_load_sequ( p );
+%p.scan_name = 'ivw0017_Struktur1_gruen_1'; load_sequ( p );
+p.scan_name = 'ivw0020_Struktur1_gruen_2'; load_sequ( p );
+p.scan_name = 'ivw0021_Struktur1_gruen_2b';load_sequ( p );
+p.scan_name = 'ivw0025_Struktur1_gruen_3';load_sequ( p );
+p.scan_name = 'ivw0027_Struktur2_pink_1b'; load_sequ( p );
+p.scan_name = 'ivw0027_Struktur2_pink_2'; load_sequ( p );
+p.scan_name = 'ivw0033_Referenz_blau_5';load_sequ( p );
+p.scan_name = 'ivw0035_Struktur2_pink_3';load_sequ( p );
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 
@@ -131,28 +147,28 @@ p.out_path = '';
 p.readhdf5 = 1;
 p.adc2force = -19.92;
 
-p.scan_name = 'ivw0015_referenzblau_1'; p05_load_force_values(p)
-p.scan_name = 'ivw0015_referenzblau_2'; p05_load_force_values(p)
-p.scan_name = 'ivw0015_referenzblau_2b'; p05_load_force_values(p)
-p.scan_name = 'ivw0015_referenzblau_2c'; p05_load_force_values(p)
-p.scan_name = 'ivw0016_referenzblau_3'; p05_load_force_values(p)
-p.scan_name = 'ivw0017_Struktur1_gruen_1'; p05_load_force_values(p)
-p.scan_name = 'ivw0018_Struktur1_gruen_1b'; p05_load_force_values(p)
-p.scan_name = 'ivw0020_Struktur1_gruen_2'; p05_load_force_values(p)
-p.scan_name = 'ivw0021_Struktur1_gruen_2b'; p05_load_force_values(p)
-p.scan_name = 'ivw0022_Struktur1_gruen_2c'; p05_load_force_values(p)
-p.scan_name = 'ivw0023_Struktur1_gruen_3'; p05_load_force_values(p)
-p.scan_name = 'ivw0025_Struktur1_gruen_3'; p05_load_force_values(p)
-p.scan_name = 'ivw0026_Struktur2_pink_1'; p05_load_force_values(p)
-p.scan_name = 'ivw0027_Struktur2_pink_1b'; p05_load_force_values(p)
-p.scan_name = 'ivw0027_Struktur2_pink_2'; p05_load_force_values(p)
-p.scan_name = 'ivw0028_Struktur2_pink_1c'; p05_load_force_values(p)
-p.scan_name = 'ivw0028_Struktur2_pink_1c'; p05_load_force_values(p)
-p.scan_name = 'ivw0028_Struktur2_pink_2c'; p05_load_force_values(p)
-p.scan_name = 'ivw0029_Struktur2_pink_2c_aperture05'; p05_load_force_values(p)
-p.scan_name = 'ivw0030_Struktur2_pink_2c_aperture07'; p05_load_force_values(p)
-p.scan_name = 'ivw0031_Struktur2_pink_2c_8001proj'; p05_load_force_values(p)
-p.scan_name = 'ivw0032_Referenz_blau_4'; p05_load_force_values(p)
-p.scan_name = 'ivw0033_Referenz_blau_5'; p05_load_force_values(p)
-p.scan_name = 'ivw0035_Struktur2_pink_3'; p05_load_force_values(p)
+p.scan_name = 'ivw0015_referenzblau_1'; load_force_values(p)
+p.scan_name = 'ivw0015_referenzblau_2'; load_force_values(p)
+p.scan_name = 'ivw0015_referenzblau_2b'; load_force_values(p)
+p.scan_name = 'ivw0015_referenzblau_2c'; load_force_values(p)
+p.scan_name = 'ivw0016_referenzblau_3'; load_force_values(p)
+p.scan_name = 'ivw0017_Struktur1_gruen_1'; load_force_values(p)
+p.scan_name = 'ivw0018_Struktur1_gruen_1b'; load_force_values(p)
+p.scan_name = 'ivw0020_Struktur1_gruen_2'; load_force_values(p)
+p.scan_name = 'ivw0021_Struktur1_gruen_2b'; load_force_values(p)
+p.scan_name = 'ivw0022_Struktur1_gruen_2c'; load_force_values(p)
+p.scan_name = 'ivw0023_Struktur1_gruen_3'; load_force_values(p)
+p.scan_name = 'ivw0025_Struktur1_gruen_3'; load_force_values(p)
+p.scan_name = 'ivw0026_Struktur2_pink_1'; load_force_values(p)
+p.scan_name = 'ivw0027_Struktur2_pink_1b'; load_force_values(p)
+p.scan_name = 'ivw0027_Struktur2_pink_2'; load_force_values(p)
+p.scan_name = 'ivw0028_Struktur2_pink_1c'; load_force_values(p)
+p.scan_name = 'ivw0028_Struktur2_pink_1c'; load_force_values(p)
+p.scan_name = 'ivw0028_Struktur2_pink_2c'; load_force_values(p)
+p.scan_name = 'ivw0029_Struktur2_pink_2c_aperture05'; load_force_values(p)
+p.scan_name = 'ivw0030_Struktur2_pink_2c_aperture07'; load_force_values(p)
+p.scan_name = 'ivw0031_Struktur2_pink_2c_8001proj'; load_force_values(p)
+p.scan_name = 'ivw0032_Referenz_blau_4'; load_force_values(p)
+p.scan_name = 'ivw0033_Referenz_blau_5'; load_force_values(p)
+p.scan_name = 'ivw0035_Struktur2_pink_3'; load_force_values(p)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

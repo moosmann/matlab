@@ -77,7 +77,7 @@ if ~isempty(SUBSETS)
 end
 
 % Loop over parameter sets
-if ~isempty( SUBSETS ) && RUN_RECO
+if ~isempty( SUBSETS ) && RUN_RECO == 1
     fprintf( '\n\nSTART LOOPING \n')
     for nn = 1:numel( SUBSETS )
         num = SUBSETS(nn);

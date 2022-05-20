@@ -1,6 +1,6 @@
 %% Paths
 % TODO: adapt for cases where there is another matlab folder already in use
-tic
+
 % User path
 startup_file =  mfilename('fullpath');
 userpath( fileparts( startup_file ) );
@@ -46,4 +46,3 @@ unix( 'ulimit -u;' );
 fprintf( evalc('feature(''numcores'');') );
 %fprintf( '\n' )
 
-toc

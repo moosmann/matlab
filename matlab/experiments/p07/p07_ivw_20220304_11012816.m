@@ -1,46 +1,4 @@
-function p07_reco_loop_ivw_I20211316_11012816_000( SUBSETS, RUN_RECO, PRINT_PARAMETERS)
-% Template function to loop over data sets given in the 'PARAMETER / DATA
-% SETS' section below. The 'DEFAULT PARAMETERS' section defines the default
-% paramters. To add a data / parameter to the loop, define your
-% reconstruction parameters followed by 'ADD'. Using 'ADD('r') restores the
-% default parameters after a datat set is added. Default parameters are
-% defined with 'SET_DEFAULT' (or 'ADD_DEFAULT' or 'ADD('d')' or
-% 'ADD('default')'.
-%
-% Caution: if parameters are changed, they remain changed after a data set
-% was added unless 'ADD('r')' ('ADD('restore')) is used which restores 
-% all parameters as defined in the 'DEFAULT PARAMETER' section by
-% 'SET_DEFAULT'.
-%
-% Caution: all parameters not defined within the file are taken from main
-% reconstruction script 'p05_reco'.
-%
-% Caution: if default parameters are not defined by closing the DEFAULT
-% PARAMETER section with a 'SET_DEFAULT' statement, then the first call of
-% 'ADD' will define default parameters.
-% 
-% Workflow:
-% - Copy this file.
-% - Check, modify, or copy parameter from 'p05_reco' in  'DEFAULT
-%   PARAMETERS' section.
-% - Add parameter / data sets to loop over in the ''PARAMETER / DATA SETS'
-%   section. 
-% - Type 'F5' or call without arguments to list all added data sets.
-% - Choose subset of added data sets to loop over by indices (see SUBSETS
-%   arguments below).
-% - Use RUN_RECO equals 0 with PRINT_PARAMETERS (see below) to check
-%   parameters setting.
-% - Set RUN_RECO equals 1 to start the loop.
-% 
-% ARGUMENTS
-% SUBSETS : 1D array of integers. subset of added data sets to be looped over
-% RUN_RECO : bool. default: 0. 0: loops over the subsets but does not start
-% reconstructions, 1: start the reconstruction loop.
-% PRINT_PARAMETERS : string or cell of strings, eg {'raw_roi',
-% 'parfolder'}. Parameter setting to be printed at each loop iteration.
-% Useful in combination with RUN_RECO = 0 to check parameter setting for
-% the subset to loop over
-%
+function p07_ivw_20220304_11012816( SUBSETS, RUN_RECO, PRINT_PARAMETERS)
 % Created on 24-Mar-2022 by moosmanj
 
 if nargin < 1
@@ -57,46 +15,6 @@ end
 %% DEFAULT PARAMETERS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-% Define parameter here. Otherwise parameters are taken from the current
-% version of 'p05_reco' if not set in the section below.
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-% !!! QUICK SWITCH TO ALTERNATIVE SET OF PARAMETERS !!!
-% !!! OVERWRITES PARAMETERS BELOW QUICK SWITCH SECTION !!!
-% Just copy parameter and set quick switch to 1
-par.quick_switch = 0;
-par.scan_path = pwd;%last_folder_modified('')
-par.raw_bin = 5;
-par.raw_roi = -4;
-par.proj_range = 2;%:3000
-par.ref_range = 4;%4;
-par.ref_path = {};
-phase_retrieval.apply = 0;
-interactive_mode.phase_retrieval = 0;
-write.to_scratch = 0;
-image_correlation.num_flats = 5;
-image_correlation.method = 'median';
-interactive_mode.rot_axis_pos = 1;
-interactive_mode.rot_axis_tilt = 0; 
-tomo.rot_axis_tilt_camera = [];
-tomo.interpolate_missing_angles = 0;
-tomo.rot_axis_search_auto = 0;
-tomo.rot_axis_search_range = -2:0.1:2.5;
-tomo.rot_axis_search_metric = 'neg';
-tomo.rot_axis_search_extrema = 'max';
-tomo.rot_axis_search_fit = 0;
-tomo.rot_axis_search_verbose = 1;
-par.pixel_scaling = [];
-%write.subfolder_reco = 'proj1'; 
-par.visual_output = 0; % show images and plots during reconstruction
-write.parfolder = '';
-par.poolsize = 0.8; % number of workers used in a local parallel pool. if 0: use current config. if >= 1: absolute number. if 0 < poolsize < 1: relative amount of all cores to be used. if SLURM scheduling is available, a default number of workers is used.
-par.poolsize_gpu_limit_factor = 0.5; % Relative amount of GPU memory used for preprocessing during parloop. High values speed up Proprocessing, but increases out-of-memory failure
-% END OF QUICK SWITCH TO ALTERNATIVE SET OF PARAMETERS %%%%%%%%%%%%%%%%%%%%
-
-pp_parameter_switch % DO NOT DELETE THIS LINE
-
 %%% SCAN %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%l%%%%%%%%%%%
 par.scan_path = pwd; % string/pwd. pwd: change to directory of the scan to be reconstructed, string: absolute scan path, last_folder_modified('folder')
 par.ref_path = {}; % cell of strings. Additonal data sets to be included for the correlation of projections and reference images
@@ -112,7 +30,7 @@ par.eff_pixel_size = []; % in m. if empty: read from log lfile. effective pixel 
 par.pixel_scaling = []; % to account for mismatch of eff_pixel_size with, ONLY APPLIED BEFORE TOMOGRAPHIC RECONSTRUCTION, HAS TO BE CHANGED!
 par.read_image_log = 0; % bool, default: 0. Read metadata from image log instead hdf5, if image log exists
 %%% PREPROCESSING %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-par.raw_bin = 2; % projection binning factor: integer
+par.raw_bin = 3; % projection binning factor: integer
 par.raw_roi = [0.2 0.8]; % vertical and/or horizontal ROI; (1,1) coordinate = top left pixel; supports absolute, relative, negative, and mixed indexing.
 % []: use full image;
 % [y0 y1]: vertical ROI, skips first raw_roi(1)-1 lines, reads until raw_roi(2); if raw_roi(2) < 0 reads until end - |raw_roi(2)|; relative indexing similar.
@@ -122,14 +40,6 @@ par.raw_roi = [0.2 0.8]; % vertical and/or horizontal ROI; (1,1) coordinate = to
 par.im_trafo = '';% 'rot90(im,1)'; % string to be evaluated after reading data in the case the image is flipped/rotated/etc due to changes at the beamline, e.g. 'rot90(im)'
 par.filter_ref = @(x) (x);
 par.filter_proj = @(x) (x);
-% STITCHING/CROPPING only for scans without lateral movment. Legacy support
-par.crop_at_rot_axis = 0; % for recos of scans with excentric rotation axis but WITHOUT projection stitching
-par.stitch_projections = 0; % for 2 pi cans: stitch projection at rotation axis position. Recommended with phase retrieval to reduce artefacts. Standard absorption contrast data should work well without stitching. Subpixel stitching not supported (non-integer rotation axis position is rounded, less/no binning before reconstruction can be used to improve precision).
-par.stitch_method = 'sine'; 'step';'linear'; %  ! CHECK correlation area !
-% 'step' : no interpolation, use step function
-% 'linear' : linear interpolation of overlap region
-% 'sine' : sinusoidal interpolation of overlap region
-par.proj_range = []; % range of projections to be used (from all found, if empty or 1: all, if scalar: stride, if range: start:incr:end
 par.ref_range = [];%1:100;[]; % range of flat fields to be used (from all found), if empty or 1: all. if scalar: stride, if range: start:incr:end
 par.wo_crop = 0; % Do not crop images to account for random lateral shift
 par.virt_s_pos = 0; % Correct sample position in reconsructed volume if virtual sample position motors are used
@@ -139,23 +49,10 @@ pixel_filter_threshold_proj = [0.02 0.005]; % Raw projection: threshold paramete
 pixel_filter_radius = [5 5]; % Increase only if blobs of zeros or other artefacts are expected. Can increase processing time heavily.
 par.ring_current_normalization = 1; % normalize flat fields and projections by ring current
 image_correlation.method = 'ssim-ml';'median';'entropy';'none';'ssim';'ssim-g';'std';'cov';'corr';'diff1-l1';'diff1-l2';'diff2-l1';'diff2-l2';'cross-entropy-12';'cross-entropy-21';'cross-entropy-x';
-% Correlation of projections and flat fields. Essential for DCM data. Typically improves reconstruction quality of DMM data, too.
-% Available methods ('ssim-ml'/'entropy' usually work best):
-% 'none' : no correlation, for DPC
-% 'mean'/'median': mean/median flat
-% 'ssim-ml' : Matlab's structural similarity index (SSIM), includes Gaussian smoothing
-% 'entropy' : entropy measure of proj over flat, usually similar result to SSIM, but faster
-% 'ssim' : own implementation of SSIM without smoothing, usually worse, but sometimes better than 'ssim-ml'
-% 'ssim-g' : 'ssim' with smoothing (Gaussian blurring)
-% 'cov' : cross covariance
-% 'corr' : cross correlation = normalized cross covariance
-% 'std' : standard deviation of proj over flat
-% 'diff1/2-l1/2': L1/L2-norm of anisotropic (diff1-l*) or isotropic (diff2-l*) difference of projections and flat fields
-% 'cross-entropy-*' : asymmetric (12,21) and symmetric (x) cross entropy
 image_correlation.force_calc = 0; % bool. force compuation of correlation even though a (previously computed) corrlation matrix exists
 image_correlation.num_flats = 11; % number of best maching flat fields used for correction
 image_correlation.area_width = [1 100];%[-100 1];% correlation area: index vector or relative/absolute position of [first pix, last pix], negative indexing is supported
-image_correlation.area_height = [0.4 0.6]; % correlation area: index vector or relative/absolute position of [first pix, last pix]
+image_correlation.area_height = [0.2 0.8]; % correlation area: index vector or relative/absolute position of [first pix, last pix]
 image_correlation.filter = 1; % bool, filter ROI before correlation
 image_correlation.filter_type = 'median'; % string. correlation ROI filter type, currently only 'median' is implemnted
 image_correlation.filter_parameter = {[3 3], 'symmetric'}; % cell. filter paramaters to be parsed with {:}
@@ -171,7 +68,7 @@ ring_filter.jm_median_width = 11; % multiple widths are applied consecutively, e
 par.strong_abs_thresh = 1; % if 1: does nothing, if < 1: flat-corrected values below threshold are set to one. Try with algebratic reco techniques.
 par.norm_sino = 0; % not recommended, can introduce severe artifacts, but sometimes improves quality
 %%% PHASE RETRIEVAL %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-phase_retrieval.apply = 1; % See 'PhaseFilter' for detailed description of parameters !
+phase_retrieval.apply = 0; % See 'PhaseFilter' for detailed description of parameters !
 phase_retrieval.apply_before = 0; % before stitching, interactive mode, etc. For phase-contrast data with an excentric rotation axis phase retrieval should be done afterwards. To find the rotataion axis position use this option in a first run, and then turn it of afterwards.
 phase_retrieval.post_binning_factor = 1; % Binning factor after phase retrieval, but before tomographic reconstruction
 phase_retrieval.method = 'tie';'tieNLO_Schwinger';'dpc';'tie';'qp';'qpcut'; %'qp' 'ctf' 'tie' 'qp2' 'qpcut'
@@ -231,7 +128,7 @@ write.subfolder_flatcor = ''; % subfolder in 'flat_corrected'
 write.subfolder_phase_map = ''; % subfolder in 'phase_map'
 write.subfolder_sino = ''; % subfolder in 'sino'
 write.subfolder_reco = ''; % subfolder in 'reco'
-write.flatcor = 0; % save preprocessed flat corrected projections
+write.flatcor = 1; % save preprocessed flat corrected projections
 write.phase_map = 0; % save phase maps (if phase retrieval is not 0)
 write.sino = 0; % save sinograms (after preprocessing & before FBP filtering and phase retrieval)
 write.phase_sino = 0; % save sinograms of phase maps
@@ -246,17 +143,11 @@ write.uint8_binned = 0; % save binned 8bit unsigned integer tiff using 'wwrite.c
 write.reco_binning_factor = 2; % IF BINNED VOLUMES ARE SAVED: binning factor of reconstructed volume
 write.compression_method = 'outlier';'histo';'full'; 'std'; 'threshold'; % method to compression dynamic range into [0, 1]
 write.compression_parameter = [0.02 0.02]; % compression-method specific parameters
-% dynamic range is compressed s.t. new dynamic range assumes
-% 'outlier' : [LOW, HIGH] = write.compression_parameter, eg. [0.01 0.03], outlier given in percent, if scalear LOW = HIGH.
-% 'full' : full dynamic range is used
-% 'threshold' : [LOW HIGH] = write.compression_parameter, eg. [-0.01 1]
-% 'std' : NUM = write.compression_parameter, mean +/- NUM*std, dynamic range is rescaled to within -/+ NUM standard deviations around the mean value
-% 'histo' : [LOW HIGH] = write.compression_parameter (100*LOW)% and (100*HIGH)% of the original histogram, e.g. [0.02 0.02]
 write.uint8_segmented = 0; % experimental: threshold segmentaion for histograms with 2 distinct peaks: __/\_/\__
 %%% INTERACTION %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 par.visual_output = 1; % show images and plots during reconstruction
 par.skip_gpu_info = 1;
-interactive_mode.rot_axis_pos = 0; % reconstruct slices with dif+ferent rotation axis offsets
+interactive_mode.rot_axis_pos = 1; % reconstruct slices with dif+ferent rotation axis offsets
 interactive_mode.rot_axis_pos_default_search_range = []; % if empty: asks for search range when entering interactive mode
 interactive_mode.rot_axis_tilt = 0; % reconstruct slices with different offset AND tilts of the rotation axis
 interactive_mode.rot_axis_tilt_default_search_range = []; % if empty: asks for search range when entering interactive mode
@@ -284,362 +175,330 @@ SET_DEFAULT
 %% PARAMETER / DATA SETS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 raw_path = '/asap3/petra3/gpfs/p07/2022/data/11012816/raw/';
+interactive_mode.rot_axis_pos = 0; 
+par.proj_range = 1:2498;
+par.raw_roi = []; 
 
+tomo.vol_size = [-0.5 -0.1 -0.0 0.4 -0.5 0.5];
+tomo.rot_axis_offset = 15.2 / 3 * par.raw_bin;
 par.scan_path = [raw_path '006_ivw_s02_pink_probe1_000_a']; ADD
-
+tomo.rot_axis_offset = 16.2 / 3 * par.raw_bin;
 par.scan_path = [raw_path '006_ivw_s02_pink_probe1_000_b']; ADD
-
+tomo.rot_axis_offset = 16.2 / 3 * par.raw_bin;
 par.scan_path = [raw_path '006_ivw_s02_pink_probe1_001_a']; ADD
-
+tomo.rot_axis_offset = 17.1 / 3 * par.raw_bin;
 par.scan_path = [raw_path '006_ivw_s02_pink_probe1_001_b']; ADD
 
+
+%interactive_mode.rot_axis_pos = 1; 
+tomo.rot_axis_search_auto = 0; % find extrema of metric within search range
+tomo.rot_axis_search_range = 16:0.2:19; % search reach for automatic determination of the rotation axis offset, overwrite interactive result if not empty
+tomo.rot_axis_search_metric = 'iso-grad'; % string: 'neg','entropy','iso-grad','laplacian','entropy-ML','abs'. Metric to find rotation axis offset
+tomo.rot_axis_search_extrema = 'min'; % string: 'min'/'max'. chose min or maximum position
+tomo.rot_axis_search_fit = 1; % bool: fit calculated metrics and find extrema, otherwise use extrema from search range
+
+tomo.vol_size = [-0.5 0.1 -0.2 0.4 -0.5 0.5];
+
 par.scan_path = [raw_path '007_ivw_s02_pink_probe1_000_a']; ADD
+tomo.rot_axis_search_range = 16.5:0.2:20.5;
 
 par.scan_path = [raw_path '007_ivw_s02_pink_probe1_000_b']; ADD
-
 par.scan_path = [raw_path '007_ivw_s02_pink_probe1_001_a']; ADD
-
 par.scan_path = [raw_path '007_ivw_s02_pink_probe1_001_b']; ADD
-
 par.scan_path = [raw_path '007_ivw_s02_pink_probe1_002_a']; ADD
-
 par.scan_path = [raw_path '007_ivw_s02_pink_probe1_002_b']; ADD
-
 par.scan_path = [raw_path '007_ivw_s02_pink_probe1_003_a']; ADD
-
 par.scan_path = [raw_path '007_ivw_s02_pink_probe1_003_b']; ADD
-
 par.scan_path = [raw_path '007_ivw_s02_pink_probe1_004_a']; ADD
-
+% data problems: bea current log is false, RECO wo normalization to be done
+par.ring_current_normalization = 0;
+tomo.rot_angle_full_range = 0:1.2576418230e-03:0.9999*pi;
 par.scan_path = [raw_path '007_ivw_s02_pink_probe1_004_b']; ADD
+tomo.rot_angle_full_range = [];
+par.ring_current_normalization = 1;
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+tomo.vol_size = [-0.5 0.1 -0.1 0.5 -0.5 0.5];
+tomo.rot_axis_offset = 16/ 3 * par.raw_bin;
 par.scan_path = [raw_path '008_ivw_s02_gruen_probe2_000']; ADD
-
+tomo.rot_axis_offset = 18.2/ 3 * par.raw_bin;
 par.scan_path = [raw_path '008_ivw_s02_gruen_probe2_001']; ADD
-
+tomo.rot_axis_search_auto = 1;
+tomo.rot_axis_search_range = 18 + (-5:0.2:5);
+tomo.rot_axis_search_metric = 'neg';
+tomo.rot_axis_search_fit = 0;
 par.scan_path = [raw_path '008_ivw_s02_gruen_probe2_002']; ADD
-
 par.scan_path = [raw_path '008_ivw_s02_gruen_probe2_003']; ADD
-
 par.scan_path = [raw_path '008_ivw_s02_gruen_probe2_004']; ADD
-
 par.scan_path = [raw_path '008_ivw_s02_gruen_probe2_005']; ADD
-
 par.scan_path = [raw_path '008_ivw_s02_gruen_probe2_006']; ADD
-
 par.scan_path = [raw_path '008_ivw_s02_gruen_probe2_007']; ADD
-
 par.scan_path = [raw_path '008_ivw_s02_gruen_probe2_008']; ADD
-
 par.scan_path = [raw_path '008_ivw_s02_gruen_probe2_009']; ADD
-
 par.scan_path = [raw_path '008_ivw_s02_gruen_probe2_010']; ADD
-
 par.scan_path = [raw_path '008_ivw_s02_gruen_probe2_011']; ADD
-
 par.scan_path = [raw_path '008_ivw_s02_gruen_probe2_012']; ADD
-
 par.scan_path = [raw_path '008_ivw_s02_gruen_probe2_013']; ADD
-
 par.scan_path = [raw_path '008_ivw_s02_gruen_probe2_014']; ADD
-
 par.scan_path = [raw_path '008_ivw_s02_gruen_probe2_015']; ADD
-
 par.scan_path = [raw_path '008_ivw_s02_gruen_probe2_016']; ADD
-
 par.scan_path = [raw_path '008_ivw_s02_gruen_probe2_017']; ADD
 
+tomo.vol_size = [-0.5 0.0 -0.5 0.0 -0.5 0.5];
+tomo.rot_axis_search_range = 22 + (-6:0.2:6);
 par.scan_path = [raw_path '009_ivw_s02_gruen_probe3_000']; ADD
-
 par.scan_path = [raw_path '009_ivw_s02_gruen_probe3_001']; ADD
-
 par.scan_path = [raw_path '009_ivw_s02_gruen_probe3_002']; ADD
-
 par.scan_path = [raw_path '009_ivw_s02_gruen_probe3_003']; ADD
-
 par.scan_path = [raw_path '009_ivw_s02_gruen_probe3_004']; ADD
-
 par.scan_path = [raw_path '009_ivw_s02_gruen_probe3_005']; ADD
-
 par.scan_path = [raw_path '009_ivw_s02_gruen_probe3_006']; ADD
-
 par.scan_path = [raw_path '009_ivw_s02_gruen_probe3_007']; ADD
-
 par.scan_path = [raw_path '009_ivw_s02_gruen_probe3_008']; ADD
-
 par.scan_path = [raw_path '009_ivw_s02_gruen_probe3_009']; ADD
-
 par.scan_path = [raw_path '009_ivw_s02_gruen_probe3_010']; ADD
-
 par.scan_path = [raw_path '009_ivw_s02_gruen_probe3_011']; ADD
-
 par.scan_path = [raw_path '009_ivw_s02_gruen_probe3_012']; ADD
-
 par.scan_path = [raw_path '009_ivw_s02_gruen_probe3_013']; ADD
-
 par.scan_path = [raw_path '009_ivw_s02_gruen_probe3_014']; ADD
-
 par.scan_path = [raw_path '009_ivw_s02_gruen_probe3_015']; ADD
-
 par.scan_path = [raw_path '009_ivw_s02_gruen_probe3_016']; ADD
-
 par.scan_path = [raw_path '009_ivw_s02_gruen_probe3_017']; ADD
-
 par.scan_path = [raw_path '009_ivw_s02_gruen_probe3_018']; ADD
-
 par.scan_path = [raw_path '009_ivw_s02_gruen_probe3_019']; ADD
-
 par.scan_path = [raw_path '009_ivw_s02_gruen_probe3_020']; ADD
-
 par.scan_path = [raw_path '009_ivw_s02_gruen_probe3_021']; ADD
-
 par.scan_path = [raw_path '009_ivw_s02_gruen_probe3_022']; ADD
 
+interactive_mode.rot_axis_pos = 0; 
+tomo.rot_axis_search_auto = 0;
+tomo.vol_size = [-0.4 0.1 -0.1 0.4 -0.5 0.5];
+% rot axis seems constant
+tomo.rot_axis_offset = 20.8/ 3 * par.raw_bin;
 par.scan_path = [raw_path '010_ivw_Referenz_pink_probe1_000']; ADD
-
+tomo.rot_axis_offset = 21.0/ 3 * par.raw_bin; % 
 par.scan_path = [raw_path '010_ivw_Referenz_pink_probe1_001']; ADD
-
+tomo.rot_axis_offset = 21.0/ 3 * par.raw_bin; % iso-grad
 par.scan_path = [raw_path '010_ivw_Referenz_pink_probe1_002']; ADD
-
+tomo.rot_axis_offset = 21.0/ 3 * par.raw_bin; % iso-grad
 par.scan_path = [raw_path '010_ivw_Referenz_pink_probe1_003']; ADD
-
 par.scan_path = [raw_path '010_ivw_Referenz_pink_probe1_004']; ADD
-
 par.scan_path = [raw_path '010_ivw_Referenz_pink_probe1_005']; ADD
-
 par.scan_path = [raw_path '010_ivw_Referenz_pink_probe1_006']; ADD
-
 par.scan_path = [raw_path '010_ivw_Referenz_pink_probe1_007']; ADD
-
 par.scan_path = [raw_path '010_ivw_Referenz_pink_probe1_008']; ADD
-
 par.scan_path = [raw_path '010_ivw_Referenz_pink_probe1_009']; ADD
-
 par.scan_path = [raw_path '010_ivw_Referenz_pink_probe1_010']; ADD
-
 par.scan_path = [raw_path '010_ivw_Referenz_pink_probe1_011']; ADD
 
+%%
+interactive_mode.rot_axis_pos = 0; 
+tomo.vol_size = [-0.25 0.25 -0.15 0.35 -0.5 0.5];
+tomo.rot_axis_offset = 21.7/ 3 * par.raw_bin; % 
 par.scan_path = [raw_path '011_ivw_s02,gruen_probe4_000']; ADD
-
+tomo.rot_axis_offset = 21.9/ 3 * par.raw_bin; % 
 par.scan_path = [raw_path '011_ivw_s02,gruen_probe4_001']; ADD
-
+tomo.rot_axis_offset = 22.4/ 3 * par.raw_bin; % 
 par.scan_path = [raw_path '011_ivw_s02,gruen_probe4_002']; ADD
-
+tomo.rot_axis_offset = 22.6/ 3 * par.raw_bin; % iso-grad
 par.scan_path = [raw_path '011_ivw_s02,gruen_probe4_003']; ADD
-
+tomo.rot_axis_offset = 22.2/ 3 * par.raw_bin; % iso-grad
 par.scan_path = [raw_path '011_ivw_s02,gruen_probe4_004']; ADD
-
+tomo.rot_axis_offset = 22.2/ 3 * par.raw_bin; % iso-grad
 par.scan_path = [raw_path '011_ivw_s02,gruen_probe4_005']; ADD
-
+tomo.rot_axis_offset = 22.2/ 3 * par.raw_bin; % iso-grad
+tomo.rot_axis_search_auto = 1;
+tomo.rot_axis_search_range = 19.5:0.2:25.5;
+tomo.rot_axis_search_metric = 'iso-grad';
+tomo.rot_axis_search_fit = 0;
 par.scan_path = [raw_path '011_ivw_s02,gruen_probe4_006']; ADD
-
 par.scan_path = [raw_path '011_ivw_s02,gruen_probe4_007']; ADD
-
 par.scan_path = [raw_path '011_ivw_s02,gruen_probe4_008']; ADD
-
 par.scan_path = [raw_path '011_ivw_s02,gruen_probe4_009']; ADD
-
 par.scan_path = [raw_path '011_ivw_s02,gruen_probe4_010']; ADD
-
 par.scan_path = [raw_path '011_ivw_s02,gruen_probe4_011']; ADD
-
 par.scan_path = [raw_path '011_ivw_s02,gruen_probe4_012']; ADD
-
 par.scan_path = [raw_path '011_ivw_s02,gruen_probe4_013']; ADD
-
 par.scan_path = [raw_path '011_ivw_s02,gruen_probe4_014']; ADD
 
+interactive_mode.rot_axis_pos = 0; 
+tomo.rot_axis_search_auto = 1;
+tomo.rot_axis_search_range = 19:0.2:24;
+tomo.rot_axis_search_metric = 'iso-grad';
+tomo.vol_size = [-0.25 0.25 -0.15 0.35 -0.5 0.5];
+tomo.rot_axis_offset = 21./ 3 * par.raw_bin; % iso-grad
 par.scan_path = [raw_path '012_ivw_s02_gruen_probe4_2a_000']; ADD
-
 par.scan_path = [raw_path '012_ivw_s02_gruen_probe4_2a_001']; ADD
-
 par.scan_path = [raw_path '012_ivw_s02_gruen_probe4_2a_002']; ADD
-
 par.scan_path = [raw_path '012_ivw_s02_gruen_probe4_2a_003']; ADD
 
+tomo.vol_size = [-0.25 0.25 -0.15 0.35 -0.5 0.5];
 par.scan_path = [raw_path '013_ivw_s02_gruen_probe4_2b_000']; ADD
-
 par.scan_path = [raw_path '013_ivw_s02_gruen_probe4_2b_001']; ADD
 
+tomo.vol_size = [-0.35 0.15 -0.25 0.25 -0.5 0.5];
+tomo.rot_axis_search_range = 18.6:0.2:24;
 par.scan_path = [raw_path '014_ivw_s02_gruen_probe5_000_a']; ADD
-
 par.scan_path = [raw_path '014_ivw_s02_gruen_probe5_000_b']; ADD
-
 par.scan_path = [raw_path '014_ivw_s02_gruen_probe5_001_a']; ADD
-
 par.scan_path = [raw_path '014_ivw_s02_gruen_probe5_001_b']; ADD
-
 par.scan_path = [raw_path '014_ivw_s02_gruen_probe5_002_a']; ADD
-
 par.scan_path = [raw_path '014_ivw_s02_gruen_probe5_002_b']; ADD
-
 par.scan_path = [raw_path '014_ivw_s02_gruen_probe5_003_a']; ADD
-
 par.scan_path = [raw_path '014_ivw_s02_gruen_probe5_003_b']; ADD
-
 par.scan_path = [raw_path '014_ivw_s02_gruen_probe5_004_a']; ADD
-
 par.scan_path = [raw_path '014_ivw_s02_gruen_probe5_004_b']; ADD
-
 par.scan_path = [raw_path '014_ivw_s02_gruen_probe5_005_a']; ADD
-
 par.scan_path = [raw_path '014_ivw_s02_gruen_probe5_005_b']; ADD
-
 par.scan_path = [raw_path '014_ivw_s02_gruen_probe5_006_a']; ADD
-
 par.scan_path = [raw_path '014_ivw_s02_gruen_probe5_006_b']; ADD
-
 par.scan_path = [raw_path '014_ivw_s02_gruen_probe5_007_a']; ADD
-
 par.scan_path = [raw_path '014_ivw_s02_gruen_probe5_007_b']; ADD
-
 par.scan_path = [raw_path '014_ivw_s02_gruen_probe5_008_a']; ADD
-
+% hdf problem
+par.ring_current_normalization = 0;
+tomo.rot_angle_full_range = 0:1.2576418230e-03:0.9999*pi;
 par.scan_path = [raw_path '014_ivw_s02_gruen_probe5_008_b']; ADD
+tomo.rot_angle_full_range = [];
+par.ring_current_normalization = 1;
+%% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+interactive_mode.rot_axis_pos = 0; 
+tomo.rot_axis_search_auto = 0;
+
+tomo.vol_size = [-0.35 0.15 -0.15 0.35 -0.5 0.5];
 par.scan_path = [raw_path '015_ivw_s02_gruen_probe5_a_ohnedh_000']; ADD
-
 par.scan_path = [raw_path '015_ivw_s02_gruen_probe5_a_ohnedh_001']; ADD
-
 par.scan_path = [raw_path '015_ivw_s02_gruen_probe5_a_ohnedh_002']; ADD
 
+tomo.rot_axis_search_auto = 0;
+tomo.vol_size = [-0.35 0.15 -0.25 0.25 -0.5 0.5];
+tomo.rot_axis_offset = 22/ 3 * par.raw_bin; % 
 par.scan_path = [raw_path '016_ivw_s02_gruen_probe5_b_ohnedh_000']; ADD
 
+
+tomo.vol_size = [-0.15 0.35 -0.5 0.0 -0.5 0.5];
+tomo.rot_axis_offset = 22/ 3 * par.raw_bin; % neg
 par.scan_path = [raw_path '017_ivw_s02_gruen_Rohdraht_Probe1_disp_000']; ADD
-
 par.scan_path = [raw_path '017_ivw_s02_gruen_Rohdraht_Probe1_disp_001']; ADD
-
 par.scan_path = [raw_path '017_ivw_s02_gruen_Rohdraht_Probe1_disp_002']; ADD
-
 par.scan_path = [raw_path '017_ivw_s02_gruen_Rohdraht_Probe1_disp_003']; ADD
-
 par.scan_path = [raw_path '017_ivw_s02_gruen_Rohdraht_Probe1_disp_004']; ADD
-
 par.scan_path = [raw_path '017_ivw_s02_gruen_Rohdraht_Probe1_disp_005']; ADD
-
 par.scan_path = [raw_path '017_ivw_s02_gruen_Rohdraht_Probe1_disp_006']; ADD
-
 par.scan_path = [raw_path '017_ivw_s02_gruen_Rohdraht_Probe1_disp_007']; ADD
-
 par.scan_path = [raw_path '017_ivw_s02_gruen_Rohdraht_Probe1_disp_008']; ADD
-
 par.scan_path = [raw_path '017_ivw_s02_gruen_Rohdraht_Probe1_disp_009']; ADD
 
+tomo.vol_size = [-0.5 0.0 -0.5 0.0 -0.5 0.5];
+tomo.rot_axis_offset = 23.8/ 3 * par.raw_bin; % neg
 par.scan_path = [raw_path '018_ivw_s02_gruen_Rohdraht_Probe2_disp_000']; ADD
-
 par.scan_path = [raw_path '018_ivw_s02_gruen_Rohdraht_Probe2_disp_001']; ADD
-
 par.scan_path = [raw_path '018_ivw_s02_gruen_Rohdraht_Probe2_disp_002']; ADD
-
 par.scan_path = [raw_path '018_ivw_s02_gruen_Rohdraht_Probe2_disp_003']; ADD
-
 par.scan_path = [raw_path '018_ivw_s02_gruen_Rohdraht_Probe2_disp_004']; ADD
-
 par.scan_path = [raw_path '018_ivw_s02_gruen_Rohdraht_Probe2_disp_005']; ADD
-
 par.scan_path = [raw_path '018_ivw_s02_gruen_Rohdraht_Probe2_disp_006']; ADD
-
 par.scan_path = [raw_path '018_ivw_s02_gruen_Rohdraht_Probe2_disp_007']; ADD
-
 par.scan_path = [raw_path '018_ivw_s02_gruen_Rohdraht_Probe2_disp_008']; ADD
-
 par.scan_path = [raw_path '018_ivw_s02_gruen_Rohdraht_Probe2_disp_009']; ADD
-
 par.scan_path = [raw_path '018_ivw_s02_gruen_Rohdraht_Probe2_disp_010']; ADD
-
 par.scan_path = [raw_path '018_ivw_s02_gruen_Rohdraht_Probe2_disp_011']; ADD
-
 par.scan_path = [raw_path '018_ivw_s02_gruen_Rohdraht_Probe2_disp_012']; ADD
-
 par.scan_path = [raw_path '018_ivw_s02_gruen_Rohdraht_Probe2_disp_013']; ADD
-
 par.scan_path = [raw_path '018_ivw_s02_gruen_Rohdraht_Probe2_disp_014']; ADD
-
 par.scan_path = [raw_path '018_ivw_s02_gruen_Rohdraht_Probe2_disp_015']; ADD
-
 par.scan_path = [raw_path '018_ivw_s02_gruen_Rohdraht_Probe2_disp_016']; ADD
-
 par.scan_path = [raw_path '018_ivw_s02_gruen_Rohdraht_Probe2_disp_017']; ADD
 
+tomo.vol_size = [-0.0 0.5 -0.25 0.25 -0.5 0.5];
+tomo.rot_axis_offset = 23.8/ 3 * par.raw_bin; % no match
 par.scan_path = [raw_path '019_ivw_s02_gruen_Rohdraht_Probe6_snv_000']; ADD
 
+tomo.vol_size = [-0.1 0.4 -0.2 0.3 -0.5 0.5];
+tomo.rot_axis_offset = 21.7/ 3 * par.raw_bin; % iso-grad neg 
 par.scan_path = [raw_path '021_ivw_s02_gruen_Probe6_snv_b_000']; ADD
 
+
+tomo.vol_size = [-0.35 0.15 -0.4 0.1 -0.5 0.5];
+tomo.rot_axis_offset = 21.6/ 3 * par.raw_bin; % 
 par.scan_path = [raw_path '022_ivw_s03_gruen_Probe1_000']; ADD
-
 par.scan_path = [raw_path '022_ivw_s03_gruen_Probe1_001']; ADD
-
 par.scan_path = [raw_path '022_ivw_s03_gruen_Probe1_002']; ADD
-
 par.scan_path = [raw_path '022_ivw_s03_gruen_Probe1_003']; ADD
-
 par.scan_path = [raw_path '022_ivw_s03_gruen_Probe1_004']; ADD
-
 par.scan_path = [raw_path '022_ivw_s03_gruen_Probe1_005']; ADD
-
 par.scan_path = [raw_path '022_ivw_s03_gruen_Probe1_006']; ADD
-
 par.scan_path = [raw_path '022_ivw_s03_gruen_Probe1_007']; ADD
-
 par.scan_path = [raw_path '022_ivw_s03_gruen_Probe1_008']; ADD
-
 par.scan_path = [raw_path '022_ivw_s03_gruen_Probe1_009']; ADD
-
 par.scan_path = [raw_path '022_ivw_s03_gruen_Probe1_010']; ADD
-
 par.scan_path = [raw_path '022_ivw_s03_gruen_Probe1_011']; ADD
-
 par.scan_path = [raw_path '022_ivw_s03_gruen_Probe1_012']; ADD
-
 par.scan_path = [raw_path '022_ivw_s03_gruen_Probe1_013']; ADD
-
 par.scan_path = [raw_path '022_ivw_s03_gruen_Probe1_014']; ADD
-
 par.scan_path = [raw_path '022_ivw_s03_gruen_Probe1_015']; ADD
 
+interactive_mode.rot_axis_pos = 0; 
+
+tomo.vol_size = [-0.25 0.25 -0.25 0.25 -0.5 0.5];
+tomo.rot_axis_offset = 23.2/ 3 * par.raw_bin; %iso-grad
 par.scan_path = [raw_path '023_ivw_s02_gruen_Rohdraht_Probe3_disp_000_a']; ADD
-
 par.scan_path = [raw_path '023_ivw_s02_gruen_Rohdraht_Probe3_disp_000_b']; ADD
-
 par.scan_path = [raw_path '023_ivw_s02_gruen_Rohdraht_Probe3_disp_001_a']; ADD
-
 par.scan_path = [raw_path '023_ivw_s02_gruen_Rohdraht_Probe3_disp_001_b']; ADD
-
 par.scan_path = [raw_path '023_ivw_s02_gruen_Rohdraht_Probe3_disp_002_a']; ADD
-
 par.scan_path = [raw_path '023_ivw_s02_gruen_Rohdraht_Probe3_disp_002_b']; ADD
-
 par.scan_path = [raw_path '023_ivw_s02_gruen_Rohdraht_Probe3_disp_003_a']; ADD
-
 par.scan_path = [raw_path '023_ivw_s02_gruen_Rohdraht_Probe3_disp_003_b']; ADD
-
 par.scan_path = [raw_path '023_ivw_s02_gruen_Rohdraht_Probe3_disp_004_a']; ADD
-
 par.scan_path = [raw_path '023_ivw_s02_gruen_Rohdraht_Probe3_disp_004_b']; ADD
-
 par.scan_path = [raw_path '023_ivw_s02_gruen_Rohdraht_Probe3_disp_005_a']; ADD
-
 par.scan_path = [raw_path '023_ivw_s02_gruen_Rohdraht_Probe3_disp_005_b']; ADD
-
 par.scan_path = [raw_path '023_ivw_s02_gruen_Rohdraht_Probe3_disp_006_a']; ADD
-
 par.scan_path = [raw_path '023_ivw_s02_gruen_Rohdraht_Probe3_disp_006_b']; ADD
-
 par.scan_path = [raw_path '023_ivw_s02_gruen_Rohdraht_Probe3_disp_007_a']; ADD
-
 par.scan_path = [raw_path '023_ivw_s02_gruen_Rohdraht_Probe3_disp_007_b']; ADD
-
 par.scan_path = [raw_path '023_ivw_s02_gruen_Rohdraht_Probe3_disp_008_a']; ADD
-
 par.scan_path = [raw_path '023_ivw_s02_gruen_Rohdraht_Probe3_disp_008_b']; ADD
-
 par.scan_path = [raw_path '023_ivw_s02_gruen_Rohdraht_Probe3_disp_009_a']; ADD
-
 par.scan_path = [raw_path '023_ivw_s02_gruen_Rohdraht_Probe3_disp_009_b']; ADD
-
 par.scan_path = [raw_path '023_ivw_s02_gruen_Rohdraht_Probe3_disp_010_a']; ADD
-
+% sample moved und hdf5 problem
+par.ring_current_normalization = 0;
+tomo.rot_angle_full_range = 0:1.2576418230e-03:0.9999*pi;
 par.scan_path = [raw_path '023_ivw_s02_gruen_Rohdraht_Probe3_disp_010_b']; ADD
+tomo.rot_angle_full_range = [];
+par.ring_current_normalization = 1;
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% im1c=RotAxisSymmetricCropping(im1,size(im1,2)/2 + 19.2,2);
+% im2=im_pro2498;im2c=RotAxisSymmetricCropping(im2,size(im2,2)/2+19.2,2);
+% im2cf=fliplr(im2c);
+
+% o = ImageCorrelation(im1c,im2cf,1,0,0,0,0);o.shift2
+
+par.ring_current_normalization = 1;
+write.flatcor = 0; 
+tomo.vol_size = [-0.5 0.1 -0.1 0.5 -0.5 0.5];
+tomo.rot_axis_search_auto = 0;
+interactive_mode.rot_axis_pos = 0; 
+tomo.rot_axis_offset = 19.2/ 3 * par.raw_bin;
+par.scan_path = [raw_path '008_ivw_s02_gruen_probe2_003'];
+
+
+shift2 = 3*2;
+write.subfolder_reco = 'latShift_m2p0';
+tomo.rot_axis_offset_shift = -shift2;ADD
+write.subfolder_reco = 'latShift_0p0';
+tomo.rot_axis_offset_shift = 0;ADD
+write.subfolder_reco = 'latShift_p2p0';
+tomo.rot_axis_offset_shift = shift2;ADD
+
+write.subfolder_reco = 'latShift_p20p0';
+tomo.rot_axis_offset_shift = 60;ADD
+
+write.subfolder_reco = 'latShift_p2p0_int';
+interactive_mode.rot_axis_pos = 1; ADD
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

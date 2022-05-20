@@ -18,12 +18,13 @@ function [s, vol] = stitch_volumes( scan_path, scan_subfolder, reco_subfolder, c
 % Written by J. Moosmann
 
 if nargin < 1
-    %scan_path = '/asap3/petra3/gpfs/p05/2017/data/11003950/processed/syn22_77L_Mg5Gd_8w';% upward
-    %scan_path = '/asap3/petra3/gpfs/p05/2018/data/11004263/processed/syn004_96R_Mg5Gd_8w'; % downward
+    %scan_path = '/asap3/petra3/gpfs/p05/2017/data/11003950/processed/syn22_77L_Mg5Gd_8w';% top 2 bottom
+    %scan_path = '/asap3/petra3/gpfs/p05/2018/data/11004263/processed/syn004_96R_Mg5Gd_8w'; % bottom 2 top
     %scan_path = '/asap3/petra3/gpfs/p05/2018/data/11004263/processed/syn018_35L_PEEK_8w'; %
     scan_path = '/asap3/petra3/gpfs/p05/2021/data/11009652/processed/zfmk_024_Tenebrio_';
 end
 if nargin < 2
+    
     %scan_subfolder = 'reco';
     scan_subfolder = 'reco_phase/tie_regPar2p40';
 end
@@ -31,18 +32,34 @@ if nargin < 3
     reco_subfolder = 'float_rawBin2';
 end
 if nargin < 4
-    crop = 1;
+    crop = 0;
 end
 if nargin < 5
     save_stitched_volume = 1;
 end
 if nargin < 6
-    stitched_volume_path = '';
+    stitched_volume_path = '/gpfs/petra3/scratch/moosmanj/stitch_tenebrio';
 end
 if nargin < 7
     scan_mask = [];
-    scan_mask = [1 1 1 0];
+   scan_mask = [1 1 1 0];
 end
+
+% Output path
+if isempty( stitched_volume_path )
+    stitched_volume_path  = sprintf( '%s/%s/%s', scan_path, scan_subfolder, reco_subfolder);
+    stitched_volume_figure  = sprintf( '%s/%s/stitched_volume_%s', scan_path, scan_subfolder, reco_subfolder);    
+    stitched_volume_log_path  = sprintf( '%s/%s', scan_path, scan_subfolder);    
+    CheckAndMakePath( stitched_volume_path )
+else
+    CheckAndMakePath( stitched_volume_path )    
+    stitched_volume_figure  = sprintf( '%s/stitched_volume', stitched_volume_path);
+    stitched_volume_log_path  = stitched_volume_path;
+    stitched_volume_path = [stitched_volume_path filesep 'vol'];
+    CheckAndMakePath( stitched_volume_path )
+end
+
+fprintf( '\n Outpath: %s' , stitched_volume_path )
 
 ca;
 %% Read parameters and data %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -68,13 +85,17 @@ for nn = 1:num_scans
     s(nn).full_path = full_path;
     
     % Reco log
-    reco_log = [full_path filesep scan_subfolder filesep 'reco*.log' ];
+    reco_log = [full_path filesep scan_subfolder filesep 'reco*.log' ];    
     rls = dir( reco_log );    
     if ~isempty( rls )
         reco_log = [rls(end).folder filesep rls(end).name];
     else
         fprintf( '\nReco log not found!\n' )
         break
+    end
+    copy_log_fn = sprintf( '%s/%s_%s', stitched_volume_log_path, name, rls(end).name);
+    if ~exist( copy_log_fn, 'file')
+        copyfile( reco_log, copy_log_fn )
     end
     fid = fopen( reco_log );
     c = textscan( fid, '%s', 'Delimiter', {'\n', '\r'} );
@@ -182,21 +203,22 @@ for nn = 1:num_scans
         vol(:,:,kk) = imread( filename, 'tif' );
     end
     s(nn).vol = vol;
-    fprintf( '\n size: %u %u %u', size( vol ) )
+    s(nn).size = size( vol );
+    fprintf( '\n size: %u %u %u', s(nn).size )
 end
 
-%% Scan order: z-axis pointing downwards !! %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% Scan order: z-axis pointing top2bottom !! %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 if s(1).s_stage_z > s(2).s_stage_z
-    upwards = 1;
-    dirstr = 'upward';
+    top2bottom = 1;
+    dirstr = 'top 2 bottom';
     stitch_order = num_scans:-1:1;
 else
-    upwards = 0;
-    dirstr = 'downward';
+    top2bottom = 0;
+    dirstr = 'bottom 2 top';
     stitch_order = 1:num_scans;
 end
-fprintf( '\nScan direction: %s', dirstr );
-s(1).upwards = upwards;
+fprintf( '\nSample movement direction: %s', dirstr );
+s(1).top2bottom = top2bottom;
 s(1).stitch_order = stitch_order;
 
 %% Absolute positions %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -222,11 +244,25 @@ for nn = 1:num_scans
     % Print info
     fprintf( '\n %2u. volume. first val: %f (%f)', nn, zval(1), zval_first );
     fprintf( '\n %2u. volume.  last val: %f (%f)', nn, zval(end), zval_last  );
+    fprintf( ', diff: %f (%f)', zval(end) - zval(1), zval_last - zval_first)
+    if nn > 1 && nn <= num_scans
+        if top2bottom
+            if s(nn-1).zval_first > s(nn).zval_last
+                cprintf('Red', '\n No overlap')
+                keyboard
+            end
+        else
+            if s(nn - 1).zval_last < s(nn).zval_first
+                cprintf('Red', '\n No overlap')
+                keyboard
+            end
+        end
+    end
 end
 
 %% Remove offset %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 zoffset = min( [s(:).zval] );
-fap = figure( 'Name', 'Absolute Positions' );
+fap = figure( 'Name', '\nAbsolute Positions' );
 lgnd = cell( [1 num_scans] );
 for nn = 1:num_scans
     s(nn).zval = s(nn).zval - zoffset;
@@ -239,11 +275,11 @@ for nn = 1:num_scans
     plot( s(nn).zval )
     lgnd{nn} = sprintf( 'volume %u. length: %u', nn, length( zval ) ) ;
 end
-title( sprintf( '%s scanning (z-axis pointing downwards', dirstr ) )
+title( sprintf( '%s scanning', dirstr ) )
 legend( lgnd )
 ylabel('absolute shift')
 xlabel('projection number')
-if ~upwards
+if ~top2bottom
     set ( gca, 'ydir', 'reverse' )
 end
 
@@ -323,8 +359,9 @@ for nn = 1:num_scans
     axis tight
 end
 drawnow
+fprintf('\n')
 
-%% Overlap
+%% Overlap %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 for nn = 1:num_scans - 1
     
     % Absolute z ranges of subsequent volumes
@@ -332,7 +369,7 @@ for nn = 1:num_scans - 1
     zval2 = s(nn+1).zval;
     
     % Find overlap (within noisecut ROI if possible)
-    if upwards
+    if top2bottom
         
         % First / upper overlap index and value in first volume
         z1ol_pos = s(nn).noisecut1;
@@ -356,7 +393,6 @@ for nn = 1:num_scans - 1
         end
         
     else
-        
         % Lower overlap edge in first volume
         z1ol_pos = s(nn).noisecut2;
         z1ol_val = zval1(z1ol_pos);
@@ -388,7 +424,7 @@ for nn = 1:num_scans - 1
     z1stitch_val = zval1( z1stitch_pos );
     z2stitch_val = zval2( z2stitch_pos );
     
-    if upwards
+    if top2bottom
         
         % Check monotonicity
         while z1stitch_val < z2stitch_val
@@ -426,7 +462,7 @@ for nn = 1:num_scans - 1
     
     % Print overlap info
     fprintf( '\n %u. Overlap:', nn )
-    if upwards
+    if top2bottom
         fprintf( '\n   %-30s %f', '1. vol lower edge', zval1(end) )
         fprintf( '\n   %-30s %f', '2. vol lower edge',  zval2(end) )
         fprintf( '\n   %-30s %f', '2. vol lower noisecut2', zval2( s(nn+1).noisecut2 ) )
@@ -436,12 +472,12 @@ for nn = 1:num_scans - 1
         fprintf( '\n   %-30s %f', '2. vol upper edge', zval2(1) )
     else
         fprintf( '\n   %-30s %f', '1. vol upper edge', zval1(1) )
-        fprintf( '\n   %-30s %f', '2. vol upper ddge', zval2(1) )
+        fprintf( '\n   %-30s %f', '2. vol upper edge', zval2(1) )
         fprintf( '\n   %-30s %f', '2. vol noisecut1', zval2( s(nn+1).noisecut1 ) )
         fprintf( '\n   %-30s %f', 'stitch level', zstitch )
         fprintf( '\n   %-30s %f', '1. vol lower noisecut2', zval1( s(nn).noisecut2) )
         fprintf( '\n   %-30s %f', '1. vol lower edge', zval1(end) )
-        fprintf( '\n   %-30s %f', '2. vol lower ddge', zval2(end) )
+        fprintf( '\n   %-30s %f', '2. vol lower edge', zval2(end) )
     end
     
     % Print stitch level info
@@ -452,23 +488,23 @@ for nn = 1:num_scans - 1
     fprintf( '\n')
     
     % Stitch values, positions and ranges
-    if upwards
-        zz1 = z1stitch_pos:length(zval1);
+    if top2bottom
+        zz1 = z1stitch_pos:length(zval1);        
         zz2= 1:z2stitch_pos;
     else
-        zz1 = 1:z1stitch_pos;
+        zz1 = 1:z1stitch_pos;        
         zz2 = z2stitch_pos:length( zval2 );
     end
     
    % Plot
-    figure('Name', sprintf( 'vertically stitched volume part %u', nn ) )
+    h = figure('Name', sprintf( 'vertically stitched volume part %u', nn ) );
     % XZ
     imx1 = squeeze( s(nn).vol(:,yy,zz1) );
     imx2 = squeeze( s(nn+1).vol(:,yy,zz2) );
     % YZ
     imy1 = squeeze( s(nn).vol(xx,:,zz1) );
     imy2 = squeeze( s(nn+1).vol(xx,:,zz2) );
-    if upwards
+    if top2bottom
         xzstitch = rot90( cat( 2, imx2, imx1 ), -1 );
         yzstitch = rot90( cat( 2, imy2, imy1 ), -1 );
     else
@@ -484,48 +520,94 @@ for nn = 1:num_scans - 1
     axis equal tight
     title( 'yz plane' )
     drawnow
+        
+    filename = sprintf( '%s_figure.png', stitched_volume_figure);
+    saveas( h,  filename);
+    
+    filename = sprintf( '%s_xz.tif', stitched_volume_figure);
+    write32bitTIFfromSingle( filename, xzstitch );
+    
+    filename = sprintf( '%s_yz.tif', stitched_volume_figure);
+    write32bitTIFfromSingle( filename, yzstitch );
+
+end
+%% z index range for stitching
+fprintf( '\n\nz indices for stitching:' )
+for nn = 1:num_scans
+
+    z1 = s(nn).zstitch_pos1;
+    if isempty(z1)
+        z1 = 1;
+    end
+    z2 = s(nn).zstitch_pos2;
+    if isempty(z2)
+        z2 = size(s(nn).vol,3);
+    end
+    s(nn).zstitch_range = z1:z2;
+    fprintf( '\n %2u. vol: %5u, %5u (of %5u)', nn, z1, z2, s(nn).size(3) )
 end
 
-%% Crop volumes
-if  crop
-    fprintf( '\n Crop volumes ' )
-    for nn = 1:num_scans
-        % volumes
-        s(nn).vol = s(nn).vol(:,:,s(nn).zstitch_pos1:s(nn).zstitch_pos2);
-        % z values
-        s(nn).zval_stitch = s(nn).zval(s(nn).zstitch_pos1:s(nn).zstitch_pos2);
-    end
-end
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %% Save stitched volume
 if save_stitched_volume
-    
-    % Output path
-    if isempty( stitched_volume_path )
-        stitched_volume_path  = scan_path;
-        CheckAndMakePath( stitched_volume_path )
-    end
-    fprintf( '\n Outpath: %s' , stitched_volume_path )
-    
-    % Loop over volumes
-    index_offset = 0;
-    for nn = stitch_order
-        
-        num_proj = size( s(nn).vol, 3 );
-        vol = s(nn).vol;
-        
-        % Loop over projections
-        parfor pp = 1:num_proj
-            filename = sprintf( '%s/vol_%06u.tif', stitched_volume_path, pp + index_offset);
-            im = vol(:,:,pp)
-            write32bitTIFfromSingle( filename, im )
+    CheckAndMakePath( stitched_volume_path )
+    [~,name]=fileparts(scan_path);
+    if top2bottom
+        index_offset = 0;
+        for nn = 1:num_scans
+            zrange = s(nn).zstitch_range;
+            num_slices = numel(zrange);
+            z2max = zrange(end);
+            vol = s(nn).vol;
+            
+            parfor ll = zrange
+                ind =  1 + (z2max - ll) + index_offset
+                filename = sprintf( '%s/%s_%06u.tif', stitched_volume_path, name, ind);                
+                im = vol(:,:,ll);
+                write32bitTIFfromSingle( filename, im )
+            end
+            index_offset = index_offset + num_slices;            
         end
-        index_offset = index_offset + num_proj;
     end
+    
 end
 
-%% Stitch volume
-if nargout == 2
-    vol = cat(3, s(s(1).stitch_order).vol );
-end
+
+%% Crop volumes
+% if  crop
+%     fprintf( '\n Crop volumes ' )
+%     for nn = 1:num_scans
+%         % volumes
+%         s(nn).vol = s(nn).vol(:,:,s(nn).zstitch_pos1:s(nn).zstitch_pos2);
+%         % z values
+%         s(nn).zval_stitch = s(nn).zval(s(nn).zstitch_pos1:s(nn).zstitch_pos2);
+%     end
+% end
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    
+% 
+% %% Save stitched volume
+% if save_stitched_volume
+%     [~,name]=fileparts(scan_path);
+%     
+%     % Loop over volumes
+%     index_offset = 0;
+%     for nn = stitch_order
+%         
+%         num_slices = size( s(nn).vol, 3 );
+%         vol = s(nn).vol;
+%         
+%         % Loop over slices
+%         parfor pp = 1:num_slices
+%             filename = sprintf( '%s/%s_%06u.tif', stitched_volume_path, name, pp + index_offset);
+%             im = vol(:,:,pp)
+%             write32bitTIFfromSingle( filename, im )
+%         end
+%         index_offset = index_offset + num_slices;
+%     end
+% end
+
+% %% Stitch volume
+% if nargout == 2
+%     vol = cat(3, s(s(1).stitch_order).vol );
+% end

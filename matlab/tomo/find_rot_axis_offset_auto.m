@@ -60,17 +60,28 @@ if ~isempty(offset) || ~isempty(search_metric)
         % Print image number, rotation axis values, and different metrics
         fprintf( ' no.' )
         fprintf( '%11s', 'offset', metrics_offset.name)
+        cp = 0;
         for nn = 1:numel(offset)
-            
-            cprintf( 'Black', '\n%4u%11.3f', nn, offset(nn))
-            
+            if cp
+                cprintf( 'Black', '\n%4u%11.3f', nn, offset(nn))
+                cp = 0; pause(0.01)
+            else
+                fprintf( '\n%4u%11.3f', nn, offset(nn))
+            end            
             for mm = 1:numel(metrics_offset)
                 if min_pos(mm) == nn
                     cprintf( 'Red', '%11.2g', metrics_offset(mm).val(nn) )
+                    cp = 1;
                 elseif max_pos(mm) == nn
                     cprintf( 'Blue', '%11.2g', metrics_offset(mm).val(nn) )
+                    cp = 1; pause(0.01)
                 else
-                    cprintf( 'Black', '%11.2g', metrics_offset(mm).val(nn) )
+                    if cp
+                        cprintf( 'Black', '%11.2g', metrics_offset(mm).val(nn) )
+                        cp = 0; pause(0.01)
+                    else
+                        fprintf( '%11.2g', metrics_offset(mm).val(nn) )
+                    end
                 end
             end
         end
