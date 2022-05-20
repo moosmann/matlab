@@ -1,4 +1,4 @@
-function [s, vol] = stitch_volumes( scan_path, scan_subfolder, reco_subfolder, crop, save_stitched_volume, stitched_volume_path )
+function [s, vol] = stitch_volumes( scan_path, scan_subfolder, reco_subfolder, save_stitched_volume, stitched_volume_path )
 % Stich reconstructed volumes using log file information.
 %
 % ARGUMENTS
@@ -19,37 +19,41 @@ function [s, vol] = stitch_volumes( scan_path, scan_subfolder, reco_subfolder, c
 
 if nargin < 1
     %scan_path = '/asap3/petra3/gpfs/p05/2017/data/11003950/processed/syn22_77L_Mg5Gd_8w';% top 2 bottom
-    %scan_path = '/asap3/petra3/gpfs/p05/2018/data/11004263/processed/syn004_96R_Mg5Gd_8w'; % bottom 2 top
+    scan_path = '/asap3/petra3/gpfs/p05/2018/data/11004263/processed/syn004_96R_Mg5Gd_8w'; % bottom 2 top
     %scan_path = '/asap3/petra3/gpfs/p05/2018/data/11004263/processed/syn018_35L_PEEK_8w'; %
-    scan_path = '/asap3/petra3/gpfs/p05/2021/data/11009652/processed/zfmk_024_Tenebrio_';
+    %scan_path = '/asap3/petra3/gpfs/p05/2021/data/11009652/processed/zfmk_024_Tenebrio_'; % top 2 bottom
+    %scan_path = '/asap3/petra3/gpfs/p05/2022/data/11012631/processed/lib_02_tadpole_';
 end
 if nargin < 2
     
-    %scan_subfolder = 'reco';
-    scan_subfolder = 'reco_phase/tie_regPar2p40';
+    scan_subfolder = 'reco';
+    %scan_subfolder = 'reco_phase/tie_regPar1p00';
 end
 if nargin < 3
     reco_subfolder = 'float_rawBin2';
 end
 if nargin < 4
-    crop = 0;
-end
-if nargin < 5
     save_stitched_volume = 1;
 end
-if nargin < 6
-    stitched_volume_path = '/gpfs/petra3/scratch/moosmanj/stitch_tenebrio';
+if nargin < 5
+    %stitched_volume_path = '/gpfs/petra3/scratch/moosmanj/stitch_tadpole';
+    stitched_volume_path = '/gpfs/petra3/scratch/moosmanj/stitch_test_bottom2top';
 end
-if nargin < 7
-    scan_mask = [];
-   scan_mask = [1 1 1 0];
+if nargin < 6
+   scan_mask = [];
+   %scan_mask = [1 1 1 0];
 end
 
 % Output path
 if isempty( stitched_volume_path )
     stitched_volume_path  = sprintf( '%s/%s/%s', scan_path, scan_subfolder, reco_subfolder);
-    stitched_volume_figure  = sprintf( '%s/%s/stitched_volume_%s', scan_path, scan_subfolder, reco_subfolder);    
-    stitched_volume_log_path  = sprintf( '%s/%s', scan_path, scan_subfolder);    
+    % Remove trailing underscorese
+    scan_path2 = scan_path;
+    while strcmp(scan_path2(end), '_')
+        scan_path2(end) = [];
+    end
+    stitched_volume_figure  = sprintf( '%s/%s/stitched_volume_%s', scan_path2, scan_subfolder, reco_subfolder);    
+    stitched_volume_log_path  = sprintf( '%s/%s', scan_path2, scan_subfolder);    
     CheckAndMakePath( stitched_volume_path )
 else
     CheckAndMakePath( stitched_volume_path )    
@@ -521,13 +525,13 @@ for nn = 1:num_scans - 1
     title( 'yz plane' )
     drawnow
         
-    filename = sprintf( '%s_figure.png', stitched_volume_figure);
+    filename = sprintf( '%s_figure_part%02u.png', stitched_volume_figure, nn);
     saveas( h,  filename);
     
-    filename = sprintf( '%s_xz.tif', stitched_volume_figure);
+    filename = sprintf( '%s_xz_part%02u.tif', stitched_volume_figure, nn);
     write32bitTIFfromSingle( filename, xzstitch );
     
-    filename = sprintf( '%s_yz.tif', stitched_volume_figure);
+    filename = sprintf( '%s_yz_part%02u.tif', stitched_volume_figure, nn);
     write32bitTIFfromSingle( filename, yzstitch );
 
 end
@@ -554,20 +558,37 @@ if save_stitched_volume
     [~,name]=fileparts(scan_path);
     if top2bottom
         index_offset = 0;
-        for nn = 1:num_scans
-            zrange = s(nn).zstitch_range;
+        for nn = 1:num_scans            
+            zrange = s(nn).zstitch_range; % slices taken
             num_slices = numel(zrange);
-            z2max = zrange(end);
+            zmax = zrange(end); % highest slice number used
             vol = s(nn).vol;
-            
-            parfor ll = zrange
-                ind =  1 + (z2max - ll) + index_offset
-                filename = sprintf( '%s/%s_%06u.tif', stitched_volume_path, name, ind);                
+            parfor ll = zrange % loop over slices taken
+                % create properly increasing file index
+                ind =  1 + (zmax - ll) + index_offset
+                filename = sprintf( '%s/%s_%06u.tif', stitched_volume_path, name, ind);
                 im = vol(:,:,ll);
                 write32bitTIFfromSingle( filename, im )
             end
-            index_offset = index_offset + num_slices;            
+            index_offset = index_offset + num_slices; % needed for image index
         end
+        
+    else
+        index_offset = 0;
+        for nn = 1:num_scans
+            zrange = s(nn).zstitch_range;
+            num_slices = numel(zrange);
+            zmin = zrange(1);
+            vol = s(nn).vol;
+            parfor ll = zrange
+                ind =  1 + (ll - zmin) + index_offset
+                filename = sprintf( '%s/%s_%06u.tif', stitched_volume_path, name, ind);
+                im = vol(:,:,ll);
+                write32bitTIFfromSingle( filename, im )
+            end
+            index_offset = index_offset + num_slices;
+        end
+        
     end
     
 end
