@@ -1,11 +1,11 @@
-function test_sliced_variable_simple( vol_mem )
+function f = test_sliced_variable_simple( vol_mem )
 
 if nargin < 1
-    vol_mem = 10; % GB;
+    vol_mem = 40; % GB;
 end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-ca
+
 [mem_free, mem_avail_cpu, mem_total_cpu] = free_memory;
 mf0 = mem_free;
 ma0 = mem_avail_cpu;
@@ -36,14 +36,18 @@ fprintf( ' \n volume memory : %.0f B = %.2f GiB ', a_mem_is, a_mem_is / 1024^3)
 fprintf( '\n\n RAM:' )
 fprintf( '\n free      : %.0f GiB (%.1f%%)', mem_free/1024^3, 100 * mem_free/mem_total_cpu )
 fprintf( '\n available : %.0f GiB (%.1f%%)', mem_avail_cpu/1024^3, 100*mem_avail_cpu/mem_total_cpu )
-fprintf( '\n MATLAB : %f (%f) GiB', getmem(p) / 100 * mem_total_cpu / 1024^3, getrss(p) / 1024^3)
+mm1 = getmem(p);
+dmm = mm1 - mm;
+ms1 = getrss(p);
+fprintf( '\n MATLAB : %f (%f) GiB', mm1 / 100 * mem_total_cpu / 1024^3, getrss(p) / 1024^3)
+fprintf( '\n MATLAB diff : %f (%f) GiB', dmm / 100 * mem_total_cpu / 1024^3, ms1 / 1024^3)
 
 fprintf( '\n\n Call myfunc' )
 t = toc;
 [a, mm, ms, mf, ma] = myfunc(a, p);
 fprintf( '\n myfunc finished: %.0f s = %.1f min',  toc -t, (toc - t) / 60)
 
-figure('Name', 'Memory consumption')
+f = figure('Name', sprintf('Memory consumption: %u GB', vol_mem));
 p0 = mm';
 p1 = ms';
 p2 = flipud(( ma0 - sort(ma))');
@@ -72,11 +76,9 @@ function [a, mm, ms, mf, ma] = myfunc(a, p)
    ma = mf;
    mm = mf;
    ms = mf;
-    for n = 1:size(a,3)
+    parfor n = 1:size(a,1)
         % Do something
-        im = a(:,:,n);
-        im = im + 1;                
-        a(:,:,n) = im;
+        a(n,:,:) = 1 + 0.5 *a(n,:,:);
         [mem_free, mem_avail_cpu, mem_total_cpu] = free_memory;            
         mf(n) = mem_free;
         ma(n) = mem_avail_cpu;

@@ -26,6 +26,8 @@ function p05_reco( external_parameter )
 %
 % Written by Julian Moosmann.
 
+dbstop if error
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% PARAMETERS / SETTINGS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -33,34 +35,37 @@ function p05_reco( external_parameter )
 % !!! QUICK SWITCH TO ALTERNATIVE SET OF PARAMETERS !!!
 % !!! OVERWRITES PARAMETERS BELOW QUICK SWITCH SECTION !!!
 % Just copy parameter and set quick switch to 1
-par.quick_switch = 0;
-par.scan_path = pwd;%last_folder_modified('')
-par.raw_bin = 6;
-par.raw_roi = -4;
-par.proj_range = 2;
-par.ref_range = 4;
+par.quick_switch = 1;
+par.scan_path = pwd;
+%par.scan_path = last_folder_modified('')
+par.raw_bin = 3;
+par.raw_roi = -2;
+par.proj_range = 1;
+%par.ref_range = 4;
 par.ref_path = {};
+ring_filter.apply = 0;
 phase_retrieval.apply = 0;
-interactive_mode.phase_retrieval = 0;
-write.to_scratch = 0;
-image_correlation.num_flats = 5;
-image_correlation.method = 'median';
+tomo.vol_size = [-0.25 0.25 -0.25 0.25 -0.5 0.5];
+
+% image_correlation.num_flats = 10;
+% image_correlation.method = 'median';
+% tomo.rot_axis_tilt_camera = [];
+% tomo.interpolate_missing_angles = 0;
+% tomo.rot_axis_search_auto = 0;
+% tomo.rot_axis_search_range = -2:0.1:2.5;
+% tomo.rot_axis_search_metric = 'neg';
+% tomo.rot_axis_search_extrema = 'max';
+% tomo.rot_axis_search_fit = 0;
+%tomo.rot_axis_search_verbose = 1;
+%par.pixel_scaling = [];
+%write.subfolder_reco = 'proj1';
+%par.visual_output = 0;
+write.parfolder = '';
+write.to_scratch = 1;
 interactive_mode.rot_axis_pos = 1;
 interactive_mode.rot_axis_tilt = 0;
-tomo.rot_axis_tilt_camera = [];
-tomo.interpolate_missing_angles = 0;
-tomo.rot_axis_search_auto = 0;
-tomo.rot_axis_search_range = -2:0.1:2.5;
-tomo.rot_axis_search_metric = 'neg';
-tomo.rot_axis_search_extrema = 'max';
-tomo.rot_axis_search_fit = 0;
-tomo.rot_axis_search_verbose = 1;
-par.pixel_scaling = [];
-%write.subfolder_reco = 'proj1';
-par.visual_output = 0; % show images and plots during reconstruction
-write.parfolder = '';
-par.poolsize = 0.8; % number of workers used in a local parallel pool. if 0: use current config. if >= 1: absolute number. if 0 < poolsize < 1: relative amount of all cores to be used. if SLURM scheduling is available, a default number of workers is used.
-par.poolsize_gpu_limit_factor = 0.5; % Relative amount of GPU memory used for preprocessing during parloop. High values speed up Proprocessing, but increases out-of-memory failure
+interactive_mode.phase_retrieval = 0;
+interactive_mode.slice_number = 0.4;
 % END OF QUICK SWITCH TO ALTERNATIVE SET OF PARAMETERS %%%%%%%%%%%%%%%%%%%%
 
 pp_parameter_switch % DO NOT DELETE THIS LINE
@@ -123,7 +128,7 @@ image_correlation.method = 'ssim-ml';'median';'entropy';'none';'ssim';'ssim-g';'
 image_correlation.force_calc = 0; % bool. force compuation of correlation even though a (previously computed) corrlation matrix exists
 image_correlation.num_flats = 11; % number of best maching flat fields used for correction
 image_correlation.area_width = [1 100];%[-100 1];% correlation area: index vector or relative/absolute position of [first pix, last pix], negative indexing is supported
-image_correlation.area_height = [0.5 1.0]; % correlation area: index vector or relative/absolute position of [first pix, last pix]
+image_correlation.area_height = [0.6 1.0]; % correlation area: index vector or relative/absolute position of [first pix, last pix]
 image_correlation.filter = 1; % bool, filter ROI before correlation
 image_correlation.filter_type = 'median'; % string. correlation ROI filter type, currently only 'median' is implemnted
 image_correlation.filter_parameter = {[3 3], 'symmetric'}; % cell. filter paramaters to be parsed with {:}
@@ -237,7 +242,7 @@ interactive_mode.phase_retrieval = 1; % Interactive retrieval to determine regul
 interactive_mode.phase_retrieval_default_search_range = []; % if empty: asks for search range when entering interactive mode, otherwise directly start with given search range
 %%% HARDWARE / SOFTWARE %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 par.use_cluster = 0; % if available: on MAXWELL nodes disp/nova/wga/wgs cluster computation can be used. Recommended only for large data sets since parpool creation and data transfer implies a lot of overhead.
-par.poolsize = 0.2; % number of workers used in a local parallel pool. if 0: use current config. if >= 1: absolute number. if 0 < poolsize < 1: relative amount of all cores to be used. if SLURM scheduling is available, a default number of workers is used.
+par.poolsize = 0.8; % number of workers used in a local parallel pool. if 0: use current config. if >= 1: absolute number. if 0 < poolsize < 1: relative amount of all cores to be used. if SLURM scheduling is available, a default number of workers is used.
 par.poolsize_gpu_limit_factor = 0.8; % Relative amount of GPU memory used for preprocessing during parloop. High values speed up Proprocessing, but increases out-of-memory failure
 tomo.astra_link_data = 1; % ASTRA data objects become references to Matlab arrays. Reduces memory issues.
 tomo.astra_gpu_index = []; % GPU Device index to use, Matlab notation: index starts from 1. default: [], uses all
@@ -751,10 +756,11 @@ if ~par.read_flatcor && ~par.read_sino
         nexus_setup = h5info(nexuslog_name{1}, '/entry/scan/setup/' );
         if sum(strcmpi('pos_p05_energy',{ nexus_setup.Datasets.Name })) && energy_was_empty
             par.energy = double( h5read( nexuslog_name{1}, '/entry/scan/setup/pos_p05_energy' ) );
-            par.energy = par.energy( end );
         end
         if sum(strcmpi('p07_energy',{ nexus_setup.Datasets.Name })) && energy_was_empty
             par.energy = double( h5read( nexuslog_name{1}, '/entry/scan/setup/p07_energy' ) );
+        end
+        if ~isempty(par.energy)
             par.energy = par.energy( end );
         end
         if isempty( imlogcell )
@@ -1735,10 +1741,13 @@ if ~par.read_flatcor && ~par.read_sino
             sino_mid(:,mm) = proj(:,y(mm),mm);
         end
     end
+    sino_mean = squeeze(mean(proj, 2 ));
     
     CheckAndMakePath( write.sino_path )
     filename = sprintf( '%ssino_rawBin%u_middle.tif', write.sino_par_path, raw_bin );
     write32bitTIFfromSingle( filename, sino_mid );
+    filename = sprintf( '%ssino_rawBin%u_mean.tif', write.sino_par_path, raw_bin );
+    write32bitTIFfromSingle( filename, sino_mean );
     
     %% Normalize sinogramm
     if par.norm_sino
@@ -1747,8 +1756,8 @@ if ~par.read_flatcor && ~par.read_sino
         parfor nn = 1:size( proj, 2 )
             sino = proj(:,nn,:);
             sino_mean1 = mean( sino, 1 );
-            sino_mean = mean( sino_mean1, 3 );
-            m = sino_mean ./ sino_mean1;
+            sino_mean0 = mean( sino_mean1, 3 );
+            m = sino_mean0 ./ sino_mean1;
             %sino_norm = bsxfun( @times, sino, m );
             sino = fun_times( sino, m );
             proj(:,nn,:) = sino;
@@ -1802,6 +1811,22 @@ if ~par.read_flatcor && ~par.read_sino
         end
         saveas( f, sprintf( '%s%s.png', fig_path, regexprep( f.Name, '\ |:', '_') ) );
         drawnow
+        
+        f = figure( 'Name', 'sinogram mean', 'WindowState', window_state );
+        imsc1( sino_mean )
+        title( 'sinogram mean' )
+        colorbar
+        x = [-0.5, -0.25, 0, 0.25, 0.5];
+        for n = numel(x):-1:1
+            xc{n} = num2str(x(n));
+        end
+        xt = single(normat(x) * (size(sino_mean, 1) - 1) + 1 );
+        xticks(xt)
+        xticklabels( xc )
+        axis equal tight
+        saveas( f, sprintf( '%s%s.png', fig_path, regexprep( f.Name, '\ |:', '_') ) );
+        drawnow
+        
     end
     
     %% Ring artifact filter
@@ -2763,7 +2788,7 @@ if write.reco
         elseif numel( tomo.rot_angle_full_range) > 2
             dam = mean(tomo.rot_angle_full_range(2:end) - tomo.rot_angle_full_range(1:end-1));
             fprintf(fid, 'tomo.rot_angle_full_range : (%f:%f:%f) * pi rad\n', tomo.rot_angle_full_range(1) / pi, tomo.rot_angle_full_range(end) / pi, dam/pi);
-        end        
+        end
         fprintf(fid, 'tomo.rot_angle_offset : %f * pi rad\n', tomo.rot_angle_offset / pi);
         fprintf(fid, 'rot_axis_offset_reco : %f\n', rot_axis_offset_reco);
         fprintf(fid, 'tomo.rot_axis_position : %f\n', tomo.rot_axis_position);

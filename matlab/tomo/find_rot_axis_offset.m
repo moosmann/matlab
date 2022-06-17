@@ -48,6 +48,10 @@ end
 tomo.vol_size = vol_size;
 if isempty( slice )
     slice = round( num_row / 2 );
+else
+        if slice < 1 && slice >= 0
+            slice = round((size( proj, 2 ) - 1) * slice + 1 );
+        end
 end
 tomo.slice = slice;
 

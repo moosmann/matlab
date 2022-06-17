@@ -1,26 +1,34 @@
 function out = Coherence(E_keV,SourceSample_m,SourceSize_micron,SampleDetector_m,Bandwidth,PixelSize_micron)
+% The source size is approximated by the FWHM assuming a Gaussian
+% distribution. 
 
 if nargin < 1
     E_keV = 50;
 end
 if nargin < 2
     %SourceSample_m =  145;
-    SourceSample_m = 100;
+    SourceSample_m = 89;
 end
 if nargin < 3
-    SourceSize_micron = sigma_to_FWHM( 34.6 );%  low beta section hor
-    SourceSize_micron = sigma_to_FWHM( 6.6 );%  low beta section vert
-    %sigma_to_FWHM(89.4); % PETRA III horizontal
+    % Assuming zero mean the root mean square is equal to the standard
+    % deviation fo the signal. 
+    
+%   SourceSize_micron = RMS_to_FWHM(34.6) ;% RMS P3 low beta section hor
+%    SourceSize_micron = RMS_to_FWHM(6.6);%  RMS P3 low beta section vert
+    %SourceSize_micron = RMS_to_FWHM(89.4); % RMS P3 high beta horizontal
+    SourceSize_micron = RMS_to_FWHM(155.4); % RMS P3 high beta horizontal
+    %FWHM = 2.354820 * SIGMA = 1.359556 * RMS
+    % 
 end
 if nargin < 4
-    SampleDetector_m = 10;
+    SampleDetector_m = 2;
 end
 if nargin < 5
    Bandwidth = 10^-4;
 end
 if nargin < 6
     %PixelSize_micron = 1.68 ; % micron CMOS 5 x
-    PixelSize_micron = 1 ; % micron, CMOS 10x
+    PixelSize_micron = 2 ; % micron, CMOS 10x
 end
 
 %% Beamline parameters
