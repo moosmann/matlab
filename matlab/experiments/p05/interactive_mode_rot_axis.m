@@ -38,7 +38,12 @@ if tomo.run || tomo.run_interactive_mode
     if isempty( tomo.rot_angle_full_range )
         tomo.rot_angle_full_range = max( angles(:) ) - min( angles(:) );
     end
-    fprintf( '\n full rotation angle: %g * pi', tomo.rot_angle_full_range / pi)
+    if isscalar( tomo.rot_angle_full_range)
+        fprintf( '\n full rotation angle: %g * pi', tomo.rot_angle_full_range / pi)
+    else
+        fprintf( '\n full rotation angle: %g * pi', ( max(tomo.rot_angle_full_range) - min(tomo.rot_angle_full_range) ) / pi)
+    end
+    
     if numel( angles ) ~= size( proj, 3 )
         error('Number of elements in array of angles (%g) unequal number of projections read (%g)', numel( angles ), size( proj, 3))
     end
@@ -160,7 +165,7 @@ if tomo.run || tomo.run_interactive_mode
             end % while ischar( inp )
             if isempty( inp )
                 offset = itomo.rot_axis_offset + interactive_mode.rot_axis_pos_default_search_range;
-                fprintf( 'using default range' )
+                fprintf( 'using default range\n' )
             else
                 offset = inp;
             end  % isempty( inp )
@@ -217,41 +222,24 @@ if tomo.run || tomo.run_interactive_mode
                 
                 % Print image number, rotation axis values, and different metrics
                 fprintf( ' no.' )
-                fprintf( '%11s', 'offset', metrics_offset.name)
-                cp = 0;
+                fprintf( '%12s ', 'offset', metrics_offset.name)
                 for nn = 1:numel(offset)
                     if offset(nn) == tomo.rot_axis_offset
-                        cprintf( 'Magenta', sprintf('\n%4u%11.3f', nn, offset(nn)))
-                        cprintf( 'Black', ' ')
-                        cp = 1;
+                        fprintf('\n[\b%4u]\b%12.3f ', nn, offset(nn))
                     else
-                        if cp
-                            cprintf( 'Black', '\n%4u%11.3f ', nn, offset(nn))
-                            cp = 0; pause(0.01)
-                        else
-                            fprintf( '\n%4u%11.3f ', nn, offset(nn))
-                        end
-                    end                    
+                        fprintf( '\n%4u%12.3f ', nn, offset(nn))
+                    end
                     for mm = 1:numel(metrics_offset)
                         if min_pos(mm) == nn
-                            cprintf( 'Red', '%11.2g', metrics_offset(mm).val(nn) )
-                            cprintf( 'Black', ' ')
-                            cp = 1;
+                            fprintf( '[\b%12.2g]\b ', metrics_offset(mm).val(nn) )
                         elseif max_pos(mm) == nn
-                            cprintf( 'Blue', '%11.2g', metrics_offset(mm).val(nn) )
-                            cprintf( 'Black', ' ')
-                            cp = 1;
-                        else
-                            if cp
-                                cprintf( 'Black', '%11.2g ', metrics_offset(mm).val(nn) )
-                                cp = 0; pause(0.01)
-                            else                                
-                                fprintf( '%11.2g ', metrics_offset(mm).val(nn) )
-                            end
+                            fprintf(2, '%12.2g ', metrics_offset(mm).val(nn) )
+                        else                            
+                            fprintf( '%12.2g ', metrics_offset(mm).val(nn) )
                         end
                     end
                 end
-
+                
                 % Plot metrics
                 h_rot_off = figure('Name', 'OFFSET: metrics', 'WindowState', window_state);
                 ind = 2:7; %[1:4 6:7];
@@ -322,7 +310,7 @@ if tomo.run || tomo.run_interactive_mode
                         end % while ischar( inp )
                         if isempty( inp )
                             tilt = itomo.tilt + interactive_mode.rot_axis_tilt_default_search_range;
-                            fprintf( 'using default range' )
+                            fprintf( 'using default range\n' )
                         else
                             tilt = inp;
                         end % isempty( inp )
@@ -347,34 +335,16 @@ if tomo.run || tomo.run_interactive_mode
                             
                             % Print image number and rotation axis tilt
                             fprintf( ' no.' )
-                            fprintf( '%11s', 'tilt/rad', 'tilt/deg', metrics_tilt.name )
-                            cp = 0;
+                            fprintf( '%12s ', 'tilt/rad', 'tilt/deg', metrics_tilt.name )
                             for nn = 1:numel(tilt)
-                                if tilt(nn) == itomo.tilt
-                                    cprintf( 'Magenta', sprintf( '\n%4u%11g%11g', nn, tilt(nn), tilt(nn)/pi*180 ) )
-                                    cp = 1;
-                                else
-                                    if cp
-                                        cprintf( 'Black', sprintf( '\n%4u%11g%11g', nn, tilt(nn), tilt(nn)/pi*180 ) )
-                                        cp = 0;
-                                    else
-                                        fprintf( sprintf( '\n%4u%11g%11g', nn, tilt(nn), tilt(nn)/pi*180 ) )
-                                    end
-                                end
+                                fprintf( '\n%4u%12g %12g ', nn, tilt(nn), tilt(nn)/pi*180 )
                                 for mm = 1:numel(metrics_tilt)
                                     if min_pos(mm) == nn
-                                        cprintf( 'Red', '%11.3g', metrics_tilt(mm).val(nn) )
-                                        cp = 1;
+                                        fprintf( '[\b%12.3g]\b ', metrics_tilt(mm).val(nn) )
                                     elseif max_pos(mm) == nn
-                                        cprintf( 'Blue', '%11.3g', metrics_tilt(mm).val(nn) )
-                                        cp = 1;
+                                        fprintf( 2, '%12.3g ', metrics_tilt(mm).val(nn) )
                                     else
-                                        if cp
-                                            cprintf( 'Black', '%11.3g', metrics_tilt(mm).val(nn) )
-                                            cp = 0;
-                                        else
-                                            fprintf( '%11.3g', metrics_tilt(mm).val(nn) )
-                                        end
+                                        fprintf( '%12.3g ', metrics_tilt(mm).val(nn) )
                                     end
                                 end
                             end
@@ -520,7 +490,7 @@ if tomo.run || tomo.run_interactive_mode
                         end % while ischar( inp )
                         if isempty( inp )
                             angle_scaling = interactive_mode.angle_scaling_default_search_range;
-                            fprintf( 'using default range' )
+                            fprintf( 'using default range\n' )
                         else
                             angle_scaling = inp;
                         end % isempty( inp )
@@ -543,35 +513,16 @@ if tomo.run || tomo.run_interactive_mode
                             
                             % Print image number and angle_scaling
                             fprintf( ' no.' )
-                            fprintf( '%11s', 'scaling', metrics_angle_scaling.name )
-                            cp = 0;
+                            fprintf( '%12s ', 'scaling', metrics_angle_scaling.name )
                             for nn = 1:numel(angle_scaling)
-                                if angle_scaling(nn) == tomo.angle_scaling
-                                    cprintf( 'Magenta', sprintf( '\n%4u%11f', nn, angle_scaling(nn) ) )
-                                    cp = 1;
-                                else
-                                    if cp
-                                        cprintf( 'Black', sprintf( '\n%4u%11f', nn, angle_scaling(nn) ) )
-                                        cp = 0;
-                                    else
-                                        fprintf( sprintf( '\n%4u%11f', nn, angle_scaling(nn) ) )                                   
-                                    end
-                                    
-                                end
+                                fprintf( sprintf( '\n%4u%12f ', nn, angle_scaling(nn) ) )
                                 for mm = 1:numel(metrics_angle_scaling)
                                     if min_pos(mm) == nn
-                                        cprintf( 'Red', '%11.3g', metrics_angle_scaling(mm).val(nn) )
-                                        cp = 1;
+                                        fprintf( '[\b%12.3g]\b ', metrics_angle_scaling(mm).val(nn) )
                                     elseif max_pos(mm) == nn
-                                        cprintf( 'Blue', '%11.3g', metrics_angle_scaling(mm).val(nn) )
-                                        cp = 1;
+                                        fprintf( 2, '%12.3g ', metrics_angle_scaling(mm).val(nn) )
                                     else
-                                        if cp
-                                            cprintf( 'Black', '%11.3g', metrics_angle_scaling(mm).val(nn) )
-                                            cp = 0;
-                                        else
-                                            fprintf( '%11.3g', metrics_angle_scaling(mm).val(nn) )
-                                        end
+                                        fprintf( '%12.3g ', metrics_angle_scaling(mm).val(nn) )
                                     end
                                 end
                             end
