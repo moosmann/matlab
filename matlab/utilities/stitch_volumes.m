@@ -1,14 +1,22 @@
-function [s, vol] = stitch_volumes( scan_path, scan_subfolder, reco_subfolder, save_stitched_volume, stitched_volume_path, scan_mask, noisecut, testing )
+function [s, vol] = stitch_volumes( scan_path, scan_subfolder, reco_subfolder, stitched_volume_path, scan_mask, noisecut, testing )
 % Stich reconstructed volumes using log file information.
 %
 % ARGUMENTS
-% scan_path : string. absolute path PATTERN common for all height levels
-% scan_subfolder : string. typically 'reco' or 'reco_phase'
-% reco_subfolder : string. subfolder to 'reco' to be used for stitching.
-%   E.g. 'float_rawBin2'
-% crop : bool, crop volumes at stitch level
-% save_stitched_volume : bool. save slices of stitchted volume
-% stitched_volume_path : string. default: scan_path
+% scan_path : string. absolute path PATTERN common for all height levels or
+%   cell of string. Note that default output paths differ if cell of
+%   strings is used.
+% scan_subfolder : string. default: 'reco'. typically 'reco' or 'reco_phase'
+% reco_subfolder : string. default: 'float_rawBin2'. Subfolder to 'reco' to
+%   be used for stitching. 
+% stitched_volume_path : string. default: scan_path (without trailing
+%   underscores) or, if scan_path is a cell, the last cell string + 'stitched_volume'
+% scan_mask : binary mask. Choose subset of scans found with binary mask
+%   with a length of number of scans found. 
+% noisecut : string = 'new' (default) or 'old'. old methods works for certain scans
+%   only. new methods checks SNR by slicewise calculation of std/mean and
+%   matches the SNR of the two volumes within the overlap region.
+% testing: bool. default 0. if 1 data is neihter read or written. Used for
+%   testing if scripts runs at all.
 %
 % RETRURNS
 % s : struct containing individual arrays and full information for
@@ -17,6 +25,8 @@ function [s, vol] = stitch_volumes( scan_path, scan_subfolder, reco_subfolder, s
 %
 % Written by J. Moosmann
 
+%% ARGUMENTS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+tic
 if nargin < 1
     %scan_path = '/asap3/petra3/gpfs/p05/2017/data/11003950/processed/syn22_77L_Mg5Gd_8w';% top 2 bottom
     scan_path = '/asap3/petra3/gpfs/p05/2018/data/11004263/processed/syn004_96R_Mg5Gd_8w'; % bottom 2 top
@@ -25,7 +35,6 @@ if nargin < 1
     %scan_path = '/asap3/petra3/gpfs/p05/2022/data/11012631/processed/lib_02_tadpole_';
 end
 if nargin < 2
-    
     scan_subfolder = 'reco';
     %scan_subfolder = 'reco_phase/tie_regPar1p00';
 end
@@ -33,33 +42,31 @@ if nargin < 3
     reco_subfolder = 'float_rawBin2';
 end
 if nargin < 4
-    save_stitched_volume = 1;
-end
-if nargin < 5
     %stitched_volume_path = '/gpfs/petra3/scratch/moosmanj/stitch_tadpole';
     stitched_volume_path = '/gpfs/petra3/scratch/moosmanj/stitch_test_bottom2top';
 end
-if nargin < 6
+if nargin < 5
     scan_mask = [];
     %scan_mask = [1 1 1 0];
 end
-if nargin < 7
+if nargin < 6
     noisecut = 'new';
     %noisecut = 'old';
 end
-if nargin < 8
-    testing = 0;
+if nargin < 7
+    testing = 1;
 end
+% stitch level factor for old noisecut procedure
 stitch_level_fac = 1.5;
-
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Output path
 if isempty( stitched_volume_path )
-    stitched_volume_path  = sprintf( '%s/%s/%s', scan_path, scan_subfolder, reco_subfolder);
-    % Remove trailing underscorese
+    % Remove trailing underscores
     scan_path2 = scan_path;
     if scan_path2(end) == '_'
         scan_path2(end) = [];
     end
+    stitched_volume_path  = sprintf( '%s/%s/%s', scan_path2, scan_subfolder, reco_subfolder);
     while strcmp(scan_path2(end), '_')
         scan_path2(end) = [];
     end
@@ -222,12 +229,14 @@ for nn = 1:num_scans
     num_slices = numel( im_struct );
     % Invert or
     filename_cell = {im_struct(end:-1:1).name};
+    t = toc;
     if ~testing
         parfor kk = 1:num_slices
             filename = [vol_path filesep filename_cell{kk} ];
             vol(:,:,kk) = imread( filename, 'tif' );
         end
     end
+    fprintf( ' done in %.0f s = %.1f min', toc - t, (toc - t) / 60 )
     s(nn).vol = vol;
     s(nn).size = size( vol );
     fprintf( '\n size: %u %u %u', s(nn).size )
@@ -471,7 +480,7 @@ for nn = 1:num_scans
                 % 2 bottom
                 if nn == 1
                     s(nn).noisecut1 = 1;
-                end                
+                end
                 if nn >= 1 && nn < num_scans
                     v1m = squeeze( mean( s(nn).vol, [1 2]));
                     v1s = squeeze(std( s(nn).vol, 0, [1 2]));
@@ -705,10 +714,9 @@ end
 
 
 %% Save stitched volume
-if save_stitched_volume
     CheckAndMakePath( stitched_volume_path )
-    if ~iscell( scan_path )
-        [~,name]=fileparts(scan_path);
+    if ~iscell( scan_path2 )
+        [~,name]=fileparts(scan_path2);
     else
         [~,name]=fileparts(scan_path{end});
     end
@@ -719,13 +727,18 @@ if save_stitched_volume
             num_slices = numel(zrange);
             zmax = zrange(end); % highest slice number used
             vol = s(nn).vol;
-            parfor ll = zrange % loop over slices taken
-                % create properly increasing file index
-                ind =  1 + (zmax - ll) + index_offset
-                filename = sprintf( '%s/%s_%06u.tif', stitched_volume_path, name, ind);
-                im = vol(:,:,ll);
-                write32bitTIFfromSingle( filename, im )
+            t = toc;
+            fprintf( '\nSaving stitched volume slices:' )
+            if ~testing
+                parfor ll = zrange % loop over slices taken
+                    % create properly increasing file index
+                    ind =  1 + (zmax - ll) + index_offset
+                    filename = sprintf( '%s/%s_%06u.tif', stitched_volume_path, name, ind);
+                    im = vol(:,:,ll);
+                    write32bitTIFfromSingle( filename, im )
+                end
             end
+            fprintf( ' done in %.0f s = %.1f min', toc - t, (toc - t) / 60 )
             index_offset = index_offset + num_slices; % needed for image index
         end
         
@@ -736,56 +749,19 @@ if save_stitched_volume
             num_slices = numel(zrange);
             zmin = zrange(1);
             vol = s(nn).vol;
-            parfor ll = zrange
-                ind =  1 + (ll - zmin) + index_offset
-                filename = sprintf( '%s/%s_%06u.tif', stitched_volume_path, name, ind);
-                im = vol(:,:,ll);
-                write32bitTIFfromSingle( filename, im )
+            fprintf( '\nSaving stitched volume slices:' )
+            t = toc;
+            if ~testing
+                parfor ll = zrange
+                    ind =  1 + (ll - zmin) + index_offset
+                    filename = sprintf( '%s/%s_%06u.tif', stitched_volume_path, name, ind);
+                    im = vol(:,:,ll);
+                    write32bitTIFfromSingle( filename, im )
+                end
             end
+            fprintf( ' done in %.0f s = %.1f min', toc - t, (toc - t) / 60 )
             index_offset = index_offset + num_slices;
         end
         
     end
-    
-end
-
-
-%% Crop volumes
-% if  crop
-%     fprintf( '\n Crop volumes ' )
-%     for nn = 1:num_scans
-%         % volumes
-%         s(nn).vol = s(nn).vol(:,:,s(nn).zstitch_pos1:s(nn).zstitch_pos2);
-%         % z values
-%         s(nn).zval_stitch = s(nn).zval(s(nn).zstitch_pos1:s(nn).zstitch_pos2);
-%     end
-% end
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-%
-% %% Save stitched volume
-% if save_stitched_volume
-%     [~,name]=fileparts(scan_path);
-%
-%     % Loop over volumes
-%     index_offset = 0;
-%     for nn = stitch_order
-%
-%         num_slices = size( s(nn).vol, 3 );
-%         vol = s(nn).vol;
-%
-%         % Loop over slices
-%         parfor pp = 1:num_slices
-%             filename = sprintf( '%s/%s_%06u.tif', stitched_volume_path, name, pp + index_offset);
-%             im = vol(:,:,pp)
-%             write32bitTIFfromSingle( filename, im )
-%         end
-%         index_offset = index_offset + num_slices;
-%     end
-% end
-
-% %% Stitch volume
-% if nargout == 2
-%     vol = cat(3, s(s(1).stitch_order).vol );
-% end
-fprintf( '\nSTITCHING FINISHED\n\n' )
+fprintf( '\nSTITCHING FINISHED in %.0f s = %.1f min\n\n', toc, toc / 60 )

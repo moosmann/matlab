@@ -10,10 +10,8 @@
 par_path = '/asap3/petra3/gpfs/p07/2022/data/11012618/processed';
 scan_subfolder = 'reco';
 reco_subfolder = 'float_rawBin2';
-save_stitched_volume = 1;
 stitched_volume_path = '';
-
-
+% scan subsets as a cell array of strings
 cc = {
 {'etna_078_lp27h_d'
 'etna_079_lp27h_e'}
@@ -43,7 +41,7 @@ for n = 2:numel(cc)
     c = cellfun(@(x) [par_path filesep x],c,'UniformOutput',false);
     stitched_volume_path = [c{end} '_stitched'];
     scan_path = c;
-    stitch_volumes( scan_path, scan_subfolder, reco_subfolder, save_stitched_volume, stitched_volume_path );
+    stitch_volumes( scan_path, scan_subfolder, reco_subfolder, stitched_volume_path );
     
     
 end
