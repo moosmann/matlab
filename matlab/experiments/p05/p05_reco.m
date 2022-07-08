@@ -88,8 +88,8 @@ par.pixel_scaling = []; % to account for mismatch of eff_pixel_size with, ONLY A
 par.read_image_log = 0; % bool, default: 0. Read metadata from image log instead hdf5, if image log exists
 par.read_filenames_from_disk = 0; % only for stepscans with tiff subfolders
 %%% PREPROCESSING %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-par.raw_bin = 2; % projection binning factor: integer
-par.raw_roi = []; % vertical and/or horizontal ROI; (1,1) coordinate = top left pixel; supports absolute, relative, negative, and mixed indexing.
+par.raw_bin = 1; % projection binning factor: integer
+par.raw_roi = []; % vertical and/or horizontal ROI; coordinate (1,1) = top left pixel; supports absolute, relative, negative, and mixed indexing.
 % []: use full image;
 % [y0 y1]: vertical ROI, skips first raw_roi(1)-1 lines, reads until raw_roi(2); if raw_roi(2) < 0 reads until end - |raw_roi(2)|; relative indexing similar.
 % [y0 y1 x0 x1]: vertical + horzontal ROI, each ROI as above
@@ -112,7 +112,7 @@ par.virt_s_pos = 0; % Correct sample position in reconsructed volume if virtual 
 pixel_filter_threshold_dark = [0.01 0.005]; % Dark fields: threshold parameter for hot/dark pixel filter, for details see 'FilterPixel'
 pixel_filter_threshold_flat = [0.02 0.005]; % Flat fields: threshold parameter for hot/dark pixel filter, for details see 'FilterPixel'
 pixel_filter_threshold_proj = [0.02 0.005]; % Raw projection: threshold parameter for hot/dark pixel filter, for details see 'FilterPixel'
-pixel_filter_radius = [9 9]; % Increase only if blobs of zeros or other artefacts are expected. Can increase processing time heavily.
+pixel_filter_radius = [5 5]; % Increase only if blobs of zeros or other artefacts are expected. Can increase processing time heavily.
 par.ring_current_normalization = 1; % normalize flat fields and projections by ring current
 image_correlation.method = 'ssim-ml';'median';'entropy';'none';'ssim';'ssim-g';'std';'cov';'corr';'diff1-l1';'diff1-l2';'diff2-l1';'diff2-l2';'cross-entropy-12';'cross-entropy-21';'cross-entropy-x';
 % Correlation of projections and flat fields. Essential for DCM data. Typically improves reconstruction quality of DMM data, too.
@@ -131,7 +131,7 @@ image_correlation.method = 'ssim-ml';'median';'entropy';'none';'ssim';'ssim-g';'
 image_correlation.force_calc = 0; % bool. force compuation of correlation even though a (previously computed) corrlation matrix exists
 image_correlation.num_flats = 11; % number of best maching flat fields used for correction
 image_correlation.area_width = [1 100];%[-100 1];% correlation area: index vector or relative/absolute position of [first pix, last pix], negative indexing is supported
-image_correlation.area_height = [0.3 0.7]; % correlation area: index vector or relative/absolute position of [first pix, last pix]
+image_correlation.area_height = [0.3 0.7]; % correlation area [bottom top]: index vector or relative/absolute position of [first pix, last pix]
 image_correlation.filter = 1; % bool, filter ROI before correlation
 image_correlation.filter_type = 'median'; % string. correlation ROI filter type, currently only 'median' is implemnted
 image_correlation.filter_parameter = {[3 3], 'symmetric'}; % cell. filter paramaters to be parsed with {:}
@@ -192,7 +192,7 @@ tomo.algorithm =  'fbp';'cgls';'sirt';'sart';'em';'fbp-astra'; % SART/EM only wo
 tomo.iterations = 50; % for iterateive algorithms: 'sirt', 'cgls', 'sart', 'em'
 tomo.MinConstraint = []; % sirt3D/sirt2d/sart2d only. If specified, all values below MinConstraint will be set to MinConstraint. This can be used to enforce non-negative reconstructions, for example.
 tomo.MaxConstraint = []; % sirt3D/sirt2d/sart2d only. If specified, all values above MaxConstraint will be set to MaxConstraint.
-tomo.rot_axis_search_auto = 1; % find extrema of metric within search range
+tomo.rot_axis_search_auto = 0; % find extrema of metric within search range
 tomo.rot_axis_search_range = 4.0:0.1:6.5; % search reach for automatic determination of the rotation axis offset, overwrite interactive result if not empty
 tomo.rot_axis_search_metric = 'iso-grad'; % string: 'neg','entropy','iso-grad','laplacian','entropy-ML','abs'. Metric to find rotation axis offset
 tomo.rot_axis_search_extrema = 'max'; % string: 'min'/'max'. chose min or maximum position
@@ -233,7 +233,7 @@ write.uint8_segmented = 0; % experimental: threshold segmentaion for histograms 
 %%% INTERACTION %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 par.visual_output = 1; % show images and plots during reconstruction
 par.skip_gpu_info = 1;
-interactive_mode.rot_axis_pos = 0; % reconstruct slices with dif+ferent rotation axis offsets
+interactive_mode.rot_axis_pos = 1; % reconstruct slices with dif+ferent rotation axis offsets
 interactive_mode.rot_axis_pos_default_search_range = []; % if empty: asks for search range when entering interactive mode
 interactive_mode.rot_axis_tilt = 0; % reconstruct slices with different offset AND tilts of the rotation axis
 interactive_mode.rot_axis_tilt_default_search_range = []; % if empty: asks for search range when entering interactive mode
@@ -1551,7 +1551,7 @@ if ~par.read_flatcor && ~par.read_sino
     if ~isempty( scan_position )
         scan_position(~projs_to_use) = [];
     end
-    if exist( 'scan_position_index', 'var' )
+    if exist( 'scan_position_index', 'var' ) && ~isempty( scan_position_index )
         scan_position_index(~projs_to_use) = [];
     end
     

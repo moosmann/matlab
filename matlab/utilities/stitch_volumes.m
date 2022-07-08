@@ -1,8 +1,8 @@
-function [s, vol] = stitch_volumes( scan_path, scan_subfolder, reco_subfolder, save_stitched_volume, stitched_volume_path )
+function [s, vol] = stitch_volumes( scan_path, scan_subfolder, reco_subfolder, save_stitched_volume, stitched_volume_path, scan_mask, noisecut, testing )
 % Stich reconstructed volumes using log file information.
 %
 % ARGUMENTS
-% scan_path : string. absolute path pattern common for all height levels
+% scan_path : string. absolute path PATTERN common for all height levels
 % scan_subfolder : string. typically 'reco' or 'reco_phase'
 % reco_subfolder : string. subfolder to 'reco' to be used for stitching.
 %   E.g. 'float_rawBin2'
@@ -40,23 +40,34 @@ if nargin < 5
     stitched_volume_path = '/gpfs/petra3/scratch/moosmanj/stitch_test_bottom2top';
 end
 if nargin < 6
-   scan_mask = [];
-   %scan_mask = [1 1 1 0];
+    scan_mask = [];
+    %scan_mask = [1 1 1 0];
 end
+if nargin < 7
+    noisecut = 'new';
+    %noisecut = 'old';
+end
+if nargin < 8
+    testing = 0;
+end
+stitch_level_fac = 1.5;
 
 % Output path
 if isempty( stitched_volume_path )
     stitched_volume_path  = sprintf( '%s/%s/%s', scan_path, scan_subfolder, reco_subfolder);
     % Remove trailing underscorese
     scan_path2 = scan_path;
+    if scan_path2(end) == '_'
+        scan_path2(end) = [];
+    end
     while strcmp(scan_path2(end), '_')
         scan_path2(end) = [];
     end
-    stitched_volume_figure  = sprintf( '%s/%s/stitched_volume_%s', scan_path2, scan_subfolder, reco_subfolder);    
-    stitched_volume_log_path  = sprintf( '%s/%s', scan_path2, scan_subfolder);    
+    stitched_volume_figure  = sprintf( '%s/%s/stitched_volume_%s', scan_path2, scan_subfolder, reco_subfolder);
+    stitched_volume_log_path  = sprintf( '%s/%s', scan_path2, scan_subfolder);
     CheckAndMakePath( stitched_volume_path )
 else
-    CheckAndMakePath( stitched_volume_path )    
+    CheckAndMakePath( stitched_volume_path )
     stitched_volume_figure  = sprintf( '%s/stitched_volume', stitched_volume_path);
     stitched_volume_log_path  = stitched_volume_path;
     stitched_volume_path = [stitched_volume_path filesep 'vol'];
@@ -67,20 +78,29 @@ fprintf( '\n Outpath: %s' , stitched_volume_path )
 
 ca;
 %% Read parameters and data %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-fprintf( '\nscan_path: %s', scan_path )
-% Scans to stitch
-scan_struct = dir( [scan_path '*' ] );
-[~, scan_name ] = fileparts( scan_path );
-mask = ~strcmp( {scan_struct.name}, scan_name );
-scan_struct = scan_struct( mask );
-if ~isempty(scan_mask)    
-    scan_struct = scan_struct( logical( scan_mask ) );
+if ~iscell( scan_path )
+    fprintf( '\nscan_path: %s', scan_path )
+    % Scans to stitch
+    scan_struct = dir( [scan_path '*' ] );
+    [~, scan_name ] = fileparts( scan_path );
+    mask = ~strcmp( {scan_struct.name}, scan_name );
+    scan_struct = scan_struct( mask );
+    if ~isempty(scan_mask)
+        scan_struct = scan_struct( logical( scan_mask ) );
+    end
+    % Allocate containing volumes
+else
+    for nn = numel( scan_path ):-1:1
+        scan_struct(nn).full_path = scan_path{nn};
+        [folder, name] = fileparts( scan_path{nn});
+        scan_struct(nn).name = name;
+        scan_struct(nn).folder = folder;
+    end
 end
 num_scans = numel( scan_struct );
-% Allocate containing volumes
-s(num_scans) = struct;
 
 % loop over scans
+s(num_scans).full_path = [];
 for nn = 1:num_scans
     
     % Name and folder
@@ -89,8 +109,8 @@ for nn = 1:num_scans
     s(nn).full_path = full_path;
     
     % Reco log
-    reco_log = [full_path filesep scan_subfolder filesep 'reco*.log' ];    
-    rls = dir( reco_log );    
+    reco_log = [full_path filesep scan_subfolder filesep 'reco*.log' ];
+    rls = dir( reco_log );
     if ~isempty( rls )
         reco_log = [rls(end).folder filesep rls(end).name];
     else
@@ -202,9 +222,11 @@ for nn = 1:num_scans
     num_slices = numel( im_struct );
     % Invert or
     filename_cell = {im_struct(end:-1:1).name};
-    parfor kk = 1:num_slices
-        filename = [vol_path filesep filename_cell{kk} ];
-        vol(:,:,kk) = imread( filename, 'tif' );
+    if ~testing
+        parfor kk = 1:num_slices
+            filename = [vol_path filesep filename_cell{kk} ];
+            vol(:,:,kk) = imread( filename, 'tif' );
+        end
     end
     s(nn).vol = vol;
     s(nn).size = size( vol );
@@ -246,19 +268,35 @@ for nn = 1:num_scans
     s(nn).zval = zval;
     
     % Print info
-    fprintf( '\n %2u. volume. first val: %f (%f)', nn, zval(1), zval_first );
-    fprintf( '\n %2u. volume.  last val: %f (%f)', nn, zval(end), zval_last  );
+    fprintf( '\n %2u. volume. first val: %f (%f) | %i %i', nn, zval(1), zval_first,  round(zval(1)/effective_pixel_size_binned), round(zval_first /effective_pixel_size_binned ));
+    fprintf( '\n %2u. volume.  last val: %f (%f) | %i %i', nn, zval(end), zval_last, round(zval(end)/effective_pixel_size_binned), round(zval_last/effective_pixel_size_binned )  );
     fprintf( ', diff: %f (%f)', zval(end) - zval(1), zval_last - zval_first)
     if nn > 1 && nn <= num_scans
         if top2bottom
             if s(nn-1).zval_first > s(nn).zval_last
                 cprintf('Red', '\n No overlap')
                 keyboard
+            else
+                overlap = s(nn).zval_last - s(nn-1).zval_first;
+                overlap_pixel = floor(overlap /effective_pixel_size_binned);
+                s(nn-1).overlap2.mu = overlap;
+                s(nn-1).overlap2.pixel = overlap_pixel;
+                s(nn).overlap1.mu = overlap;
+                s(nn).overlap1.pixel_binned = overlap_pixel;
+                fprintf('\n overlap: %f mu, %i pixel binned', overlap, overlap_pixel)
             end
         else
             if s(nn - 1).zval_last < s(nn).zval_first
                 cprintf('Red', '\n No overlap')
                 keyboard
+            else
+                overlap = s(nn - 1).zval_last - s(nn).zval_first;
+                overlap_pixel = floor(overlap /effective_pixel_size_binned);
+                s(nn-1).overlap2.mu = overlap;
+                s(nn-1).overlap2.pixel = overlap_pixel;
+                s(nn).overlap1.mu = overlap;
+                s(nn).overlap1.pixel_binned = overlap_pixel;
+                fprintf('\n overlap: %f mu, %i pixel binned', overlap, overlap_pixel)
             end
         end
     end
@@ -268,10 +306,16 @@ end
 zoffset = min( [s(:).zval] );
 fap = figure( 'Name', '\nAbsolute Positions' );
 lgnd = cell( [1 num_scans] );
+fprintf( '\nAbsolute positions without offset: ' )
 for nn = 1:num_scans
     s(nn).zval = s(nn).zval - zoffset;
     s(nn).zval_first = s(nn).zval_first - zoffset;
     s(nn).zval_last = s(nn).zval_last - zoffset;
+    
+    % Print info
+    fprintf( '\n %2u. volume. first val: %f (%f) | %i %i', nn, s(nn).zval(1), s(nn).zval_first,  round(s(nn).zval(1)/effective_pixel_size_binned), round(s(nn).zval_first /effective_pixel_size_binned ));
+    fprintf( '\n %2u. volume.  last val: %f (%f) | %i %i', nn, s(nn).zval(end), s(nn).zval_last, round(s(nn).zval(end)/effective_pixel_size_binned), round(s(nn).zval_last/effective_pixel_size_binned )  );
+    fprintf( ', diff: %f (%f)', s(nn).zval(end) - s(nn).zval(1), s(nn).zval_last - s(nn).zval_first)
     
     % Plot absolute positions
     figure( fap )
@@ -294,6 +338,10 @@ hxz = figure( 'Name', sprintf( 'xz %s', dirstr ) );
 hyz = figure( 'Name', sprintf( 'yz %s', dirstr ) );
 hroi = figure( 'Name', 'vertical ROI' );
 for nn = 1:num_scans
+    if nn < num_scans
+        hnc = figure( 'Name', sprintf('noise cut for overlap region %u', nn) );
+    end
+    
     % XZ
     xz = ( squeeze( s(nn).vol(:,yy,:) ) );
     figure(hxz)
@@ -318,49 +366,153 @@ for nn = 1:num_scans
     axis equal tight
     title( sprintf( 'volume %u', nn ) )
     
-    % ROI regarding noise level
-    im = xz(end-100:end,:);
-    l = ( std( stdfilt( im ), 1, 1) ) ;
-    l = l(:);
-    l = l(end:-1:1);
-    % Filter
-    sigma = 15;
-    sz = 3*length( l );    % length of gaussFilter vector
-    x = linspace(-sz / 2, sz / 2, sz);
-    gaussFilter = exp(-x .^ 2 / (2 * sigma ^ 2));
-    gaussFilter = gaussFilter / sum (gaussFilter); % normalize
-    lf = conv( padarray( l, [length(l) 0], 'symmetric', 'both' ), gaussFilter, 'same');
-    lf = lf(length(l) + (1:length(l) ) );
-    
-    lfx = round( length(l)/4):round( length(l)*3/4);
-    t = 1.5 * mean( lf(lfx) );
-    % Lower index
-    v1 = 1;
-    while 1
-        if lf(v1) > t
-            v1 = v1 + 1;
-        else
-            break
-        end
+    %% Old noise cut procedure
+    switch noisecut
+        case 'old'
+            % ROI regarding noise level
+            im = xz(end-100:end,:);
+            l = ( std( stdfilt( im ), 1, 1) ) ;
+            l = l(:);
+            l = l(end:-1:1);
+            % Filter
+            sigma = 15;
+            sz = 3*length( l );    % length of gaussFilter vector
+            x = linspace(-sz / 2, sz / 2, sz);
+            gaussFilter = exp(-x .^ 2 / (2 * sigma ^ 2));
+            gaussFilter = gaussFilter / sum (gaussFilter); % normalize
+            lf = conv( padarray( l, [length(l) 0], 'symmetric', 'both' ), gaussFilter, 'same');
+            lf = lf(length(l) + (1:length(l) ) );
+            
+            lfx = round( length(l)/4):round( length(l)*3/4);
+            t = stitch_level_fac * mean( lf(lfx) );
+            % Lower index
+            v1 = 1;
+            while 1
+                if lf(v1) > t
+                    v1 = v1 + 1;
+                else
+                    break
+                end
+            end
+            s(nn).noisecut1 = v1;
+            %Higher index
+            v2 = length( l );
+            while 1
+                if lf(v2) > t
+                    v2 = v2 - 1;
+                else
+                    break
+                end
+            end
+            s(nn).noisecut2 = v2;
+            
+            % Plot
+            figure( hroi )
+            subplot(1,num_scans,nn)
+            plot( [l, lf, t*ones(size(l))] )
+            title( sprintf( 'xz cut level. left: %u, right: %u', v1, v2 ) )
+            axis tight
+        case 'new'
+            %if nn > 1 && nn <= num_scans
+            
+            if top2bottom
+                %% top 2 bottom %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+                % 1 bottom
+                % 1 top
+                %   2 bottom
+                %   2 top
+                if nn == 1
+                    s(nn).noisecut2 = s(nn).size(3);
+                end
+                if nn >= 1 && nn < num_scans
+                    v1m = squeeze( mean( s(nn).vol, [1 2]));
+                    v1s = squeeze(std( s(nn).vol, 0, [1 2]));
+                    v2m = squeeze(mean( s(nn+1).vol, [1 2]));
+                    v2s = squeeze(std( s(nn+1).vol, 0, [1 2]));
+                    v1r = v1s./v1m;
+                    v2r = v2s./v2m;
+                    figure(hnc)
+                    subplot(num_scans-1,1,nn)
+                    plot( [v2r; v1r],'.')
+                    ylabel( 'std/mean')
+                    xlabel( 'slice' )
+                    axis tight
+                    overlap_pixel = floor((s(nn+1).zval_last - s(nn).zval_first ) /effective_pixel_size_binned);
+                    % set crop level to areas with similiar SNR
+                    ind1 = 1;
+                    ind2 = s(nn+1).size(3);
+                    %increase/decrease indices if SNR is larger than the
+                    %other
+                    for ll = 1:overlap_pixel - 1
+                        if v1r(ind1) >= v2r(ind2)
+                            ind1 = ind1 + 1;
+                        else
+                            ind2 = ind2 - 1;
+                        end
+                    end
+                    % Set noise cuts
+                    s(nn).noisecut1 = ind1;
+                    s(nn+1).noisecut2 = ind2;
+                    % Plot crop points
+                    hold on
+                    plot( ind2, v2r(ind2), 'ro')
+                    plot( s(2).size(3) + ind1, v1r(ind1), 'ro')
+                    filename = sprintf( '%s_figure_noisecut_overlap%02u.png', stitched_volume_figure, nn);
+                    saveas( hnc,  filename);
+                end
+                if nn == num_scans
+                    s(nn).noisecut1 = 1;
+                end
+            else
+                %% bottom 2 bop %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+                % 1 top
+                % 1 bottom
+                % 2 top
+                % 2 bottom
+                if nn == 1
+                    s(nn).noisecut1 = 1;
+                end                
+                if nn >= 1 && nn < num_scans
+                    v1m = squeeze( mean( s(nn).vol, [1 2]));
+                    v1s = squeeze(std( s(nn).vol, 0, [1 2]));
+                    v2m = squeeze(mean( s(nn+1).vol, [1 2]));
+                    v2s = squeeze(std( s(nn+1).vol, 0, [1 2]));
+                    v1r = v1s./v1m;
+                    v2r = v2s./v2m;
+                    figure(hnc)
+                    subplot(num_scans-1,1,nn)
+                    plot( [v1r; v2r],'.')
+                    ylabel( 'std/mean')
+                    xlabel( 'slice' )
+                    axis tight
+                    overlap_pixel = floor(( s(nn).zval_last - s(nn+1).zval_first) /effective_pixel_size_binned);
+                    % set crop level to areas with similiar SNR
+                    ind1 = s(nn).size(3);
+                    ind2 = 1;
+                    %increase/decrease indices if SNR is larger than the
+                    %other
+                    for ll = 1:overlap_pixel - 1
+                        if v1r(ind1) >= v2r(ind2)
+                            ind1 = ind1 - 1;
+                        else
+                            ind2 = ind2 + 1;
+                        end
+                    end
+                    % Set noise cuts
+                    s(nn).noisecut2 = ind1;
+                    s(nn+1).noisecut1 = ind2;
+                    % Plot crop points
+                    hold on
+                    plot( ind1, v1r(ind1), 'ro')
+                    plot( s(1).size(3) + ind2, v2r(ind2), 'ro')
+                    filename = sprintf( '%s_figure_noisecut_overlap%02u.png', stitched_volume_figure, nn);
+                    saveas( hnc,  filename);
+                end
+                if nn == num_scans
+                    s(nn).noisecut2 = s(nn).size(3);
+                end
+            end
     end
-    s(nn).noisecut1 = v1;
-    %Higher index
-    v2 = length( l );
-    while 1
-        if lf(v2) > t
-            v2 = v2 - 1;
-        else
-            break
-        end
-    end
-    s(nn).noisecut2 = v2;
-    
-    % Plot
-    figure( hroi )
-    subplot(1,num_scans,nn)
-    plot( [l, lf, t*ones(size(l))] )
-    title( sprintf( 'xz cut level. left: %u, right: %u', v1, v2 ) )
-    axis tight
 end
 drawnow
 fprintf('\n')
@@ -493,14 +645,14 @@ for nn = 1:num_scans - 1
     
     % Stitch values, positions and ranges
     if top2bottom
-        zz1 = z1stitch_pos:length(zval1);        
+        zz1 = z1stitch_pos:length(zval1);
         zz2= 1:z2stitch_pos;
     else
-        zz1 = 1:z1stitch_pos;        
+        zz1 = 1:z1stitch_pos;
         zz2 = z2stitch_pos:length( zval2 );
     end
     
-   % Plot
+    % Plot
     h = figure('Name', sprintf( 'vertically stitched volume part %u', nn ) );
     % XZ
     imx1 = squeeze( s(nn).vol(:,yy,zz1) );
@@ -524,7 +676,7 @@ for nn = 1:num_scans - 1
     axis equal tight
     title( 'yz plane' )
     drawnow
-        
+    
     filename = sprintf( '%s_figure_part%02u.png', stitched_volume_figure, nn);
     saveas( h,  filename);
     
@@ -533,12 +685,12 @@ for nn = 1:num_scans - 1
     
     filename = sprintf( '%s_yz_part%02u.tif', stitched_volume_figure, nn);
     write32bitTIFfromSingle( filename, yzstitch );
-
+    
 end
 %% z index range for stitching
-fprintf( '\n\nz indices for stitching:' )
+fprintf( '\nz indices for stitching:' )
 for nn = 1:num_scans
-
+    
     z1 = s(nn).zstitch_pos1;
     if isempty(z1)
         z1 = 1;
@@ -555,10 +707,14 @@ end
 %% Save stitched volume
 if save_stitched_volume
     CheckAndMakePath( stitched_volume_path )
-    [~,name]=fileparts(scan_path);
+    if ~iscell( scan_path )
+        [~,name]=fileparts(scan_path);
+    else
+        [~,name]=fileparts(scan_path{end});
+    end
     if top2bottom
         index_offset = 0;
-        for nn = 1:num_scans            
+        for nn = 1:num_scans
             zrange = s(nn).zstitch_range; % slices taken
             num_slices = numel(zrange);
             zmax = zrange(end); % highest slice number used
@@ -605,19 +761,19 @@ end
 %     end
 % end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    
-% 
+
+%
 % %% Save stitched volume
 % if save_stitched_volume
 %     [~,name]=fileparts(scan_path);
-%     
+%
 %     % Loop over volumes
 %     index_offset = 0;
 %     for nn = stitch_order
-%         
+%
 %         num_slices = size( s(nn).vol, 3 );
 %         vol = s(nn).vol;
-%         
+%
 %         % Loop over slices
 %         parfor pp = 1:num_slices
 %             filename = sprintf( '%s/%s_%06u.tif', stitched_volume_path, name, pp + index_offset);
@@ -632,3 +788,4 @@ end
 % if nargout == 2
 %     vol = cat(3, s(s(1).stitch_order).vol );
 % end
+fprintf( '\nSTITCHING FINISHED\n\n' )
