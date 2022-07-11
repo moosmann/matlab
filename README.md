@@ -1,11 +1,19 @@
 # matlab
 MATLAB scripts and functions
 
-Installation of reconstruction routine for P05 imaging beamline (IBL):
+Installation of reconstruction routine for micro-tomography data
+acquired at the P05 imaging beamline (IBL) or P07 high energy material
+science beamline (HEMS) at PETRA III at DESY, both operated by
+Helmholtz-Zentrum Hereon.
 
-1) Log-in to a GPU node on the Maxwell cluster
+1) Log in to a GPU node on the MAXWELL cluster at DESY,
+   e.g. max-hzgg001 to max-hzgg006, max-fsg, etc. The nodes max-nova,
+   max-display and max-display3 are meant for remote access and
+   visualization, but not for computationally expensive
+   tasks. However, very small scans or single slice can be
+   reconstructed on these nodes.
 
-2) Download latest MATLAB files from Github:
+2) Download the latest MATLAB files from GitHub:
    
    git clone https://github.com/moosmann/matlab.git
 
@@ -29,32 +37,37 @@ Installation of reconstruction routine for P05 imaging beamline (IBL):
    git status
 
 
-How to start a reconstruction:
+How to start the tomographic reconstruction routine:
 
-1) Change directory to downloaded 'matlab' folder:
+1) Change directory to the 'matlab' folder:
    
    cd matlab
 
-2) Start MATLAB with predefined settings from within the 'matlab' folder:
+2) Start MATLAB using the following script:
 
    ./startmatlab.sh
 
-    This sets environment variables in order to use a local installation of 
-    the ASTRA toolbox, starts MATLAB, and sets the search path (this 
-    overwrites local user settings, for details see 'startup.m'_)
+    The script automatically sets environment variables in order to
+    use a local installation of the ASTRA toolbox, starts MATLAB, and
+    sets the MATLAB search paths. (Note that this will overwrite local
+    MATLAB user settings, for details see 'startup.m'.)
 
-    If 'startmatlab.sh' is not executable:
-    chmod +x startmatlab.sh
+    (If 'startmatlab.sh' is not executable: chmod +x startmatlab.sh)
 
-3) Open 'p05_reco' in MATLAB located at './matlab/experiments/p05/' if not 
-    already opened, eg type 'edit p05_reco' in MATLAB's command line
+3) If not already open, open 'p05_reco' (also for P07 scans) in MATLAB
+   located at './matlab/experiments/p05/' e.g. enter 'edit p05_reco' in
+   MATLAB's command line.
 
-4) Check and modify reconstruction parameters, at least 'scan_path'
+4) Edit/check the reconstruction parameters, at least you have to
+   modify 'par.scan_path'.
 
-5) Start reconstruction by one of the following:
+5) Start the reconstruction by one of the following:
     - Type 'p05_reco' in MATLAB's command line
     - Click 'RUN' button in editor tab
-    - Type 'F5' key when focus is in the 'p05_reco' file    -
+    - Type 'F5' key when focus is in the 'p05_reco.m' file    -
 
 
-How to set up a loop script to reconstruct several data sets: help p05_create_reco_loop
+The reconstruction can be automatically looped over all data sets
+acquired during a beamtime and/or over different reconstruction
+parameters. How to set up a loop script to reconstruct several data
+sets: help p05_create_reco_loop
