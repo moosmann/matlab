@@ -35,17 +35,17 @@ dbstop if error
 % !!! QUICK SWITCH TO ALTERNATIVE SET OF PARAMETERS !!!
 % !!! OVERWRITES PARAMETERS BELOW QUICK SWITCH SECTION !!!
 % Just copy parameter and set quick switch to 1
-par.quick_switch = 0;
+par.quick_switch = 1;
 par.scan_path = pwd;
 %par.scan_path = last_folder_modified('')
-par.raw_bin = 8;
+par.raw_bin = 6;
 par.raw_roi = [0.45 0.55];
-par.proj_range = 8;
+par.proj_range = 4;
 par.ref_range = 10;
 par.ref_path = {};
 ring_filter.apply = 0;
 phase_retrieval.apply = 0;
-tomo.vol_size = [];[-0.25 0.25 -0.25 0.25 -0.5 0.5];
+tomo.vol_size = [];%[-0.25 0.25 -0.25 0.25 -0.5 0.5];
 % image_correlation.num_flats = 10;
 % image_correlation.method = 'median';
 % tomo.rot_axis_tilt_camera = [];
@@ -68,6 +68,7 @@ interactive_mode.rot_axis_tilt = 1;
 interactive_mode.angles = 1;
 interactive_mode.phase_retrieval = 0;
 interactive_mode.slice_number = 0.5;
+interactive_mode.show_stack_imagej = 1;
 % END OF QUICK SWITCH TO ALTERNATIVE SET OF PARAMETERS %%%%%%%%%%%%%%%%%%%%
 
 pp_parameter_switch % DO NOT DELETE THIS LINE
@@ -88,7 +89,7 @@ par.pixel_scaling = []; % to account for mismatch of eff_pixel_size with, ONLY A
 par.read_image_log = 0; % bool, default: 0. Read metadata from image log instead hdf5, if image log exists
 par.read_filenames_from_disk = 0; % only for stepscans with tiff subfolders
 %%% PREPROCESSING %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-par.raw_bin = 1; % projection binning factor: integer
+par.raw_bin = 2; % projection binning factor: integer
 par.raw_roi = []; % vertical and/or horizontal ROI; coordinate (1,1) = top left pixel; supports absolute, relative, negative, and mixed indexing.
 % []: use full image;
 % [y0 y1]: vertical ROI, skips first raw_roi(1)-1 lines, reads until raw_roi(2); if raw_roi(2) < 0 reads until end - |raw_roi(2)|; relative indexing similar.
@@ -226,7 +227,7 @@ write.compression_parameter = [0.02 0.02]; % compression-method specific paramet
 % dynamic range is compressed s.t. new dynamic range assumes
 % 'outlier' : [LOW, HIGH] = write.compression_parameter, eg. [0.01 0.03], outlier given in percent, if scalear LOW = HIGH.
 % 'full' : full dynamic range is used
-% 'threshold' : [LOW HIGH] = write.compression_parameter, eg. [-0.01 1]
+% 'threshold' : [LOW HvIGH] = write.compression_parameter, eg. [-0.01 1]
 % 'std' : NUM = write.compression_parameter, mean +/- NUM*std, dynamic range is rescaled to within -/+ NUM standard deviations around the mean value
 % 'histo' : [LOW HIGH] = write.compression_parameter (100*LOW)% and (100*HIGH)% of the original histogram, e.g. [0.02 0.02]
 write.uint8_segmented = 0; % experimental: threshold segmentaion for histograms with 2 distinct peaks: __/\_/\__
@@ -243,6 +244,7 @@ interactive_mode.angle_scaling_default_search_range = []; % if empty: use a vari
 interactive_mode.slice_number = 0.5; % default slice number. if in [0,1): relative, if in (1, N]: absolute
 interactive_mode.phase_retrieval = 1; % Interactive retrieval to determine regularization parameter
 interactive_mode.phase_retrieval_default_search_range = []; % if empty: asks for search range when entering interactive mode, otherwise directly start with given search range
+interactive_mode.show_stack_imagej = 1; %
 %%% HARDWARE / SOFTWARE %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 par.use_cluster = 0; % if available: on MAXWELL nodes disp/nova/wga/wgs cluster computation can be used. Recommended only for large data sets since parpool creation and data transfer implies a lot of overhead.
 par.poolsize = 0.8; % number of workers used in a local parallel pool. if 0: use current config. if >= 1: absolute number. if 0 < poolsize < 1: relative amount of all cores to be used. if SLURM scheduling is available, a default number of workers is used.
@@ -425,6 +427,7 @@ assign_default( 'tomo.rot_axis_search_verbose', 1);
 assign_default( 'tomo.rot_axis_search_extrema', 'max' );
 assign_default( 'tomo.rot_axis_search_fit', 1 );
 assign_default( 'par.skip_gpu_info', 0);
+assign_default( 'interactive_mode.show_stack_imagej', 1 )
 %assign_default( '',  )
 
 % Define variables from struct fields for convenience
@@ -541,6 +544,11 @@ CheckAndMakePath( write.path )
 filename = sprintf( '%s/parameters.mat', write.path );
 save( filename )
 CheckAndMakePath( fig_path )
+
+% interactive path
+p = [write.path, filesep, 'interactive', filesep];
+p = regexprep( p, 'processed', 'scratch_cc');
+write.interactive_path = p;
 
 % Memory
 fprintf( '\n user :  %s', getenv( 'USER' ) );

@@ -49,9 +49,9 @@ tomo.vol_size = vol_size;
 if isempty( slice )
     slice = round( num_row / 2 );
 else
-        if slice < 1 && slice >= 0
-            slice = round((size( proj, 2 ) - 1) * slice + 1 );
-        end
+    if slice < 1 && slice >= 0
+        slice = round((size( proj, 2 ) - 1) * slice + 1 );
+    end
 end
 tomo.slice = slice;
 
@@ -59,7 +59,7 @@ tomo.slice = slice;
 rot_axis_pos = offset + vol_shape(1) / 2;
 l = max( max( rot_axis_pos) , max( abs( vol_shape(1) - rot_axis_pos ) ) );
 % maximum distance between sino plane and reco plane
-dz = ceil( sin( max( abs( [ tilt, fixed_tilt] ) ) ) * l ); 
+dz = ceil( sin( max( abs( [ tilt, fixed_tilt] ) ) ) * l );
 if slice - dz < 0 || slice + dz > num_row
     fprintf( '\nWARNING: Inclination of reconstruction plane, slice %u, exceeds sinogram volume. Better choose a more central slice or a smaller tilts.', slice)
 end
@@ -103,7 +103,7 @@ reco_metric(6).name = 'entropy';
 reco_metric(7).name = 'entropy-ML';
 
 % Preallocation
-vol = zeros(vol_shape(1), vol_shape(2), numel(offset));
+vol = zeros(vol_shape(1), vol_shape(2), numel(offset), 'single');
 for nn = 1:numel(reco_metric)
     reco_metric(nn).val = zeros( numel(offset), 1);
 end

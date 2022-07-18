@@ -10,7 +10,7 @@ function [vol, reco_metric] = find_rot_axis_tilt(tomo, proj)
 % mean of all absolute values, mean non-negative values, mean of isotropic
 % modulus of gradient, mean of Laplacian, entropy
 % 
-% Written by Julian Moosmann. Last modification: 2018-05-03
+% Written by Julian Moosmann.
 %
 % [vol, reco_metric] = find_rot_axis_tilt(tomo, proj)
 
@@ -98,7 +98,7 @@ reco_metric(6).name = 'entropy';
 reco_metric(7).name = 'entropy-ML';
 
 % Preallocation
-vol = zeros(vol_shape(1), vol_shape(2), numel(tilt));
+vol = zeros(vol_shape(1), vol_shape(2), numel(tilt), 'single');
 for nn = 1:numel(reco_metric)
     reco_metric(nn).val = zeros( numel(tilt), 1);
 end

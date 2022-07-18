@@ -99,7 +99,7 @@ reco_metric(6).name = 'entropy';
 reco_metric(7).name = 'entropy-ML';
 
 % Preallocation
-vol = zeros(vol_shape(1), vol_shape(2), numel(angle_scaling));
+vol = zeros(vol_shape(1), vol_shape(2), numel(angle_scaling), 'single');
 for nn = 1:numel(reco_metric)
     reco_metric(nn).val = zeros( numel(angle_scaling), 1);
 end

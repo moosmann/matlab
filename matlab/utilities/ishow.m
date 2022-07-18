@@ -34,10 +34,11 @@ for nn = 1:numel(varargin)
 end
 imroislice = @(im) im(roi,roi,slice);
 imslice = @(im) im(:,:,slice);
+im = squeeze(im);
 rotate_im = size(im,1) > size(im,2) ;
 rot = @(im) rot90( im, rotate_im );
 if rotate_im
-    fprintf( 'Image is rotated to fit to the screen!' )
+    fprintf( '\n Image is rotated to fit to the screen!' )
 end
 %% MAIN %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 if roi(1) > 0

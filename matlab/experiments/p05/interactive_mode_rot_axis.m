@@ -14,6 +14,7 @@ imsc1 = @(im) imsc( rot90( im ) );
 tint = 0;
 angle_scaling = [];
 lamino = interactive_mode.lamino;
+show_stack_imagej = interactive_mode.show_stack_imagej;
 window_state = par.window_state;
 if isempty( tomo.rot_axis_offset )
     tomo.rot_axis_offset = 0;
@@ -262,8 +263,23 @@ if tomo.run || tomo.run_interactive_mode
                 drawnow
                 saveas( h_rot_off, sprintf( '%s%s.png', write.fig_path, regexprep( h_rot_off.Name, '\ |:', '_') ) );
                 
-                % Play
-                nimplay(vol, 1, [], 'OFFSET: sequence of reconstructed slices using different rotation axis offsets')
+                % Display
+                if show_stack_imagej
+                    p = [write.interactive_path 'rot_axis_pos' filesep datestr(now, 'yyyymmddTHHMMSS') filesep];
+                    mkdir(p)
+                    parfor nn = 1:size( vol, 3 )
+                        filename = sprintf('%srot_axis_pos_%06u.tif', p, nn );
+                        write32bitTIF(filename, vol(:,:,nn) );
+                    end
+                    p0 = pwd;
+                    cd(p)
+                    fprintf('\nLoading imagej')
+                    unix('/asap3/petra3/gpfs/common/p05/jm/bin/imagej_opensequence &');
+                    pause(3)
+                    cd(p0)
+                else
+                    nimplay(vol, 1, [], 'OFFSET: sequence of reconstructed slices using different rotation axis offsets')
+                end
                 
             end % isscalar( offset )
             
@@ -371,8 +387,23 @@ if tomo.run || tomo.run_interactive_mode
                             drawnow
                             saveas( h_rot_tilt, sprintf( '%s%s.png', write.fig_path, regexprep( h_rot_tilt.Name, '\ |:', '_') ) );
                             
-                            % Play
-                            nimplay(vol, 1, [], 'TILT: sequence of reconstructed slices using different rotation axis tilts')
+                            % Display
+                            if show_stack_imagej
+                                p = [write.interactive_path 'rot_axis_tilt' filesep datestr(now, 'yyyymmddTHHMMSS') filesep];
+                                mkdir(p)
+                                parfor nn = 1:size( vol, 3 )
+                                    filename = sprintf('%srot_axis_pos_%06u.tif', p, nn );
+                                    write32bitTIF(filename, vol(:,:,nn) );
+                                end
+                                p0 = pwd;
+                                cd(p)
+                                fprintf('\nLoading imagej')
+                                unix('/asap3/petra3/gpfs/common/p05/jm/bin/imagej_opensequence &');
+                                pause(3)
+                                cd(p0)
+                            else
+                                nimplay(vol, 1, [], 'TILT: sequence of reconstructed slices using different rotation axis tilts')
+                            end
                         end
                         
                         if isscalar( tilt )
@@ -549,8 +580,23 @@ if tomo.run || tomo.run_interactive_mode
                             drawnow
                             saveas( h_rot_angle_scaling, sprintf( '%s%s.png', write.fig_path, regexprep( h_rot_angle_scaling.Name, '\ |:', '_') ) );
                             
-                            % Play
-                            nimplay(vol, 1, [], 'ANGLES: sequence of reconstructed slices using different angle scalings')
+                            % Display
+                            if show_stack_imagej
+                                p = [write.interactive_path 'rot_axis_angles' filesep datestr(now, 'yyyymmddTHHMMSS') filesep];
+                                mkdir(p)
+                                parfor nn = 1:size( vol, 3 )
+                                    filename = sprintf('%srot_axis_pos_%06u.tif', p, nn );
+                                    write32bitTIF(filename, vol(:,:,nn) );
+                                end
+                                p0 = pwd;
+                                cd(p)
+                                fprintf('\nLoading imagej')
+                                unix('/asap3/petra3/gpfs/common/p05/jm/bin/imagej_opensequence &');
+                                pause(3)
+                                cd(p0)
+                            else
+                                nimplay(vol, 1, [], 'ANGLES: sequence of reconstructed slices using different angle scalings')
+                            end
 
                         end
                         

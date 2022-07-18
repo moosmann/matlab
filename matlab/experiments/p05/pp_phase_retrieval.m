@@ -328,7 +328,21 @@ if exist( 'interactive_mode', 'var' ) && isfield( interactive_mode, 'phase_retri
             saveas( f, sprintf( '%s%s.png', write.fig_path, regexprep( f.Name, '\ |:', '_') ) );
             
             % Play
-            nimplay( pha, 1, [], 'PHASE RETRIEVAL: sequence of reconstructed slices using different phase retrieval parameters')
+            if interactive_mode.show_stack_imagej
+                p = [write.interactive_path 'phase_retrieval' filesep datestr(now, 'yyyymmddTHHMMSS') filesep];
+                mkdir(p)
+                parfor nn = 1:size( pha, 3 )
+                    filename = sprintf('%srot_axis_pos_%06u.tif', p, nn );
+                    write32bitTIF(filename, pha(:,:,nn) );
+                end
+                p0 = pwd;
+                cd(p)
+                fprintf('\nLoading imagej')
+                unix('/asap3/petra3/gpfs/common/p05/jm/bin/imagej_opensequence &');
+                cd(p0)
+            else
+                nimplay( pha, 1, [], 'PHASE RETRIEVAL: sequence of reconstructed slices using different phase retrieval parameters')
+            end
             
         else
             first_round = 0;
