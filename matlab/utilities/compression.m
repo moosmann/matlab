@@ -1,4 +1,4 @@
-function [tlow, thigh, histo] = compression( vol, method, parameter, verbose )
+function [tlow, thigh, histo] = compression( vol, method, parameter )
 % Return thresholds in order to compress, i.e. normalize, the dynamic range
 % of volume array 'vol' according 'vol = (vol - tlow) ./ (thigh - tlow)'
 % using 'method'. 
@@ -21,13 +21,11 @@ end
 if nargin < 3
     parameter = [1 0];
 end
-if nargin < 4
-    verbose = 1;
-end
 
 %% Main %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 histo = [];
+t = toc;
 
 % Compression method
 switch lower( method )
@@ -50,20 +48,20 @@ switch lower( method )
         % thresholds
         tlow = parameter(1);
         thigh = parameter(2);
+    
     case 'outlier'
         [~, tlow, thigh] = FilterOutlier( vol, [parameter(1), parameter(2)], '', 1, 0 );
     
     case 'histo'
-        % crop dynamic range using histogram of volume ROI
-        t2 = toc;
-        PrintVerbose(verbose, '\nCompression by histogram thresholds:' )
+        % crop dynamic range using histogram of volume ROI        
+        fprintf('\nCompression by histogram thresholds:' )
         num_bins_max = 2048;
         bl = min( round( 1 / parameter(1) / 2 ) * 2, num_bins_max);
         bh = min( round( 1 / parameter(2) / 2 ) * 2, num_bins_max);
         num_bins = min( lcm( bl, bh ), num_bins_max);
-        PrintVerbose(verbose, '\n lower/higher percentage : %g%%, %g%%', parameter*100 )
-        PrintVerbose(verbose, '\n bins required for lower/higher percentage thresholds : %u, %u', bl, bh )
-        PrintVerbose(verbose, '\n number of histogram bins (least common multiple) : %u', num_bins )
+        fprintf('\n lower/higher percentage : %g%%, %g%%', parameter*100 )
+        fprintf('\n bins required for lower/higher percentage thresholds : %u, %u', bl, bh )
+        fprintf('\n number of histogram bins (least common multiple) : %u', num_bins )
         [x, y, z] = size( vol );
         xx = round( x / 2 ) + (-ceil(0.9*x/2/sqrt(2)):floor(0.9*x/2/sqrt(2)));
         yy = round( y / 2 ) + (-ceil(0.9*y/2/sqrt(2)):floor(0.9*y/2/sqrt(2)));
@@ -71,13 +69,13 @@ switch lower( method )
         zz( zz < 1 ) = [];
         vol_roi_min = min3( vol(xx,yy,zz) );
         vol_roi_max = max3( vol(xx,yy,zz) );
-        PrintVerbose(verbose, '\n volume ROI  min/max : %g, %g', vol_roi_min, vol_roi_max )
+        fprintf('\n volume ROI  min/max : %g, %g', vol_roi_min, vol_roi_max )
         [histo, edges] = histcounts( vol(xx,xx,zz), num_bins, 'BinLimits', [vol_roi_min vol_roi_max] );
         tlow = edges( round( num_bins / bl ) );
-        thigh = edges( end - round( num_bins / bh ) );
-        PrintVerbose(verbose, '\n done in %.0f s (%.2f min).',toc - t2, (toc - t2) / 60)
+        thigh = edges( end - round( num_bins / bh ) );        
 end
-
-PrintVerbose(verbose, ' \n lower / higher threshold : %g, %g', tlow, thigh )
+fprintf('\nCalculating compression limits: ')
+fprintf('\n duration %.0f s (%.2f min).',toc - t, (toc - t) / 60)
+fprintf('\n lower / higher threshold : %g, %g', tlow, thigh )
 
 end

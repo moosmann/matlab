@@ -26,9 +26,10 @@ else
         t = regexp( name, expr, 'once' );
         if ~isempty( t )
             s = dir( [name filesep '*.tif'] );
+            fprintf('\nDELETING OLD FILES')
             parfor nn = 1:numel( s )
                 filename = [s(nn).folder filesep s(nn).name ];
-                if ~s(nn).isdir
+                if ~s(nn).isdir                    
                     delete( filename )
                 end
             end

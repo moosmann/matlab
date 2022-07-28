@@ -407,7 +407,7 @@ if tomo.run || tomo.run_interactive_mode
                         end
                         
                         if isscalar( tilt )
-                            cprintf( 'RED', '\n\nDouble check tilt: ' )
+                            cprintf( 'RED', '\n\nCross check tilt by correlation of projections 0 and pi rad: ' )
                             fprintf( 'Registration of projection' )
                             tomo.rot_axis_position = im_shape_cropbin1 / 2 + tomo.rot_axis_offset;
                             
@@ -440,7 +440,7 @@ if tomo.run || tomo.run_interactive_mode
                             
                             im2c_warped_int =  imwarp(im2c, tform_int, 'OutputView', imref2d(size(im1c)));
                             
-                            xt = ceil( 3 * abs( sin(2*itomo.tilt) ) * max( size(im1c)) ) + 2;
+                            xt = 4 *ceil( 3 * abs( sin(2*itomo.tilt) ) * max( size(im1c)) ) + 10 + 2 *ceil(max( abs(tform_int.T(3,1:2))));
                             
                             if xt < size( im1c,1)  -10 && xt < size( im1c,2)  -10
                                 fprintf( '\n current rotation axis tilt from interactive mode: %g rad (%g deg)', itomo.tilt, itomo.tilt * 180 / pi)

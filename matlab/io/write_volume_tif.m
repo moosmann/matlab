@@ -1,4 +1,4 @@
-function savestack( vol, save_path, im_class, im_prefix)
+function write_volume_tif( vol, save_path, im_class, im_prefix)
 % Save image stack as image sequence.
 %
 % vol : 3D image stack
@@ -7,6 +7,8 @@ function savestack( vol, save_path, im_class, im_prefix)
 %   class of 'vol' is used. if integer class is used, 'vol' is assumed to
 %   be in [0,1].
 % im_prefix: filename prefix to be used
+%
+% Writte by J. Moosmann
 
 if nargin < 3
     im_class = 'float';

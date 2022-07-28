@@ -29,7 +29,7 @@ else
     if phase_bin > 1
         save_path = sprintf( '%s_phaseBin%u', save_path, phase_bin);
     end
-    PrintVerbose(verbose, '\n Write %s', output_type)
+    PrintVerbose(verbose, '\nWrite %s', output_type)
     if reco_bin > 1
         PrintVerbose(verbose, ' binned')
         save_path = sprintf( '%s_recoBin%u', save_path, reco_bin);
@@ -67,5 +67,5 @@ else
         otherwise
            error( 'Format ''%s'' not supported.', output_type )
     end
-    fprintf( ' done in %.2f min.', (toc - t) / 60)
+    fprintf( '\n duration : %.2f min.', (toc - t) / 60)
 end

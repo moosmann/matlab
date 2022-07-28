@@ -1,4 +1,4 @@
-function [phi0,phi1] = stackrec(stack,padding,alpha,beta);
+function [phi0,phi1] = stackrec(stack,padding,alpha,beta)
 % Attempt to do the reconstruction of the whole stack with Matlab's
 % matrix/array notation.
 
@@ -33,23 +33,23 @@ phi0    = ifft2(phi0_ft,dimy,dimx);
 iftxiphi_ft  = ifft2( xi.*phi0_ft,dimy,dimx);
 iftetaphi_ft = ifft2(eta.*phi0_ft,dimy,dimx);
 phi1         =  ifft2(inv_lap.*fft2( ...
-               -1/(4*pi)*g.^2 ... 
-               -1/2* iftxiphi_ft.*ifft2( xi.*g_ft) ...
-               -1/2*iftetaphi_ft.*ifft2(eta.*g_ft) ...
-                               ,dimy,dimx),dimy,dimx,'symmetric') ...
-               -pi/2*(iftxiphi_ft.^2 + iftetaphi_ft.^2);
+    -1/(4*pi)*g.^2 ...
+    -1/2* iftxiphi_ft.*ifft2( xi.*g_ft) ...
+    -1/2*iftetaphi_ft.*ifft2(eta.*g_ft) ...
+    ,dimy,dimx),dimy,dimx,'symmetric') ...
+    -pi/2*(iftxiphi_ft.^2 + iftetaphi_ft.^2);
 
 
 %take real part and clip zero-padded matrices to original size
 if padding > 1
-ycut = 1+dimy/2-dim2/2:dimy/2+dim2/2;
-xcut = 1+dimx/2-dim1/2:dimx/2+dim1/2;
-phi0      = real(phi0(ycut,xcut));
-phi1      = real(phi1(ycut,xcut));
+    ycut = 1+dimy/2-dim2/2:dimy/2+dim2/2;
+    xcut = 1+dimx/2-dim1/2:dimx/2+dim1/2;
+    phi0      = real(phi0(ycut,xcut));
+    phi1      = real(phi1(ycut,xcut));
 else
-phi0   = real(phi0);
-phi1   = real(phi1);
-end;    
+    phi0   = real(phi0);
+    phi1   = real(phi1);
+end
 ranges(phi0);ranges(phi1);
 %renormalize stack
 armin = repmat(min(min(phi0+phi1)),[dim2,dim1,1]);

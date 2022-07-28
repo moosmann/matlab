@@ -1,5 +1,5 @@
 function p05_reco( external_parameter )
-% P05 reconstruction pipeline: preprocessing, filtering, phase retrieval,
+% P05/P07 reconstruction pipeline: preprocessing, filtering, phase retrieval,
 % tomographic reconstruction, ...
 %
 % USAGE:
@@ -35,7 +35,7 @@ dbstop if error
 % !!! QUICK SWITCH TO ALTERNATIVE SET OF PARAMETERS !!!
 % !!! OVERWRITES PARAMETERS BELOW QUICK SWITCH SECTION !!!
 % Just copy parameter and set quick switch to 1
-par.quick_switch = 1;
+par.quick_switch = 0;
 par.scan_path = pwd;
 %par.scan_path = last_folder_modified('')
 par.raw_bin = 6;
@@ -73,7 +73,7 @@ interactive_mode.show_stack_imagej = 1;
 
 pp_parameter_switch % DO NOT DELETE THIS LINE
 
-%%% SCAN %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%l%%%%%%%%%%%
+%%% SCAN %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 par.scan_path = pwd; % string/pwd. pwd: change to directory of the scan to be reconstructed, string: absolute scan path, last_folder_modified('folder')
 par.ref_path = {}; % cell of strings. Additonal data sets to be included for the correlation of projections and reference images
 par.read_flatcor = 0; % read preprocessed flatfield-corrected projections. CHECK if negative log has to be taken!
@@ -130,12 +130,12 @@ image_correlation.method = 'ssim-ml';'median';'entropy';'none';'ssim';'ssim-g';'
 % 'diff1/2-l1/2': L1/L2-norm of anisotropic (diff1-l*) or isotropic (diff2-l*) difference of projections and flat fields
 % 'cross-entropy-*' : asymmetric (12,21) and symmetric (x) cross entropy
 image_correlation.force_calc = 0; % bool. force compuation of correlation even though a (previously computed) corrlation matrix exists
-image_correlation.num_flats = 11; % number of best maching flat fields used for correction
-image_correlation.area_width = [1 100];%[-100 1];% correlation area: index vector or relative/absolute position of [first pix, last pix], negative indexing is supported
-image_correlation.area_height = [0.3 0.7]; % correlation area [bottom top]: index vector or relative/absolute position of [first pix, last pix]
+image_correlation.num_flats = 7; % number of best maching flat fields used for correction
+image_correlation.area_width =  2*[3300  3894];%[201 700];%[-100 1];% correlation area: index vector or relative/absolute position of [first pix, last pix], negative indexing is supported
+image_correlation.area_height = 6004 -2*(1490 +[1438, 0]);%[0.25 0.75]; % correlation area [bottom top]: index vector or relative/absolute position of [first pix, last pix]
 image_correlation.filter = 1; % bool, filter ROI before correlation
 image_correlation.filter_type = 'median'; % string. correlation ROI filter type, currently only 'median' is implemnted
-image_correlation.filter_parameter = {[3 3], 'symmetric'}; % cell. filter paramaters to be parsed with {:}
+image_correlation.filter_parameter = {[5 5], 'symmetric'}; % cell. filter paramaters to be parsed with {:}
 % 'median' : using medfilt2, parameters: {[M N]-neighboorhood, 'padding'}
 % 'wiener' : using wiender2, parameters: {[M N]-neighboorhood}
 ring_filter.apply = 0; % ring artifact filter (use only for scans without lateral sample movement)
@@ -148,12 +148,12 @@ ring_filter.jm_median_width = 11; % multiple widths are applied consecutively, e
 par.strong_abs_thresh = 1; % if 1: does nothing, if < 1: flat-corrected values below threshold are set to one. Try with algebratic reco techniques.
 par.norm_sino = 0; % not recommended, can introduce severe artifacts, but sometimes improves quality
 %%% PHASE RETRIEVAL %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-phase_retrieval.apply = 0; % See 'PhaseFilter' for detailed description of parameters !
+phase_retrieval.apply = 1; % See 'PhaseFilter' for detailed description of parameters !
 phase_retrieval.apply_before = 0; % before stitching, interactive mode, etc. For phase-contrast data with an excentric rotation axis phase retrieval should be done afterwards. To find the rotataion axis position use this option in a first run, and then turn it of afterwards.
 phase_retrieval.post_binning_factor = 1; % Binning factor after phase retrieval, but before tomographic reconstruction
 phase_retrieval.method = 'tie';'tieNLO_Schwinger';'dpc';'tie';'qp';'qpcut'; %'qp' 'ctf' 'tie' 'qp2' 'qpcut'
 % Interactive phase retrieval not supported for method 'tieNLO_Schwinger'
-phase_retrieval.reg_par = 2; % regularization parameter. larger values tend to blurrier images. smaller values tend to original data.
+phase_retrieval.reg_par = 2.4; % regularization parameter. larger values tend to blurrier images. smaller values tend to original data.
 phase_retrieval.bin_filt = 0.1; % threshold for quasiparticle retrieval 'qp', 'qp2'
 phase_retrieval.cutoff_frequ = 2 * pi; % in radian. frequency cutoff in Fourier space for 'qpcut' phase retrieval
 phase_retrieval.padding = 1; % padding of intensities before phase retrieval, 0: no padding
@@ -165,18 +165,19 @@ phase_retrieval.dpc_bin = 4;
 tomo.run = 1; % run tomographic reconstruction
 tomo.run_interactive_mode = 1; % if tomo.run = 0, use to determine rot axis positions without processing the full tomogram;
 tomo.reco_mode = '3D';'slice';  % slice-wise or full 3D backprojection. 'slice': volume must be centered at origin & no support of rotation axis tilt, reco binning, save compressed
-tomo.vol_size = [];[-1 1 -1 1 -0.5 0.5];% 6-component vector [xmin xmax ymin ymax zmin zmax]for excentric rot axis pos / extended FoV;. if empty, volume is centerd within tomo.vol_shape. unit voxel size is assumed. if smaller than 10 values are interpreted as relative size w.r.t. the detector size. Take care bout minus signs! Note that if empty vol_size is dependent on the rotation axis position.
-% [ slice left,  slice right,  slice top,  slice bottom, bottom slice, top slice], 2D Matlab notation: (0,0)=topleft:
+tomo.vol_size = [];%[-1 1 -1 1 -0.5 0.5];% 6-component vector [xmin xmax ymin ymax zmin zmax] for excentric rot axis pos or extended FoV;. if empty, volume is centerd within tomo.vol_shape. unit voxel size is assumed. if smaller than 10 values are interpreted as relative size w.r.t. the detector size. Take care bout minus signs! Note that if empty vol_size is dependent on the rotation axis position.
+% Orientation using Matlab's matrix notation: coordinate (0,0) = top left pixel
+% [left, right, top, bottom, bottom slice, top slice]
 tomo.vol_shape = []; %[1 1 1] shape (# voxels) of reconstruction volume. used for excentric rot axis pos. if empty, inferred from 'tomo.vol_size'. in absolute numbers of voxels or in relative number w.r.t. the default volume which is given by the detector width and height.
 tomo.rot_angle_full_range = [];% 2 * pi ;[]; % in radians. if []: full angle of rotation including additional increment, or array of angles. if empty full rotation angles is determined automatically to pi or 2 pi
 tomo.rot_angle_offset = 0; % global rotation of reconstructed volume
 tomo.interpolate_missing_angles = 0; % limited or missing angle tomography
-tomo.rot_axis_offset = [] / 2 * par.raw_bin; % rotation axis offset w.r.t to the image center. Assuming the rotation axis position to be centered in the FOV for standard scan, the offset should be close to zero.
-tomo.rot_axis_position = []; % if empty use automatic computation. EITHER OFFSET OR posITION MUST BE EMPTY. YOU MUST NOT USE BOTH!
-tomo.rot_axis_offset_shift = []; %[]; % absolute lateral movement in pixels during fly-shift-scan, overwrite lateral shift read out from hdf5 log
-tomo.vert_shift = [];
+tomo.rot_axis_offset = [-0.1] / 2 * par.raw_bin; % rotation axis offset w.r.t to the image center. Assuming the rotation axis position to be centered in the FOV for standard scan, the offset should be close to zero.
+tomo.rot_axis_position = []; % if empty use automatic computation. EITHER OFFSET OR POSITION MUST BE EMPTY. YOU MUST NOT USE BOTH!
+tomo.rot_axis_offset_shift = 0; %[]; % absolute lateral movement in pixels during fly-shift-scan, overwrite lateral shift read out from hdf5 log
+tomo.vert_shift = []; % vertical shift for spiral/helical CT
 tomo.flip_scan_position = 0; % for debugging
-tomo.rot_axis_tilt_camera = 0; % in rad. camera tilt w.r.t rotation axis.
+tomo.rot_axis_tilt_camera = -0.00166056; % in rad. camera tilt w.r.t rotation axis.
 tomo.rot_axis_tilt_lamino = 0; % in rad. lamino tilt w.r.t beam.
 tomo.rot_axis_corr_area1 = []; % ROI to correlate projections at angles 0 & pi. Use [0.75 1] or so for scans with an excentric rotation axis
 tomo.rot_axis_corr_area2 = []; % ROI to correlate projections at angles 0 & pi
@@ -204,7 +205,7 @@ write.to_scratch = 0; % write to 'scratch_cc' instead of 'processed'
 write.deleteFiles = 0; % delete files already existing in output folders. Useful if number or names of files differ when reprocessing.
 write.beamtimeID = ''; % string (regexp),typically beamtime ID, mandatory if 'write.deleteFiles' is true (safety check)
 write.scan_name_appendix = ''; % appendix to the output folder name which defaults to the scan name
-write.parfolder = ''; % parent folder to 'reco', 'sino', 'phase', and 'flat_corrected'
+write.parfolder = 'tilt_m0p0017_largeCorArea'; % parent folder to 'reco', 'sino', 'phase', and 'flat_corrected'
 write.subfolder_flatcor = ''; % subfolder in 'flat_corrected'
 write.subfolder_phase_map = ''; % subfolder in 'phase_map'
 write.subfolder_sino = ''; % subfolder in 'sino'
@@ -222,10 +223,10 @@ write.float_binned = 1; % save binned single precision (32-bit float) tiff
 write.uint16_binned = 0; % save binned 16bit unsigned integer tiff using 'write.compression_method'
 write.uint8_binned = 0; % save binned 8bit unsigned integer tiff using 'wwrite.compression_method'
 write.reco_binning_factor = 2; % IF BINNED VOLUMES ARE SAVED: binning factor of reconstructed volume
-write.compression_method = 'outlier';'histo';'full'; 'std'; 'threshold'; % method to compression dynamic range into [0, 1]
+write.compression_method = 'outlier';'histo';'full'; 'std'; 'threshold'; % method to compress dynamic range into [0, 1]
 write.compression_parameter = [0.02 0.02]; % compression-method specific parameters
-% dynamic range is compressed s.t. new dynamic range assumes
-% 'outlier' : [LOW, HIGH] = write.compression_parameter, eg. [0.01 0.03], outlier given in percent, if scalear LOW = HIGH.
+% methods for the compression of the dynamic range:
+% 'outlier' : [LOW, HIGH] = write.compression_parameter, eg. [0.01 0.03], outlier given in percent, if scalar LOW = HIGH.
 % 'full' : full dynamic range is used
 % 'threshold' : [LOW HvIGH] = write.compression_parameter, eg. [-0.01 1]
 % 'std' : NUM = write.compression_parameter, mean +/- NUM*std, dynamic range is rescaled to within -/+ NUM standard deviations around the mean value
@@ -234,15 +235,15 @@ write.uint8_segmented = 0; % experimental: threshold segmentaion for histograms 
 %%% INTERACTION %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 par.visual_output = 1; % show images and plots during reconstruction
 par.skip_gpu_info = 1;
-interactive_mode.rot_axis_pos = 1; % reconstruct slices with dif+ferent rotation axis offsets
+interactive_mode.rot_axis_pos = 0; % reconstruct slices with dif+ferent rotation axis offsets
 interactive_mode.rot_axis_pos_default_search_range = []; % if empty: asks for search range when entering interactive mode
 interactive_mode.rot_axis_tilt = 0; % reconstruct slices with different offset AND tilts of the rotation axis
 interactive_mode.rot_axis_tilt_default_search_range = []; % if empty: asks for search range when entering interactive mode
-interactive_mode.lamino = 1; % find laminography tilt instead camera tilt
+interactive_mode.lamino = 0; % find laminography tilt instead camera tilt
 interactive_mode.angles = 0; % reconstruct slices with different scalings of angles
 interactive_mode.angle_scaling_default_search_range = []; % if empty: use a variaton of -/+5 * (angle increment / maximum angle)
 interactive_mode.slice_number = 0.5; % default slice number. if in [0,1): relative, if in (1, N]: absolute
-interactive_mode.phase_retrieval = 1; % Interactive retrieval to determine regularization parameter
+interactive_mode.phase_retrieval = 0; % Interactive retrieval to determine regularization parameter
 interactive_mode.phase_retrieval_default_search_range = []; % if empty: asks for search range when entering interactive mode, otherwise directly start with given search range
 interactive_mode.show_stack_imagej = 1; %
 %%% HARDWARE / SOFTWARE %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -851,7 +852,7 @@ if ~par.read_flatcor && ~par.read_sino
             axis tight
             drawnow
             CheckAndMakePath( fig_path )
-            fig_filename = sprintf( '%s%s.png', fig_path, regexprep( f.Name, '\ |:', '_') ) ;
+            fig_filename = sprintf( '%sfig%02u_%s.png', fig_path, f.Number, regexprep( f.Name, '\ |:', '_') ) ;
             saveas( f, fig_filename );
         end
         
@@ -965,7 +966,8 @@ if ~par.read_flatcor && ~par.read_sino
                     legend( { 's stage x', 'relative scan position' })
                     drawnow
                     CheckAndMakePath( fig_path )
-                    saveas( f, sprintf( '%s%s.png', fig_path, regexprep( f.Name, '\ |:', '_') ) );
+                    fig_filename = sprintf( '%sfig%02u_%s.png', fig_path, f.Number, regexprep( f.Name, '\ |:', '_') );
+                    saveas(f, fig_filename);
                 end
             end % if std( offset_shift_mm )
         else
@@ -1019,7 +1021,8 @@ if ~par.read_flatcor && ~par.read_sino
                         legend( sprintf( 'shift / #proj / pixel %f', dz / num_proj_found ) )
                         drawnow
                         CheckAndMakePath( fig_path )
-                        saveas( f, sprintf( '%s%s.png', fig_path, regexprep( f.Name, '\ |:', '_') ) );
+                        fig_filename = sprintf( '%sfig%02u_%s.png', fig_path, f.Number, regexprep( f.Name, '\ |:', '_') );
+                        saveas(f, fig_filename);
                     end
                 end % if std( vert_shift_micron )
             end % if numel( s_stage_z.value )
@@ -1133,7 +1136,8 @@ if ~par.read_flatcor && ~par.read_sino
     im_shape_binned2 = floor( size( im_roi, 2 ) / raw_bin );
     fprintf( '\n energy : %.1f keV', par.energy / 1e3 )
     par.wave_length = E_to_lambda( par.energy);
-    fprintf( '\n wave length : %.2g m', par.wave_length )
+    fprintf( '\n wave length lambda: %.2g angstrom', par.wave_length * 10^10 )
+    fprintf( '\n wave number 2*pi/lambda %f 1/nm:', 2 * pi / par.wave_length / 10^9 )
     fprintf( '\n distance sample dector : %.1f mm', par.sample_detector_distance * 1000 )
     fprintf( '\n effective pixel size unbinned : %.2f micron',  par.eff_pixel_size * 1e6)
     fprintf( '\n effective pixel size binned: %.2f micron',  eff_pixel_size_binned * 1e6)
@@ -1166,7 +1170,7 @@ if ~par.read_flatcor && ~par.read_sino
     t = toc;
     fprintf( '\nProcessing %u dark fields.', num_dark)
     dark = zeros( [im_shape_roi, num_dark], 'uint16');
-    fprintf( ' Allocated memory: %.2f MiB,', Bytes( dark, 2 ) )
+    fprintf( '\n allocated memory: %.2f MiB', Bytes( dark, 2 ) )
     filt_pix_par.threshold_hot = pixel_filter_threshold_dark(1);
     filt_pix_par.threshold_dark = pixel_filter_threshold_dark(2);
     filt_pix_par.medfilt_neighboorhood = pixel_filter_radius;
@@ -1222,7 +1226,7 @@ if ~par.read_flatcor && ~par.read_sino
     % Binned dark
     dark_median_binned = 1 / raw_bin^2 * Binning( dark_median, raw_bin);
     dark_mean_binned = 1 / raw_bin^2 * Binning( dark_mean, raw_bin);
-    fprintf( ' done in %.1f s', toc-t)
+    fprintf( '\n duration : %.1f s', toc-t)
     fprintf( '\n min/max of all darks : %g %g', darks_min, darks_max);
     fprintf( '\n min/max of median dark : %g %g', dark_med_min, dark_med_max);
     
@@ -1255,7 +1259,7 @@ if ~par.read_flatcor && ~par.read_sino
     flat_corr_area_height_binned = floor( numel( flat_corr_area2 ) / 2 / raw_bin );
     roi_flat = zeros( flat_corr_area_width_binned, flat_corr_area_height_binned, num_ref_used, 'single');
     num_zeros = zeros( 1, num_ref_used );
-    fprintf( ' Allocated memory: %.2f GiB,', Bytes( flat, 3 ) )
+    fprintf( '\n allocated memory: %.2f GiB', Bytes( flat, 3 ) )
     refs_to_use = zeros( 1, size( flat,3), 'logical');
     filt_pix_par.threshold_hot = pixel_filter_threshold_flat(1);
     filt_pix_par.threshold_dark = pixel_filter_threshold_flat(2);
@@ -1358,7 +1362,7 @@ if ~par.read_flatcor && ~par.read_sino
     
     nn = sum( ~refs_to_use(:) );
     num_ref_used = num_ref_used - nn;
-    fprintf( ' done in %.1f s', toc-t)
+    fprintf( '\n duration : %.1f s', toc-t)
     fprintf( '\n min/max of all flats : %6g %6g', flat_min, flat_max);
     fprintf( '\n min/max of all corrected flats : %6g %6g', flat_min2, flat_max2);
     
@@ -1382,6 +1386,7 @@ if ~par.read_flatcor && ~par.read_sino
     write32bitTIFfromSingle( sprintf('%sflat_dark_subtracted_beamcurrent_corrected_binned_%06u.tif', im_path, 1), rot90(flat(:,:,1)) )
     write32bitTIFfromSingle( sprintf('%sflat_dark_subtracted_beamcurrent_corrected_binned_%06u.tif', im_path, num_flat12 ), rot90(flat(:,:,num_flat12)) ) ;
     write32bitTIFfromSingle( sprintf('%sflat_dark_subtracted_beamcurrent_corrected_binned_%06u.tif', im_path, size(flat,3)), rot90(flat(:,:,end)) )
+    write32bitTIFfromSingle( sprintf('%sflat_dark_subtracted_beamcurrent_corrected_binned_mean.tif', im_path), rot90(mean(flat,3)) )
     
     %% Figure: Flat field
     if par.visual_output
@@ -1497,7 +1502,7 @@ if ~par.read_flatcor && ~par.read_sino
     % Preallocation
     im_shape_cropbin1 = floor( (x1(1) - x0(1) + 1) / raw_bin );
     proj = zeros( im_shape_cropbin1, im_shape_binned2, num_proj_used, 'single');
-    fprintf( ' Allocated memory: %.2f GiB,', Bytes( proj, 3 ) )
+    fprintf( '\n allocated memory: %.2f GiB', Bytes( proj, 3 ) )
     projs_to_use = zeros( 1, size( proj,3), 'logical' );
     num_zeros = zeros( 1, num_proj_used );
     parfor ( nn = 1:num_proj_used, poolsize_max_gpu )
@@ -1533,9 +1538,9 @@ if ~par.read_flatcor && ~par.read_sino
         proj(:, :, nn) = im_float_binned + im;
     end
     
-    fprintf( ' done in %.1f s (%.2f min)', toc - t, ( toc - t ) / 60 )
+    fprintf( '\n duration : %.1f s (%.2f min)', toc - t, ( toc - t ) / 60 )
     t = toc;
-    fprintf( '\npostprocessing projections:' )
+    %fprintf( '\npostprocessing projections:' )
     toc_bytes.read_proj = tocBytes( gcp, startS );
     
     % Delete empty projections
@@ -1580,7 +1585,7 @@ if ~par.read_flatcor && ~par.read_sino
             scale_factor = 100 ./ shiftdim( proj_rc(projs_to_use), -1 );
             fprintf( '\n Ring current normalization' )
             %proj = fun_times( proj, scale_factor );
-            proj = scale_factor .* proj ;
+            proj = scale_factor .* proj;
             
             % Plot ring current
             if par.visual_output && exist( 'ref_rc', 'var' )
@@ -1600,7 +1605,8 @@ if ~par.read_flatcor && ~par.read_sino
                 legend( sprintf( 'flats, mean: %.2f mA', ref_rcm), sprintf( 'projs, mean: %.2f mA', proj_rcm) )
                 drawnow
                 CheckAndMakePath( fig_path )
-                saveas( hrc, sprintf( '%s%s.png', fig_path, regexprep( hrc.Name, '\ |:', '_') ) );
+                fig_filename = sprintf( '%sfig%02u_%s.png', fig_path, hrc.Number, regexprep( hrc.Name, '\ |:', '_') );
+                saveas(hrc, fig_filename);
             end
         else
             cprintf( 'Red', '\nWARNING: Projections not normalized by ring current. Names read from directory and log-file are inconsistent.\n')
@@ -1613,7 +1619,7 @@ if ~par.read_flatcor && ~par.read_sino
     raw_max2 = max( proj(:) );
     num_empty = sum( ~projs_to_use(:) );
     num_proj_used = num_proj_used - num_empty;
-    fprintf( ' done in %.1f s (%.2f min)', toc - t, ( toc - t ) / 60 )
+    fprintf( '\n duration : %.1f s (%.2f min)', toc - t, ( toc - t ) / 60 )
     fprintf( '\n crop left  min/max : %u %u', min( x0 ), max( x0 ) )
     fprintf( '\n crop right min/max : %u %u', min( x1 ), max( x1 ) )
     fprintf( '\n image shape cropbin1 : %u', im_shape_cropbin1 )
@@ -1638,6 +1644,9 @@ if ~par.read_flatcor && ~par.read_sino
     % Save projections
     write32bitTIFfromSingle( sprintf('%sproj_dark_subtracted_beamcurrent_corrected_binned_%06u.tif', im_path, 1), rot90(proj(:,:,1)) )
     write32bitTIFfromSingle( sprintf('%sproj_dark_subtracted_beamcurrent_corrected_binned_%06u.tif', im_path, size(proj,3)), rot90(proj(:,:,end)) );
+    write32bitTIFfromSingle( sprintf('%sproj_dark_subtracted_beamcurrent_corrected_binned_mean3.tif', im_path), rot90(squeeze(mean(proj,3))));
+    write32bitTIFfromSingle( sprintf('%sproj_dark_subtracted_beamcurrent_corrected_binned_mean2.tif', im_path), squeeze(mean(proj,2)));
+    write32bitTIFfromSingle( sprintf('%sproj_dark_subtracted_beamcurrent_corrected_binned_mean1.tif', im_path), squeeze(mean(proj,1)));
     
     %% Figure: image correlation roi
     if par.visual_output && ~strcmp( image_correlation.method, 'none' )
@@ -1664,9 +1673,12 @@ if ~par.read_flatcor && ~par.read_sino
         title( 'proj(:,:,1) ROI' )
         ylabel( sprintf('image correlation area:\nunbinned (relative) coordinates\nwidth = %g %g\nheight = %g %g', image_correlation.area_width, image_correlation.area_height ) );
         colorbar
-        axis equal tight
-        
+        axis equal tight                
         drawnow
+        
+        CheckAndMakePath( fig_path )
+        fig_filename = sprintf( '%sfig%02u_%s.png', fig_path, h_corr_roi.Number, regexprep( h_corr_roi.Name, '\ |:', '_') );
+        saveas(h_corr_roi, fig_filename);
     end
     
     %% Projection/flat field correlation and flat field correction %%%%%%%%
@@ -1678,6 +1690,9 @@ if ~par.read_flatcor && ~par.read_sino
     proj_min0 = min( proj(:) );
     proj_max0 = max( proj(:) );
     fprintf( '\n global min/max after flat-field corrected:  %6g %6g', proj_min0, proj_max0);
+    write32bitTIFfromSingle( sprintf('%sproj_flatcorrected_binned_mean3.tif', im_path), rot90(squeeze(mean(proj,3))));
+    write32bitTIFfromSingle( sprintf('%sproj_flatcorrected_binned_mean2.tif', im_path), squeeze(mean(proj,2)));
+    write32bitTIFfromSingle( sprintf('%sproj_flatcorrected_binned_mean1.tif', im_path), squeeze(mean(proj,1)));
     
     %% Filter strong/full absorption (combine with iterative reco methods)
     if par.strong_abs_thresh < 1
@@ -1691,7 +1706,7 @@ if ~par.read_flatcor && ~par.read_sino
             im(m) = mean2( im );
             proj(:,:,nn) = im;
         end
-        fprintf( ' done in %.1f s (%.2f min)', toc - t, ( toc - t ) / 60 )
+        fprintf( '\n duration : %.1f s (%.2f min)', toc - t, ( toc - t ) / 60 )
     end
     
     fprintf( '\n sinogram size = [%g, %g, %g]', size( proj ) )
@@ -1780,8 +1795,9 @@ if ~par.read_flatcor && ~par.read_sino
         colorbar
         axis equal tight
         
-        CheckAndMakePath( fig_path )
-        saveas( h1, sprintf( '%s%s.png', fig_path, regexprep( h1.Name, '\ |:', '_') ) );
+        CheckAndMakePath(fig_path)
+        fig_filename = sprintf( '%sfig%02u_%s.png', fig_path, h1.Number, regexprep( h1.Name, '\ |:', '_') );
+        saveas(hrc, fig_filename);        
     end
     
     %% Sinogramm
@@ -1818,7 +1834,7 @@ if ~par.read_flatcor && ~par.read_sino
             sino = fun_times( sino, m );
             proj(:,nn,:) = sino;
         end
-        fprintf( ' done in %.1f s (%.2f min)', toc - t, ( toc - t ) / 60 )
+        fprintf( '\n duration : %.1f s (%.2f min)', toc - t, ( toc - t ) / 60 )
         
         nn = round( size( proj, 2) / 2);
         if isscalar( vert_shift )
@@ -1865,7 +1881,8 @@ if ~par.read_flatcor && ~par.read_sino
             axis equal tight
             
         end
-        saveas( f, sprintf( '%s%s.png', fig_path, regexprep( f.Name, '\ |:', '_') ) );
+        fig_filename = sprintf('%sfig%02u_%s.png', fig_path, f.Number, regexprep(f.Name, '\ |:', '_'));
+        saveas(f, fig_filename);  
         drawnow
         
         f = figure( 'Name', 'sinogram mean', 'WindowState', window_state );
@@ -1880,9 +1897,9 @@ if ~par.read_flatcor && ~par.read_sino
         xticks(xt)
         xticklabels( xc )
         axis equal tight
-        saveas( f, sprintf( '%s%s.png', fig_path, regexprep( f.Name, '\ |:', '_') ) );
+        fig_filename = sprintf('%sfig%02u_%s.png', fig_path, f.Number, regexprep(f.Name, '\ |:', '_'));
+        saveas(f, fig_filename);  
         drawnow
-        
     end
     
     %% Ring artifact filter
@@ -1901,7 +1918,7 @@ if ~par.read_flatcor && ~par.read_sino
             filename = sprintf('%sproj_%s_%06u.tif', flatcor_path, scan_name, nn );
             write32bitTIFfromSingle(filename, rot90(proj(:,:,nn)) );
         end
-        fprintf( ' done in %.1f (%.2f min)', toc-t, (toc-t)/60)
+        fprintf( '\n duration : %.1f (%.2f min)', toc-t, (toc-t)/60)
     end
 else
     %% Read sinogram %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -1937,7 +1954,7 @@ if phase_retrieval.apply
         end
         %clear flat;
         ft_flat_ims = fft( flat_ims, [], 3 );
-        fprintf( ' done in %.1f s', toc -t )
+        fprintf( '\n duration : %.1f s', toc -t )
         
         
         if isscalar( offset_shift )
@@ -1983,7 +2000,7 @@ if phase_retrieval.apply
             % Visibility map
             %vis_ff(:,:,nn) = 2*abs(ft_flat_ims(:,:,2))./abs(ft_flat_ims(:,:,1));
         end
-        fprintf( ' done in %.1f s (%.1 min)', toc -t, (toc -t)/60 )
+        fprintf( '\n duration : %.1f s (%.1 min)', toc -t, (toc -t)/60 )
         angles = angles(1:phase_retrieval.dpc_steps:end);
     end
 end
@@ -2240,7 +2257,7 @@ if par.stitch_projections
         angles = angles(1:num_proj_sti);
         tomo.angles = angles;
     end
-    fprintf( ' done in %.1f (%.2f min)', toc-t, (toc-t)/60)
+    fprintf( '\n duration : %.1f (%.2f min)', toc-t, (toc-t)/60)
     fprintf( '\n shape of stitched projections : %u %u %u', size( proj ) )
     fprintf( '\n memory allocated : %.2f GiB', Bytes( proj, 3 ) )
     if par.visual_output
@@ -2269,8 +2286,8 @@ if par.stitch_projections
         xticks('auto'),yticks('auto')
         
         drawnow
-        saveas( f, sprintf( '%s%s.png', fig_path, regexprep( f.Name, '\ |:', '_') ) );
-        
+        fig_filename = sprintf('%sfig%02u_%s.png', fig_path, f.Number, regexprep(f.Name, '\ |:', '_'));
+        saveas(f, fig_filename);  
     end
 end
 
@@ -2297,7 +2314,7 @@ if par.crop_at_rot_axis
     if isempty( tomo.vol_shape )
         tomo.vol_shape = [raw_im_shape_binned1, raw_im_shape_binned1, raw_im_shape_binned2];
     end
-    fprintf( ' done in %.1f (%.2f min)', toc-t, (toc-t)/60)
+    fprintf( '\n duration : %.1f (%.2f min)', toc-t, (toc-t)/60)
 end
 
 %% Save sinogram %%
@@ -2312,7 +2329,7 @@ if write.sino
         write32bitTIFfromSingle( filename, sino )
     end
     pause(0.01)
-    fprintf( ' done in %.1f s (%.2f min)', toc-t, (toc-t)/60)
+    fprintf( '\n duration : %.1f s (%.2f min)', toc-t, (toc-t)/60)
 end
 
 %% Phase retrieval %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -2336,7 +2353,7 @@ if tomo.run
     
     % Change 'reco_mode' to 'slice' if low on memory
     [mem_free, mem_avail_cpu, mem_total_cpu] = free_memory;
-    fprintf( '\n system memory: free, available, total : %.3g GiB, %.3g GiB, %.3g GiB', mem_free/1024^3, mem_avail_cpu/1024^3, mem_total_cpu/1024^3)
+    fprintf( '\n system memory: free, available, total : %.2f GiB, %.2f GiB, %.2f GiB', mem_free/1024^3, mem_avail_cpu/1024^3, mem_total_cpu/1024^3)
     if vol_mem > 0.9 * mem_avail_cpu
         tomo.reco_mode = 'slice';
         fprintf( '\nSwitch to slice-wise reco (tomo.reco_mode = ''%s'') due to limited memory ( avail : %.1f GiB, vol : %.1f GiB) .', tomo.reco_mode, mem_avail_cpu / 1024^3, vol_mem / 1024^3 )
@@ -2394,7 +2411,7 @@ if tomo.run
         
         % Filter sinogram
         if strcmpi( tomo.algorithm, 'fbp' )
-            fprintf( '\n Filter sino:' )
+            fprintf( '\nFilter sino:' )
             t2 = toc;
             
             if dpc_reco && rr == 2 % dpc phase
@@ -2416,7 +2433,11 @@ if tomo.run
             padding = tomo.fbp_filter_padding;
             padding_method = tomo.fbp_filter_padding_method;
             startS = ticBytes( gcp );
-            parfor nn =  1:size( proj, 3)
+            mem_per_proj = 2 * 2 * 2 * 4 * prod(size(proj, 1));
+            % copying * complex * padding * bit detpth * (dim1 * dim2)
+            poolsize_max_fbp_filter = floor( 0.9 * mem_avail_cpu / mem_per_proj );
+            fprintf( '\n filter poolsize limit : %u ', poolsize_max_fbp_filter )
+            parfor (nn = 1:size( proj, 3), poolsize_max_fbp_filter)
                 im = proj(:,:,nn);
                 im = NegLog( im, take_neg_log);
                 im = padarray( im, padding * [proj_shape1 0 0], padding_method, 'post' );
@@ -2426,9 +2447,8 @@ if tomo.run
                 im = real( im );
                 im = im(1:proj_shape1,:,:)
                 proj(:,:,nn) = im;
-            end
-            pause(0.01)
-            fprintf( ' done in %.2f min.', (toc - t2) / 60)
+            end            
+            fprintf( '\n duration : %.2f min.', (toc - t2) / 60)
             toc_bytes.fbp_filter_sino = tocBytes( gcp, startS );
         else
             proj = NegLog( proj, tomo.take_neg_log );
@@ -2454,15 +2474,15 @@ if tomo.run
                 vol = zeros( tomo.vol_shape, 'single' );
                 fprintf( '\n volume memory allocated for ''3D'' mode: %.2f GiB', Bytes( vol, 3 ) )
                 
-                fprintf( '\n Backproject:')
+                fprintf( '\nBackproject:')
                 t2 = toc;
                 vol = astra_parallel3D( tomo, permute( proj, [1 3 2]) );
-                fprintf( ' done in %.2f min.', (toc - t2) / 60)
+                fprintf( '\n duration : %.2f min.', (toc - t2) / 60)
                 
-                t2 = toc;
-                fprintf( '\n Clear projections:')
-                clear proj
-                fprintf( ' done in %.2f min.', (toc - t2) / 60)
+%                 t2 = toc;
+%                 fprintf( '\n Clear projections:')
+%                 clear proj
+%                 fprintf( '\n duration : %.2f min.', (toc - t2) / 60)
                 
                 vol_min = min( vol(:) );
                 vol_max = max( vol(:) );
@@ -2478,7 +2498,8 @@ if tomo.run
                     axis equal tight
                     title( sprintf( 'vol z = %u', nn ) )
                     colorbar
-                    saveas( f, sprintf( '%s%s.png', fig_path, regexprep( f.Name, '\ |:', '_') ) );
+                    fig_filename = sprintf('%sfig%02u_%s.png', fig_path, f.Number, regexprep(f.Name, '\ |:', '_'));
+                    saveas(f, fig_filename);                      
                     
                     f = figure( 'Name', 'Volume cut y', 'WindowState', window_state );
                     nn = round( size( vol, 2 ) / 2);
@@ -2493,7 +2514,8 @@ if tomo.run
                     end
                     axis equal tight
                     colorbar
-                    saveas( f, sprintf( '%s%s.png', fig_path, regexprep( f.Name, '\ |:', '_') ) );
+                    fig_filename = sprintf('%sfig%02u_%s.png', fig_path, f.Number, regexprep(f.Name, '\ |:', '_'));
+                    saveas(f, fig_filename);                      
                     
                     f = figure( 'Name', 'Volume cut x', 'WindowState', window_state );
                     nn = round( size( vol, 1 ) / 2);
@@ -2508,13 +2530,14 @@ if tomo.run
                     end
                     axis equal tight
                     colorbar
-                    saveas( f, sprintf( '%s%s.png', fig_path, regexprep( f.Name, '\ |:', '_') ) );
+                    fig_filename = sprintf('%sfig%02u_%s.png', fig_path, f.Number, regexprep(f.Name, '\ |:', '_'));
+                    saveas(f, fig_filename);                      
                     
                     drawnow
                 end
                 
                 %% Save ortho slices
-                fprintf( '\n Save ortho slices and min/max/mean/std projections:' )
+                fprintf( '\nSave ortho slices and min/max/mean/std projections:' )
                 t3 = toc;
                 CheckAndMakePath( write.reco_path )
                 imah = @(im) (adapthisteq(normat(im)));
@@ -2578,7 +2601,7 @@ if tomo.run
                 %                     filename = sprintf( '%sreco_%uProjStd.tif', write.reco_path,dd );
                 %                     write32bitTIFfromSingle( filename, rot90(im, (d==3) - 1) );
                 %                 end
-                fprintf( ' done in %.2f min.', (toc - t3) / 60)
+                fprintf( '\n duration : %.2f min.', (toc - t3) / 60)
                 
                 
                 %% Save volume
@@ -2618,10 +2641,10 @@ if tomo.run
                     
                     % Bin data
                     if write.float_binned || write.uint16_binned || write.uint8_binned || write.uint8_segmented
-                        fprintf( '\n Binning:')
+                        fprintf( '\nBinning:')
                         t2 = toc;
                         vol = Binning( vol, reco_bin ) / reco_bin^3;
-                        fprintf( ' done in %.2f min.', (toc - t2) / 60)
+                        fprintf( '\n duration : %.2f min.', (toc - t2) / 60)
                     end
                     
                     % Binned single precision: 32-bit float tiff
@@ -2654,10 +2677,10 @@ if tomo.run
                         imt = imtranslate( im, [-vert_shift(nn) 0], 'linear' );
                         proj(:,:,nn) = imt;
                     end
-                    fprintf( ' done in %.1f s (%.2f min)', toc-t2, (toc-t2)/60 )
+                    fprintf( '\n duration : %.1f s (%.2f min)', toc-t2, (toc-t2)/60 )
                 end
                 
-                fprintf( '\n Backproject and save slices:')
+                fprintf( '\nBackproject and save slices:')
                 %t2 = toc;
                 
                 if write.reco
@@ -2716,7 +2739,7 @@ if tomo.run
                 end
         end
     end % for rr = 1:num_recos
-    fprintf( ' \n tomo reco done in %.1f s (%.2f min)', toc - ttomo, (toc - ttomo) / 60 )
+    fprintf( ' \n tomo reco duration : %.1f s (%.2f min)', toc - ttomo, (toc - ttomo) / 60 )
 end
 
 %% Plot data transfer from/to workers
@@ -2745,7 +2768,8 @@ if par.visual_output
     drawnow
     pause( 0.1 )
     CheckAndMakePath( fig_path )
-    saveas( f, sprintf( '%s%s.png', fig_path, regexprep( f.Name, '\ |:', '_') ) );
+    fig_filename = sprintf('%sfig%02u_%s.png', fig_path, f.Number, regexprep(f.Name, '\ |:', '_'));
+    saveas(f, fig_filename);   
 end
 
 %% Write reco log file %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -2936,7 +2960,7 @@ weblink3_url = 'https://www.astra-toolbox.com';
 weblink3_name = sprintf( 'ASTRA toolbox: %s', weblink3_url );
 weblink3 = sprintf('<a href = "%s">%s</a>\n', weblink3_url, weblink3_name);
 
-fprintf( '\nFor data reconstruction, please the cite:\n');
+fprintf( '\nCitations for data reconstruction:\n');
 fprintf( weblink1 );
 fprintf( weblink2 );
 fprintf( weblink3 );
