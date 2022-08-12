@@ -47,7 +47,7 @@ end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %%% SCAN %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-scan_path = pwd;
+%scan_path = pwd;
     '/asap3/petra3/gpfs/p07/2020/data/11010206/processed/mgbone05_19118_ti_8m';
     '/asap3/petra3/gpfs/p05/2020/data/11008823/processed/nova004_pyrochroa_coccinea_a';
     '/asap3/petra3/gpfs/p05/2020/data/11008823/processed/nova003_pentatomidae';
@@ -56,6 +56,7 @@ scan_path = pwd;
     '/asap3/petra3/gpfs/p05/2020/data/11010107/processed/bmc07_v67r';
     '/asap3/petra3/gpfs/p05/2019/data/11007580/processed/smf_09_be_3033';
     '/asap3/petra3/gpfs/p07/2019/data/11007454/processed/bmc06_tooth1';
+    '/asap3/petra3/gpfs/p07/2022/data/11015567/processed/mbs020_sample1_mgti_a';
 raw_bin = 3; % projection binning factor: integer
 proj_range = []; % projection range
 read_sino_folder = sprintf( 'trans%02u', raw_bin);% string. default: '', picks first trans folder found
@@ -64,8 +65,8 @@ read_sino_trafo = @(x) (x);%rot90(x); % anonymous function applied to the image 
 sino_range = [];
 energy = 74000; % in eV!
 sample_detector_distance = 0.01; % in m
-eff_pixel_size = 1.28369e-6; % in m
-tomo.rot_angle_full_range = rot_angle_full_range; %2.000389 * pi% in radians. if []: full angle of rotation including additional increment, or array of angles. if empty full rotation angles is determined automatically to pi or 2 pi
+eff_pixel_size = []; % in m, read from reconlog.txt if []
+tomo.rot_angle_full_range = rot_angle_full_range; % in rad, read from reconlog if []: full angle of rotation including additional increment, or array of angles. if empty full rotation angles is determined automatically to pi or 2 pi
 %%% RING FILTER
 ring_filter.apply = 0; % ring artifact filter (use only for scans without lateral sample movement)
 ring_filter.method = 'jm'; 'wavelet-fft';
@@ -73,6 +74,10 @@ ring_filter.waveletfft_dec_levels = 1:6; % decomposition levels for 'wavelet-fft
 ring_filter.waveletfft_wname = 'db7';'db25';'db30'; % wavelet type, see 'FilterStripesCombinedWaveletFFT' or 'waveinfo'
 ring_filter.waveletfft_sigma = 3; %  suppression factor for 'wavelet-fft'
 ring_filter.jm_median_width = 11; % multiple widths are applied consecutively, eg [3 11 21 31 39];
+%%% PIXEL FILTER
+filter_sino = 1;
+pixel_filter_threshold = [0.01 0.005]; % threshold parameter for hot/dark pixel filter, for details see 'FilterPixel'
+pixel_filter_radius = [5 5];
 %%% PHASE RETRIEVAL %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 phase_retrieval.apply = 0; % See 'PhaseFilter' for detailed description of parameters !
 phase_retrieval.apply_before = 0; % before stitching, interactive mode, etc. For phase-contrast data with an excentric rotation axis phase retrieval should be done afterwards. To find the rotataion axis position use this option in a first run, and then turn it of afterwards.
@@ -134,7 +139,7 @@ write.float = 1; % single precision (32-bit float) tiff
 write.uint16 = 0; % save 16bit unsigned integer tiff using 'write.compression_method'
 write.uint8 = 0; % save binned 8bit unsigned integer tiff using 'write.compression_method'
 % Optionally save binned reconstructions, only works in '3D' reco_mode
-write.float_binned = 0; % save binned single precision (32-bit float) tiff
+write.float_binned = 1; % save binned single precision (32-bit float) tiff
 write.uint16_binned = 0; % save binned 16bit unsigned integer tiff using 'write.compression_method'
 write.uint8_binned = 0; % save binned 8bit unsigned integer tiff using 'wwrite.compression_method'
 write.reco_binning_factor = 2; % IF BINNED VOLUMES ARE SAVED: binning factor of reconstructed volume
@@ -142,13 +147,14 @@ write.compression_method = 'outlier';'histo';'full'; 'std'; 'threshold'; % metho
 write.compression_parameter = [0.02 0.02]; % compression-method specific parameter
 %%% INTERACTION %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 par.visual_output = 0; % show images and plots during reconstruction
+interactive_mode.show_stack_imagej = 1; % use imagej instead of MATLAB to scroll through images during interactive mode
 interactive_mode.rot_axis_pos = 1; % reconstruct slices with dif+ferent rotation axis offsets
 interactive_mode.rot_axis_pos_default_search_range = []; % if empty: asks for search range when entering interactive mode
 interactive_mode.rot_axis_tilt = 0; % reconstruct slices with different offset AND tilts of the rotation axis
 interactive_mode.rot_axis_tilt_default_search_range = []; % if empty: asks for search range when entering interactive mode
 interactive_mode.lamino = 0; % find laminography tilt instead camera rotation
 interactive_mode.fixed_other_tilt = 0; % fixed other tilt
-interactive_mode.angles = 1; % reconstruct slices with different scalings of angles
+interactive_mode.angles = 0; % reconstruct slices with different scalings of angles
 interactive_mode.angle_scaling_default_search_range = []; % if empty: use a variaton of -/+5 * (angle increment / maximum angle)
 interactive_mode.slice_number = 0.5; % default slice number. if in [0,1): relative, if in (1, N]: absolute
 interactive_mode.phase_retrieval = 1; % Interactive retrieval to determine regularization parameter
@@ -157,6 +163,7 @@ interactive_mode.phase_retrieval_default_search_range = []; % if empty: asks for
 par.use_cluster = 0; % if available: on MAXWELL nodes disp/nova/wga/wgs cluster computation can be used. Recommended only for large data sets since parpool creation and data transfer implies a lot of overhead.
 par.poolsize = 0.8; % number of workers used in a local parallel pool. if 0: use current config. if >= 1: absolute number. if 0 < poolsize < 1: relative amount of all cores to be used. if SLURM scheduling is available, a default number of workers is used.
 par.poolsize_gpu_limit_factor = 0.8; % Relative amount of GPU memory used for preprocessing during parloop. High values speed up Proprocessing, but increases out-of-memory failure
+par.use_gpu_in_parfor = 1;
 tomo.astra_link_data = 1; % ASTRA data objects become references to Matlab arrays. Reduces memory issues.
 tomo.astra_gpu_index = []; % GPU Device index to use, Matlab notation: index starts from 1. default: [], uses all
 tomo.astra_reco_per_gpu = 1;
@@ -254,6 +261,11 @@ if ~isempty(write.parfolder)
     write.path = [write.path, filesep, write.parfolder];
 end
 
+% interactive path
+p = [write.path, filesep, 'interactive', filesep];
+p = regexprep( p, 'processed', 'scratch_cc');
+write.interactive_path = p;
+
 % Save raw path to file for shell short cut
 filename = [userpath, filesep, 'path_to_raw'];
 fid = fopen( filename , 'w' );
@@ -305,6 +317,17 @@ CheckAndMakePath( fig_path )
 % Start parallel CPU pool %%%
 [~, par.poolsize] = OpenParpool( par.poolsize , par.use_cluster, [beamtime_path filesep 'scratch_cc']);
 
+% read_image_par = @(filename) read_image( filename, par );
+filt_pix_par.threshold_hot = pixel_filter_threshold(1);
+filt_pix_par.threshold_dark = pixel_filter_threshold(2);
+filt_pix_par.medfilt_neighboorhood = pixel_filter_radius;
+filt_pix_par.filter_dead_pixel = 1;
+filt_pix_par.filter_Inf = 0;
+filt_pix_par.filter_NaN = 0;
+filt_pix_par.verbose = 0;
+filt_pix_par.use_gpu = par.use_gpu_in_parfor;
+FilterPixel_par = @(sino) FilterPixel(sino, filt_pix_par);
+
 t = toc;
 %% Read sinogram %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Sino path
@@ -342,14 +365,50 @@ par.tifftrafo = 0;
 [sino, ~] = read_image( filename, par );
 sino = read_sino_trafo( sino );
 im_shape_cropbin1 = size( sino, 2 );
-num_proj_read = size( sino, 1 );
+%num_proj_read = size( sino, 1 );
 if ~isempty( proj_range )
     sino = sino(proj_range, :);
 end
 num_proj_used = size( sino, 1 );
 
+% Read parameters from reconlog.txt
+fn = [scan_path filesep 'reconlog.txt'];
+if exist(fn, 'File')
+    fprintf('\nReading reconlog.txt:')
+    fid = fopen(fn);
+    c = textscan(fid, '%s : %s');
+    fclose(fid);
+    
+    % angle increment
+    b = contains(c{1},'scan_angularstep');
+    angularstep = c{2}(b);
+    angularstep = pi / 180 *str2double(angularstep{1});
+    fprintf('\n angle increment : %f rad = %f deg', angularstep, angularstep * 180 / pi)
+    
+    % number of projections
+    b = contains(c{1},'scan_n_angle');
+    n_angle = c{2}(b);
+    n_angle = str2double(n_angle{1});
+    fprintf('\n number of angles : %u', n_angle)    
+    
+    % pixel size
+    b = contains(c{1},'scan_pixelsize');
+    pixelsize = c{2}(b);
+    pixelsize = str2double(pixelsize{1});
+    fprintf('\n unbinned effective pixelsize : %f', pixelsize)
+    
+    if isempty(eff_pixel_size)
+        eff_pixel_size = raw_bin * pixelsize;
+    end
+    
+    angles = (0:n_angle - 1) * angularstep;
+    ar = n_angle * angularstep;
+    tomo.rot_angle_full_range = ar;
+    fprintf('\n angular range : %f rad = %f * pi rad = %f deg', ar, ar / pi, ar * 180 / pi)
+end
+
 % Angles
-if  ~exist( 'angles', 'var' )
+if  ~exist( 'angles', 'var' )        
     if isempty( tomo.rot_angle_full_range )
         cprintf( 'Red', '\nEnter full angle of rotation (including one additional increment) or vector of angles, in radians: ' );
         tomo.rot_angle_full_range = input( '' );
@@ -366,7 +425,7 @@ end
 if tomo.rot_angle_full_range > 90
     error('rotation angle full range, %f, is most likely given in degrees instead of rad', tomo.rot_angle_full_range)
 end
-cprintf( 'Red', '\nrotation angle full range: %g * pi = %g degree', tomo.rot_angle_full_range / pi, tomo.rot_angle_full_range * 180 / pi );
+cprintf( 'Red', '\nrotation angle full range: %f * pi = %g degree', tomo.rot_angle_full_range / pi, tomo.rot_angle_full_range * 180 / pi );
 
 nn = round(im_shape_binned2 / 2 );
 filename = sprintf('%s%s', sino_path, sino_names_mat(nn, :));
@@ -377,6 +436,7 @@ if ~isempty( proj_range )
     sino = sino(proj_range, :);
 end
 %[s1, s2] = size( sino );
+sino = FilterPixel_par(sino);
 proj = reshape( sino, [im_shape_cropbin1, 1, num_proj_used] );
 
 %% TOMOGRAPHY: interactive mode to find rotation axis offset and tilt %%%%%
@@ -451,6 +511,9 @@ if tomo.slab_wise
             filename = sprintf('%s%s', sino_path, sino_name);
             sino = read_image( filename );
             sino = read_sino_trafo( sino );
+            if filter_sino
+                sino = FilterPixel_par(sino);
+            end
             if ~isempty( proj_range )
                 sino = sino(proj_range,:,:);
             end
@@ -497,10 +560,12 @@ else
         filename = sprintf('%s%s', sino_path, sino_names_mat(nn, :));
         sino = read_image( filename );
         sino = read_sino_trafo( sino );
+        if filter_sino
+            sino = FilterPixel_par(sino);
+        end
          if ~isempty( proj_range )
                 sino = sino(proj_range, :);
-         end
-        
+         end        
         if sum( sino(:) == 0) || sum( isnan( sino(:) ) ) || sum( isinf( sino(:) ) )
             fprintf( ' %u', nn )
         else
