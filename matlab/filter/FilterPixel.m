@@ -1,8 +1,8 @@
 function [im_int, threshold_hot, threshold_dark] = FilterPixel( im_int, par, gpu_index )
 % Filter hot, dark, or dead pixels of the 2D input image. Filtered pixels
-% are substituted by the median values of their neighboorhood. Hot and dark pixels are
-%found using a ratio of the image and the median filtered images which has
-%to be bigger than a FiltThreshHot_FiltThreshDark.
+% are substituted by the median values of their neighboorhood. Hot and dark
+% pixels are identified using the ratio of the image and the median
+% filtered images which has to be bigger than a certain threshold.
 %
 % im : 2D array, image to be filtered
 % par : parameter struct with fields:
@@ -16,15 +16,20 @@ function [im_int, threshold_hot, threshold_dark] = FilterPixel( im_int, par, gpu
 %       'im ./ medfilt2( im )' with a threshold.
 %   medfilt_neighboorhood: 2-vector, default: [3 3]. Neighborhood of the
 %       median filter applied to the image.
-%   filter_dead_pixel : scalar, default: true.
-%   verbose: scalar, default: 0.
+%   filter_dead_pixel : logical, default: true.
+%   filter_Inf : logical, default: true.
+%   filter_NaN : logical, default: true.
+%   verbose : logical, default: 0.
+%   use_gpue :  logical, default
+% gpu_index : 1D-vector of integer indices of the GPU devices to be used.
+% indices start from 1
 %
 % If threshold_hot, threshold_dark, and  filter_dead_pixel are all zero,
 % the input image is returned.
 %
-%Calculating the threshold from the prescription to filter X % of all pixel
-%is more compuationally extensive compared to the case where the values are
-%given directly, and thus should be avoided for a large amount of data.
+% Calculating the threshold from the prescription to filter X % of all pixel
+% is more compuationally extensive compared to the case where the values are
+% given directly, and thus should be avoided for a large amount of data.
 %
 % Note: Printing information about the unfiltered and filtered image
 % produces additonal workload and should be turned off for speed.

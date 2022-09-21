@@ -75,8 +75,8 @@ ring_filter.waveletfft_wname = 'db7';'db25';'db30'; % wavelet type, see 'FilterS
 ring_filter.waveletfft_sigma = 3; %  suppression factor for 'wavelet-fft'
 ring_filter.jm_median_width = 11; % multiple widths are applied consecutively, eg [3 11 21 31 39];
 %%% PIXEL FILTER
-filter_sino = 1;
-pixel_filter_threshold = [0.01 0.005]; % threshold parameter for hot/dark pixel filter, for details see 'FilterPixel'
+filter_sino = 1; % Filter hot
+pixel_filter_threshold = [0.002 0.000]; % threshold parameter for hot/dark pixel filter, for details see 'FilterPixel'
 pixel_filter_radius = [5 5];
 %%% PHASE RETRIEVAL %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 phase_retrieval.apply = 0; % See 'PhaseFilter' for detailed description of parameters !
@@ -425,7 +425,6 @@ end
 if tomo.rot_angle_full_range > 90
     error('rotation angle full range, %f, is most likely given in degrees instead of rad', tomo.rot_angle_full_range)
 end
-cprintf( 'Red', '\nrotation angle full range: %f * pi = %g degree', tomo.rot_angle_full_range / pi, tomo.rot_angle_full_range * 180 / pi );
 
 nn = round(im_shape_binned2 / 2 );
 filename = sprintf('%s%s', sino_path, sino_names_mat(nn, :));
@@ -450,6 +449,12 @@ fprintf( '\nTomographic reconstruction:')
 fprintf( '\n method : %s', tomo.algorithm )
 fprintf( '\n angle scaling : %g', tomo.angle_scaling )
 fprintf( '\n angles [first last]/pi : [%g %g]', angles( [1 end] ) / pi )
+if isscalar( tomo.rot_angle_full_range)
+    ar = tomo.rot_angle_full_range;
+else
+    ar = max(tomo.rot_angle_full_range) - min(tomo.rot_angle_full_range);
+end
+fprintf('\n rotation angle range: %f * pi = %f deg', ar / pi, ar / pi * 180)
 fprintf( '\n volume shape : [%g, %g, %g]', tomo.vol_shape )
 %tomo.angles = tomo.rot_angle_offset + angles;
 

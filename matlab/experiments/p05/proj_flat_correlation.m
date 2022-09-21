@@ -384,7 +384,7 @@ switch method
             filename = sprintf( '%scorr.mat', outpath);
             save( filename, 'corr' )
             
-            fprintf( ' Done in %.1f s (%.2f min)', toc - t, ( toc - t ) / 60 )
+            fprintf( ' \n duration: %.1f s (%.2f min)', toc - t, ( toc - t ) / 60 )
             fprintf( '\n correlation matrix path :\n  %s', filename )
             
         end %  if ~force_calc

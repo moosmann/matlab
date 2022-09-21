@@ -14,6 +14,7 @@ imsc1 = @(im) imsc( rot90( im ) );
 tint = 0;
 angle_scaling = [];
 lamino = interactive_mode.lamino;
+tomo.lamino = lamino;
 show_stack_imagej = interactive_mode.show_stack_imagej;
 window_state = par.window_state;
 if isempty( tomo.rot_axis_offset )
@@ -39,11 +40,12 @@ if tomo.run || tomo.run_interactive_mode
     if isempty( tomo.rot_angle_full_range )
         tomo.rot_angle_full_range = max( angles(:) ) - min( angles(:) );
     end
-    if isscalar( tomo.rot_angle_full_range)
-        fprintf( '\n full rotation angle: %g * pi', tomo.rot_angle_full_range / pi)
+    if isscalar( tomo.rot_angle_full_range)        
+        ar = tomo.rot_angle_full_range;        
     else
-        fprintf( '\n full rotation angle: %g * pi', ( max(tomo.rot_angle_full_range) - min(tomo.rot_angle_full_range) ) / pi)
+        ar = max(tomo.rot_angle_full_range) - min(tomo.rot_angle_full_range);
     end
+    fprintf('\n rotation angle range: %f * pi = %f deg', ar / pi, ar / pi * 180)
     
     if numel( angles ) ~= size( proj, 3 )
         error('Number of elements in array of angles (%g) unequal number of projections read (%g)', numel( angles ), size( proj, 3))
@@ -267,6 +269,7 @@ if tomo.run || tomo.run_interactive_mode
                 if show_stack_imagej
                     p = [write.interactive_path 'rot_axis_pos' filesep datestr(now, 'yyyymmddTHHMMSS') filesep];
                     mkdir(p)
+                    fprintf('\nSaving images:\n %s', p)
                     parfor nn = 1:size( vol, 3 )
                         filename = sprintf('%srot_axis_pos_%06u.tif', p, nn );
                         write32bitTIF(filename, vol(:,:,nn) );
@@ -274,6 +277,7 @@ if tomo.run || tomo.run_interactive_mode
                     p0 = pwd;
                     cd(p)
                     fprintf('\nLoading imagej')
+                    
                     unix('/asap3/petra3/gpfs/common/p05/jm/bin/imagej_opensequence &');
                     pause(3)
                     cd(p0)
