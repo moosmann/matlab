@@ -8,8 +8,8 @@ function [vol, reco_metric] = find_rot_axis_offset( tomo, proj)
 % reco_metric : struct containing different metrics: mean of all values,
 % mean of all absolute values, mean non-negative values, mean of isotropic
 % modulus of gradient, mean of Laplacian, entropy
-% 
-% Written by Julian Moosmann. 
+%
+% Written by Julian Moosmann.
 %
 % [vol, reco_metric] = find_rot_axis_offset( tomo, proj );
 
@@ -23,12 +23,13 @@ tilt = assign_from_struct( tomo, 'tilt', 0 );
 lamino = assign_from_struct( tomo, 'lamino', 0 );
 fixed_tilt = assign_from_struct( tomo, 'fixed_tilt', 0 );
 take_neg_log = assign_from_struct( tomo, 'take_neg_log', 1 );
-number_of_stds = assign_from_struct( tomo, 'number_of_stds', 4 );
-butterworth_filtering = assign_from_struct( tomo.butterworth_filter, 'apply', 0 );
+butterworth_filtering = assign_from_struct( tomo, 'butterworth_filter', 0 );
 vert_shift = assign_from_struct( tomo, 'vert_shift', 0 );
 mask_rad = 0.95;
 mask_val = 0;
+number_of_stds = assign_from_struct( tomo, 'number_of_stds', 4 );
 filter_histo_roi = 0.25;
+rect = assign_from_struct(tomo, 'rot_axis_offset_metric_roi', []);               
 
 %% Main %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -65,7 +66,7 @@ if slice - dz < 0 || slice + dz > num_row
 end
 % Calculate required slab size: Spiral CT condition
 if numel( vert_shift ) > 1
-   dz = dz + floor( max( abs( tomo.vert_shift ) ) );
+    dz = dz + floor( max( abs( tomo.vert_shift ) ) );
 end
 if slice - dz < 0 || slice + dz > num_row
     fprintf( '\nWARNING: Spiral CT requires larger sinogram volume. Better choose a more central slice or a smaller tilts.')
@@ -116,43 +117,75 @@ else
     tomo.rot_axis_tilt_lamino = tilt;
 end
 
-% Backprojection
-for nn = 1:numel( offset )
-    %tomo.rot_axis_offset = offset(nn) + offset_shift + eps;
-    tomo.rot_axis_offset = offset(nn);
-    
-    %% Reco
-    switch lower( tomo.reco_mode )
+% Permute sino for ASTRA
+tomo_reco_mode = lower( tomo.reco_mode );
+switch tomo_reco_mode
+    case '3d'
+        sino = permute( sino, [1 3 2]);
+    case 'slice'
+        sino = permute( sino, [3 1 2]);
+end
+for nn = numel( offset):-1:1
+    tomo_par(nn) = tomo;
+    tomo_par(nn).rot_axis_offset = offset(nn);
+end
+
+%% Reco loop over different offset
+reco_metric_mean = zeros( numel(offset), 1);
+reco_metric_abs = zeros( numel(offset), 1);
+reco_metric_neg = zeros( numel(offset), 1);
+reco_metric_grad = zeros( numel(offset), 1);
+reco_metric_lap = zeros( numel(offset), 1);
+reco_metric_ent = zeros( numel(offset), 1);
+reco_metric_entml = zeros( numel(offset), 1);
+%rect(2) + (1:rect(4)), rect(1) + (1:rect(3))
+parfor (nn = 1:numel(offset), 2 * gpuDeviceCount)
+    % Reco
+    switch tomo_reco_mode
         case '3d'
-            im = astra_parallel3D( tomo, permute( sino, [1 3 2]) );
+            im = astra_parallel3D( tomo_par(nn), sino );
         case 'slice'
-            im = astra_parallel2D( tomo, permute( sino, [3 1 2]) );
+            im = astra_parallel2D( tomo_par(nn), sino );
     end
-    vol(:,:,nn) = FilterHisto(im, number_of_stds, filter_histo_roi);
+    vol(:,:,nn) = im;
+    %vol(:,:,nn) = FilterHisto(im, number_of_stds, filter_histo_roi);
     %vol(:,:,nn) = FilterOutlier( im, 0.01 );
     
-    %% Metrics    
-    im = double( MaskingDisc( im, mask_rad, mask_val) ) * 2^16;
-    % mean    
-    reco_metric(1).val(nn) = mean2( im );
+    % ROI
+    if isempty(rect)
+        im = MaskingDisc( im, mask_rad, mask_val);
+    else
+        im = im(rect(2) + (1:rect(4)), rect(1) + (1:rect(3)));
+    end
+    im = 2^16 * double( im );
+    
+    % Metrics
+    % mean
+    reco_metric_mean(nn) = mean2( im );
     % mean abs
-    reco_metric(2).val(nn) = mean2( abs( im ) );
+    reco_metric_abs(nn) = mean2( abs( im ) );
     % mean negativity
-    reco_metric(3).val(nn) = - mean( im( im <= 0 ) );
+    reco_metric_neg(nn) = - mean( im( im <= 0 ) );
     % isotropic gradient
     [g1, g2] = gradient(im);
-    reco_metric(4).val(nn) = mean2( sqrt( g1.^2 + g2.^2 ) );
+    reco_metric_grad(nn) = mean2( sqrt( g1.^2 + g2.^2 ) );
     % laplacian
-    reco_metric(5).val(nn) = mean2( abs( del2( im ) ) );
+    reco_metric_lap(nn) = mean2( abs( del2( im ) ) );
     % entropy
     p = histcounts( im(:) );
     p = p(p>0);
     p = p / sum( p );
-    reco_metric(6).val(nn) = -sum( p .* log2( p ) );
+    reco_metric_ent(nn) = -sum( p .* log2( p ) );
     % entropy built-in
-    reco_metric(7).val(nn) = -entropy( im );
-
+    reco_metric_entml(nn) = -entropy( im );
 end
+reco_metric(1).val = reco_metric_mean;
+reco_metric(2).val = reco_metric_abs;
+reco_metric(3).val = reco_metric_neg;
+reco_metric(4).val = reco_metric_grad;
+reco_metric(5).val = reco_metric_lap;
+reco_metric(6).val = reco_metric_ent;
+reco_metric(7).val = reco_metric_entml;
 
 % Normalize for ease of plotting and comparison
 for nn = 1:numel(reco_metric)

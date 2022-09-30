@@ -4,7 +4,7 @@ function h = itool(im,varargin)
 % the figure to show (ischar), the slice (isscalar) to show if 'im' is a 3D
 % stack, or the ROI (isvector) in the sense im(roi,roi) or im(roi,roi,slice)
 %
-%Written by Julian Moosmann, last version 2013-10-24
+%Written by Julian Moosmann
 
 %% Default arguments %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 NameOfFigure = inputname(1);

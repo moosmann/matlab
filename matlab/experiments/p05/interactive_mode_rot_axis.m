@@ -105,7 +105,7 @@ if tomo.run || tomo.run_interactive_mode
         else
             itomo.inumber_of_stds = 4;
         end
-        if interactive_mode.slice_number > 1
+        if interactive_mode.slice_number > 1 && interactive_mode.slice_number <= size( proj, 2 )
             slice = interactive_mode.slice_number;
         elseif interactive_mode.slice_number <= 1 && interactive_mode.slice_number >= 0
             slice = round((size( proj, 2 ) - 1) * interactive_mode.slice_number + 1 );
@@ -162,6 +162,25 @@ if tomo.run || tomo.run_interactive_mode
                         txt = sprintf( '\nENTER OUTER OFFSET:');
                         tmp = input(txt);
                         par.distortion_correction_outer_offset = tmp;
+                    case 'r'
+                        %%
+                        if exist('vol','var')
+                            fprintf('SELECT ROI FOR METRIC CALCULATION:')
+                            fprintf('\n 1. Set ROI using the mouse'  )
+                            fprintf('\n 2. Double click on rectangle OR right click on rectangle and choose ''Crop Image'''  )
+                            fprintf('\n 3. Close figure window'  )
+                            pause(1)
+                            figure('Name', 'Rotation axis offset: Set ROI for metric calculation')
+                            z = round( size(vol,3) / 2 );
+                            [~,rect] = imcrop(normat(vol(:,:,z)));
+                            rect = round(rect);
+                            fprintf('\n ROI selection: y0, x0, h, w = %u %u %u %u', rect)
+                            itomo.rot_axis_offset_metric_roi = rect;
+                        else
+                            fprintf('\nNo reco available. Run loop first to reconstruct a volume.')
+                        end
+                        
+                        %%
                 end % switch inp
                 % Query parameters text
                 txt = [...
@@ -171,6 +190,7 @@ if tomo.run || tomo.run_interactive_mode
                     '\n if ''s'': change slice, '...
                     '\n if ''d'': enter debug mode, '...
                     '\n if ''c'': set distortion correction, '...
+                    '\n if ''r'': set ROI for metric calculation, '...
                     '\n: '];
                 inp = input( txt );
             end % while ischar( inp )

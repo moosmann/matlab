@@ -32,8 +32,8 @@ addpath( genpath( astra_samples_path ) );
 fprintf( '\nMATLAB_PATH : %s', getenv( 'MATLAB_PATH' ) );
 
 %% ImageJ
-imagej_matlab = '/asap3/petra3/gpfs/common/p05/jm/imagej/Fiji.app/scripts';
-addpath(genpath(imagej_matlab)); % Update for your ImageJ2 (or Fiji) installation as appropriate ImageJ;
+%imagej_matlab = '/asap3/petra3/gpfs/common/p05/jm/imagej/Fiji.app/scripts';
+%addpath(genpath(imagej_matlab)); % Update for your ImageJ2 (or Fiji) installation as appropriate ImageJ;
 
 %% Git repository version
 %fprintf( '\nGit commit ID : %s', git_commit_id );
@@ -50,4 +50,3 @@ fprintf( '\nulimit -u : ' )
 unix( 'ulimit -u;' );
 fprintf( evalc('feature(''numcores'');') );
 %fprintf( '\n' )
-

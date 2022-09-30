@@ -4,7 +4,7 @@ function ishow(im,varargin)
 % the figure to show (ischar), the slice (isnumeric & numel==1) to show if 'im' is a 3D
 % stack, or the ROI (isnumeric & numel==2) in the sense im(roi,roi) or im(roi,roi,slice)
 %
-%Written by Julian Moosmann, last version 2019-01-30
+%Written by Julian Moosmann
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Default arguments

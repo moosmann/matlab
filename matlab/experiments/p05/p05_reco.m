@@ -38,17 +38,14 @@ dbstop if error
 par.quick_switch = 0;
 par.scan_path = pwd;
 %par.scan_path = last_folder_modified('')
-par.raw_bin = 6;
-par.raw_roi = [0.45 0.55];
-par.proj_range = 4;
+par.raw_bin = 8;
+par.raw_roi = -1;
+par.proj_range = 9;
 par.ref_range = 10;
-par.ref_path = {};
-ring_filter.apply = 0;
 phase_retrieval.apply = 0;
-tomo.vol_size = [];%[-0.25 0.25 -0.25 0.25 -0.5 0.5];
 % image_correlation.num_flats = 10;
 % image_correlation.method = 'median';
-% tomo.rot_axis_tilt_camera = [];
+tomo.vol_size = [-1 1 -1 1 -0.5 0.5];
 % tomo.interpolate_missing_angles = 0;
 % tomo.rot_axis_search_auto = 0;
 % tomo.rot_axis_search_range = -2:0.1:2.5;
@@ -58,17 +55,16 @@ tomo.vol_size = [];%[-0.25 0.25 -0.25 0.25 -0.5 0.5];
 %tomo.rot_axis_search_verbose = 1;
 %par.pixel_scaling = [];
 %write.subfolder_reco = 'proj1';
-%par.visual_output = 0;
-write.parfolder = '';
+write.parfolder = 'test_int_par';
 write.to_scratch = 1;
 par.stitch_projections = 0;
-par.crop_proj = 1; 
+par.crop_proj = 0; 
 interactive_mode.rot_axis_pos = 1;
-interactive_mode.rot_axis_tilt = 1;
-interactive_mode.angles = 1;
+interactive_mode.rot_axis_tilt = 0;
+interactive_mode.angles = 0;
 interactive_mode.phase_retrieval = 0;
-interactive_mode.slice_number = 0.5;
-interactive_mode.show_stack_imagej = 1;
+interactive_mode.slice_number = round(1150 /4);
+par.use_gpu_in_parfor = 0;
 % END OF QUICK SWITCH TO ALTERNATIVE SET OF PARAMETERS %%%%%%%%%%%%%%%%%%%%
 
 pp_parameter_switch % DO NOT DELETE THIS LINE
@@ -204,6 +200,7 @@ tomo.rot_axis_search_range = []; % search reach for automatic determination of t
 tomo.rot_axis_search_metric = 'iso-grad'; % string: 'neg','entropy','iso-grad','laplacian','entropy-ML','abs'. Metric to find rotation axis offset
 tomo.rot_axis_search_extrema = 'max'; % string: 'min'/'max'. chose min or maximum position
 tomo.rot_axis_search_fit = 1; % bool: fit calculated metrics and find extrema, otherwise use extrema from search range
+tomo.rot_axis_offset_metric_roi = []; % 4-vector: [. ROI for metric calculation. roi = [y0, x0, y1-y0, x1-x0]. (x,y)=(0,0)=upper left
 %%% OUTPUT %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 write.path = ''; %'/gpfs/petra3/scratch/moosmanj'; % absolute path were output data will be stored. !!overwrites the write.to_scratch flag. if empty uses the beamtime directory and either 'processed' or 'scratch_cc'
 write.to_scratch = 1; % write to 'scratch_cc' instead of 'processed'
@@ -434,6 +431,7 @@ assign_default( 'tomo.rot_axis_search_metric', '');
 assign_default( 'tomo.rot_axis_search_verbose', 1);
 assign_default( 'tomo.rot_axis_search_extrema', 'max' );
 assign_default( 'tomo.rot_axis_search_fit', 1 );
+assign_default( 'tomo.rot_axis_offset_metric_roi', [] );
 assign_default( 'par.skip_gpu_info', 0);
 assign_default( 'interactive_mode.show_stack_imagej', 1 )
 assign_default( 'par.distortion_correction_distance', 0)
