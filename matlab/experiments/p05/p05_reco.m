@@ -90,7 +90,7 @@ par.read_image_log = 0; % bool, default: 0. Read metadata from image log instead
 par.read_filenames_from_disk = 0; % only for stepscans with tiff subfolders
 %%% PREPROCESSING %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 par.raw_bin = 3; % projection binning factor: integer
-par.raw_roi = -1;[]; % vertical and/or horizontal ROI; coordinate (1,1) = top left pixel; supports absolute, relative, negative, and mixed indexing.
+par.raw_roi = []; % vertical and/or horizontal ROI; coordinate (1,1) = top left pixel; supports absolute, relative, negative, and mixed indexing.
 % []: use full image;
 % [y0 y1]: vertical ROI, skips first raw_roi(1)-1 lines, reads until raw_roi(2); if raw_roi(2) < 0 reads until end - |raw_roi(2)|; relative indexing similar.
 % [y0 y1 x0 x1]: vertical + horzontal ROI, each ROI as above
@@ -147,6 +147,11 @@ ring_filter.waveletfft_sigma = 3; %  suppression factor for 'wavelet-fft'
 ring_filter.jm_median_width = 11; % multiple widths are applied consecutively, eg [3 11 21 31 39];
 par.strong_abs_thresh = 1; % if 1: does nothing, if < 1: flat-corrected values below threshold are set to one. Try with algebratic reco techniques.
 par.norm_sino = 0; % not recommended, can introduce severe artifacts, but sometimes improves quality
+% Workaround correction for image distortions using a quadratic dilation/compression of the projections/sinogram
+% Preferably, projection cropping of laterally shifted projetion 'crop_proj' is not used
+par.distortion_correction_distance = 0; % scalar, in binned pixel, distance between two regions in the tomogram that can be properly reconstructed using different rotation axis offsets, if 0: no correction done
+par.distortion_correction_outer_offset = 0; % scalar, in pixel, rotation axis offset for the outer region. the offset for the inner region is used for reconstruction
+par.distortion_correction_exponent = 2; % scalar,  exponent of interpolation function: xq = x - 2 * offset_diff * (x / dist_offset).^exponent;
 %%% PHASE RETRIEVAL %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 phase_retrieval.apply = 0; % See 'PhaseFilter' for detailed description of parameters !
 phase_retrieval.apply_before = 0; % before stitching, interactive mode, etc. For phase-contrast data with an excentric rotation axis phase retrieval should be done afterwards. To find the rotataion axis position use this option in a first run, and then turn it of afterwards.
@@ -431,6 +436,9 @@ assign_default( 'tomo.rot_axis_search_extrema', 'max' );
 assign_default( 'tomo.rot_axis_search_fit', 1 );
 assign_default( 'par.skip_gpu_info', 0);
 assign_default( 'interactive_mode.show_stack_imagej', 1 )
+assign_default( 'par.distortion_correction_distance', 0)
+assign_default( 'par.distortion_correction_outer_offset', 0)
+assign_default( 'par.distortion_correction_exponent', 2)
 %assign_default( '',  )
 
 % Define variables from struct fields for convenience
@@ -1125,9 +1133,8 @@ if ~par.read_flatcor && ~par.read_sino
         end
     end % if ~exist( nexuslog_name, 'file')
     
-    %% Raw ROI
-    %par.raw_roi = set_raw_roi( par.raw_roi, par, par.im_shape_raw, im_raw, par.tif_info, par.dtype, par.im_trafo, scan_path, fig_path, ref_names, dark_names );
-    par = set_raw_roi(  par, im_raw, scan_path, fig_path, ref_full_path, dark_names );
+    %% Raw ROI    
+    par = set_raw_roi(  par, im_raw, scan_path, fig_path, ref_full_path, dark_names );    
     
     %% Print info
     %im_roi = read_image( filename, '', par.raw_roi, par.tif_info, par.im_shape_raw, par.dtype, par.im_trafo );
@@ -2061,11 +2068,44 @@ else
     %%%%
     %%%% TODO: FIX error if tilt check is 1 but pos check is 0
     %%%%
-    [tomo, angles, tint] = interactive_mode_rot_axis( par, logpar, phase_retrieval, tomo, write, interactive_mode, proj, angles);
+    [tomo, angles, tint, par] = interactive_mode_rot_axis( par, logpar, phase_retrieval, tomo, write, interactive_mode, proj, angles);
 end
 
 %% Automatic rot axis determination
 tomo = find_rot_axis_offset_auto(tomo, proj, par, write, interactive_mode);
+
+%% Distortion correction
+if par.distortion_correction_distance ~= 0  && ~isempty(par.distortion_correction_outer_offset)
+    fprintf( '\nLens correction')
+    t = toc;
+    dist_offset = par.distortion_correction_distance;
+    outer_offset = par.distortion_correction_outer_offset;
+    offset_diff = outer_offset - tomo.rot_axis_offset;
+    exponent = par.distortion_correction_exponent;
+    fprintf( '\n distance: %.1f pixels', dist_offset)
+    fprintf( '\n rotation axis offset: %.1f pixels', tomo.rot_axis_offset)
+    fprintf( '\n outer rotation axis offset: %.1f pixels', outer_offset)
+    fprintf( '\n rotation axis offset idfference: %.1f pixels', offset_diff)
+    x = (1:size(proj,1)) - tomo.rot_axis_position;
+    fprintf( '\n orgiginal grid: x(rot axis pos) = %.1f', x(round(tomo.rot_axis_position)))
+    if tomo.rot_axis_offset > 0
+        xq = x - 2 * offset_diff * (x / dist_offset).^exponent;
+        fprintf( '\n query grid:    xq(rot axis pos) = %.1f', xq(round(tomo.rot_axis_position)))
+        fprintf( '\n orgiginal grid: x(rot axis pos - dist offset) = %.1f', x(round(tomo.rot_axis_position - dist_offset)))
+        fprintf( '\n query grid:    xq(rot axis pos - dist offset) = %.1f', xq(round(tomo.rot_axis_position - dist_offset)))
+    else
+        xq = x + 2 * offset_diff * (x / dist_offset).^exponent;
+        fprintf( '\n query grid:    xq(rot axis pos) = %.1f', xq(round(tomo.rot_axis_position)))
+        fprintf( '\n orgiginal grid: x(rot axis pos + dist offset) = %.1f', x(round(tomo.rot_axis_position + dist_offset)))
+        fprintf( '\n query grid:    xq(rot axis pos + dist offset) = %.1f', xq(round(tomo.rot_axis_position + dist_offset)))
+    end
+    parfor nn = 1:size(proj, 3)
+        im = proj(:,:,nn);
+        imc = interp1(x, im, xq, 'linear', 1);
+        proj(:,:,nn) = imc;
+    end
+    fprintf( '\n duration : %.1f (%.2f min)', toc-t, (toc-t)/60)
+end
 
 %% Stitch projections
 if par.stitch_projections
@@ -2177,9 +2217,9 @@ if par.stitch_projections
         %error( 'Not yet implemented' )
     else
         % OFF-CENTERED ROTATION AXIS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-        fprintf('\n Stiching at rotation axis without subpixel interpolation.')
+        fprintf('\n stiching at rotation axis without subpixel interpolation.')
         amm = max( angles ) - min( angles );
-        fprintf( '\n Angular range before stitching: [min max diff] = [%f %f %f] degree', [min(angles), max(angles), amm]/pi*180 )
+        fprintf( '\n angular range before stitching: [min max diff] = [%f %f %f] degree', [min(angles), max(angles), amm]/pi*180 )
         if amm > 2.5 * pi
             error( '\n Angular range of %f too large for stitching.', amm )
         end
@@ -2187,9 +2227,10 @@ if par.stitch_projections
         [~, num_proj_sti] = min( abs(angles - pi));
         % number of stitched projections
         num_proj_sti = num_proj_sti - 1;
-        fprintf( '\n Corresponding angles: ' )
-        fprintf( '%10f', angles( 1:3)/pi*180 )
-        fprintf( '%10f', angles( num_proj_sti + (1:3))/pi*180 )
+        fprintf( '\n corresponding angles:\n  ' )
+        fprintf( '%12f', angles( 1:3)/pi*180 )
+        fprintf( '\n  ' )
+        fprintf( '%12f', angles( num_proj_sti + (1:3))/pi*180 )
         switch tomo.rot_axis_offset > 0
             case 1
                 % index range of projections to be stitched
@@ -2493,18 +2534,12 @@ if tomo.run
                 t2 = toc;
                 vol = astra_parallel3D( tomo, permute( proj, [1 3 2]) );
                 fprintf( '\n duration : %.2f min.', (toc - t2) / 60)
-                
-%                 t2 = toc;
-%                 fprintf( '\n Clear projections:')
-%                 clear proj
-%                 fprintf( '\n duration : %.2f min.', (toc - t2) / 60)
-                
+
                 vol_min = min( vol(:) );
                 vol_max = max( vol(:) );
                 
                 %% Show orthogonal vol cuts
                 if par.visual_output
-                    
                     f = figure( 'Name', 'Volume cut z', 'WindowState', window_state );
                     nn = round( size( vol, 3 ) / 2);
                     im = squeeze( vol(:,:,nn) );
@@ -2596,26 +2631,6 @@ if tomo.run
                         write32bitTIFfromSingle( filename, rot90(im, (dd==3) - 1) );
                     end
                 end
-                %                 for dd = 1:3
-                %                     im = squeeze(max( vol, [], dd ));
-                %                     filename = sprintf( '%sreco_%uProjMax.tif', write.reco_path,dd );
-                %                     write32bitTIFfromSingle( filename, rot90(im, (d==3) - 1) );
-                %                 end
-                %                 for dd = 1:3
-                %                     im = squeeze(min( vol, [], dd ));
-                %                     filename = sprintf( '%sreco_%uProjMin.tif', write.reco_path,dd );
-                %                     write32bitTIFfromSingle( filename, rot90(im, (d==3) - 1) );
-                %                 end
-                %                 for dd = 1:3
-                %                     im = squeeze(mean( vol, dd ));
-                %                     filename = sprintf( '%sreco_%uProjMean.tif', write.reco_path,dd );
-                %                     write32bitTIFfromSingle( filename, rot90(im, (d==3) - 1) );
-                %                 end
-                %                 for dd = 1:3
-                %                     im = squeeze(std( vol, 0, dd ));
-                %                     filename = sprintf( '%sreco_%uProjStd.tif', write.reco_path,dd );
-                %                     write32bitTIFfromSingle( filename, rot90(im, (d==3) - 1) );
-                %                 end
                 fprintf( '\n duration : %.2f min.', (toc - t3) / 60)
                 
                 

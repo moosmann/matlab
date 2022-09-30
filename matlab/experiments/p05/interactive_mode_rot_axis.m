@@ -1,4 +1,4 @@
-function [tomo, angles, tint] = interactive_mode_rot_axis( par, logpar, phase_retrieval, tomo, write, interactive_mode, proj, angles)
+function [tomo, angles, tint, par] = interactive_mode_rot_axis( par, logpar, phase_retrieval, tomo, write, interactive_mode, proj, angles)
 % Interactive mode to determine the position and tilt (optionally) of the
 % rotation axis. When position and tilt are searched for, two intertwined
 % loops are used alternating stiltthe determination of the position and the tilt
@@ -155,6 +155,13 @@ if tomo.run || tomo.run_interactive_mode
                     case 'd'
                         cprintf( 'RED', 'ENTERING DEBUG MODE. Continue with F5.' )
                         keyboard
+                    case 'c'
+                        txt = sprintf( '\nENTER DISTANCE TO OUTER OFFSET:');
+                        tmp = input(txt);
+                        par.distortion_correction_distance = tmp;
+                        txt = sprintf( '\nENTER OUTER OFFSET:');
+                        tmp = input(txt);
+                        par.distortion_correction_outer_offset = tmp;
                 end % switch inp
                 % Query parameters text
                 txt = [...
@@ -163,6 +170,7 @@ if tomo.run || tomo.run_interactive_mode
                     '\n if scalar: use value & end interactive mode, '...
                     '\n if ''s'': change slice, '...
                     '\n if ''d'': enter debug mode, '...
+                    '\n if ''c'': set distortion correction, '...
                     '\n: '];
                 inp = input( txt );
             end % while ischar( inp )
