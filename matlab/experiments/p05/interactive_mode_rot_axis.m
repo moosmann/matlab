@@ -9,7 +9,7 @@ function [tomo, angles, tint, par] = interactive_mode_rot_axis( par, logpar, pha
 % [tomo, tint] = interactive_mode_rot_axis( par, logpar, phase_retrieval, tomo, write, interactive_mode, proj, angles)
 
 tomo.angle_scaling = 1;
-tomo.angles = tomo.rot_angle_offset + angles;
+%tomo.angles = angles;
 imsc1 = @(im) imsc( rot90( im ) );
 tint = 0;
 angle_scaling = [];

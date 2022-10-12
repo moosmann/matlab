@@ -2086,21 +2086,44 @@ if par.distortion_correction_distance ~= 0  && ~isempty(par.distortion_correctio
     fprintf( '\n rotation axis offset idfference: %.1f pixels', offset_diff)
     x = (1:size(proj,1)) - tomo.rot_axis_position;
     fprintf( '\n orgiginal grid: x(rot axis pos) = %.1f', x(round(tomo.rot_axis_position)))
+    % excentric rot axis left/right
     if tomo.rot_axis_offset > 0
-        xq = x - 2 * offset_diff * (x / dist_offset).^exponent;
+        xq = x - 2 * offset_diff * abs(x / dist_offset).^exponent;
         fprintf( '\n query grid:    xq(rot axis pos) = %.1f', xq(round(tomo.rot_axis_position)))
         fprintf( '\n orgiginal grid: x(rot axis pos - dist offset) = %.1f', x(round(tomo.rot_axis_position - dist_offset)))
         fprintf( '\n query grid:    xq(rot axis pos - dist offset) = %.1f', xq(round(tomo.rot_axis_position - dist_offset)))
+        % Only correct from the rot axis pos to farther image edge
+        xq(x>0) = x(x>0);
     else
-        xq = x + 2 * offset_diff * (x / dist_offset).^exponent;
+        xq = x + 2 * offset_diff * abs(x / dist_offset).^exponent;
         fprintf( '\n query grid:    xq(rot axis pos) = %.1f', xq(round(tomo.rot_axis_position)))
         fprintf( '\n orgiginal grid: x(rot axis pos + dist offset) = %.1f', x(round(tomo.rot_axis_position + dist_offset)))
         fprintf( '\n query grid:    xq(rot axis pos + dist offset) = %.1f', xq(round(tomo.rot_axis_position + dist_offset)))
+        % Only correct from the rot axis pos to farther image edge
+        xq(x<0) = x(x<0);
+    end
+    if par.visual_output
+        figure( 'Name', 'distortion correction', 'WindowState', window_state );
+        subplot(1,2,1)
+        plot(xq - x)
+        title(sprintf('displacement offset: xq - x'))
+        xlabel('grid / pixel')
+        ylabel('rotation axis offset difference')
+        im0 = proj(:,:,1);
+        drawnow
     end
     parfor nn = 1:size(proj, 3)
         im = proj(:,:,nn);
         imc = interp1(x, im, xq, 'linear', 1);
         proj(:,:,nn) = imc;
+    end
+    if par.visual_output
+        subplot(1,2,2)
+        imsc1( proj(:,:,1) - im0)
+        axis equal tight
+        xticks('auto'),yticks('auto')
+        title(sprintf('difference map of proj #1: Vq - V'))
+        drawnow
     end
     fprintf( '\n duration : %.1f (%.2f min)', toc-t, (toc-t)/60)
 end
