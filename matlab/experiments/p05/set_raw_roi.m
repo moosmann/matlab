@@ -155,7 +155,8 @@ if ~isempty( raw_roi ) % else AUTO ROI
                 text( raw_roi(2), roi_thresh + 80, sprintf('raw roi(2)=%u', raw_roi(2) ) )
                 
                 drawnow
-                saveas( f, sprintf( '%s%s.png', fig_path, regexprep( f.Name, '\ |:', '_') ) );
+                fig_filename = sprintf('%sfig%02u_%s.png', fig_path, f.Number, regexprep(f.Name, '\ |:', '_'));
+                saveas(f, fig_filename);
             end % if par.visual_output Plot auto ROI
         end
     end

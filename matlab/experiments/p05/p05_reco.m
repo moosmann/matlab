@@ -35,7 +35,7 @@ dbstop if error
 % !!! QUICK SWITCH TO ALTERNATIVE SET OF PARAMETERS !!!
 % !!! OVERWRITES PARAMETERS BELOW QUICK SWITCH SECTION !!!
 % Just copy parameter and set quick switch to 1
-par.quick_switch = 0;
+par.quick_switch = 1;
 par.scan_path = pwd;
 %par.scan_path = last_folder_modified('')
 par.raw_bin = 8;
@@ -55,7 +55,7 @@ tomo.vol_size = [-1 1 -1 1 -0.5 0.5];
 %tomo.rot_axis_search_verbose = 1;
 %par.pixel_scaling = [];
 %write.subfolder_reco = 'proj1';
-write.parfolder = 'test_int_par';
+write.parfolder = 'demo';
 write.to_scratch = 1;
 par.stitch_projections = 0;
 par.crop_proj = 0; 
@@ -378,7 +378,6 @@ assign_default( 'par.eff_pixel_size', [] );
 assign_default( 'par.pixel_scaling', []);
 assign_default( 'par.ref_range', 1 )
 assign_default( 'par.proj_range', 1 )
-assign_default( 'par.proj_range', 1 )
 assign_default( 'par.read_image_log', 0 )
 assign_default( 'par.read_filenames_from_disk', 0 )
 assign_default( 'pixel_filter_radius', [3 3] )
@@ -522,6 +521,12 @@ fig_path = write.fig_path;
 % Image path
 write.im_path = [write.path, filesep, 'images', filesep];
 im_path = write.im_path;
+im_path1 = [write.im_path '/images1/'];
+im_path2 = [write.im_path '/images2/'];
+im_path3 = [write.im_path '/images3/'];
+im_path1reco = [write.im_path '/reco1/'];
+im_path2reco = [write.im_path '/reco2/'];
+im_path3reco = [write.im_path '/reco3/'];
 
 % Path to flat-field corrected projections
 flatcor_path = sprintf( '%s/flat_corrected/rawBin%u/', write.path, raw_bin );
@@ -1237,9 +1242,9 @@ if ~par.read_flatcor && ~par.read_sino
     fprintf( '\n min/max of median dark : %g %g', dark_med_min, dark_med_max);
     
     % Save dark
-    CheckAndMakePath(im_path)
-    write32bitTIFfromSingle( sprintf('%sdark_median_binned.tif', im_path), rot90(dark_median_binned ) )
-    write32bitTIFfromSingle( sprintf('%sdark_mean_binned.tif', im_path), rot90( dark_mean_binned) )
+    CheckAndMakePath(im_path3)
+    write32bitTIFfromSingle( sprintf('%sdark_median_binned.tif', im_path3), rot90(dark_median_binned ) )
+    write32bitTIFfromSingle( sprintf('%sdark_mean_binned.tif', im_path3), rot90( dark_mean_binned) )
     
     % Fig: raw + dark field
     if par.visual_output
@@ -1389,10 +1394,10 @@ if ~par.read_flatcor && ~par.read_sino
     
     % Save flat images
     num_flat12 = round( size(flat,3) / 2 ) ;
-    write32bitTIFfromSingle( sprintf('%sflat_dark_subtracted_beamcurrent_corrected_binned_%06u.tif', im_path, 1), rot90(flat(:,:,1)) )
-    write32bitTIFfromSingle( sprintf('%sflat_dark_subtracted_beamcurrent_corrected_binned_%06u.tif', im_path, num_flat12 ), rot90(flat(:,:,num_flat12)) ) ;
-    write32bitTIFfromSingle( sprintf('%sflat_dark_subtracted_beamcurrent_corrected_binned_%06u.tif', im_path, size(flat,3)), rot90(flat(:,:,end)) )
-    write32bitTIFfromSingle( sprintf('%sflat_dark_subtracted_beamcurrent_corrected_binned_mean.tif', im_path), rot90(mean(flat,3)) )
+    write32bitTIFfromSingle( sprintf('%sflat_dark_subtracted_beamcurrent_corrected_binned_%06u.tif', im_path3, 1), rot90(flat(:,:,1)) )
+    write32bitTIFfromSingle( sprintf('%sflat_dark_subtracted_beamcurrent_corrected_binned_%06u.tif', im_path3, num_flat12 ), rot90(flat(:,:,num_flat12)) ) ;
+    write32bitTIFfromSingle( sprintf('%sflat_dark_subtracted_beamcurrent_corrected_binned_%06u.tif', im_path3, size(flat,3)), rot90(flat(:,:,end)) )
+    write32bitTIFfromSingle( sprintf('%sflat_dark_subtracted_beamcurrent_corrected_binned_mean3.tif', im_path3), rot90(mean(flat,3)) )
     
     %% Figure: Flat field
     if par.visual_output
@@ -1501,9 +1506,7 @@ if ~par.read_flatcor && ~par.read_sino
     % Parallel loop over projections
     %read_image_par = @(filename) read_image( filename, '', par.raw_roi, par.tif_info, par.im_shape_raw, par.dtype, par.im_trafo );
     read_image_par = @(filename) read_image( filename, par );
-    startS = ticBytes( gcp );
-    par.stitch_intensities = 1;
-    
+    startS = ticBytes( gcp );    
     
     % Preallocation
     im_shape_cropbin1 = floor( (x1(1) - x0(1) + 1) / raw_bin );
@@ -1648,13 +1651,15 @@ if ~par.read_flatcor && ~par.read_sino
     fprintf( '\n global min/max of projs after dark-field correction and ring current normalization:  %6g %6g', raw_min2, raw_max2)
     
     % Save projections
-    write32bitTIFfromSingle( sprintf('%sproj_dark_subtracted_beamcurrent_corrected_binned_%06u.tif', im_path, 1), rot90(proj(:,:,1)) )
-    write32bitTIFfromSingle( sprintf('%sproj_dark_subtracted_beamcurrent_corrected_binned_%06u.tif', im_path, size(proj,3)), rot90(proj(:,:,end)) );
-    write32bitTIFfromSingle( sprintf('%sproj_dark_subtracted_beamcurrent_corrected_binned_mean3.tif', im_path), rot90(squeeze(mean(proj,3))));
-    write32bitTIFfromSingle( sprintf('%sproj_dark_subtracted_beamcurrent_corrected_binned_mean2.tif', im_path), squeeze(mean(proj,2)));
-    write32bitTIFfromSingle( sprintf('%sproj_dark_subtracted_beamcurrent_corrected_binned_mean1.tif', im_path), squeeze(mean(proj,1)));
+    CheckAndMakePath(im_path1)
+    CheckAndMakePath(im_path2)
+    write32bitTIFfromSingle( sprintf('%sproj_dark_subtracted_beamcurrent_corrected_binned_%06u.tif', im_path3, 1), rot90(proj(:,:,1)) )
+    write32bitTIFfromSingle( sprintf('%sproj_dark_subtracted_beamcurrent_corrected_binned_%06u.tif', im_path3, size(proj,3)), rot90(proj(:,:,end)) );
+    write32bitTIFfromSingle( sprintf('%sproj_dark_subtracted_beamcurrent_corrected_binned_mean1.tif', im_path1), squeeze(mean(proj,1)));
+    write32bitTIFfromSingle( sprintf('%sproj_dark_subtracted_beamcurrent_corrected_binned_mean2.tif', im_path2), squeeze(mean(proj,2)));
+    write32bitTIFfromSingle( sprintf('%sproj_dark_subtracted_beamcurrent_corrected_binned_mean3.tif', im_path3), rot90(squeeze(mean(proj,3))));
     
-    %% Figure: image correlation roi
+    %% Figure: image correlation roiference
     if par.visual_output && ~strcmp( image_correlation.method, 'none' )
         if exist( 'h_corr_roi' , 'var' ) && isvalid( h_corr_roi )
             figure( h_corr_roi )
@@ -1696,9 +1701,9 @@ if ~par.read_flatcor && ~par.read_sino
     proj_min0 = min( proj(:) );
     proj_max0 = max( proj(:) );
     fprintf( '\n global min/max after flat-field corrected:  %6g %6g', proj_min0, proj_max0);
-    write32bitTIFfromSingle( sprintf('%sproj_flatcorrected_binned_mean3.tif', im_path), rot90(squeeze(mean(proj,3))));
-    write32bitTIFfromSingle( sprintf('%sproj_flatcorrected_binned_mean2.tif', im_path), squeeze(mean(proj,2)));
-    write32bitTIFfromSingle( sprintf('%sproj_flatcorrected_binned_mean1.tif', im_path), squeeze(mean(proj,1)));
+    write32bitTIFfromSingle( sprintf('%sproj_flatcorrected_binned_mean3.tif', im_path3), rot90(squeeze(mean(proj,3))));
+    write32bitTIFfromSingle( sprintf('%sproj_flatcorrected_binned_mean2.tif', im_path2), squeeze(mean(proj,2)));
+    write32bitTIFfromSingle( sprintf('%sproj_flatcorrected_binned_mean1.tif', im_path1), squeeze(mean(proj,1)));
     
     %% Filter strong/full absorption (combine with iterative reco methods)
     if par.strong_abs_thresh < 1
@@ -1750,12 +1755,15 @@ if ~par.read_flatcor && ~par.read_sino
             end
         end
     end
-    da = mean(angles(2:end) - angles(1:end-1));
-    dast = std(angles(2:end) - angles(1:end-1));
-    fprintf( '\n angle increment: mean = %f mrad = %f * pi/1000', da/1000, da/pi/1000 )
-    fprintf( '\n angle increment: std = %f mrad = %f * pi/1000', dast/1000, dast/pi/1000 )
-    fprintf( '\n angles / pi: %f %f %f ... %f %f %f %f %f ', angles([1 2 3 end-4:end])/pi )
-    fprintf( '\n angles / pi: %f * (%.2f %.2f %.2f ... 1 + %f * (%.2f %.2f %.2f %.2f %.2f) )', da, angles([1 2 3])/da, da, (angles(end-4:end)/pi -1)/da*pi )
+    a = sort(angles);
+    da = mean(a(2:end) - a(1:end-1));
+    dast = std(a(2:end) - a(1:end-1));
+    fprintf( '\n angle increment: mean = %g mrad = %g * pi/1000', da/1000, da/pi/1000 )
+    fprintf( '\n angle increment: std = %g mrad = %g * pi/1000', dast/1000, dast/pi/1000 )
+    angles123 = a(1:3);
+    angles321 = a(end-4:end);
+    fprintf( '\n angles / pi: %f %f %f ... %f %f %f %f %f ', angles123/pi, angles321 )
+    fprintf( '\n angles / pi: %f * (%.2f %.2f %.2f ... %.2f %.2f %.2f %.2f %.2f )', da, angles123/da, angles321/da )
     
     % Figure: Angles
     if par.visual_output
@@ -2103,7 +2111,7 @@ if par.distortion_correction_distance ~= 0  && ~isempty(par.distortion_correctio
         xq(x<0) = x(x<0);
     end
     if par.visual_output
-        figure( 'Name', 'distortion correction', 'WindowState', window_state );
+        f = figure( 'Name', 'distortion correction', 'WindowState', window_state );
         subplot(1,2,1)
         plot(xq - x)
         title(sprintf('displacement offset: xq - x'))
@@ -2118,12 +2126,15 @@ if par.distortion_correction_distance ~= 0  && ~isempty(par.distortion_correctio
         proj(:,:,nn) = imc;
     end
     if par.visual_output
+        figure(f)
         subplot(1,2,2)
         imsc1( proj(:,:,1) - im0)
         axis equal tight
         xticks('auto'),yticks('auto')
         title(sprintf('difference map of proj #1: Vq - V'))
-        drawnow
+        drawnow        
+        fig_filename = sprintf('%sfig%02u_%s.png', fig_path, f.Number, regexprep(f.Name, '\ |:', '_'));
+        saveas(f, fig_filename);  
     end
     fprintf( '\n duration : %.1f (%.2f min)', toc-t, (toc-t)/60)
 end
@@ -2288,7 +2299,31 @@ if par.stitch_projections
                     end
                     proj_sti(:,:,nn) = im;
                     if nn == 1 || nn == num_proj_sti
-                        
+                        if par.visual_output
+                            f = figure( 'Name', sprintf('Stitching projection %u',nn), 'WindowState', window_state );
+                            
+                            subplot(2,2,1)
+                            imsc1(iml)
+                            title(sprintf('projection left %u, %f*pi rad', n, angles(nn)/pi))
+                            axis equal tight
+                            xticks([]),yticks([])
+                            
+                            subplot(2,2,2)
+                            imsc1( imr);
+                            title(sprintf('projection right %u, %f*pi rad', n, angles(nn)/pi))
+                            axis equal tight
+                            xticks([]),yticks([])
+                            
+                            subplot(2,2,3:4)
+                            imsc1( im );
+                            title(sprintf('projection stitched %u, %f*pi rad', n, angles(nn)/pi))
+                            axis equal tight
+                            xticks([]),yticks([])
+                            
+                            drawnow
+                            fig_filename = sprintf('%sfig%02u_%s.png', fig_path, f.Number, regexprep(f.Name, '\ |:', '_'));
+                            saveas(f, fig_filename);
+                        end
                     end
                 end
             case 0
@@ -2382,11 +2417,19 @@ if par.crop_at_rot_axis
     % Crop projections to avoid oversampling for scans with excentric rotation axis
     % and reconstruct WITHOUT stitching
     % Crop relative to rot axis position
+    tomo.rot_axis_position_before_cropping = tomo.rot_axis_position;
+    tomo.rot_axis_offset_before_cropping = tomo.rot_axis_offset;
     r = tomo.rot_axis_position / im_shape_cropbin1;
-    if r < 0.5
+    if r < 0.5        
         proj( 1:floor(tomo.rot_axis_position)-1, :, :) = [];
+        crop1 = im_shape_binned1 - size(proj,1);        
+        tomo.rot_axis_position = tomo.rot_axis_position -crop1/2;
+        tomo.rot_axis_offset = tomo.rot_axis_offset - crop1/2;
     else
         proj( ceil(tomo.rot_axis_position) + 1:end, :, :) = [];
+        crop1 = im_shape_binned1 - size(proj,1);
+        tomo.rot_axis_position = tomo.rot_axis_position -crop1/2;
+        tomo.rot_axis_offset = tomo.rot_axis_offset + crop1/2;
     end
     if isempty( tomo.vol_shape )
         tomo.vol_shape = [raw_im_shape_binned1, raw_im_shape_binned1, raw_im_shape_binned2];
@@ -2484,7 +2527,7 @@ if tomo.run
             angles(end) = [];
             proj(:,:,end) = [];
         end
-        %tomo.angles = tomo.rot_angle_offset + angles;
+        tomo.angles = angles;
         
         % Filter sinogram
         if strcmpi( tomo.algorithm, 'fbp' )
@@ -2616,26 +2659,28 @@ if tomo.run
                 % Save ortho slices x
                 nn = round( size( vol, 1 ) / 2);
                 im = squeeze( vol(nn,:,:) );
-                CheckAndMakePath(im_path)
-                filename = sprintf( '%sreco_1Mid.tif', im_path );
+                CheckAndMakePath(im_path1reco)
+                filename = sprintf( '%sreco_1Mid.tif', im_path1reco );
                 write32bitTIFfromSingle( filename, rot90(im,-1) );
-                filename = sprintf( '%sreco_1MidAdaptHisteq.tif', im_path );
+                filename = sprintf( '%sreco_1MidAdaptHisteq.tif', im_path1reco );
                 write32bitTIFfromSingle( filename, rot90(imah(im),-1) );
                 
                 % Save ortho slices y
+                CheckAndMakePath(im_path2reco)
                 nn = round( size( vol, 2 ) / 2);
                 im = squeeze( vol(:,nn,:) );
-                filename = sprintf( '%sreco_2Mid.tif', im_path );
+                filename = sprintf( '%sreco_2Mid.tif', im_path2reco );
                 write32bitTIFfromSingle( filename, rot90(im,-1) );
-                filename = sprintf( '%sreco_2MidAdaptHisteq.tif', im_path );
+                filename = sprintf( '%sreco_2MidAdaptHisteq.tif', im_path2reco );
                 write32bitTIFfromSingle( filename, rot90(imah(im),-1) );
                 
                 % Save ortho slices z
+                CheckAndMakePath(im_path3reco)
                 nn = round( size( vol, 3 ) / 2);
                 im = squeeze( vol(:,:,nn) );
-                filename = sprintf( '%sreco_3Mid.tif', im_path );
+                filename = sprintf( '%sreco_3Mid.tif', im_path3reco );
                 write32bitTIFfromSingle( filename, rot90(im,0) );
-                filename = sprintf( '%sreco_3MidAdaptHisteq.tif', im_path );
+                filename = sprintf( '%sreco_3MidAdaptHisteq.tif', im_path3reco );
                 write32bitTIFfromSingle( filename, rot90(imah(im),0) );
                 
                 %% Save mean and min/max projections
@@ -2648,7 +2693,7 @@ if tomo.run
                     fname = h{1}{1};
                     for dd = 1:3
                         im = squeeze( f(vol,dd));
-                        filename = sprintf( '%sreco_%uProj%s.tif', im_path,dd, fname );
+                        filename = sprintf( '%sreco%u/reco_%uProj%s.tif', im_path, dd, dd, fname );
                         write32bitTIFfromSingle( filename, rot90(im, (dd==3) - 1) );
                     end
                 end

@@ -4,23 +4,27 @@
 clear all
 aclear
 
+crop = 2;
+
 %% Parameter
-N = 8;
-M = N +0;
-vol_shape_3d = [N, M, 1];
+N = 15;
+Z = N - 1;
+M = N + 1;
+vol_shape_3d = [N, M, Z];
 vol_shape_geom = [vol_shape_3d(2), vol_shape_3d(1), vol_shape_3d(3)];
 
-angles = pi/2*[0 1 2 3 ];
+angles = pi/2*[0];
 
-det_row_count = 1;
-det_col_count = N + 100; % for 3D use square detector
+det_row_count = Z;
+det_col_count = N ; % for 3D use square detector
 det_width = 1 ;% for 3D use quadratic detector
 
 %% Phantom and projections
-P = zeros(N,M);
+P = zeros(N,M,Z);
 x = ceil((N-1)/4+1):floor(3/4*(N-1)+1);
 y = ceil((M-1)/4+1):floor(3/4*(M-1)+1);
-P(x,y) = 1;
+z = ceil((Z-1)/4+1):floor(3/4*(Z-1)+1);
+P(x,y,z) = 1;
 P = P + 0.0;
 
 %% 3D parallel FP
@@ -52,7 +56,7 @@ astra_mex_algorithm('iterate', alg_id);
 sino = astra_mex_data3d('get',sino_id);
 
 %% Reco %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-rotation_axis_offset = 0;
+rotation_axis_offset = 0 - crop/2;
 vol_shape = vol_shape_3d;
 vol_size = [-vol_shape(1)/2, vol_shape(1)/2, -vol_shape(2)/2, vol_shape(2)/2, -vol_shape(3)/2, vol_shape(3)/2];
 pixel_size = [det_width, det_width];
@@ -60,12 +64,26 @@ link_data = 0;
 vol_shape = vol_shape .* [1 1 1];
 
 %% unfiltered
-bp = astra_parallel3D(sino, angles, rotation_axis_offset, vol_shape, vol_size, pixel_size, link_data);
+tomo.angles = angles;
+tomo.rot_axis_offset = rotation_axis_offset;
+tomo.vol_shape = vol_shape;
+tomo.vol_size = vol_size;
+tomo.pixel_size = pixel_size;
+tomo.link_data = link_data;
+%sinoc = sino(1:end-crop,:,:);
+sinoc = sino(1+crop:end,:,:);
+bp = astra_parallel3D(tomo, sinoc);
 
-figure(1)
-%subplot(2,2,1)
-imshow(P, [],'InitialMagnification','fit'), title('phantom: P')
-%subplot(2,2,2)
-figure(2)
-imshow(bp, [], 'InitialMagnification','fit'), title('bp')
-%subplot(2,2,3:4), imshow(sino', []), title('sino')
+figure('Name', sprintf('crop: %u', crop))
+n = 1; m = 3;
+subplot(n,m,1)
+z2 = floor(Z/2);
+imshow(P(:,:,z2), [],'InitialMagnification','fit'), title('phantom: P')
+
+subplot(n,m,2)
+imshow(squeeze(sinoc(:,1,:)), []), title('sino')
+
+subplot(n,m,3)
+imshow(bp(:,:,z2), [], 'InitialMagnification','fit'), title('bp')
+
+whos P sino bp

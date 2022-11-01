@@ -178,7 +178,7 @@ tomo.rot_axis_search_extrema = 'max'; % string: 'min'/'max'. chose min or maximu
 tomo.rot_axis_search_fit = 1; % bool: fit calculated metrics and find extrema, otherwise use extrema from search range
 %%% OUTPUT %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 write.path = ''; %'/gpfs/petra3/scratch/moosmanj'; % absolute path were output data will be stored. !!overwrites the write.to_scratch flag. if empty uses the beamtime directory and either 'processed' or 'scratch_cc'
-write.to_scratch = 1; % write to 'scratch_cc' instead of 'processed'
+write.to_scratch = 0; % write to 'scratch_cc' instead of 'processed'
 write.deleteFiles = 0; % delete files already existing in output folders. Useful if number or names of files differ when reprocessing.
 write.beamtimeID = ''; % string (regexp),typically beamtime ID, mandatory if 'write.deleteFiles' is true (safety check)
 write.scan_name_appendix = ''; % appendix to the output folder name which defaults to the scan name
@@ -259,11 +259,23 @@ par.distortion_correction_distance = 2744;
 par.distortion_correction_outer_offset = 1366.25;
 interactive_mode.rot_axis_pos = 0;
 
-par.scan_path = [raw_path '0007_WB_ref_8p1_nd']; ADD
+par.scan_path = [raw_path '0007_WB_ref_8p1_nd']; 
 
 par.stitch_projections = 1; 
-par.scan_path = [raw_path '0007_WB_ref_8p1_nd']; ADD
-write.parfolder = 'test_stitching'; 
+write.parfolder = 'proj_stitched'; 
+ADD
+
+par.crop_at_rot_axis = 1;
+par.stitch_projections = 0; 
+write.parfolder = 'proj_cropped'; 
+ADD
+
+par.crop_at_rot_axis = 0;
+par.stitch_projections = 1; 
+par.proj_range = 1:4001; 
+write.parfolder = 'projHalf1'; ADD
+par.proj_range = 4002:8001;
+write.parfolder = 'projHalf2'; ADD
 
 par.scan_path = [raw_path '0008_WB_ag_8p1_nd']; ADD
 

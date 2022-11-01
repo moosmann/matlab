@@ -1,4 +1,4 @@
-function [out, Vq, Vqf] = FilterRingArtifacts(im, rotAxisPos, rstride, thstride, verbose)
+function [imf, Vq, Vqf] = FilterRingArtifacts(im, rotAxisPos, rstride, thstride, verbose)
 
 %% Default arguments %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Rotation axis position
@@ -28,7 +28,7 @@ if rotAxisPos == -1
     if dim0 ~= dim1
         rotAxisPos = input('Image has non-square dimensions. Enter rotation axis vector:');
     else
-        rotAxisPos = [dim0/2, dim0 / 2];
+        rotAxisPos = [dim0/2, dim0/2];
     end
 end
 if isscalar(rotAxisPos)
@@ -57,10 +57,20 @@ thv = fliplr(pi:-thstride:-pi+thstride);
 % Interpolate
 tic;
 Vq = interp2(X, Y, im, Xq, Yq, 'linear', 0);
-ishow( Vq )
+
+figure( 'Name', 'polar image');
+% subplot(1,2,1)
+%title(sprintf('displacement offset: xq - x'))
+imsc(rot90(Vq,1))
+axis equal tight fill
+xlabel('polar angle')
+ylabel('radius')
+xticks('auto'),yticks('auto')
+drawnow
+
 t = toc;
 
-method = 'guided';'wavelet-fft';
+method = 'median';'guided';'wavelet-fft';
 switch method
     case 'wavelet-fft'
         dec_levels = 3;
@@ -69,11 +79,11 @@ switch method
         xc = round(size(Vq,1)/2);
         x1 = 1:xc;
         x2 = xc + x1;
-        Vq = cat(1, FilterStripesCombinedWaveletFFT( Vq(x1,:), dec_levels, wname, sigma ),FilterStripesCombinedWaveletFFT( Vq(x2,:), dec_levels, wname, sigma ));
+        Vqf = cat(1, FilterStripesCombinedWaveletFFT( Vq(x1,:), dec_levels, wname, sigma ),FilterStripesCombinedWaveletFFT( Vq(x2,:), dec_levels, wname, sigma ));
     case 'guided'
         Vqf = imguidedfilter(Vq);
         
-    otherwise
+    case 'median'
         
         % Fourier transform polar image
         % Vqf = fft2(Vq);
@@ -87,28 +97,86 @@ switch method
         % Vqm = medfilt2(Vq, [3, 3], 'symmetric');
         % Vqf(edges) = Vqm(edges);
         
-        Vq_min = min(Vq(:));
-        Vq_max = max(Vq(:));
+        %         Vq_min = min(Vq(:));
+        %         Vq_max = max(Vq(:));
+        %         Vq = 1 + normat(Vq);
+        %
+        % Inverse polar coordinates
+        [thq, rq] = cart2pol(X, Y);
         
-        Vq = 1 + normat(Vq);
-        Vm = medfilt2(Vq, [1, 6], 'symmetric');
+        % median filter width array
+        med_filt_width = 2:10;
+        for n = numel(med_filt_width):-1:1
+            
+            % median filter image
+            fw = med_filt_width(n);
+            Vm = medfilt2(Vq, [1, fw], 'symmetric');            
+            polar_filt(:,:,n) = Vq - Vm;
+            
+            % Inverse polar transformation
+            rings(:,:,n) = interp2(r, th, polar_filt(:,:,n), rq, thq, 'linear', 0);
+            
+            % Figure
+            s = sprintf('filtered images: median kernel %u', fw);
+            figure( 'Name', s, 'WindowState', 'maximized');
+            subplot(1,2,1)
+            title(sprintf('polar difference: width %u', fw))
+            imsc(rot90(polar_filt(:,:,n),1))
+            axis equal tight
+            xlabel('polar angle')
+            ylabel('radius')
+            xticks('auto'),yticks('auto')
+            
+            subplot(1,2,2)
+            title(sprintf('rings: width %u', fw))
+            imsc(rings(:,:,n))
+            axis equal tight
+            xlabel('polar angle')
+            ylabel('radius')
+            xticks('auto'),yticks('auto')
+        end
         
-        delta = 0.01;
-        mask = Vq./Vm > 1 + delta | Vq./Vm < 1 - delta;
+        drawnow
         
-        Vq(mask) = Vm(mask);
-        
-        Vq = (Vq - 1) * (Vq_max - Vq_min) + Vq_min;
+        %         delta = 0.01;
+        %         mask = Vq./Vm > 1 + delta | Vq./Vm < 1 - delta;
+        %
+        %         Vq(mask) = Vm(mask);
+        %
+        %         Vqf = (Vq - 1) * (Vq_max - Vq_min) + Vq_min;
         
         % %% Radial median filtering
         % Vqf = medfilt2(Vq, [1, 15], 'symmetric');
 end
 
-% Inverse polar transformation
-[thq, rq] = cart2pol(X, Y);
-out = interp2(r, th, Vq, rq, thq, 'linear', 0);
+% % Inverse polar transformation
+% [thq, rq] = cart2pol(X, Y);
+% imf = interp2(r, th, Vqf, rq, thq, 'linear', 0);
 
-% Print information to standard out
+%% Figure filter image
+figure( 'Name', 'filter image');
+
+subplot(1,3,1)
+title(sprintf('unfiltered image'))
+imsc(im)
+axis equal tight
+xticks('auto'),yticks('auto')
+
+subplot(1,3,2)
+title(sprintf('filtered image'))
+imsc(imf)
+axis equal tight
+xticks('auto'),yticks('auto')
+
+subplot(1,3,3)
+title(sprintf('rings'))
+imsc(im - imf)
+axis equal tight
+xticks('auto'),yticks('auto')
+
+drawnow
+
+%% Print information to standard out
 if verbose
     fprintf('Ring artifact filter:')
     fprintf('\n image size = [%g, %g]', dim0, dim1)
@@ -123,7 +191,7 @@ if verbose
     fprintf('\n Domain of original image: \n')
     domain(im)
     fprintf(' Domain of image in polar coordinates: \n')
-    domain(out)
+    domain(imf)
     
     fprintf('\n')
 end

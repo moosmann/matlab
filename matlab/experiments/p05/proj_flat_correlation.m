@@ -393,7 +393,7 @@ end % switch method
 
 %% Plot correlation %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 if par.visual_output && exist( 'corr_mat', 'var' )
-    figure( 'Name', 'Correlation of projections and flat-fields');
+    h = figure( 'Name', 'Correlation of projections and flat-fields');
     mid = round( num_proj_used / 2 );
     f = @(mat,pp) mat(pp,:)';
     Y = [ f( corr_mat, 1), f( corr_mat, mid), f( corr_mat, num_proj_used) ];
@@ -404,6 +404,9 @@ if par.visual_output && exist( 'corr_mat', 'var' )
     xlabel( 'flat field index' )
     ylabel( 'measure' )
     drawnow
+    
+    fig_filename = sprintf( '%sfig%02u_%s.png', write.fig_path, h.Number, regexprep( h.Name, '\ |:', '_') );
+    saveas(h, fig_filename);
 end
 
 %% CORRECTION %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
