@@ -242,6 +242,8 @@ if tomo.run || tomo.run_interactive_mode
                 end
                 if isscalar( angle_scaling )
                     itomo.angles = angle_scaling * angles + tomo.rot_angle_offset;
+                else
+                    itomo.angles = angles + tomo.rot_angle_offset;
                 end
                 
                 % Reco

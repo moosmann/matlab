@@ -17,10 +17,11 @@ function p05_reco( external_parameter )
 % For additional information see 'p05_reco_NOTES'.
 %
 % Please cite following article in the case of publication:
-% Moosmann, J. et al. Time-lapse X-ray phase-contrast microtomography for
-% in vivo imaging and ansdfadsfaalysis of morphogenesis Nat. Protocols 9, 294-304
-% (2014)
-% Also cite the ASTRA Toolbox, see http://www.astra-toolbox.com/
+% - Moosmann, J. et al. Time-lapse X-ray phase-contrast microtomography for
+% in vivo imaging and ansdfadsfaalysis of morphogenesis Nat. Protocols 9,
+% 294-304 (2014) 
+% - Moosmann, J. moosmann/matlab:. Zenodo. https:// doi. org/ 10. 5281/ ZENODO. 51187 37 (2021).
+% - ASTRA Toolbox, see http://www.astra-toolbox.com/
 %
 % Latest version: https://github.com/moosmann/matlab.git
 %
@@ -291,7 +292,7 @@ if nargin == 1 %exist( 'external_parameter' ,'var')
         field_name = field_name_cell{nn};
         %var_val = getfield( external_parameter, var_name );
         %assignin('caller', var_name, var_val )
-        field_value = external_parameter.(field_name);
+        field_value = external_parameter.(field_name); %#ok<NASGU> 
         eval( sprintf( '%s = field_value;', field_name) );
     end
     clear external_parameter field_name_cell field_name field_value
@@ -486,8 +487,11 @@ if ~isempty( write.scan_name_appendix )
 end
 write.parpath = [write.path filesep ];
 if ~isempty(write.parfolder)
-    write.path = [write.path, filesep, write.parfolder];
+    write.path = [write.path, filesep, write.parfolder];    
 end
+fn_diary = sprintf('%s/command_window_diary.txt', write.path);
+diary(fn_diary)
+diary on
 
 % Save raw path to file for shell short cut
 filename = [userpath, filesep, 'path_to_raw'];
@@ -1308,7 +1312,7 @@ if ~par.read_flatcor && ~par.read_sino
         roi_flat(:,:,nn) = 1 / 2 / raw_bin^2 * Binning( im_int(flat_corr_area1,flat_corr_area2), 2 * raw_bin );
         
         % Correlation ROI filter
-        roi_flat(:,:,nn) = imcf_filter( roi_flat(:,:,nn) );
+        roi_flat(:,:,nn) = imcf_filter( roi_flat(:,:,nn) ); %#ok<*PFBNS> 
         
         % Binning
         im_float_binned = Binning( im_int, raw_bin) / raw_bin^2;
@@ -2112,7 +2116,7 @@ if par.distortion_correction_distance ~= 0  && ~isempty(par.distortion_correctio
     end
     if par.visual_output
         f = figure( 'Name', 'distortion correction', 'WindowState', window_state );
-        subplot(1,2,1)
+        subplot(1,3,1)
         plot(xq - x)
         title(sprintf('displacement offset: xq - x'))
         xlabel('grid / pixel')
@@ -2127,7 +2131,7 @@ if par.distortion_correction_distance ~= 0  && ~isempty(par.distortion_correctio
     end
     if par.visual_output
         figure(f)
-        subplot(1,2,2)
+        subplot(1,3,2:3)
         imsc1( proj(:,:,1) - im0)
         axis equal tight
         xticks('auto'),yticks('auto')
@@ -2416,19 +2420,19 @@ if par.crop_at_rot_axis
     fprintf( '\nCropping projections:')
     % Crop projections to avoid oversampling for scans with excentric rotation axis
     % and reconstruct WITHOUT stitching
-    % Crop relative to rot axis position
     tomo.rot_axis_position_before_cropping = tomo.rot_axis_position;
     tomo.rot_axis_offset_before_cropping = tomo.rot_axis_offset;
+    % Crop relative to rot axis position
     r = tomo.rot_axis_position / im_shape_cropbin1;
     if r < 0.5        
         proj( 1:floor(tomo.rot_axis_position)-1, :, :) = [];
         crop1 = im_shape_binned1 - size(proj,1);        
-        tomo.rot_axis_position = tomo.rot_axis_position -crop1/2;
+        tomo.rot_axis_position = tomo.rot_axis_position - crop1/2;
         tomo.rot_axis_offset = tomo.rot_axis_offset - crop1/2;
     else
         proj( ceil(tomo.rot_axis_position) + 1:end, :, :) = [];
         crop1 = im_shape_binned1 - size(proj,1);
-        tomo.rot_axis_position = tomo.rot_axis_position -crop1/2;
+        tomo.rot_axis_position = tomo.rot_axis_position + crop1/2;
         tomo.rot_axis_offset = tomo.rot_axis_offset + crop1/2;
     end
     if isempty( tomo.vol_shape )
@@ -3061,6 +3065,7 @@ fprintf( weblink1 );
 fprintf( weblink2 );
 fprintf( weblink3 );
 fprintf( '\n')
+diary off
 % END %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 dbclear if error
 if ~strcmp( getenv('USER'), 'moosmanj' )

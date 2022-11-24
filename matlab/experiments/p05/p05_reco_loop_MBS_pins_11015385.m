@@ -89,7 +89,7 @@ par.proj_range = []; % range of projections to be used (from all found, if empty
 par.ref_range = [];% range of flat fields to be used (from all found), if empty or 1: all. if scalar: stride, if range: start:incr:end
 par.crop_proj = 0; % Crop images to account for random lateral shift
 par.virt_s_pos = 0; % Correct sample position in reconsructed volume if virtual sample position motors are used
-pixel_filter_threshold_dark = [0.01 0.005]; % Dark fields: threshold parameter for hot/dark pixel filter, for details see 'FilterPixel'
+pixel_filter_threshold_dark = [0.01 0.005]; %#ok<*NASGU> % Dark fields: threshold parameter for hot/dark pixel filter, for details see 'FilterPixel'
 pixel_filter_threshold_flat = [0.02 0.005]; % Flat fields: threshold parameter for hot/dark pixel filter, for details see 'FilterPixel'
 pixel_filter_threshold_proj = [0.02 0.005]; % Raw projection: threshold parameter for hot/dark pixel filter, for details see 'FilterPixel'
 pixel_filter_radius = [5 5]; % Increase only if blobs of zeros or other artefacts are expected. Can increase processing time heavily.
@@ -230,7 +230,7 @@ tomo.astra_link_data = 1; % ASTRA data objects become references to Matlab array
 tomo.astra_gpu_index = []; % GPU Device index to use, Matlab notation: index starts from 1. default: [], uses all
 par.gpu_index = tomo.astra_gpu_index;
 par.use_gpu_in_parfor = 1;
-phase_retrieval.use_parpool = 1; % bool. Disable parpool when out-of-memory error occurs during phase retrieval.
+phase_retrieval.use_parpool = 1; %#ok<*STRNU> % bool. Disable parpool when out-of-memory error occurs during phase retrieval.
 par.window_state = 'minimized';'normal';'maximized';
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Set default. Defines default parameter set to be used.
@@ -240,6 +240,8 @@ SET_DEFAULT
 %% PARAMETER / DATA SETS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 raw_path = '/asap3/petra3/gpfs/p05/2022/data/11015385/raw/';
+write.deleteFiles = 1; 
+write.beamtimeID = '11015385/'; 
 
 par.raw_bin = 2;
 par.raw_roi = -1;%[];% 715 + [-50:50]; 
@@ -250,10 +252,10 @@ image_correlation.area_height =[0.90 0.98];
 % lager ROI after interactive mode when rot axis position is known)
 tomo.vol_size = [-1 1 -1 1 -0.5 0.5];
 
+% 0007 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 interactive_mode.slice_number = 1150; % AFTER AUTO ROI CROP
 % sharp reco in the center
 tomo.rot_axis_offset = 1362.5/ 2 * par.raw_bin;
-
 % NOTE: DISTORTION CORRECTIONS VALUES ARE NOT BIN INVARIANT
 par.distortion_correction_distance = 2744; 
 par.distortion_correction_outer_offset = 1366.25;
@@ -261,7 +263,7 @@ interactive_mode.rot_axis_pos = 0;
 
 par.scan_path = [raw_path '0007_WB_ref_8p1_nd']; 
 
-par.stitch_projections = 1; 
+par.stitch_projections = 0; 
 write.parfolder = 'proj_stitched'; 
 ADD
 
@@ -270,34 +272,33 @@ par.stitch_projections = 0;
 write.parfolder = 'proj_cropped'; 
 ADD
 
-par.crop_at_rot_axis = 0;
-par.stitch_projections = 1; 
+% half acquisition reco
+par.crop_at_rot_axis = 1;
+par.stitch_projections = 0; 
 par.proj_range = 1:4001; 
 write.parfolder = 'projHalf1'; ADD
 par.proj_range = 4002:8001;
 write.parfolder = 'projHalf2'; ADD
+par.proj_range = [];
+write.parfolder = '';
 
+% 0008 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+interactive_mode.rot_axis_pos = 0;
+interactive_mode.slice_number = 858; % AFTER AUTO ROI CROP
+% search range 1362:0.5:1368
+par.crop_at_rot_axis = 1;
+tomo.rot_axis_offset = 1363.5 / 2 * par.raw_bin;
+par.distortion_correction_distance = 2700 / 2 * par.raw_bin;
+par.distortion_correction_outer_offset = 1366.5 / 2 * par.raw_bin;
 par.scan_path = [raw_path '0008_WB_ag_8p1_nd']; ADD
 
+% 0009 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+par.crop_at_rot_axis = 1;
 par.scan_path = [raw_path '0009_WB_gd_4p1_nd']; ADD
 
 par.scan_path = [raw_path '0010_WB_ref_1p2_3d']; ADD
 
-interactive_mode.rot_axis_pos = 0;
-interactive_mode.slice_number = 783; % AFTER AUTO ROI CROP
-tomo.rot_axis_offset = 1363.25/ 2 * par.raw_bin;
-par.distortion_correction_distance = 2780; 
-par.distortion_correction_outer_offset = 1366; %+-0.5
 par.scan_path = [raw_path '0011_WB_ag_1p2_3d']; ADD
-for dce = [1.5 2.5 2]
-    par.distortion_correction_exponent = dce;
-    s = sprintf( 'distCorExp%.2f', dce );
-    s = regexprep( s, '\.', 'p');
-    write.subfolder_reco = s;    
-    ADD
-end
-write.subfolder_reco = '';    
-par.distortion_correction_exponent = 2;
 
 par.scan_path = [raw_path '0012_WB_gd_1p2_3d']; ADD
 
@@ -307,6 +308,30 @@ par.scan_path = [raw_path '0014_WB_peo_ag_5p3_14d']; ADD
 
 par.scan_path = [raw_path '0015_WB_gd_7p3_14d']; ADD
 
+interactive_mode.rot_axis_pos = 0;
+interactive_mode.slice_number = 783; % AFTER AUTO ROI CROP
+tomo.rot_axis_offset = 1363.25/ 2 * par.raw_bin;
+par.distortion_correction_distance = 2780; 
+par.distortion_correction_outer_offset = 1366; %+-0.5
+par.distortion_correction_exponent = 2;
+
+% 0011 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+par.scan_path = [raw_path '0011_WB_ag_1p2_3d']; ADD
+
+interactive_mode.rot_axis_pos = 0;
+interactive_mode.slice_number = 783; % AFTER AUTO ROI CROP
+tomo.rot_axis_offset = 1363.25/ 2 * par.raw_bin;
+par.distortion_correction_distance = 2780; 
+par.distortion_correction_outer_offset = 1366; %+-0.5
+for dce = [1.5 2.5 2]
+    par.distortion_correction_exponent = dce;
+    s = sprintf( 'distCorExp%.2f', dce );
+    s = regexprep( s, '\.', 'p');
+    write.subfolder_reco = s;    
+    ADD
+end
+par.distortion_correction_exponent = 2;
+write.subfolder_reco = '';    
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 p05_reco_loop( SUBSETS, RUN_RECO, PRINT_PARAMETERS)
