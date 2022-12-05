@@ -39,33 +39,31 @@ dbstop if error
 par.quick_switch = 1;
 par.scan_path = pwd;
 %par.scan_path = last_folder_modified('')
-par.raw_bin = 8;
+par.raw_bin = 4;
 par.raw_roi = -1;
-par.proj_range = 9;
-par.ref_range = 10;
-phase_retrieval.apply = 0;
-% image_correlation.num_flats = 10;
-% image_correlation.method = 'median';
-tomo.vol_size = [-1 1 -1 1 -0.5 0.5];
-% tomo.interpolate_missing_angles = 0;
-% tomo.rot_axis_search_auto = 0;
-% tomo.rot_axis_search_range = -2:0.1:2.5;
-% tomo.rot_axis_search_metric = 'neg';
-% tomo.rot_axis_search_extrema = 'max';
-% tomo.rot_axis_search_fit = 0;
-%tomo.rot_axis_search_verbose = 1;
-%par.pixel_scaling = [];
+par.proj_range = 1;
+par.ref_range = 1;
+phase_retrieval.apply = 1;
+phase_retrieval.reg_par = 1.5; 
+interactive_mode.phase_retrieval = 0; 
+%image_correlation.num_flats = 10;
+image_correlation.method = 'mean';
+tomo.vol_size = [-1.0 1.0 -1.0 1.0 -0.5 0.5];
 %write.subfolder_reco = 'proj1';
-write.parfolder = 'demo';
+
 write.to_scratch = 1;
+write.flatcor = 1; 
+write.parfolder = 'crop';
 par.stitch_projections = 0;
-par.crop_proj = 0; 
-interactive_mode.rot_axis_pos = 1;
+par.crop_proj = 1; 
+
+tomo.rot_axis_offset = -831.25 / 4 * par.raw_bin; 
+interactive_mode.rot_axis_pos = 0;
 interactive_mode.rot_axis_tilt = 0;
 interactive_mode.angles = 0;
-interactive_mode.phase_retrieval = 0;
-interactive_mode.slice_number = round(1150 /4);
+%interactive_mode.slice_number = round(1150 /4);
 par.use_gpu_in_parfor = 0;
+tomo.astra_link_data = 1; 
 % END OF QUICK SWITCH TO ALTERNATIVE SET OF PARAMETERS %%%%%%%%%%%%%%%%%%%%
 
 pp_parameter_switch % DO NOT DELETE THIS LINE
@@ -86,7 +84,7 @@ par.pixel_scaling = []; % to account for mismatch of eff_pixel_size with, ONLY A
 par.read_image_log = 0; % bool, default: 0. Read metadata from image log instead hdf5, if image log exists
 par.read_filenames_from_disk = 0; % only for stepscans with tiff subfolders
 %%% PREPROCESSING %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-par.raw_bin = 3; % projection binning factor: integer
+par.raw_bin = 2; % projection binning factor: integer
 par.raw_roi = []; % vertical and/or horizontal ROI; coordinate (1,1) = top left pixel; supports absolute, relative, negative, and mixed indexing.
 % []: use full image;
 % [y0 y1]: vertical ROI, skips first raw_roi(1)-1 lines, reads until raw_roi(2); if raw_roi(2) < 0 reads until end - |raw_roi(2)|; relative indexing similar.
@@ -107,10 +105,17 @@ par.proj_range = []; % range of projections to be used (from all found, if empty
 par.ref_range = [];% range of flat fields to be used (from all found), if empty or 1: all. if scalar: stride, if range: start:incr:end
 par.crop_proj = 0; % Crop images to account for random lateral shift
 par.virt_s_pos = 0; % Correct sample position in reconsructed volume if virtual sample position motors are used
-pixel_filter_threshold_dark = [0.01 0.005]; % Dark fields: threshold parameter for hot/dark pixel filter, for details see 'FilterPixel'
-pixel_filter_threshold_flat = [0.02 0.005]; % Flat fields: threshold parameter for hot/dark pixel filter, for details see 'FilterPixel'
-pixel_filter_threshold_proj = [0.02 0.005]; % Raw projection: threshold parameter for hot/dark pixel filter, for details see 'FilterPixel'
-pixel_filter_radius = [5 5]; % Increase only if blobs of zeros or other artefacts are expected. Can increase processing time heavily.
+
+pixel_filter_radius = [7 7];
+pixel_filter_threshold_dark = [0.05 0.01];
+pixel_filter_threshold_flat = [0.05 0.01];
+pixel_filter_threshold_proj = [0.05 0.01];
+
+% pixel_filter_threshold_dark = [0.01 0.005]; % Dark fields: threshold parameter for hot/dark pixel filter, for details see 'FilterPixel'
+% pixel_filter_threshold_flat = [0.02 0.005]; % Flat fields: threshold parameter for hot/dark pixel filter, for details see 'FilterPixel'
+% pixel_filter_threshold_proj = [0.02 0.005]; % Raw projection: threshold parameter for hot/dark pixel filter, for details see 'FilterPixel'
+% pixel_filter_radius = [5 5]; % Increase only if blobs of zeros or other artefacts are expected. Can increase processing time heavily.
+
 par.ring_current_normalization = 1; % normalize flat fields and projections by ring current
 image_correlation.method = 'ssim-ml';'median';'entropy';'none';'ssim';'ssim-g';'std';'cov';'corr';'diff1-l1';'diff1-l2';'diff2-l1';'diff2-l2';'cross-entropy-12';'cross-entropy-21';'cross-entropy-x';
 % Correlation of projections and flat fields. Essential for DCM data. Typically improves reconstruction quality of DMM data, too.
@@ -135,7 +140,7 @@ image_correlation.filter_type = 'median'; % string. correlation ROI filter type,
 image_correlation.filter_parameter = {[5 5], 'symmetric'}; % cell. filter paramaters to be parsed with {:}
 % 'median' : using medfilt2, parameters: {[M N]-neighboorhood, 'padding'}
 % 'wiener' : using wiender2, parameters: {[M N]-neighboorhood}
-ring_filter.apply = 0; % ring artifact filter (use only for scans without lateral sample movement)
+ring_filter.apply = 1; % ring artifact filter (use only for scans without lateral sample movement)
 ring_filter.apply_before_stitching = 0; % ! Consider when phase retrieval is applied !
 ring_filter.method = 'jm'; 'wavelet-fft';
 ring_filter.waveletfft_dec_levels = 1:6; % decomposition levels for 'wavelet-fft'
@@ -204,7 +209,7 @@ tomo.rot_axis_search_fit = 1; % bool: fit calculated metrics and find extrema, o
 tomo.rot_axis_offset_metric_roi = []; % 4-vector: [. ROI for metric calculation. roi = [y0, x0, y1-y0, x1-x0]. (x,y)=(0,0)=upper left
 %%% OUTPUT %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 write.path = ''; %'/gpfs/petra3/scratch/moosmanj'; % absolute path were output data will be stored. !!overwrites the write.to_scratch flag. if empty uses the beamtime directory and either 'processed' or 'scratch_cc'
-write.to_scratch = 1; % write to 'scratch_cc' instead of 'processed'
+write.to_scratch = 0; % write to 'scratch_cc' instead of 'processed'
 write.deleteFiles = 0; % delete files already existing in output folders. Useful if number or names of files differ when reprocessing.
 write.beamtimeID = ''; % string (regexp),typically beamtime ID, mandatory if 'write.deleteFiles' is true (safety check)
 write.scan_name_appendix = ''; % appendix to the output folder name which defaults to the scan name
@@ -213,7 +218,7 @@ write.subfolder_flatcor = ''; % subfolder in 'flat_corrected'
 write.subfolder_phase_map = ''; % subfolder in 'phase_map'
 write.subfolder_sino = ''; % subfolder in 'sino'
 write.subfolder_reco = ''; % subfolder in 'reco'
-write.flatcor = 1; % save preprocessed flat corrected projections
+write.flatcor = 0; % save preprocessed flat corrected projections
 write.phase_map = 0; % save phase maps (if phase retrieval is not 0)
 write.sino = 0; % save sinograms (after preprocessing & before FBP filtering and phase retrieval)
 write.phase_sino = 0; % save sinograms of phase maps
@@ -237,7 +242,7 @@ write.compression_parameter = [0.02 0.02]; % compression-method specific paramet
 write.uint8_segmented = 0; % experimental: threshold segmentaion for histograms with 2 distinct peaks: __/\_/\__
 %%% INTERACTION %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 par.visual_output = 1; % show images and plots during reconstruction
-par.skip_gpu_info = 1;
+par.show_and_reset_gpu_info = 1;
 interactive_mode.rot_axis_pos = 1; % reconstruct slices with dif+ferent rotation axis offsets
 interactive_mode.rot_axis_pos_default_search_range = []; % if empty: asks for search range when entering interactive mode
 interactive_mode.rot_axis_tilt = 0; % reconstruct slices with different offset AND tilts of the rotation axis
@@ -251,8 +256,8 @@ interactive_mode.phase_retrieval_default_search_range = []; % if empty: asks for
 interactive_mode.show_stack_imagej = 1; % use imagej instead of MATLAB to scroll through images during interactive mode
 %%% HARDWARE / SOFTWARE %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 par.use_cluster = 0; % if available: on MAXWELL nodes disp/nova/wga/wgs cluster computation can be used. Recommended only for large data sets since parpool creation and data transfer implies a lot of overhead.
-par.poolsize = 0.8; % number of workers used in a local parallel pool. if 0: use current config. if >= 1: absolute number. if 0 < poolsize < 1: relative amount of all cores to be used. if SLURM scheduling is available, a default number of workers is used.
-par.poolsize_gpu_limit_factor = 0.8; % Relative amount of GPU memory used for preprocessing during parloop. High values speed up Proprocessing, but increases out-of-memory failure
+par.poolsize = 0.7; % number of workers used in a local parallel pool. if 0: use current config. if >= 1: absolute number. if 0 < poolsize < 1: relative amount of all cores to be used. if SLURM scheduling is available, a default number of workers is used.
+par.poolsize_gpu_limit_factor = 0.5; % Relative amount of GPU memory used for preprocessing during parloop. High values speed up Proprocessing, but increases out-of-memory failure
 tomo.astra_link_data = 1; % ASTRA data objects become references to Matlab arrays. Reduces memory issues.
 tomo.astra_gpu_index = []; % GPU Device index to use, Matlab notation: index starts from 1. default: [], uses all
 par.gpu_index = tomo.astra_gpu_index;
@@ -432,7 +437,7 @@ assign_default( 'tomo.rot_axis_search_verbose', 1);
 assign_default( 'tomo.rot_axis_search_extrema', 'max' );
 assign_default( 'tomo.rot_axis_search_fit', 1 );
 assign_default( 'tomo.rot_axis_offset_metric_roi', [] );
-assign_default( 'par.skip_gpu_info', 0);
+assign_default( 'par.show_and_reset_gpu_info', 1);
 assign_default( 'interactive_mode.show_stack_imagej', 1 )
 assign_default( 'par.distortion_correction_distance', 0)
 assign_default( 'par.distortion_correction_outer_offset', 0)
@@ -490,8 +495,8 @@ if ~isempty(write.parfolder)
     write.path = [write.path, filesep, write.parfolder];    
 end
 fn_diary = sprintf('%s/command_window_diary.txt', write.path);
-diary(fn_diary)
-diary on
+%diary(fn_diary)
+%diary on
 
 % Save raw path to file for shell short cut
 filename = [userpath, filesep, 'path_to_raw'];
@@ -586,13 +591,14 @@ for mm = 1:numel( tomo.astra_gpu_index )
 end
 
 % GPU info
-if  ~par.skip_gpu_info
+if  par.show_and_reset_gpu_info
     for mm = numel( tomo.astra_gpu_index ):-1:1
         nn = tomo.astra_gpu_index(mm);
         gpu(nn) = gpuDevice(nn);
         mem_avail_gpu(nn) = gpu(nn).AvailableMemory;
         mem_total_gpu(nn) = gpu(nn).TotalMemory;
         fprintf( '\n GPU %u memory available : %.3g GiB (%.2f%%) of %.3g GiB', nn, mem_avail_gpu(nn)/1024^3, 100*mem_avail_gpu(nn)/mem_total_gpu(nn), mem_total_gpu(nn)/1024^3 )
+        gpu(nn).reset;
     end
 else
     mem_avail_gpu = 0.99 * gpu.TotalMemory;
@@ -3065,7 +3071,7 @@ fprintf( weblink1 );
 fprintf( weblink2 );
 fprintf( weblink3 );
 fprintf( '\n')
-diary off
+%diary off
 % END %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 dbclear if error
 if ~strcmp( getenv('USER'), 'moosmanj' )

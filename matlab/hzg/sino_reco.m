@@ -47,7 +47,8 @@ end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %%% SCAN %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%scan_path = pwd;
+scan_path = ...
+    '/asap3/petra3/gpfs/p07/2022/data/11015573/processed/hereon_bmc_brain_small_roi_scan_44keV';    
     '/asap3/petra3/gpfs/p07/2020/data/11010206/processed/mgbone05_19118_ti_8m';
     '/asap3/petra3/gpfs/p05/2020/data/11008823/processed/nova004_pyrochroa_coccinea_a';
     '/asap3/petra3/gpfs/p05/2020/data/11008823/processed/nova003_pentatomidae';
@@ -57,14 +58,14 @@ end
     '/asap3/petra3/gpfs/p05/2019/data/11007580/processed/smf_09_be_3033';
     '/asap3/petra3/gpfs/p07/2019/data/11007454/processed/bmc06_tooth1';
     '/asap3/petra3/gpfs/p07/2022/data/11015567/processed/mbs020_sample1_mgti_a';
-raw_bin = 3; % projection binning factor: integer
+raw_bin = 2; % projection binning factor: integer
 proj_range = []; % projection range
 read_sino_folder = sprintf( 'trans%02u', raw_bin);% string. default: '', picks first trans folder found
 %read_sino = 1; % read preprocessed sinograms. CHECK if negative log has to be taken!
 read_sino_trafo = @(x) (x);%rot90(x); % anonymous function applied to the image which is read e.g. @(x) rot90(x)
 sino_range = [];
-energy = 74000; % in eV!
-sample_detector_distance = 0.01; % in m
+energy = 44000; % in eV!
+sample_detector_distance = 0.150; % in m
 eff_pixel_size = []; % in m, read from reconlog.txt if []
 tomo.rot_angle_full_range = rot_angle_full_range; % in rad, read from reconlog if []: full angle of rotation including additional increment, or array of angles. if empty full rotation angles is determined automatically to pi or 2 pi
 %%% RING FILTER
@@ -90,7 +91,7 @@ phase_retrieval.padding = 1; % padding of intensities before phase retrieval, 0:
 %%% TOMOGRAPHY %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 tomo.run = 1; % run tomographic reconstruction
 tomo.run_interactive_mode = 1; % if tomo.run = 0, use to determine rot axis positions without processing the full tomogram;
-tomo.reco_mode = 'slice';'3D'; % slice-wise or full 3D backprojection. 'slice': volume must be centered at origin & no support of rotation axis tilt, reco binning, save compressed
+tomo.reco_mode = '3D';'slice'; % slice-wise or full 3D backprojection. 'slice': volume must be centered at origin & no support of rotation axis tilt, reco binning, save compressed
 tomo.slab_wise = 1;
 tomo.slices_per_slab = [];
 tomo.vol_size = [];%[-1 1 -1 1 -0.5 0.5];% 6-component vector [xmin xmax ymin ymax zmin zmax], for excentric rot axis pos / extended FoV;. if empty, volume is centerd within tomo.vol_shape. unit voxel size is assumed. if smaller than 10 values are interpreted as relative size w.r.t. the detector size. Take care bout minus signs! Note that if empty vol_size is dependent on the rotation axis position.
@@ -147,6 +148,7 @@ write.compression_method = 'outlier';'histo';'full'; 'std'; 'threshold'; % metho
 write.compression_parameter = [0.02 0.02]; % compression-method specific parameter
 %%% INTERACTION %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 par.visual_output = 0; % show images and plots during reconstruction
+par.show_and_reset_gpu_info = 0;
 interactive_mode.show_stack_imagej = 1; % use imagej instead of MATLAB to scroll through images during interactive mode
 interactive_mode.rot_axis_pos = 1; % reconstruct slices with dif+ferent rotation axis offsets
 interactive_mode.rot_axis_pos_default_search_range = []; % if empty: asks for search range when entering interactive mode
@@ -162,14 +164,13 @@ interactive_mode.phase_retrieval_default_search_range = []; % if empty: asks for
 %%% HARDWARE / SOFTWARE %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 par.use_cluster = 0; % if available: on MAXWELL nodes disp/nova/wga/wgs cluster computation can be used. Recommended only for large data sets since parpool creation and data transfer implies a lot of overhead.
 par.poolsize = 0.8; % number of workers used in a local parallel pool. if 0: use current config. if >= 1: absolute number. if 0 < poolsize < 1: relative amount of all cores to be used. if SLURM scheduling is available, a default number of workers is used.
-par.poolsize_gpu_limit_factor = 0.8; % Relative amount of GPU memory used for preprocessing during parloop. High values speed up Proprocessing, but increases out-of-memory failure
+par.poolsize_gpu_limit_factor = 0.5; % Relative amount of GPU memory used for preprocessing during parloop. High values speed up Proprocessing, but increases out-of-memory failure
 par.use_gpu_in_parfor = 1;
 tomo.astra_link_data = 1; % ASTRA data objects become references to Matlab arrays. Reduces memory issues.
-tomo.astra_gpu_index = []; % GPU Device index to use, Matlab notation: index starts from 1. default: [], uses all
+tomo.astra_gpu_index = []; % GPU Device index to use, Matlab notation: index starts from 1. default: [], use all
 tomo.astra_reco_per_gpu = 1;
 %%% EXPERIMENTAL OR NOT YET IMPLEMENTED %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 write.uint8_segmented = 0; % experimental: threshold segmentaion for histograms with 2 distinct peaks: __/\_/\__
-
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%% END OF PARAMETERS / SETTINGS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -295,6 +296,18 @@ for mm = 1:num_gpu
     fprintf( ' [%u %.3g]', nn, mem_total )
 end
 
+% GPU info
+if  par.show_and_reset_gpu_info
+    for mm = 1:numel( tomo.astra_gpu_index )
+        nn = tomo.astra_gpu_index(mm);
+        gpu(nn) = gpuDevice(nn);
+        mem_avail_gpu(nn) = gpu(nn).AvailableMemory;
+        mem_total_gpu(nn) = gpu(nn).TotalMemory;
+        gpu(nn).reset;
+        fprintf( '\n GPU %u memory available : %.3g GiB (%.2f%%) of %.3g GiB', nn, mem_avail_gpu(nn)/1024^3, 100*mem_avail_gpu(nn)/mem_total_gpu(nn), mem_total_gpu(nn)/1024^3 )
+    end
+end
+
 % Save scan path to file
 filename = [userpath, filesep, 'path_to_scan'];
 fid = fopen( filename , 'w' );
@@ -381,29 +394,53 @@ if exist(fn, 'File')
     
     % angle increment
     b = contains(c{1},'scan_angularstep');
-    angularstep = c{2}(b);
-    angularstep = pi / 180 *str2double(angularstep{1});
-    fprintf('\n angle increment : %f rad = %f deg', angularstep, angularstep * 180 / pi)
+    if sum(b)
+        angularstep = c{2}(b);
+        angularstep = pi / 180 *str2double(angularstep{1});
+        fprintf('\n angle increment : %f rad = %f deg', angularstep, angularstep * 180 / pi)
+    end
     
     % number of projections
     b = contains(c{1},'scan_n_angle');
-    n_angle = c{2}(b);
-    n_angle = str2double(n_angle{1});
-    fprintf('\n number of angles : %u', n_angle)    
+    if sum(b)
+        n_angle = c{2}(b);
+        n_angle = str2double(n_angle{1});
+        fprintf('\n number of angles : %u', n_angle)
+        angles = (0:n_angle - 1) * angularstep;
+        ar = n_angle * angularstep;
+        tomo.rot_angle_full_range = ar;
+    end
     
     % pixel size
     b = contains(c{1},'scan_pixelsize');
-    pixelsize = c{2}(b);
-    pixelsize = str2double(pixelsize{1});
-    fprintf('\n unbinned effective pixelsize : %f', pixelsize)
+    if sum(b)
+        pixelsize = c{2}(b);
+        pixelsize = str2double(pixelsize{1});
+        fprintf('\n pixelsize : %f', pixelsize)
+    end
+    
+     b = contains(c{1},'pixelsize');
+     if sum(b)
+        pixelsize = str2double(c{2}{b});
+        fprintf('\n pixelsize : %f micron', pixelsize * 1000)        
+        eff_pixel_size = raw_bin * pixelsize / 1000;
+     end
+     
+     b = contains(c{1},'reco_mode');
+     if sum(b)
+        reco_mode = str2double(c{2}{b});
+        fprintf('\n reco mode : %f', reco_mode)        
+        ar =  reco_mode * pi / 180;
+     end
+     
+     if isempty(tomo.rot_angle_full_range)
+        tomo.rot_angle_full_range = ar;
+     end
     
     if isempty(eff_pixel_size)
         eff_pixel_size = raw_bin * pixelsize;
     end
-    
-    angles = (0:n_angle - 1) * angularstep;
-    ar = n_angle * angularstep;
-    tomo.rot_angle_full_range = ar;
+
     fprintf('\n angular range : %f rad = %f * pi rad = %f deg', ar, ar / pi, ar * 180 / pi)
 end
 

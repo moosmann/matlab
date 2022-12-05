@@ -27,8 +27,8 @@ butterworth_filtering = assign_from_struct( tomo, 'butterworth_filter', 0 );
 vert_shift = assign_from_struct( tomo, 'vert_shift', 0 );
 mask_rad = 0.95;
 mask_val = 0;
-number_of_stds = assign_from_struct( tomo, 'number_of_stds', 4 );
-filter_histo_roi = 0.25;
+%number_of_stds = assign_from_struct( tomo, 'number_of_stds', 4 );
+%filter_histo_roi = 0.25;
 rect = assign_from_struct(tomo, 'rot_axis_offset_metric_roi', []);               
 
 %% Main %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -76,7 +76,7 @@ end
 slice_range = slice + (-dz:dz);
 sino = proj(:, slice_range, :);
 %fprintf( '\n sino slab size : %u %u %u', size(sino) )
-
+fprintf(' \n Filter sino')
 if strcmpi( tomo.algorithm, 'fbp' )
     % Ramp filter
     filt = iradonDesignFilter('Ram-Lak', 2 * num_pix, 0.9);
@@ -139,13 +139,26 @@ reco_metric_lap = zeros( numel(offset), 1);
 reco_metric_ent = zeros( numel(offset), 1);
 reco_metric_entml = zeros( numel(offset), 1);
 %rect(2) + (1:rect(4)), rect(1) + (1:rect(3))
-parfor (nn = 1:numel(offset), 2 * gpuDeviceCount)
+num_gpu = numel(tomo.astra_gpu_index);
+if isempty(num_gpu)
+    num_gpu = gpuDeviceCount;
+end
+gpu_index = tomo.astra_gpu_index;
+fprintf('\n ASTRA GPU index (count from 0): ')
+fprintf(' %u,', gpu_index)
+fprintf('\n Interactive par loop:\n')
+parfor (nn = 1:numel(offset), 2 * num_gpu)
+%for nn = 1:numel(offset)
     % Reco
+    tomo_par_nn = tomo_par(nn);
+    mm = mod(nn, num_gpu) + 1;
+    tomo_par_nn.astra_gpu_index = gpu_index(mm); %#ok<PFBNS>
+    fprintf('\n  par index: %2u, gpu list index: %2u, gpu index: %u', nn, mm, gpu_index(mm))
     switch tomo_reco_mode
         case '3d'
-            im = astra_parallel3D( tomo_par(nn), sino );
+            im = astra_parallel3D( tomo_par_nn, sino );
         case 'slice'
-            im = astra_parallel2D( tomo_par(nn), sino );
+            im = astra_parallel2D( tomo_par_nn, sino );
     end
     vol(:,:,nn) = im;
     %vol(:,:,nn) = FilterHisto(im, number_of_stds, filter_histo_roi);
@@ -179,6 +192,7 @@ parfor (nn = 1:numel(offset), 2 * gpuDeviceCount)
     % entropy built-in
     reco_metric_entml(nn) = -entropy( im );
 end
+aclear
 reco_metric(1).val = reco_metric_mean;
 reco_metric(2).val = reco_metric_abs;
 reco_metric(3).val = reco_metric_neg;
