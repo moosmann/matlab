@@ -16,6 +16,7 @@ angle_scaling = [];
 lamino = interactive_mode.lamino;
 tomo.lamino = lamino;
 show_stack_imagej = interactive_mode.show_stack_imagej;
+show_stack_imagej_use_virtual = interactive_mode.show_stack_imagej_use_virtual;
 window_state = par.window_state;
 if isempty( tomo.rot_axis_offset )
     tomo.rot_axis_offset = 0;
@@ -40,8 +41,8 @@ if tomo.run || tomo.run_interactive_mode
     if isempty( tomo.rot_angle_full_range )
         tomo.rot_angle_full_range = max( angles(:) ) - min( angles(:) );
     end
-    if isscalar( tomo.rot_angle_full_range)        
-        ar = tomo.rot_angle_full_range;        
+    if isscalar( tomo.rot_angle_full_range)
+        ar = tomo.rot_angle_full_range;
     else
         ar = max(tomo.rot_angle_full_range) - min(tomo.rot_angle_full_range);
     end
@@ -111,7 +112,7 @@ if tomo.run || tomo.run_interactive_mode
             slice = round((size( proj, 2 ) - 1) * interactive_mode.slice_number + 1 );
         end
         
-        itomo.offset = tomo.rot_axis_offset;        
+        itomo.offset = tomo.rot_axis_offset;
         if ~lamino
             itomo.tilt = tomo.rot_axis_tilt_camera;
             itomo.fixed_tilt = tomo.rot_axis_tilt_lamino;
@@ -127,7 +128,7 @@ if tomo.run || tomo.run_interactive_mode
         angle_scaling = [];
         
         % Loop over offsets
-         while ~isscalar( offset )
+        while ~isscalar( offset )
             cprintf( 'RED', '\nEntering offset loop' )
             % Print parameters
             fprintf( '\n scan: %s', write.scan_name )
@@ -219,7 +220,7 @@ if tomo.run || tomo.run_interactive_mode
                     end
                 end %  if ~isempty( tilt )
                 
-                 % Loop over angles again?
+                % Loop over angles again?
                 if ~isempty( angle_scaling )
                     inp = '';
                     while isempty( inp )
@@ -247,7 +248,7 @@ if tomo.run || tomo.run_interactive_mode
                 end
                 
                 % Reco
-                [vol, metrics_offset] = find_rot_axis_offset( itomo, proj );
+                [vol, metrics_offset] = find_rot_axis_offset(itomo,proj,par);
                 
                 % Metric minima
                 [~, min_pos] = min(cell2mat({metrics_offset(:).val}));
@@ -267,7 +268,7 @@ if tomo.run || tomo.run_interactive_mode
                             fprintf( '[\b%12.2g]\b ', metrics_offset(mm).val(nn) )
                         elseif max_pos(mm) == nn
                             fprintf(2, '%12.2g ', metrics_offset(mm).val(nn) )
-                        else                            
+                        else
                             fprintf( '%12.2g ', metrics_offset(mm).val(nn) )
                         end
                     end
@@ -296,7 +297,7 @@ if tomo.run || tomo.run_interactive_mode
                 saveas( h_rot_off, sprintf( '%s%s.png', write.fig_path, regexprep( h_rot_off.Name, '\ |:', '_') ) );
                 
                 % Display
-                if show_stack_imagej
+                if show_stack_imagej && Bytes(vol(:,:,1)) < 2^32 - 1
                     p = [write.interactive_path 'rot_axis_pos' filesep datestr(now, 'yyyymmddTHHMMSS') filesep];
                     mkdir(p)
                     fprintf('\nSaving images:\n %s', p)
@@ -307,8 +308,11 @@ if tomo.run || tomo.run_interactive_mode
                     p0 = pwd;
                     cd(p)
                     fprintf('\nLoading imagej')
-                    
-                    unix('/asap3/petra3/gpfs/common/p05/jm/bin/imagej_opensequence &');
+                    if show_stack_imagej_use_virtual
+                        unix('/asap3/petra3/gpfs/common/p05/jm/bin/imagej_opensequence &');
+                    else
+                        unix('/asap3/petra3/gpfs/common/p05/jm/bin/imagej_opensequence_novirt &');
+                    end
                     pause(3)
                     cd(p0)
                 else
@@ -422,7 +426,7 @@ if tomo.run || tomo.run_interactive_mode
                             saveas( h_rot_tilt, sprintf( '%s%s.png', write.fig_path, regexprep( h_rot_tilt.Name, '\ |:', '_') ) );
                             
                             % Display
-                            if show_stack_imagej
+                            if show_stack_imagej && Bytes(vol(:,:,1)) < 2^32 - 1
                                 p = [write.interactive_path 'rot_axis_tilt' filesep datestr(now, 'yyyymmddTHHMMSS') filesep];
                                 mkdir(p)
                                 parfor nn = 1:size( vol, 3 )
@@ -432,7 +436,12 @@ if tomo.run || tomo.run_interactive_mode
                                 p0 = pwd;
                                 cd(p)
                                 fprintf('\nLoading imagej')
-                                unix('/asap3/petra3/gpfs/common/p05/jm/bin/imagej_opensequence &');
+                                if show_stack_imagej_use_virtual
+                                    unix('/asap3/petra3/gpfs/common/p05/jm/bin/imagej_opensequence &');
+                                    
+                                else
+                                    unix('/asap3/petra3/gpfs/common/p05/jm/bin/imagej_opensequence_novirt &');
+                                end
                                 pause(3)
                                 cd(p0)
                             else
@@ -506,10 +515,10 @@ if tomo.run || tomo.run_interactive_mode
                     end % while ~isscalar( tilt )
                     itomo.tilt = tilt;
                 end % if interactive_mode.rot_axis_tilt
-                      
+                
                 %% ANGLES
                 if interactive_mode.angles
-                     
+                    
                     cprintf( 'RED', '\n\nEntering angle loop:' )
                     ang_min = min( angles );
                     ang_max = max( angles );
@@ -615,7 +624,7 @@ if tomo.run || tomo.run_interactive_mode
                             saveas( h_rot_angle_scaling, sprintf( '%s%s.png', write.fig_path, regexprep( h_rot_angle_scaling.Name, '\ |:', '_') ) );
                             
                             % Display
-                            if show_stack_imagej
+                            if show_stack_imagej && Bytes(vol(:,:,1)) < 2^32 - 1
                                 p = [write.interactive_path 'rot_axis_angles' filesep datestr(now, 'yyyymmddTHHMMSS') filesep];
                                 mkdir(p)
                                 parfor nn = 1:size( vol, 3 )
@@ -625,13 +634,18 @@ if tomo.run || tomo.run_interactive_mode
                                 p0 = pwd;
                                 cd(p)
                                 fprintf('\nLoading imagej')
-                                unix('/asap3/petra3/gpfs/common/p05/jm/bin/imagej_opensequence &');
+                                if show_stack_imagej_use_virtual
+                                    unix('/asap3/petra3/gpfs/common/p05/jm/bin/imagej_opensequence &');
+                                    
+                                else
+                                    unix('/asap3/petra3/gpfs/common/p05/jm/bin/imagej_opensequence_novirt &');
+                                end
                                 pause(3)
                                 cd(p0)
                             else
                                 nimplay(vol, 1, [], 'ANGLES: sequence of reconstructed slices using different angle scalings')
                             end
-
+                            
                         end
                         
                         if isscalar( angle_scaling )
@@ -661,7 +675,7 @@ if tomo.run || tomo.run_interactive_mode
         tomo.rot_axis_position = im_shape_cropbin1 / 2 + tomo.rot_axis_offset;
         
         % Save last sequence
-        if exist( 'vol', 'var' )
+        if exist( 'vol', 'var' ) && (Bytes(vol)/4 < 2^32 - 1)
             filename = sprintf( '%srot_axis_sequence.gif', write.fig_path );
             write_gif( vol, filename )
         end

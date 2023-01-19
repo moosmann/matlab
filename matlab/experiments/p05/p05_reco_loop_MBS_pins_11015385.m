@@ -332,6 +332,11 @@ for dce = [1.5 2.5 2]
 end
 par.distortion_correction_exponent = 2;
 write.subfolder_reco = '';    
+
+%% TEST
+write.to_scratch = 1;
+write.parfolder = 'test_matlabR2022b';
+ADD
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 p05_reco_loop( SUBSETS, RUN_RECO, PRINT_PARAMETERS)

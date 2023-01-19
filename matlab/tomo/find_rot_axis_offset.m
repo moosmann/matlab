@@ -1,4 +1,4 @@
-function [vol, reco_metric] = find_rot_axis_offset( tomo, proj)
+function [vol,reco_metric] = find_rot_axis_offset(tomo,proj,par)
 % Reconstruct slices from sinogram for a range of rotation axis position
 % offsets.
 %
@@ -11,7 +11,7 @@ function [vol, reco_metric] = find_rot_axis_offset( tomo, proj)
 %
 % Written by Julian Moosmann.
 %
-% [vol, reco_metric] = find_rot_axis_offset( tomo, proj );
+%[vol,reco_metric] = find_rot_axis_offset(tomo,proj,par)
 
 %% Default arguments %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 slice = assign_from_struct( tomo, 'slice', [] );
@@ -125,10 +125,6 @@ switch tomo_reco_mode
     case 'slice'
         sino = permute( sino, [3 1 2]);
 end
-for nn = numel( offset):-1:1
-    tomo_par(nn) = tomo;
-    tomo_par(nn).rot_axis_offset = offset(nn);
-end
 
 %% Reco loop over different offset
 reco_metric_mean = zeros( numel(offset), 1);
@@ -139,21 +135,39 @@ reco_metric_lap = zeros( numel(offset), 1);
 reco_metric_ent = zeros( numel(offset), 1);
 reco_metric_entml = zeros( numel(offset), 1);
 %rect(2) + (1:rect(4)), rect(1) + (1:rect(3))
-num_gpu = numel(tomo.astra_gpu_index);
-if isempty(num_gpu)
-    num_gpu = gpuDeviceCount;
+
+% num_gpu = numel(tomo.gpu_index);
+% if isempty(num_gpu)
+%     num_gpu = gpuDeviceCount;
+% end
+% gpu_index = tomo.astra_gpu_index;
+% fprintf('\n ASTRA GPU index (count from 0): ')
+% fprintf(' %u,', gpu_index)
+
+gpu_index_list = p_gpu_list(sino, tomo, par, 1);
+num_gpu_used = numel(gpu_index_list);
+
+% nn-dim struct required for parfor loop
+%tomo_par = struct([]);
+tomo.astra_gpu_index = [];
+for nn = numel(offset):-1:1
+    tomo_par(nn) = tomo;
+    tomo_par(nn).rot_axis_offset = offset(nn);
+    mm = mod(nn - 1, num_gpu_used) + 1;
+    tomo_par(nn).astra_gpu_index = gpu_index_list(mm);
+    fprintf('\n  par pool index: %2u, gpu list index: %2u, gpu index: %u', nn, mm, gpu_index_list(mm))
 end
-gpu_index = tomo.astra_gpu_index;
-fprintf('\n ASTRA GPU index (count from 0): ')
-fprintf(' %u,', gpu_index)
+
 fprintf('\n Interactive par loop:\n')
-parfor (nn = 1:numel(offset), 2 * num_gpu)
+parfor (nn = 1:numel(offset), num_gpu_used)
+%parfor (nn = 1:numel(offset), 2 * num_gpu)
 %for nn = 1:numel(offset)
+
     % Reco
     tomo_par_nn = tomo_par(nn);
-    mm = mod(nn, num_gpu) + 1;
-    tomo_par_nn.astra_gpu_index = gpu_index(mm); %#ok<PFBNS>
-    fprintf('\n  par index: %2u, gpu list index: %2u, gpu index: %u', nn, mm, gpu_index(mm))
+%     mm = mod(nn, num_gpu) + 1;
+%     tomo_par_nn.astra_gpu_index = gpu_index_list(mm); %#ok<PFBNS>
+%     fprintf('\n  par index: %2u, gpu list index: %2u, gpu index: %u', nn, mm, gpu_index_list(mm))
     switch tomo_reco_mode
         case '3d'
             im = astra_parallel3D( tomo_par_nn, sino );

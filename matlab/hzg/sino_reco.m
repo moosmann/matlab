@@ -30,10 +30,20 @@ function sino_reco(scan_path, rot_angle_full_range, rot_axis_search_range)
 %     clearvars
 % end
 close all hidden % close all open windows
-%dbstop if error
+dbstop if error
 
 if nargin < 1
-    scan_path = pwd;
+    scan_path = ...%pwd;        
+    '/asap3/petra3/gpfs/p07/2022/data/11015573/processed/hereon_bmc_brain_small_roi_scan_44keV';
+    '/asap3/petra3/gpfs/p07/2020/data/11010206/processed/mgbone05_19118_ti_8m';
+    '/asap3/petra3/gpfs/p05/2020/data/11008823/processed/nova004_pyrochroa_coccinea_a';
+    '/asap3/petra3/gpfs/p05/2020/data/11008823/processed/nova003_pentatomidae';
+    '/asap3/petra3/gpfs/p07/2019/data/11006991/processed/hzg_ind_01_cork_a/';
+    '/asap3/petra3/gpfs/p05/2020/data/11010107/processed/bmc05_v63l';
+    '/asap3/petra3/gpfs/p05/2020/data/11010107/processed/bmc07_v67r';
+    '/asap3/petra3/gpfs/p05/2019/data/11007580/processed/smf_09_be_3033';
+    '/asap3/petra3/gpfs/p07/2019/data/11007454/processed/bmc06_tooth1';
+    '/asap3/petra3/gpfs/p07/2022/data/11015567/processed/mbs020_sample1_mgti_a';
 end
 if nargin < 2
     rot_angle_full_range = [];
@@ -47,18 +57,8 @@ end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %%% SCAN %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-scan_path = ...
-    '/asap3/petra3/gpfs/p07/2022/data/11015573/processed/hereon_bmc_brain_small_roi_scan_44keV';    
-    '/asap3/petra3/gpfs/p07/2020/data/11010206/processed/mgbone05_19118_ti_8m';
-    '/asap3/petra3/gpfs/p05/2020/data/11008823/processed/nova004_pyrochroa_coccinea_a';
-    '/asap3/petra3/gpfs/p05/2020/data/11008823/processed/nova003_pentatomidae';
-    '/asap3/petra3/gpfs/p07/2019/data/11006991/processed/hzg_ind_01_cork_a/';
-    '/asap3/petra3/gpfs/p05/2020/data/11010107/processed/bmc05_v63l';
-    '/asap3/petra3/gpfs/p05/2020/data/11010107/processed/bmc07_v67r';
-    '/asap3/petra3/gpfs/p05/2019/data/11007580/processed/smf_09_be_3033';
-    '/asap3/petra3/gpfs/p07/2019/data/11007454/processed/bmc06_tooth1';
-    '/asap3/petra3/gpfs/p07/2022/data/11015567/processed/mbs020_sample1_mgti_a';
-raw_bin = 2; % projection binning factor: integer
+%scan_path = '';pwd;
+raw_bin = 3; % projection binning factor: integer
 proj_range = []; % projection range
 read_sino_folder = sprintf( 'trans%02u', raw_bin);% string. default: '', picks first trans folder found
 %read_sino = 1; % read preprocessed sinograms. CHECK if negative log has to be taken!
@@ -76,7 +76,7 @@ ring_filter.waveletfft_wname = 'db7';'db25';'db30'; % wavelet type, see 'FilterS
 ring_filter.waveletfft_sigma = 3; %  suppression factor for 'wavelet-fft'
 ring_filter.jm_median_width = 11; % multiple widths are applied consecutively, eg [3 11 21 31 39];
 %%% PIXEL FILTER
-filter_sino = 1; % Filter hot
+filter_sino = 0; % Filter hot pixesl
 pixel_filter_threshold = [0.002 0.000]; % threshold parameter for hot/dark pixel filter, for details see 'FilterPixel'
 pixel_filter_radius = [5 5];
 %%% PHASE RETRIEVAL %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -91,12 +91,13 @@ phase_retrieval.padding = 1; % padding of intensities before phase retrieval, 0:
 %%% TOMOGRAPHY %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 tomo.run = 1; % run tomographic reconstruction
 tomo.run_interactive_mode = 1; % if tomo.run = 0, use to determine rot axis positions without processing the full tomogram;
-tomo.reco_mode = '3D';'slice'; % slice-wise or full 3D backprojection. 'slice': volume must be centered at origin & no support of rotation axis tilt, reco binning, save compressed
+tomo.reco_mode = 'slice';'3D'; % slice-wise or full 3D backprojection. 'slice': volume must be centered at origin & no support of rotation axis tilt, reco binning, save compressed
 tomo.slab_wise = 1;
 tomo.slices_per_slab = [];
 tomo.vol_size = [];%[-1 1 -1 1 -0.5 0.5];% 6-component vector [xmin xmax ymin ymax zmin zmax], for excentric rot axis pos / extended FoV;. if empty, volume is centerd within tomo.vol_shape. unit voxel size is assumed. if smaller than 10 values are interpreted as relative size w.r.t. the detector size. Take care bout minus signs! Note that if empty vol_size is dependent on the rotation axis position.
 tomo.vol_shape = []; %[1 1 1] shape (# voxels) of reconstruction volume. used for excentric rot axis pos. if empty, inferred from 'tomo.vol_size'. in absolute numbers of voxels or in relative number w.r.t. the default volume which is given by the detector width and height.
 tomo.rot_angle_offset = 0; % global rotation of reconstructed volume
+tomo.rot_angle_full_range = [];
 tomo.rot_axis_offset = []; % rotation axis offset w.r.t to the image center. Assuming the rotation axis position to be centered in the FOV for standard scan, the offset should be close to zero.
 tomo.rot_axis_position = []; % if empty use automatic computation. EITHER OFFSET OR POSITION MUST BE EMPTY. YOU MUST NOT USE BOTH!
 tomo.rot_axis_offset_shift = []; %[]; % absolute lateral movement in pixels during fly-shift-scan, overwrite lateral shift read out from hdf5 log
@@ -124,7 +125,7 @@ tomo.rot_axis_search_extrema = 'max'; % string: 'min'/'max'. chose min or maximu
 tomo.rot_axis_search_fit = 1; %
 %%% OUTPUT %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 write.path = ''; % absolute path were output data will be stored. !!overwrites the write.to_scratch flag. if empty uses the beamtime directory and either 'processed' or 'scratch_cc'
-write.to_scratch = 0; % write to 'scratch_cc' instead of 'processed'
+write.to_scratch = 1; % write to 'scratch_cc' instead of 'processed'
 write.deleteFiles = 0; % delete files already existing in output folders. Useful if number or names of files differ when reprocessing.
 write.beamtimeID = ''; % string (regexp),typically beamtime ID, mandatory if 'write.deleteFiles' is true (safety check)
 write.scan_name_appendix = ''; % appendix to the output folder name which defaults to the scan name
@@ -146,10 +147,11 @@ write.uint8_binned = 0; % save binned 8bit unsigned integer tiff using 'wwrite.c
 write.reco_binning_factor = 2; % IF BINNED VOLUMES ARE SAVED: binning factor of reconstructed volume
 write.compression_method = 'outlier';'histo';'full'; 'std'; 'threshold'; % method to compression dynamic range into [0, 1]
 write.compression_parameter = [0.02 0.02]; % compression-method specific parameter
+write.outputformat = 'tif';'hdf_volume';'hdf_slice'; % strinf'tif';
 %%% INTERACTION %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 par.visual_output = 0; % show images and plots during reconstruction
-par.show_and_reset_gpu_info = 0;
 interactive_mode.show_stack_imagej = 1; % use imagej instead of MATLAB to scroll through images during interactive mode
+interactive_mode.show_stack_imagej_use_virtual = 0; % use virtual stack for faster loading, but slower scrolling
 interactive_mode.rot_axis_pos = 1; % reconstruct slices with dif+ferent rotation axis offsets
 interactive_mode.rot_axis_pos_default_search_range = []; % if empty: asks for search range when entering interactive mode
 interactive_mode.rot_axis_tilt = 0; % reconstruct slices with different offset AND tilts of the rotation axis
@@ -162,13 +164,12 @@ interactive_mode.slice_number = 0.5; % default slice number. if in [0,1): relati
 interactive_mode.phase_retrieval = 1; % Interactive retrieval to determine regularization parameter
 interactive_mode.phase_retrieval_default_search_range = []; % if empty: asks for search range when entering interactive mode, otherwise directly start with given search range
 %%% HARDWARE / SOFTWARE %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-par.use_cluster = 0; % if available: on MAXWELL nodes disp/nova/wga/wgs cluster computation can be used. Recommended only for large data sets since parpool creation and data transfer implies a lot of overhead.
-par.poolsize = 0.8; % number of workers used in a local parallel pool. if 0: use current config. if >= 1: absolute number. if 0 < poolsize < 1: relative amount of all cores to be used. if SLURM scheduling is available, a default number of workers is used.
-par.poolsize_gpu_limit_factor = 0.5; % Relative amount of GPU memory used for preprocessing during parloop. High values speed up Proprocessing, but increases out-of-memory failure
-par.use_gpu_in_parfor = 1;
 tomo.astra_link_data = 1; % ASTRA data objects become references to Matlab arrays. Reduces memory issues.
-tomo.astra_gpu_index = []; % GPU Device index to use, Matlab notation: index starts from 1. default: [], use all
-tomo.astra_reco_per_gpu = 1;
+par.use_cluster = 0; % if available: on MAXWELL nodes disp/nova/wga/wgs cluster computation can be used. Recommended only for large data sets since parpool creation and data transfer implies a lot of overhead.
+par.poolsize = 0.95; % number of workers used in a local parallel pool. if 0: use current config. if >= 1: absolute number. if 0 < poolsize < 1: relative amount of all cores to be used. if SLURM scheduling is available, a default number of workers is used.
+par.poolsize_gpu_limit_factor = 0.8; % Relative amount of GPU memory used for preprocessing during parloop. High values speed up Proprocessing, but increases out-of-memory failure
+par.use_gpu_in_parfor = 1;
+par.gpu_index = []; % GPU Device index to use, Matlab notation: index starts from 1. default: [], use all
 %%% EXPERIMENTAL OR NOT YET IMPLEMENTED %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 write.uint8_segmented = 0; % experimental: threshold segmentaion for histograms with 2 distinct peaks: __/\_/\__
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -215,11 +216,14 @@ assign_default( 'tomo.rot_axis_search_metric', '');
 assign_default( 'tomo.rot_axis_search_verbose', 1);
 assign_default( 'tomo.rot_axis_search_extrema', 'max' );
 assign_default( 'tomo.rot_axis_search_auto', 1);
+assign_default( 'par.gpu_index', [])
+assign_default( 'write.outputformat', 'tif')
 
 % Define variables from struct fields for convenience
 raw_bin = single( raw_bin );
 par.raw_bin = raw_bin;
 eff_pixel_size_binned = raw_bin * eff_pixel_size;
+outputformat = write.outputformat;
 
 astra_clear % if reco was aborted, ASTRA memory is not cleared
 
@@ -282,31 +286,36 @@ fprintf( '\n user :  %s', getenv( 'USER' ) );
 fprintf( '\n hostname : %s', getenv( 'HOSTNAME' ) );
 [mem_free, mem_avail, mem_total] = free_memory;
 fprintf( '\n system memory: free, available, total : %.0f GiB, %.0f GiB, %.0f GiB', round([mem_free/1024^3, mem_avail/1024^3, mem_total/1024^3]) )
-if isempty( tomo.astra_gpu_index )
-    tomo.astra_gpu_index = 1:gpuDeviceCount;
+if isempty( par.gpu_index )
+    par.gpu_index = 1:gpuDeviceCount;
 end
+tomo.gpu_index = par.gpu_index;
 
-% GPU info
-fprintf( '\n GPU : [index, total memory/GiB] =' )
-num_gpu = numel( tomo.astra_gpu_index );
-for mm = 1:num_gpu
-    nn = tomo.astra_gpu_index(mm);
-    gpu = parallel.gpu.GPUDevice.getDevice( nn );
-    mem_total = gpu.TotalMemory/1024^3;
-    fprintf( ' [%u %.3g]', nn, mem_total )
+% GPU info quick
+% fprintf( '\n GPU : [index, total memory/GiB] =' )
+% num_gpu = numel( par.gpu_index );
+% for mm = 1:num_gpu
+%     nn = par.gpu_index(mm);
+%     gpu = parallel.gpu.GPUDevice.getDevice( nn );
+%     mem_total = gpu.TotalMemory/1024^3;
+%     fprintf( ' [%u %.3g]', nn, mem_total )
+% end
+% GPU info detailed, needed for parpool optimization
+mem_avail_gpu = zeros([1, numel(par.gpu_index)]);
+mem_total_gpu = mem_avail_gpu;
+for mm = 1:numel( par.gpu_index )
+    nn = par.gpu_index(mm);
+    gpu = gpuDevice(nn);
+    gpu.reset;
+    mem_avail_gpu(nn) = gpu.AvailableMemory;
+    mem_total_gpu(nn) = gpu.TotalMemory;
+    ma = mem_avail_gpu(nn)/1024^3;
+    mt = mem_total_gpu(nn)/1024^3;
+    r = 100 * ma / mt;
+    fprintf( '\n GPU %u: memory: total: %.3g GiB, available: %.3g GiB (%.2f%%)', par.gpu_index(nn), mt, ma, r)
 end
-
-% GPU info
-if  par.show_and_reset_gpu_info
-    for mm = 1:numel( tomo.astra_gpu_index )
-        nn = tomo.astra_gpu_index(mm);
-        gpu(nn) = gpuDevice(nn);
-        mem_avail_gpu(nn) = gpu(nn).AvailableMemory;
-        mem_total_gpu(nn) = gpu(nn).TotalMemory;
-        gpu(nn).reset;
-        fprintf( '\n GPU %u memory available : %.3g GiB (%.2f%%) of %.3g GiB', nn, mem_avail_gpu(nn)/1024^3, 100*mem_avail_gpu(nn)/mem_total_gpu(nn), mem_total_gpu(nn)/1024^3 )
-    end
-end
+par.mem_avail_gpu = mem_avail_gpu;
+par.mem_total_gpu = mem_total_gpu;
 
 % Save scan path to file
 filename = [userpath, filesep, 'path_to_scan'];
@@ -350,7 +359,7 @@ if isempty( read_sino_folder )
         error( '''trans'' folder not found. Check ''scan_path'' and ''read_sino_folder''.' )
     else
         fprintf( '\n %u trans folder(s) found. Set ''read_sino_folder'' to ''%s''', numel(d ), d(1).name )
-        sino_path = [scan_path d(1).name filesep];            
+        sino_path = [scan_path d(1).name filesep];
     end
 else
     sino_path = [scan_path read_sino_folder filesep];
@@ -407,8 +416,10 @@ if exist(fn, 'File')
         n_angle = str2double(n_angle{1});
         fprintf('\n number of angles : %u', n_angle)
         angles = (0:n_angle - 1) * angularstep;
-        ar = n_angle * angularstep;
-        tomo.rot_angle_full_range = ar;
+        ar = n_angle * angularstep;        
+        if isempty(tomo.rot_angle_full_range)
+            tomo.rot_angle_full_range = ar;
+        end
     end
     
     % pixel size
@@ -419,33 +430,32 @@ if exist(fn, 'File')
         fprintf('\n pixelsize : %f', pixelsize)
     end
     
-     b = contains(c{1},'pixelsize');
-     if sum(b)
+    b = contains(c{1},'pixelsize');
+    if sum(b)
         pixelsize = str2double(c{2}{b});
-        fprintf('\n pixelsize : %f micron', pixelsize * 1000)        
+        fprintf('\n pixelsize : %f micron', pixelsize * 1000)
         eff_pixel_size = raw_bin * pixelsize / 1000;
-     end
-     
-     b = contains(c{1},'reco_mode');
-     if sum(b)
+    end
+    
+    b = contains(c{1},'reco_mode');
+    if sum(b)
         reco_mode = str2double(c{2}{b});
-        fprintf('\n reco mode : %f', reco_mode)        
-        ar =  reco_mode * pi / 180;
-     end
-     
-     if isempty(tomo.rot_angle_full_range)
+        fprintf('\n reco mode : %f', reco_mode)
+        ar =  reco_mode * pi / 180;    
+    end
+    
+    if isempty(tomo.rot_angle_full_range)
         tomo.rot_angle_full_range = ar;
-     end
+    end
     
     if isempty(eff_pixel_size)
         eff_pixel_size = raw_bin * pixelsize;
     end
-
-    fprintf('\n angular range : %f rad = %f * pi rad = %f deg', ar, ar / pi, ar * 180 / pi)
 end
-
+ar = tomo.rot_angle_full_range;
+fprintf('\n angular range : %f rad = %f * pi rad = %f deg', ar, ar / pi, ar * 180 / pi)
 % Angles
-if  ~exist( 'angles', 'var' )        
+if  ~exist( 'angles', 'var' )
     if isempty( tomo.rot_angle_full_range )
         cprintf( 'Red', '\nEnter full angle of rotation (including one additional increment) or vector of angles, in radians: ' );
         tomo.rot_angle_full_range = input( '' );
@@ -457,7 +467,7 @@ if  ~exist( 'angles', 'var' )
     end
     if length( angles ) ~= num_proj_used
         error( 'Number of angles (%u) entered not consistent with sinogram (%u) read.', numel( angles), num_proj_used )
-    end    
+    end
 end
 if tomo.rot_angle_full_range > 90
     error('rotation angle full range, %f, is most likely given in degrees instead of rad', tomo.rot_angle_full_range)
@@ -513,7 +523,7 @@ CheckAndMakePath( save_path );
 take_neg_log = tomo.take_neg_log;
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-if tomo.slab_wise    
+if tomo.slab_wise
     fprintf( '\nStart slab-wise reconstruction')
     if isempty( tomo.slices_per_slab )
         num_slices_per_slab = 1 * par.poolsize;
@@ -560,8 +570,11 @@ if tomo.slab_wise
                 sino = sino(proj_range,:,:);
             end
             % Check for errors
-            if sum( sino(:) == 0) || sum( isnan( sino(:) ) ) || sum( isinf( sino(:) ) )
-                fprintf( ' [%u %u]', ll, mm )
+            num_zeros = sum( sino(:) == 0);
+            num_nan = sum(isnan(sino(:)));
+            num_inf = sum( isinf( sino(:)));
+            if (num_zeros + num_nan + num_inf)
+                fprintf( '\n [%u %u] %s: %u zeros, %u NaN, %u Inf', ll, mm, sino_name, num_zeros, num_inf, num_nan)
             else
                 sino = NegLog( sino, take_neg_log );
                 sino = reshape( sino, [im_shape_cropbin1, 1, num_proj_used] );
@@ -572,7 +585,7 @@ if tomo.slab_wise
                 proj(:,mm,:) = sino;
             end
         end
-                
+        
         % Tomo
         % Delete empty slices
         proj(:,num_slices + 1:end,:) = [];
@@ -585,19 +598,40 @@ if tomo.slab_wise
         [tomo.vol_shape, tomo.vol_size] = volshape_volsize( proj, [], [] );
         %[tomo.vol_shape, tomo.vol_size] = volshape_volsize( proj, tomo.vol_shape, tomo.vol_size, tomo.rot_axis_offset, 0 );
         vol = astra_parallel3D( tomo, permute( proj, [1 3 2]) );
-
+        
         % Save
-        parfor mm = 1:num_slices
-            sino_name = slab_sino_names_mat(mm,:);
-            filename = sprintf( '%s/%s', save_path, sino_name);
-            write32bitTIFfromSingle( filename, vol(:,:,mm) )
+        switch outputformat
+            case 'tif'
+                parfor mm = 1:num_slices
+                    sino_name = slab_sino_names_mat(mm,:);
+                    filename = sprintf( '%s%s', save_path, sino_name);
+                    write32bitTIFfromSingle(filename,vol(:,:,mm))
+                end
+            case 'hdf_slice'
+                parfor mm = 1:num_slices
+                    sino_name = slab_sino_names_mat(mm,:);
+                    filename = sprintf( '%s%s.h5', save_path, sino_name(1:end-3));
+                    write_hdf(filename,vol(:,:,mm),'slice')
+                end
+            case 'hdf_volume'
+                [s1,s2,~] = size(vol);
+                filename = sprintf( '%s%s.h5', save_path, scan_name);
+                if ll == 1
+                    h5create(filename,'/volume',[s1 s2 im_shape_binned2],'Datatype','single')
+                end
+                parfor mm = 1:num_slices
+                    start = [1 1 mm + (ll - 1)* num_slices];
+                    count = [s1 s2 1];
+                    h5write(filename,'/volume',vol(:,:,mm),start,count)
+                end
         end
     end
     
 else
     % Slice-wise reco
     % Read sinogram, reco, write
-    for nn = 1:numel( sino_names )
+    num_slices = numel( sino_names );
+    for nn = 1:num_slices
         
         filename = sprintf('%s%s', sino_path, sino_names_mat(nn, :));
         sino = read_image( filename );
@@ -605,9 +639,9 @@ else
         if filter_sino
             sino = FilterPixel_par(sino);
         end
-         if ~isempty( proj_range )
-                sino = sino(proj_range, :);
-         end        
+        if ~isempty( proj_range )
+            sino = sino(proj_range, :);
+        end
         if sum( sino(:) == 0) || sum( isnan( sino(:) ) ) || sum( isinf( sino(:) ) )
             fprintf( ' %u', nn )
         else
@@ -618,13 +652,27 @@ else
             sino = real( ifft( bsxfun(@times, fft( sino, [], 1), filt), [], 1, 'symmetric') );
             sino = sino(1:im_shape_cropbin1,:,:);
             % Tomo
-            gpu_index = mod( nn,  num_gpu ) + 1;
-            vol = astra_parallel2D( tomo, permute( sino, [3 1 2]), gpu_index );
-            % Save
-            filename = sprintf( '%s/%s', save_path, sino_names_mat(nn,:));
-            write32bitTIFfromSingle( filename, vol )
+            %gpu_index = mod( nn,  num_gpu ) + 1;
+            vol = astra_parallel2D( tomo, permute( sino, [3 1 2]), par.gpu_index);
+            % Save            
+            switch outputformat
+                case 'tif'
+                    filename = sprintf( '%s/%s', save_path, sino_names_mat(nn,:));                    
+                    write32bitTIFfromSingle(filename,vol)
+                case 'hdf_slice'
+                    filename = sprintf( '%s/%s.h5', save_path, sino_names_mat(nn,1:end-3));                    
+                    write_hdf(filename,vol(:,:,mm),'slice')
+                case 'hdf_volume'
+                    [s1,s2] = size(vol);
+                    if nn == 1
+                        filename = sprintf( '%s/%s.h5', save_path, sino_names_mat(nn,1:end-3));
+                        h5create(filename,'/volume',[s1 s2 num_slices],'Datatype','single')
+                    end
+                    start = [1 1 nn];
+                    count = [s1 s2 1];
+                    h5write(filename,'/volume',vol,start,count)
+            end
         end
-        
     end
 end
 fprintf( ' \n tomo reco done in %.1f s (%.2f min)', toc-t, (toc-t)/60 )

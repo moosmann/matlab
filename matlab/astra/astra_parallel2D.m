@@ -94,8 +94,8 @@ if isempty( gpu_index )
         astra_mex('set_gpu_index', 0:gpuDeviceCount - 1);
     end
 else
-    nn = astra_gpu_index( 1 + mod( gpu_index, numel( astra_gpu_index ) ) );
-    astra_mex('set_gpu_index', nn - 1);
+    nn = astra_gpu_index(1 + mod(gpu_index, numel(astra_gpu_index))) - 1;
+    astra_mex('set_gpu_index', nn);
 end
 
 %% Detector geometry

@@ -242,7 +242,6 @@ write.compression_parameter = [0.02 0.02]; % compression-method specific paramet
 write.uint8_segmented = 0; % experimental: threshold segmentaion for histograms with 2 distinct peaks: __/\_/\__
 %%% INTERACTION %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 par.visual_output = 1; % show images and plots during reconstruction
-par.show_and_reset_gpu_info = 1;
 interactive_mode.rot_axis_pos = 1; % reconstruct slices with dif+ferent rotation axis offsets
 interactive_mode.rot_axis_pos_default_search_range = []; % if empty: asks for search range when entering interactive mode
 interactive_mode.rot_axis_tilt = 0; % reconstruct slices with different offset AND tilts of the rotation axis
@@ -254,14 +253,14 @@ interactive_mode.slice_number = 0.5; % default slice number. if in [0,1): relati
 interactive_mode.phase_retrieval = 0; % Interactive retrieval to determine regularization parameter
 interactive_mode.phase_retrieval_default_search_range = []; % if empty: asks for search range when entering interactive mode, otherwise directly start with given search range
 interactive_mode.show_stack_imagej = 1; % use imagej instead of MATLAB to scroll through images during interactive mode
+interactive_mode.show_stack_imagej_use_virtual = 1; % use virtual stack for faster loading, but slower scrolling
 %%% HARDWARE / SOFTWARE %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+tomo.astra_link_data = 1; % ASTRA data objects become references to Matlab arrays. Reduces memory issues.
+par.gpu_index = []; % indices of GPU devices to use, Matlab notation: index starts from 1. default: [], uses all
 par.use_cluster = 0; % if available: on MAXWELL nodes disp/nova/wga/wgs cluster computation can be used. Recommended only for large data sets since parpool creation and data transfer implies a lot of overhead.
+par.use_gpu_in_parfor = 1;
 par.poolsize = 0.7; % number of workers used in a local parallel pool. if 0: use current config. if >= 1: absolute number. if 0 < poolsize < 1: relative amount of all cores to be used. if SLURM scheduling is available, a default number of workers is used.
 par.poolsize_gpu_limit_factor = 0.5; % Relative amount of GPU memory used for preprocessing during parloop. High values speed up Proprocessing, but increases out-of-memory failure
-tomo.astra_link_data = 1; % ASTRA data objects become references to Matlab arrays. Reduces memory issues.
-tomo.astra_gpu_index = []; % GPU Device index to use, Matlab notation: index starts from 1. default: [], uses all
-par.gpu_index = tomo.astra_gpu_index;
-par.use_gpu_in_parfor = 1;
 phase_retrieval.use_parpool = 1; % bool. Disable parpool when out-of-memory error occurs during phase retrieval.
 par.window_state = 'minimized';'normal';'maximized';
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -437,11 +436,12 @@ assign_default( 'tomo.rot_axis_search_verbose', 1);
 assign_default( 'tomo.rot_axis_search_extrema', 'max' );
 assign_default( 'tomo.rot_axis_search_fit', 1 );
 assign_default( 'tomo.rot_axis_offset_metric_roi', [] );
-assign_default( 'par.show_and_reset_gpu_info', 1);
 assign_default( 'interactive_mode.show_stack_imagej', 1 )
+assign_default( 'interactive_mode.show_stack_imagej_use_virtual', 1 )
 assign_default( 'par.distortion_correction_distance', 0)
 assign_default( 'par.distortion_correction_outer_offset', 0)
 assign_default( 'par.distortion_correction_exponent', 2)
+assign_default( 'par.gpu_index', [])
 %assign_default( '',  )
 
 % Define variables from struct fields for convenience
@@ -494,9 +494,10 @@ write.parpath = [write.path filesep ];
 if ~isempty(write.parfolder)
     write.path = [write.path, filesep, write.parfolder];    
 end
+CheckAndMakePath(write.path);
 fn_diary = sprintf('%s/command_window_diary.txt', write.path);
-%diary(fn_diary)
-%diary on
+diary(fn_diary)
+diary on
 
 % Save raw path to file for shell short cut
 filename = [userpath, filesep, 'path_to_raw'];
@@ -577,32 +578,34 @@ fprintf( '\n user :  %s', getenv( 'USER' ) );
 fprintf( '\n hostname : %s', getenv( 'HOSTNAME' ) );
 [mem_free, mem_avail_cpu, mem_total_cpu] = free_memory;
 fprintf( '\n RAM: free, available, total : %.0f GiB (%g%%), %.0f GiB (%g%%), %.0f GiB', round([mem_free/1024^3, 100 * mem_free/mem_total_cpu, mem_avail_cpu/1024^3, 100*mem_avail_cpu/mem_total_cpu mem_total_cpu/1024^3]) )
-if isempty( tomo.astra_gpu_index )
-    tomo.astra_gpu_index = 1:gpuDeviceCount;
+if isempty( par.gpu_index )
+    par.gpu_index = 1:gpuDeviceCount;
 end
 
-% GPU info
+% GPU info quick
 fprintf( '\n GPUs : [index, total memory/GiB] =\n ' )
-for mm = 1:numel( tomo.astra_gpu_index )
-    nn = tomo.astra_gpu_index(mm);
+for mm = 1:numel( par.gpu_index )
+    nn = par.gpu_index(mm);
     gpu = parallel.gpu.GPUDevice.getDevice( nn );
     mem_total_gpu = gpu.TotalMemory/1024^3;
     fprintf( ' [%u %.3g]', nn, mem_total_gpu )
 end
-
-% GPU info
-if  par.show_and_reset_gpu_info
-    for mm = numel( tomo.astra_gpu_index ):-1:1
-        nn = tomo.astra_gpu_index(mm);
-        gpu(nn) = gpuDevice(nn);
-        mem_avail_gpu(nn) = gpu(nn).AvailableMemory;
-        mem_total_gpu(nn) = gpu(nn).TotalMemory;
-        fprintf( '\n GPU %u memory available : %.3g GiB (%.2f%%) of %.3g GiB', nn, mem_avail_gpu(nn)/1024^3, 100*mem_avail_gpu(nn)/mem_total_gpu(nn), mem_total_gpu(nn)/1024^3 )
-        gpu(nn).reset;
-    end
-else
-    mem_avail_gpu = 0.99 * gpu.TotalMemory;
+% GPU info detailed, needed for parpool optimization
+mem_avail_gpu = zeros([1, numel(par.gpu_index)]);
+mem_total_gpu = mem_avail_gpu;
+for mm = 1:numel( par.gpu_index )
+    nn = par.gpu_index(mm);
+    gpu = gpuDevice(nn);
+    gpu.reset;
+    mem_avail_gpu(nn) = gpu.AvailableMemory;
+    mem_total_gpu(nn) = gpu.TotalMemory;
+    ma = mem_avail_gpu(nn)/1024^3;
+    mt = mem_total_gpu(nn)/1024^3;
+    r = 100 * ma / mt;
+    fprintf( '\n GPU %u: memory: total: %.3g GiB, available: %.3g GiB (%.2f%%)', par.gpu_index(nn), mt, ma, r)
 end
+par.mem_avail_gpu = mem_avail_gpu;
+par.mem_total_gpu = mem_total_gpu;
 
 % Renderer
 d = opengl('data');
@@ -1202,7 +1205,7 @@ if ~par.read_flatcor && ~par.read_sino
     filt_pix_par.use_gpu = par.use_gpu_in_parfor;
     
     %startS = ticBytes( gcp );
-    %gpu_index = tomo.astra_gpu_index;
+    %gpu_index = par.gpu_index;
     %read_image_par = @(filename) read_image( filename, '', par.raw_roi, par.tif_info, par.im_shape_raw, par.dtype, par.im_trafo);
     read_image_par = @(filename) read_image( filename, par );
     FilterPixel_par = @(im_int) FilterPixel( im_int, filt_pix_par );
@@ -2810,7 +2813,7 @@ if tomo.run
                 fprintf( '\n GPU memory induced maximum poolsize : %u ', poolsize_max_astra )
                 
                 fprintf( '\n Start parallel GPU reco: ' )
-                gpu_index = tomo.astra_gpu_index;
+                gpu_index = par.gpu_index;
                 num_gpu = numel( gpu_index );
                 poolsize_max_astra = min( [poolsize_max_astra, 3 *  num_gpu] );
                 write_reco = write.reco;
@@ -3071,7 +3074,7 @@ fprintf( weblink1 );
 fprintf( weblink2 );
 fprintf( weblink3 );
 fprintf( '\n')
-%diary off
+diary off
 % END %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 dbclear if error
 if ~strcmp( getenv('USER'), 'moosmanj' )
