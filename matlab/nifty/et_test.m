@@ -1,9 +1,0 @@
-activity = ones(64,64,64);
-cam=[(1-(1:120))/120*pi]';
-att=0;
-psf=0;
-use_gpu=0;
-bg=0;
-bg_att=0;
-truncnegval=1;
-out = et_project(activity,cam,att,psf,use_gpu,bg,bg_att,truncnegval);
