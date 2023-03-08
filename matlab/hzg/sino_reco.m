@@ -58,9 +58,10 @@ end
 
 %%% SCAN %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %scan_path = '';pwd;
-raw_bin = 3; % projection binning factor: integer
+raw_bin = 4; % projection binning factor: integer
 proj_range = []; % projection range
 read_sino_folder = sprintf( 'trans%02u', raw_bin);% string. default: '', picks first trans folder found
+read_sino_folder = sprintf( 'test04', raw_bin);% string. default: '', picks first trans folder found
 %read_sino = 1; % read preprocessed sinograms. CHECK if negative log has to be taken!
 read_sino_trafo = @(x) (x);%rot90(x); % anonymous function applied to the image which is read e.g. @(x) rot90(x)
 sino_range = [];
@@ -286,11 +287,15 @@ fprintf( '\n user :  %s', getenv( 'USER' ) );
 fprintf( '\n hostname : %s', getenv( 'HOSTNAME' ) );
 [mem_free, mem_avail, mem_total] = free_memory;
 fprintf( '\n system memory: free, available, total : %.0f GiB, %.0f GiB, %.0f GiB', round([mem_free/1024^3, mem_avail/1024^3, mem_total/1024^3]) )
+
+% Start parallel CPU pool %%%
+[~, par.poolsize] = OpenParpool( par.poolsize , par.use_cluster, [beamtime_path filesep 'scratch_cc']);
+
+% GPU info
 if isempty( par.gpu_index )
     par.gpu_index = 1:gpuDeviceCount;
 end
 tomo.gpu_index = par.gpu_index;
-
 % GPU info quick
 % fprintf( '\n GPU : [index, total memory/GiB] =' )
 % num_gpu = numel( par.gpu_index );
@@ -303,16 +308,17 @@ tomo.gpu_index = par.gpu_index;
 % GPU info detailed, needed for parpool optimization
 mem_avail_gpu = zeros([1, numel(par.gpu_index)]);
 mem_total_gpu = mem_avail_gpu;
-for mm = 1:numel( par.gpu_index )
-    nn = par.gpu_index(mm);
+gpu_index = par.gpu_index;
+parfor mm = 1:numel( par.gpu_index )
+    nn = gpu_index(mm);
     gpu = gpuDevice(nn);
     gpu.reset;
-    mem_avail_gpu(nn) = gpu.AvailableMemory;
-    mem_total_gpu(nn) = gpu.TotalMemory;
-    ma = mem_avail_gpu(nn)/1024^3;
-    mt = mem_total_gpu(nn)/1024^3;
+    mem_avail_gpu(mm) = gpu.AvailableMemory;
+    mem_total_gpu(mm) = gpu.TotalMemory;
+    ma = mem_avail_gpu(mm)/1024^3;
+    mt = mem_total_gpu(mm)/1024^3;
     r = 100 * ma / mt;
-    fprintf( '\n GPU %u: memory: total: %.3g GiB, available: %.3g GiB (%.2f%%)', par.gpu_index(nn), mt, ma, r)
+    fprintf( '\n GPU %u: memory: total: %.3g GiB, available: %.3g GiB (%.2f%%)', nn, mt, ma, r)
 end
 par.mem_avail_gpu = mem_avail_gpu;
 par.mem_total_gpu = mem_total_gpu;
@@ -335,9 +341,6 @@ write.reco_path = reco_path;
 write.fig_path = [write.path, filesep, 'figures', filesep];
 fig_path = write.fig_path;
 CheckAndMakePath( fig_path )
-
-% Start parallel CPU pool %%%
-[~, par.poolsize] = OpenParpool( par.poolsize , par.use_cluster, [beamtime_path filesep 'scratch_cc']);
 
 % read_image_par = @(filename) read_image( filename, par );
 filt_pix_par.threshold_hot = pixel_filter_threshold(1);
@@ -474,7 +477,7 @@ if tomo.rot_angle_full_range > 90
 end
 
 nn = round(im_shape_binned2 / 2 );
-filename = sprintf('%s%s', sino_path, sino_names_mat(nn, :));
+filename = sprintf('%s%s', sino_path, sino_names_mat(end, :));
 
 sino = read_image( filename );
 sino = read_sino_trafo( sino );
@@ -661,7 +664,7 @@ else
                     write32bitTIFfromSingle(filename,vol)
                 case 'hdf_slice'
                     filename = sprintf( '%s/%s.h5', save_path, sino_names_mat(nn,1:end-3));                    
-                    write_hdf(filename,vol(:,:,mm),'slice')
+                    write_hdf(filename,vol(:,:,nn),'slice')
                 case 'hdf_volume'
                     [s1,s2] = size(vol);
                     if nn == 1
@@ -732,7 +735,7 @@ if write.reco
         fprintf(fid, 'tomo.butterworth_filter_frequ_cutoff : %f\n', tomo.butterworth_filter_frequ_cutoff);
         fprintf(fid, 'tomo.astra_pixel_size : %f\n', tomo.astra_pixel_size);
         fprintf(fid, 'tomo.take_neg_log : %u\n', tomo.take_neg_log);
-        fprintf(fid, 'gpu_name : %s\n', gpu.Name);
+        fprintf(fid, 'gpu_name : %s\n', gpuDevice().Name);
         if exist( 'vol_min', 'var')
             fprintf(fid, '[volume_min volume_max] : [%g %g]\n', vol_min, vol_max);
         end

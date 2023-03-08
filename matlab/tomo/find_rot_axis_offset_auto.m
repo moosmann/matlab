@@ -48,7 +48,7 @@ if ~isempty(offset) || ~isempty(search_metric)
 
     tomo_auto = tomo;
     tomo_auto.offset = offset;
-    [~, metrics_offset] = find_rot_axis_offset( tomo_auto, proj);
+    [~, metrics_offset] = find_rot_axis_offset( tomo_auto, proj, par);
     
     
     if tomo.rot_axis_search_verbose

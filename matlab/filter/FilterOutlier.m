@@ -2,8 +2,8 @@ function [im, im_low, im_high] = FilterOutlier( im, threshold, bit_conversion, r
 % Remove outliers (and optionally convert to unsigned integer.
 %
 % im : 2D/3D-array
-% threshold : 1- or 2-component vector. Outliers to be filtered. If scalar
-%   lowest ands highest outliers are filtered alike.
+% threshold : 1- or 2-component vector. Percentage of outliers to be
+% filtered. If scalar lowest ands highest outliers are filtered alike.
 % bit_conversion : str, default: ''. if not empty convert to unsigned 8-,
 %   16-, 32-, or 64-bit integer. if empty: rescale, but do not convert.
 % return_threshs_only : bool, default:0. If only thresholds are desired.

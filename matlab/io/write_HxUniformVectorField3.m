@@ -71,6 +71,10 @@ am_header = sprintf( [ ...
 
 %% Write Avizo/Amira format
 
+if ~strcmpi(filename(end-1:end),'am')
+    filename = [filename '.am'];
+end
+
 % Open file stream
 fid = fopen( filename, 'w' );
 

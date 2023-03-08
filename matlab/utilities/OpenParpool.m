@@ -38,6 +38,10 @@ end
 t = toc;
 cluster_poolsize = 250; % max 256
 
+if strcmp(par_env,'local') && ~verLessThan('matlab','9.13.0')
+    par_env = 'Processes';
+end
+
 if isempty( tmp_folder )  
     tmp_folder = sprintf( '/gpfs/petra3/scratch/%s/', getenv( 'USER' ) );
 end

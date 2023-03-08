@@ -39,29 +39,33 @@ dbstop if error
 par.quick_switch = 1;
 par.scan_path = pwd;
 %par.scan_path = last_folder_modified('')
-par.raw_bin = 4;
-par.raw_roi = -1;
+par.raw_bin = 5;
+par.raw_roi = -4;
 par.proj_range = 1;
 par.ref_range = 1;
-phase_retrieval.apply = 1;
+phase_retrieval.apply = 0;
 phase_retrieval.reg_par = 1.5; 
 interactive_mode.phase_retrieval = 0; 
 %image_correlation.num_flats = 10;
 image_correlation.method = 'mean';
 tomo.vol_size = [-1.0 1.0 -1.0 1.0 -0.5 0.5];
 %write.subfolder_reco = 'proj1';
-
 write.to_scratch = 1;
 write.flatcor = 1; 
-write.parfolder = 'crop';
+write.parfolder = 'test_auto_rot_noint';
 par.stitch_projections = 0;
 par.crop_proj = 1; 
-
-tomo.rot_axis_offset = -831.25 / 4 * par.raw_bin; 
+tomo.rot_axis_offset = 0;%-831.25 / 4 * par.raw_bin; 
 interactive_mode.rot_axis_pos = 0;
 interactive_mode.rot_axis_tilt = 0;
 interactive_mode.angles = 0;
 %interactive_mode.slice_number = round(1150 /4);
+tomo.rot_axis_search_auto = 1; % find extrema of metric within search range
+tomo.rot_axis_search_range = 9:0.5:15; % search reach for automatic determination of the rotation axis offset, overwrite interactive result if not empty
+tomo.rot_axis_search_metric = 'neg'; % string: 'neg','entropy','iso-grad','laplacian','entropy-ML','abs'. Metric to find rotation axis offset
+tomo.rot_axis_search_extrema = 'max'; % string: 'min'/'max'. chose min or maximum position
+tomo.rot_axis_search_fit = 1; % bool: fit calculated metrics and find extrema, otherwise use extrema from search range
+tomo.rot_axis_offset_metric_roi = []; % 4-vector: [. ROI for metric calculation. roi = [y0, x0, y1-y0, x1-x0]. (x,y)=(0,0)=upper left
 par.use_gpu_in_parfor = 0;
 tomo.astra_link_data = 1; 
 % END OF QUICK SWITCH TO ALTERNATIVE SET OF PARAMETERS %%%%%%%%%%%%%%%%%%%%
@@ -299,7 +303,7 @@ if nargin == 1 %exist( 'external_parameter' ,'var')
         field_value = external_parameter.(field_name); %#ok<NASGU> 
         eval( sprintf( '%s = field_value;', field_name) );
     end
-    clear external_parameter field_name_cell field_name field_value
+    %clear external_parameter field_name_cell field_name field_value
     par.quick_switch = 0;
     par.visual_output = 1;
     % interactive_mode.rot_axis_pos = 0;
@@ -409,6 +413,7 @@ assign_default( 'tomo.angle_scaling', 1 );
 assign_default( 'tomo.MinConstraint', [])
 assign_default( 'tomo.MaxConstraint', [])
 assign_default( 'tomo.interpolate_missing_angles', 0)
+assign_default( 'tomo.vert_shift', [])
 assign_default( 'write.path', '' )
 assign_default( 'write.parfolder', '' )
 assign_default( 'write.subfolder_reco', '' )
@@ -578,6 +583,11 @@ fprintf( '\n user :  %s', getenv( 'USER' ) );
 fprintf( '\n hostname : %s', getenv( 'HOSTNAME' ) );
 [mem_free, mem_avail_cpu, mem_total_cpu] = free_memory;
 fprintf( '\n RAM: free, available, total : %.0f GiB (%g%%), %.0f GiB (%g%%), %.0f GiB', round([mem_free/1024^3, 100 * mem_free/mem_total_cpu, mem_avail_cpu/1024^3, 100*mem_avail_cpu/mem_total_cpu mem_total_cpu/1024^3]) )
+
+% Start parallel CPU pool
+parpool_tmp_folder = [beamtime_path filesep 'scratch_cc'];
+[~, par.poolsize] = OpenParpool( par.poolsize, par.use_cluster, parpool_tmp_folder, 0, [] );
+
 if isempty( par.gpu_index )
     par.gpu_index = 1:gpuDeviceCount;
 end
@@ -593,16 +603,16 @@ end
 % GPU info detailed, needed for parpool optimization
 mem_avail_gpu = zeros([1, numel(par.gpu_index)]);
 mem_total_gpu = mem_avail_gpu;
-for mm = 1:numel( par.gpu_index )
+parfor mm = 1:numel( par.gpu_index )
     nn = par.gpu_index(mm);
     gpu = gpuDevice(nn);
     gpu.reset;
-    mem_avail_gpu(nn) = gpu.AvailableMemory;
-    mem_total_gpu(nn) = gpu.TotalMemory;
-    ma = mem_avail_gpu(nn)/1024^3;
-    mt = mem_total_gpu(nn)/1024^3;
+    mem_avail_gpu(mm) = gpu.AvailableMemory;
+    mem_total_gpu(mm) = gpu.TotalMemory;
+    ma = mem_avail_gpu(mm)/1024^3;
+    mt = mem_total_gpu(mm)/1024^3;
     r = 100 * ma / mt;
-    fprintf( '\n GPU %u: memory: total: %.3g GiB, available: %.3g GiB (%.2f%%)', par.gpu_index(nn), mt, ma, r)
+    fprintf( '\n GPU %u: memory: total: %.3g GiB, available: %.3g GiB (%.2f%%)', nn, mt, ma, r)
 end
 par.mem_avail_gpu = mem_avail_gpu;
 par.mem_total_gpu = mem_total_gpu;
@@ -615,10 +625,6 @@ if d.Software
     fprintf( '\n' )
     warning(' Software rendering is used. For improved GUI performance, log in directly to the Maxwell node with FastX to enable hardware acceleration.')
 end
-
-% Start parallel CPU pool
-parpool_tmp_folder = [beamtime_path filesep 'scratch_cc'];
-[~, par.poolsize] = OpenParpool( par.poolsize, par.use_cluster, parpool_tmp_folder, 0, [] );
 
 if ~par.read_flatcor && ~par.read_sino
     
@@ -1564,7 +1570,7 @@ if ~par.read_flatcor && ~par.read_sino
     t = toc;
     %fprintf( '\npostprocessing projections:' )
     toc_bytes.read_proj = tocBytes( gcp, startS );
-    
+
     % Delete empty projections
     zz = ~projs_to_use;
     if sum( zz(:) )
@@ -1580,8 +1586,12 @@ if ~par.read_flatcor && ~par.read_sino
     if vert_shift ~= 0
         vert_shift(~projs_to_use) = [];
     end
-    if isempty(tomo.vert_shift)
-        tomo.vert_shift = vert_shift;
+    if isfield(tomo, 'vert_shift')
+        if isempty(tomo.vert_shift)
+            tomo.vert_shift = vert_shift;
+        end
+    else
+        tomo.vert_shift = [];
     end
     if ~isempty( scan_position )
         scan_position(~projs_to_use) = [];
@@ -1589,10 +1599,9 @@ if ~par.read_flatcor && ~par.read_sino
     if exist( 'scan_position_index', 'var' ) && ~isempty( scan_position_index )
         scan_position_index(~projs_to_use) = [];
     end
-    
-    
+
     tomo.scan_position = scan_position;
-    
+
     raw_min = min( proj(:) );
     raw_max = max( proj(:) );
     
@@ -3021,7 +3030,7 @@ if write.reco
         fprintf(fid, 'tomo.butterworth_filter_frequ_cutoff : %f\n', tomo.butterworth_filter_frequ_cutoff);
         fprintf(fid, 'tomo.astra_pixel_size : %f\n', tomo.astra_pixel_size);
         fprintf(fid, 'tomo.take_neg_log : %u\n', tomo.take_neg_log);
-        fprintf(fid, 'gpu_name : %s\n', gpu.Name);
+        fprintf(fid, 'gpu_name : %s\n', gpuDevice().Name);
         if exist( 'vol_min', 'var')
             fprintf(fid, '[volume_min volume_max] : [%g %g]\n', vol_min, vol_max);
         end

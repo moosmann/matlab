@@ -39,6 +39,7 @@ edit dose_synchroload.m
 edit dose_bone_test.m
 edit synchroload_normalization.m
 edit synchroload2021june_11008741.m
+edit hip_contest_synchroload.m
 
 %% Segmentation
 % High quality

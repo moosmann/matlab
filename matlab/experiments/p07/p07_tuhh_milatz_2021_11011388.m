@@ -185,8 +185,8 @@ raw_path = '/asap3/petra3/gpfs/p07/2021/data/11011388/raw/';
 par.ring_current_normalization = 1;
 ring_filter.apply_before_stitching = 1; 
 image_correlation.method = 'median';
-phase_retrieval.apply = 2; 
-phase_retrieval.method = 'tie';'tieNLO_Schwinger';'dpc';'tie';'qp';'qpcut'; %'qp' 'ctf' 'tie' 'qp2' 'qpcut'
+phase_retrieval.apply = 1; 
+phase_retrieval.method = 'tie';
 phase_retrieval.reg_par = 2.0;
 interactive_mode.rot_axis_pos = 0;
 interactive_mode.phase_retrieval = 0;
@@ -205,6 +205,14 @@ tomo.rot_axis_offset = 2.2 / 2 * par.raw_bin;
 tomo.rot_axis_offset = 1.8 / 2 * par.raw_bin; % after pr
 par.scan_path = [raw_path 'tuhh_003_000_0p55mm_a'];
 ADD
+
+phase_retrieval.apply = 0; 
+write.parfolder = 'no_phase_retrieval';
+write.flatcor = 1;
+ADD
+
+phase_retrieval.apply = 1; 
+write.parfolder = '';
 
 ring_filter.apply = 0; 
 write.subfolder_reco = 'ringfilt_no';
