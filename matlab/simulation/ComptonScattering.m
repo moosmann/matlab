@@ -7,7 +7,8 @@ d = sqrt(2) * fov;
 fprintf( '\nFOV diagonal : %f cm', d )
 
 
-energy = ([5 15 30 60 90 150 200] * 1e3)'; % eV
+%energy = ([5 15 30 60 80 90 150 200] * 1e3)'; % eV
+energy = ([ 60 80 90] * 1e3)'; % eV
 %energy = ([2.75 60 511 1460 10000] * 1e3energy)'; % eV
 theta = (0:1:100) / 100 * pi;
 for n = numel( energy):-1:1

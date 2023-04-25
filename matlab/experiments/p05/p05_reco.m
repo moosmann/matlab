@@ -40,7 +40,7 @@ par.quick_switch = 1;
 par.scan_path = pwd;
 %par.scan_path = last_folder_modified('')
 par.raw_bin = 5;
-par.raw_roi = -4;
+par.raw_roi = -1;%[0.4 0.6];
 par.proj_range = 1;
 par.ref_range = 1;
 phase_retrieval.apply = 0;
@@ -48,25 +48,26 @@ phase_retrieval.reg_par = 1.5;
 interactive_mode.phase_retrieval = 0; 
 %image_correlation.num_flats = 10;
 image_correlation.method = 'mean';
-tomo.vol_size = [-1.0 1.0 -1.0 1.0 -0.5 0.5];
+tomo.vol_size = [];[-1.0 1.0 -1.0 1.0 -0.5 0.5];
 %write.subfolder_reco = 'proj1';
 write.to_scratch = 1;
-write.flatcor = 1; 
-write.parfolder = 'test_auto_rot_noint';
+write.flatcor = 0; 
+write.parfolder = '';
 par.stitch_projections = 0;
 par.crop_proj = 1; 
-tomo.rot_axis_offset = 0;%-831.25 / 4 * par.raw_bin; 
-interactive_mode.rot_axis_pos = 0;
+par.crop_at_rot_axis = 0; 
+tomo.rot_axis_offset = -6.3;%-831.25 / 4 * par.raw_bin; 
+interactive_mode.rot_axis_pos = 1;
 interactive_mode.rot_axis_tilt = 0;
 interactive_mode.angles = 0;
 %interactive_mode.slice_number = round(1150 /4);
-tomo.rot_axis_search_auto = 1; % find extrema of metric within search range
+tomo.rot_axis_search_auto = 0; % find extrema of metric within search range
 tomo.rot_axis_search_range = 9:0.5:15; % search reach for automatic determination of the rotation axis offset, overwrite interactive result if not empty
 tomo.rot_axis_search_metric = 'neg'; % string: 'neg','entropy','iso-grad','laplacian','entropy-ML','abs'. Metric to find rotation axis offset
 tomo.rot_axis_search_extrema = 'max'; % string: 'min'/'max'. chose min or maximum position
 tomo.rot_axis_search_fit = 1; % bool: fit calculated metrics and find extrema, otherwise use extrema from search range
 tomo.rot_axis_offset_metric_roi = []; % 4-vector: [. ROI for metric calculation. roi = [y0, x0, y1-y0, x1-x0]. (x,y)=(0,0)=upper left
-par.use_gpu_in_parfor = 0;
+par.use_gpu_in_parfor = 1;
 tomo.astra_link_data = 1; 
 % END OF QUICK SWITCH TO ALTERNATIVE SET OF PARAMETERS %%%%%%%%%%%%%%%%%%%%
 
@@ -144,7 +145,7 @@ image_correlation.filter_type = 'median'; % string. correlation ROI filter type,
 image_correlation.filter_parameter = {[5 5], 'symmetric'}; % cell. filter paramaters to be parsed with {:}
 % 'median' : using medfilt2, parameters: {[M N]-neighboorhood, 'padding'}
 % 'wiener' : using wiender2, parameters: {[M N]-neighboorhood}
-ring_filter.apply = 1; % ring artifact filter (use only for scans without lateral sample movement)
+ring_filter.apply = 0; % ring artifact filter (use only for scans without lateral sample movement)
 ring_filter.apply_before_stitching = 0; % ! Consider when phase retrieval is applied !
 ring_filter.method = 'jm'; 'wavelet-fft';
 ring_filter.waveletfft_dec_levels = 1:6; % decomposition levels for 'wavelet-fft'
@@ -263,7 +264,7 @@ tomo.astra_link_data = 1; % ASTRA data objects become references to Matlab array
 par.gpu_index = []; % indices of GPU devices to use, Matlab notation: index starts from 1. default: [], uses all
 par.use_cluster = 0; % if available: on MAXWELL nodes disp/nova/wga/wgs cluster computation can be used. Recommended only for large data sets since parpool creation and data transfer implies a lot of overhead.
 par.use_gpu_in_parfor = 1;
-par.poolsize = 0.7; % number of workers used in a local parallel pool. if 0: use current config. if >= 1: absolute number. if 0 < poolsize < 1: relative amount of all cores to be used. if SLURM scheduling is available, a default number of workers is used.
+par.poolsize = 0.8; % number of workers used in a local parallel pool. if 0: use current config. if >= 1: absolute number. if 0 < poolsize < 1: relative amount of all cores to be used. if SLURM scheduling is available, a default number of workers is used.
 par.poolsize_gpu_limit_factor = 0.5; % Relative amount of GPU memory used for preprocessing during parloop. High values speed up Proprocessing, but increases out-of-memory failure
 phase_retrieval.use_parpool = 1; % bool. Disable parpool when out-of-memory error occurs during phase retrieval.
 par.window_state = 'minimized';'normal';'maximized';

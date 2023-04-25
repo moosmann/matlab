@@ -7,11 +7,11 @@ function [s, vol] = stitch_volumes( scan_path, scan_subfolder, reco_subfolder, s
 %   strings is used.
 % scan_subfolder : string. default: 'reco'. typically 'reco' or 'reco_phase'
 % reco_subfolder : string. default: 'float_rawBin2'. Subfolder to 'reco' to
-%   be used for stitching. 
+%   be used for stitching.
 % stitched_volume_path : string. default: scan_path (without trailing
 %   underscores) or, if scan_path is a cell, the last cell string + 'stitched_volume'
 % scan_mask : binary mask. Choose subset of scans found with binary mask
-%   with a length of number of scans found. 
+%   with a length of number of scans found.
 % noisecut : string = 'new' (default) or 'old'. old methods works for certain scans
 %   only. new methods checks SNR by slicewise calculation of std/mean and
 %   matches the SNR of the two volumes within the overlap region.
@@ -28,14 +28,16 @@ function [s, vol] = stitch_volumes( scan_path, scan_subfolder, reco_subfolder, s
 %% ARGUMENTS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 tic
 if nargin < 1
+    scan_path = '/asap3/petra3/gpfs/p05/2022/data/11015593/processed/roe_111_bee';
     %scan_path = '/asap3/petra3/gpfs/p05/2017/data/11003950/processed/syn22_77L_Mg5Gd_8w';% top 2 bottom
-    scan_path = '/asap3/petra3/gpfs/p05/2018/data/11004263/processed/syn004_96R_Mg5Gd_8w'; % bottom 2 top
+    %scan_path = '/asap3/petra3/gpfs/p05/2018/data/11004263/processed/syn004_96R_Mg5Gd_8w'; % bottom 2 top
     %scan_path = '/asap3/petra3/gpfs/p05/2018/data/11004263/processed/syn018_35L_PEEK_8w'; %
     %scan_path = '/asap3/petra3/gpfs/p05/2021/data/11009652/processed/zfmk_024_Tenebrio_'; % top 2 bottom
     %scan_path = '/asap3/petra3/gpfs/p05/2022/data/11012631/processed/lib_02_tadpole_';
 end
 if nargin < 2
-    scan_subfolder = 'reco';
+    %scan_subfolder = 'reco';
+    scan_subfolder = 'reco_phase/tie_regPar0p30';
     %scan_subfolder = 'reco_phase/tie_regPar1p00';
 end
 if nargin < 3
@@ -43,18 +45,20 @@ if nargin < 3
 end
 if nargin < 4
     %stitched_volume_path = '/gpfs/petra3/scratch/moosmanj/stitch_tadpole';
-    stitched_volume_path = '/gpfs/petra3/scratch/moosmanj/stitch_test_bottom2top';
+    %stitched_volume_path = '/gpfs/petra3/scratch/moosmanj/stitch_test_bottom2top';
+    stitched_volume_path = '/gpfs/petra3/scratch/moosmanj/stitch_bee';
 end
 if nargin < 5
-    scan_mask = [];
-    %scan_mask = [1 1 1 0];
+    %scan_mask = [];
+    scan_mask = [1 1 0 0 0];
 end
 if nargin < 6
-    noisecut = 'new';
+    noisecut = 'none';
+    %noisecut = 'new';
     %noisecut = 'old';
 end
 if nargin < 7
-    testing = 1;
+    testing = 0;
 end
 % stitch level factor for old noisecut procedure
 stitch_level_fac = 1.5;
@@ -74,6 +78,11 @@ if isempty( stitched_volume_path )
     stitched_volume_log_path  = sprintf( '%s/%s', scan_path2, scan_subfolder);
     CheckAndMakePath( stitched_volume_path )
 else
+    % Remove trailing underscores
+    scan_path2 = scan_path;
+    if scan_path2(end) == '_'
+        scan_path2(end) = [];
+    end
     CheckAndMakePath( stitched_volume_path )
     stitched_volume_figure  = sprintf( '%s/stitched_volume', stitched_volume_path);
     stitched_volume_log_path  = stitched_volume_path;
@@ -85,6 +94,7 @@ fprintf( '\n Outpath: %s' , stitched_volume_path )
 
 ca;
 %% Read parameters and data %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+fprintf('\nRead parameters and volumes')
 if ~iscell( scan_path )
     fprintf( '\nscan_path: %s', scan_path )
     % Scans to stitch
@@ -108,13 +118,17 @@ num_scans = numel( scan_struct );
 
 % loop over scans
 s(num_scans).full_path = [];
+fprintf('\nScans to be stitched:')
 for nn = 1:num_scans
-    
+    fprintf('\n%s', scan_struct(nn).name)
+end
+for nn = 1:num_scans
+
     % Name and folder
     name = scan_struct(nn).name;
     full_path = [scan_struct(nn).folder filesep name];
     s(nn).full_path = full_path;
-    
+
     % Reco log
     reco_log = [full_path filesep scan_subfolder filesep 'reco*.log' ];
     rls = dir( reco_log );
@@ -133,7 +147,7 @@ for nn = 1:num_scans
     c = c{1};
     fclose( fid );
     s(nn).reco_log = reco_log;
-    
+
     % Projection shape
     for ll = 1:numel( c )
         %t = regexp( c{ll}, 'im_shape_raw' );
@@ -147,7 +161,7 @@ for nn = 1:num_scans
         end
     end
     s(nn).im_shape_raw = im_shape_raw;
-    
+
     % Binning factor
     for ll = 1:numel( c )
         % t = regexp( c{ll}, 'raw_binning_factor' );
@@ -161,7 +175,7 @@ for nn = 1:num_scans
         end
     end
     s(nn).bin = bin;
-    
+
     % ROI
     for ll = 1:numel( c )
         t = regexp( c{ll}, 'raw_roi' );
@@ -176,7 +190,7 @@ for nn = 1:num_scans
         raw_roi(2) = im_shape_raw(2);
     end
     s(nn).raw_roi = raw_roi;
-    
+
     % Effective pixelsize
     for ll = 1:numel( c )
         t = regexp( c{ll}, {'effective_pixel_size', 'eff_pixel_size', 'par.eff_pixel_size'} );
@@ -188,7 +202,7 @@ for nn = 1:num_scans
     end
     s(nn).effective_pixel_size = effective_pixel_size;
     s(nn).effective_pixel_size_binned = effective_pixel_size * double( bin );
-    
+
     % Scan log
     scan_log = [regexprep( full_path, 'processed', 'raw' ) filesep name 'scan.log'];
     if ~exist( scan_log, 'file' )
@@ -200,7 +214,7 @@ for nn = 1:num_scans
     cell_of_lines = cell_of_lines{1};
     fclose( fid );
     s(nn).scan_log = scan_log;
-    
+
     % s_stage_z
     for ll = 1:numel( cell_of_lines )
         t = regexp( cell_of_lines{ll}, 's_stage_z' );
@@ -211,7 +225,7 @@ for nn = 1:num_scans
         end
     end
     s(nn).s_stage_z = s_stage_z;
-    
+
     % Print parameters
     fprintf( '\n%s:', name )
     fprintf( '\n  raw_shape: %u %u', im_shape_raw )
@@ -219,7 +233,7 @@ for nn = 1:num_scans
     fprintf( '\n  bin: %u', bin )
     fprintf( '\n  s_stage_z: %f', s_stage_z )
     fprintf( '\n  effective pixelsizse: %f', effective_pixel_size )
-    
+
     % Read volume
     vol_path = [full_path filesep scan_subfolder filesep reco_subfolder];
     im_struct = dir( [ vol_path filesep '*.tif' ] );
@@ -259,23 +273,23 @@ s(1).stitch_order = stitch_order;
 %% Absolute positions %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 fprintf( '\nAbsolute positions: ' )
 for nn = 1:num_scans
-    
+
     bin = s(nn).bin;
     effective_pixel_size_binned = s(nn).effective_pixel_size_binned;
-    
+
     % First absolute vertical position of image edge
     zval_first = s(nn).s_stage_z + double( s(nn).raw_roi(1) - 1) * s(nn).effective_pixel_size;
     s(nn).zval_first = zval_first;
-    
+
     % Second absolute vertical position of lower image edge
     zval_last = s(nn).s_stage_z + double( s(nn).raw_roi(2) - 1 - bin ) * s(nn).effective_pixel_size;
     s(nn).zval_last = zval_last;
-    
+
     % Absolute positions
     v1z = size( s(nn).vol, 3 );
     zval = zval_first + ( 0:v1z - 1 ) * effective_pixel_size_binned;
     s(nn).zval = zval;
-    
+
     % Print info
     fprintf( '\n %2u. volume. first val: %f (%f) | %i %i', nn, zval(1), zval_first,  round(zval(1)/effective_pixel_size_binned), round(zval_first /effective_pixel_size_binned ));
     fprintf( '\n %2u. volume.  last val: %f (%f) | %i %i', nn, zval(end), zval_last, round(zval(end)/effective_pixel_size_binned), round(zval_last/effective_pixel_size_binned )  );
@@ -320,12 +334,12 @@ for nn = 1:num_scans
     s(nn).zval = s(nn).zval - zoffset;
     s(nn).zval_first = s(nn).zval_first - zoffset;
     s(nn).zval_last = s(nn).zval_last - zoffset;
-    
+
     % Print info
     fprintf( '\n %2u. volume. first val: %f (%f) | %i %i', nn, s(nn).zval(1), s(nn).zval_first,  round(s(nn).zval(1)/effective_pixel_size_binned), round(s(nn).zval_first /effective_pixel_size_binned ));
     fprintf( '\n %2u. volume.  last val: %f (%f) | %i %i', nn, s(nn).zval(end), s(nn).zval_last, round(s(nn).zval(end)/effective_pixel_size_binned), round(s(nn).zval_last/effective_pixel_size_binned )  );
     fprintf( ', diff: %f (%f)', s(nn).zval(end) - s(nn).zval(1), s(nn).zval_last - s(nn).zval_first)
-    
+
     % Plot absolute positions
     figure( fap )
     hold on
@@ -345,12 +359,14 @@ yy = round( size( s(1).vol, 2 ) / 2 );
 xx = round( size( s(1).vol, 1 ) / 2 );
 hxz = figure( 'Name', sprintf( 'xz %s', dirstr ) );
 hyz = figure( 'Name', sprintf( 'yz %s', dirstr ) );
-hroi = figure( 'Name', 'vertical ROI' );
+if strcmp(noisecut,'old')
+    hroi = figure( 'Name', 'vertical ROI' );
+end
 for nn = 1:num_scans
-    if nn < num_scans
+    if nn < num_scans && strcmp(noisecut,'new')
         hnc = figure( 'Name', sprintf('noise cut for overlap region %u', nn) );
     end
-    
+
     % XZ
     xz = ( squeeze( s(nn).vol(:,yy,:) ) );
     figure(hxz)
@@ -374,9 +390,50 @@ for nn = 1:num_scans
     xticklabels( ztcks_label )
     axis equal tight
     title( sprintf( 'volume %u', nn ) )
-    
-    %% Old noise cut procedure
+
     switch noisecut
+        %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+        case 'none'
+            fprintf('\n No noise related volume cropping is applied')
+            % Set noisecut to full volume
+            if top2bottom
+                %% top 2 bottom %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+                % 1 bottom
+                % 1 top
+                %   2 bottom
+                %   2 top
+                if nn == 1
+                    s(nn).noisecut2 = s(nn).size(3);
+                end
+                if nn >= 1 && nn < num_scans
+                    ind1 = 1;
+                    ind2 = s(nn+1).size(3);
+                    s(nn).noisecut1 = ind1;
+                    s(nn+1).noisecut2 = ind2;
+                end
+                if nn == num_scans
+                    s(nn).noisecut1 = 1;
+                end
+            else
+                %% bottom 2 bop %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+                % 1 top
+                % 1 bottom
+                % 2 top
+                % 2 bottom
+                if nn == 1
+                    s(nn).noisecut1 = 1;
+                end
+                if nn >= 1 && nn < num_scans
+                    ind1 = s(nn).size(3);
+                    ind2 = 1;
+                    s(nn).noisecut2 = ind1;
+                    s(nn+1).noisecut1 = ind2;
+                end
+                if nn == num_scans
+                    s(nn).noisecut2 = s(nn).size(3);
+                end
+            end
+            %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         case 'old'
             % ROI regarding noise level
             im = xz(end-100:end,:);
@@ -391,7 +448,7 @@ for nn = 1:num_scans
             gaussFilter = gaussFilter / sum (gaussFilter); % normalize
             lf = conv( padarray( l, [length(l) 0], 'symmetric', 'both' ), gaussFilter, 'same');
             lf = lf(length(l) + (1:length(l) ) );
-            
+
             lfx = round( length(l)/4):round( length(l)*3/4);
             t = stitch_level_fac * mean( lf(lfx) );
             % Lower index
@@ -414,7 +471,7 @@ for nn = 1:num_scans
                 end
             end
             s(nn).noisecut2 = v2;
-            
+
             % Plot
             figure( hroi )
             subplot(1,num_scans,nn)
@@ -423,7 +480,7 @@ for nn = 1:num_scans
             axis tight
         case 'new'
             %if nn > 1 && nn <= num_scans
-            
+
             if top2bottom
                 %% top 2 bottom %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
                 % 1 bottom
@@ -528,14 +585,14 @@ fprintf('\n')
 
 %% Overlap %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 for nn = 1:num_scans - 1
-    
+
     % Absolute z ranges of subsequent volumes
     zval1 = s(nn).zval;
     zval2 = s(nn+1).zval;
-    
+
     % Find overlap (within noisecut ROI if possible)
     if top2bottom
-        
+
         % First / upper overlap index and value in first volume
         z1ol_pos = s(nn).noisecut1;
         z1ol_val = zval1(z1ol_pos);
@@ -544,7 +601,7 @@ for nn = 1:num_scans - 1
             z1ol_pos = 1;%zval1(1);
             z1ol_val = zval1(z1ol_pos);
         end
-        
+
         % Second / lower overlap index and value in second volume
         z2ol_pos = s(nn+1).noisecut2;
         z2ol_val = zval2(z2ol_pos);
@@ -556,7 +613,7 @@ for nn = 1:num_scans - 1
             z2ol_pos = numel(zval2);
             z2ol_val = zval2(z2ol_pos);
         end
-        
+
     else
         % Lower overlap edge in first volume
         z1ol_pos = s(nn).noisecut2;
@@ -567,7 +624,7 @@ for nn = 1:num_scans - 1
             z1ol_pos = numel(zval1);%(end);
             z1ol_val = zval1(z1ol_pos);
         end
-        
+
         % Upper overlap edge in second volume
         z2ol_pos = s(nn+1).noisecut1;
         z2ol_val = zval2(z2ol_pos);
@@ -579,24 +636,24 @@ for nn = 1:num_scans - 1
             z2ol_pos = 1;
             z2ol_val = zval2(z2ol_pos);
         end
-        
+
     end
-    
+
     % Stitch level
     zstitch = ( z1ol_val + z2ol_val ) / 2;
     [~, z1stitch_pos] = min( abs( zval1 - zstitch ) );
     [~, z2stitch_pos] = min( abs( zval2 - zstitch ) );
     z1stitch_val = zval1( z1stitch_pos );
     z2stitch_val = zval2( z2stitch_pos );
-    
+
     if top2bottom
-        
+
         % Check monotonicity
         while z1stitch_val < z2stitch_val
             z1stitch_pos = z1stitch_pos + 1;
             z1stitch_val = zval1( z1stitch_pos );
         end
-        
+
         % Stich indices
         s(nn).zstitch_pos1 = z1stitch_pos;
         if nn == num_scans - 1
@@ -607,13 +664,13 @@ for nn = 1:num_scans - 1
         end
         s(nn+1).zstitch_pos2 = z2stitch_pos;
     else
-        
+
         % Check monotonicity
         while z1stitch_val > z2stitch_val
             z2stitch_pos = z2stitch_pos + 1;
             z2stitch_val = zval2( z2stitch_pos );
         end
-        
+
         % Stich indices
         if nn == 1
             s(nn).zstitch_pos1 = 1;
@@ -624,7 +681,7 @@ for nn = 1:num_scans - 1
             s(nn+1).zstitch_pos2 = size( s(nn+1).vol, 3 );
         end
     end
-    
+
     % Print overlap info
     fprintf( '\n %u. Overlap:', nn )
     if top2bottom
@@ -644,14 +701,14 @@ for nn = 1:num_scans - 1
         fprintf( '\n   %-30s %f', '1. vol lower edge', zval1(end) )
         fprintf( '\n   %-30s %f', '2. vol lower edge', zval2(end) )
     end
-    
+
     % Print stitch level info
     fprintf( '\n Stitch level:')
     fprintf( '\n   %-30s value: %f', 'stitch level.', zstitch )
     fprintf( '\n   %-30s value: %f, index: %u', 'stitch level volume 1.', z1stitch_val, z1stitch_pos )
     fprintf( '\n   %-30s value: %f, index: %u', 'stitch level volume 2.', z2stitch_val, z2stitch_pos )
     fprintf( '\n')
-    
+
     % Stitch values, positions and ranges
     if top2bottom
         zz1 = z1stitch_pos:length(zval1);
@@ -660,7 +717,7 @@ for nn = 1:num_scans - 1
         zz1 = 1:z1stitch_pos;
         zz2 = z2stitch_pos:length( zval2 );
     end
-    
+
     % Plot
     h = figure('Name', sprintf( 'vertically stitched volume part %u', nn ) );
     % XZ
@@ -685,21 +742,21 @@ for nn = 1:num_scans - 1
     axis equal tight
     title( 'yz plane' )
     drawnow
-    
+
     filename = sprintf( '%s_figure_part%02u.png', stitched_volume_figure, nn);
     saveas( h,  filename);
-    
+
     filename = sprintf( '%s_xz_part%02u.tif', stitched_volume_figure, nn);
     write32bitTIFfromSingle( filename, xzstitch );
-    
+
     filename = sprintf( '%s_yz_part%02u.tif', stitched_volume_figure, nn);
     write32bitTIFfromSingle( filename, yzstitch );
-    
+
 end
 %% z index range for stitching
 fprintf( '\nz indices for stitching:' )
 for nn = 1:num_scans
-    
+
     z1 = s(nn).zstitch_pos1;
     if isempty(z1)
         z1 = 1;
@@ -714,54 +771,54 @@ end
 
 
 %% Save stitched volume
-    CheckAndMakePath( stitched_volume_path )
-    if ~iscell( scan_path2 )
-        [~,name]=fileparts(scan_path2);
-    else
-        [~,name]=fileparts(scan_path{end});
-    end
-    if top2bottom
-        index_offset = 0;
-        for nn = 1:num_scans
-            zrange = s(nn).zstitch_range; % slices taken
-            num_slices = numel(zrange);
-            zmax = zrange(end); % highest slice number used
-            vol = s(nn).vol;
-            t = toc;
-            fprintf( '\nSaving stitched volume slices:' )
-            if ~testing
-                parfor ll = zrange % loop over slices taken
-                    % create properly increasing file index
-                    ind =  1 + (zmax - ll) + index_offset
-                    filename = sprintf( '%s/%s_%06u.tif', stitched_volume_path, name, ind);
-                    im = vol(:,:,ll);
-                    write32bitTIFfromSingle( filename, im )
-                end
+CheckAndMakePath( stitched_volume_path )
+if ~iscell( scan_path2 )
+    [~,name]=fileparts(scan_path2);
+else
+    [~,name]=fileparts(scan_path{end});
+end
+if top2bottom
+    index_offset = 0;
+    for nn = 1:num_scans
+        zrange = s(nn).zstitch_range; % slices taken
+        num_slices = numel(zrange);
+        zmax = zrange(end); % highest slice number used
+        vol = s(nn).vol;
+        t = toc;
+        fprintf( '\nSaving stitched volume slices:' )
+        if ~testing
+            parfor ll = zrange % loop over slices taken
+                % create properly increasing file index
+                ind =  1 + (zmax - ll) + index_offset
+                filename = sprintf( '%s/%s_%06u.tif', stitched_volume_path, name, ind);
+                im = vol(:,:,ll);
+                write32bitTIFfromSingle( filename, im )
             end
-            fprintf( ' done in %.0f s = %.1f min', toc - t, (toc - t) / 60 )
-            index_offset = index_offset + num_slices; % needed for image index
         end
-        
-    else
-        index_offset = 0;
-        for nn = 1:num_scans
-            zrange = s(nn).zstitch_range;
-            num_slices = numel(zrange);
-            zmin = zrange(1);
-            vol = s(nn).vol;
-            fprintf( '\nSaving stitched volume slices:' )
-            t = toc;
-            if ~testing
-                parfor ll = zrange
-                    ind =  1 + (ll - zmin) + index_offset
-                    filename = sprintf( '%s/%s_%06u.tif', stitched_volume_path, name, ind);
-                    im = vol(:,:,ll);
-                    write32bitTIFfromSingle( filename, im )
-                end
-            end
-            fprintf( ' done in %.0f s = %.1f min', toc - t, (toc - t) / 60 )
-            index_offset = index_offset + num_slices;
-        end
-        
+        fprintf( ' done in %.0f s = %.1f min', toc - t, (toc - t) / 60 )
+        index_offset = index_offset + num_slices; % needed for image index
     end
+
+else
+    index_offset = 0;
+    for nn = 1:num_scans
+        zrange = s(nn).zstitch_range;
+        num_slices = numel(zrange);
+        zmin = zrange(1);
+        vol = s(nn).vol;
+        fprintf( '\nSaving stitched volume slices:' )
+        t = toc;
+        if ~testing
+            parfor ll = zrange
+                ind =  1 + (ll - zmin) + index_offset
+                filename = sprintf( '%s/%s_%06u.tif', stitched_volume_path, name, ind);
+                im = vol(:,:,ll);
+                write32bitTIFfromSingle( filename, im )
+            end
+        end
+        fprintf( ' done in %.0f s = %.1f min', toc - t, (toc - t) / 60 )
+        index_offset = index_offset + num_slices;
+    end
+
+end
 fprintf( '\nSTITCHING FINISHED in %.0f s = %.1f min\n\n', toc, toc / 60 )

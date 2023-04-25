@@ -34,7 +34,7 @@ end
 if isscalar(rotAxisPos)
     if dim0 ~= dim1
         fprintf(' Rotation axis position is scalar but image is non-square.\n')
-        return
+        returnq
     else
         rotAxisPos = [rotAxisPos, rotAxisPos];
     end
