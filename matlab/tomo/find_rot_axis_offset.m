@@ -155,11 +155,11 @@ for nn = numel(offset):-1:1
     tomo_par(nn).rot_axis_offset = offset(nn);
     mm = mod(nn - 1, num_gpu_used) + 1;
     tomo_par(nn).astra_gpu_index = gpu_index_list(mm);
-    fprintf('\n  par pool index: %2u, gpu list index: %2u, gpu index: %u', nn, mm, gpu_index_list(mm))
+    %fprintf('\n  par pool index: %2u, gpu list index: %2u, gpu index: %u', nn, mm, gpu_index_list(mm))
 end
 
 fprintf('\n Interactive par loop:\n')
-parfor (nn = 1:numel(offset), num_gpu_used)
+parfor (nn = 1:numel(offset), 2*num_gpu_used)
 %parfor (nn = 1:numel(offset), 2 * num_gpu)
 %for nn = 1:numel(offset)
 
@@ -172,7 +172,9 @@ parfor (nn = 1:numel(offset), num_gpu_used)
         case '3d'
             im = astra_parallel3D( tomo_par_nn, sino );
         case 'slice'
-            im = astra_parallel2D( tomo_par_nn, sino );
+            gpu_index = mod( nn,  num_gpu_used ) + 1;            
+            im = astra_parallel2D( tomo_par_nn, sino, gpu_index);
+            %im = astra_parallel2D( tomo_par_nn, sino);
     end
     vol(:,:,nn) = im;
     %vol(:,:,nn) = FilterHisto(im, number_of_stds, filter_histo_roi);

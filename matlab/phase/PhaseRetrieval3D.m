@@ -9,7 +9,8 @@ if nargin < 2
     phase_method = 'tie';
 end
 if nargin < 3
-    EnergyDistancePixelsize = [30e3 1 1e-6];
+    %EnergyDistancePixelsize = [30e3 1 1e-6];
+    EnergyDistancePixelsize = [67e3 0.8 4*1.27e-6];
 end
 if nargin < 4
     reg_par = 2.5;

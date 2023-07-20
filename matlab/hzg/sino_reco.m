@@ -33,7 +33,10 @@ close all hidden % close all open windows
 dbstop if error
 
 if nargin < 1
-    scan_path = ...%pwd;        
+    scan_path = ...%pwd;
+        '/asap3/petra3/gpfs/p07/2023/data/11016192/processed/bmc006_B2_8rings_h2';
+    '/asap3/petra3/gpfs/p07/2023/data/11016192/processed/bmc015_B4_bobble_wt0p25_75px_b25_';
+    '/asap3/petra3/gpfs/p07/2023/data/11016192/processed/bmc003_B2_8rings';
     '/asap3/petra3/gpfs/p07/2022/data/11015573/processed/hereon_bmc_brain_small_roi_scan_44keV';
     '/asap3/petra3/gpfs/p07/2020/data/11010206/processed/mgbone05_19118_ti_8m';
     '/asap3/petra3/gpfs/p05/2020/data/11008823/processed/nova004_pyrochroa_coccinea_a';
@@ -46,7 +49,7 @@ if nargin < 1
     '/asap3/petra3/gpfs/p07/2022/data/11015567/processed/mbs020_sample1_mgti_a';
 end
 if nargin < 2
-    rot_angle_full_range = [];
+    rot_angle_full_range = 1*pi;
 end
 if nargin < 3
     rot_axis_search_range = [];
@@ -58,19 +61,19 @@ end
 
 %%% SCAN %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %scan_path = '';pwd;
-raw_bin = 4; % projection binning factor: integer
+raw_bin = 2; % projection binning factor: integer
 proj_range = []; % projection range
-read_sino_folder = sprintf( 'trans%02u', raw_bin);% string. default: '', picks first trans folder found
-read_sino_folder = sprintf( 'test04', raw_bin);% string. default: '', picks first trans folder found
+%read_sino_folder = sprintf( 'trans%02u', raw_bin);% string. default: '', picks first trans folder found
+read_sino_folder = sprintf( 'trans%02u_180', raw_bin);% string. default: '', picks first trans folder found
+%read_sino_folder = sprintf( 'test04', raw_bin);% string. default: '', picks first trans folder found
 %read_sino = 1; % read preprocessed sinograms. CHECK if negative log has to be taken!
 read_sino_trafo = @(x) (x);%rot90(x); % anonymous function applied to the image which is read e.g. @(x) rot90(x)
 sino_range = [];
-energy = 44000; % in eV!
-sample_detector_distance = 0.150; % in m
+energy = []; % in eV!
+sample_detector_distance = []; % in m
 eff_pixel_size = []; % in m, read from reconlog.txt if []
-tomo.rot_angle_full_range = rot_angle_full_range; % in rad, read from reconlog if []: full angle of rotation including additional increment, or array of angles. if empty full rotation angles is determined automatically to pi or 2 pi
 %%% RING FILTER
-ring_filter.apply = 0; % ring artifact filter (use only for scans without lateral sample movement)
+ring_filter.apply = 1; % ring artifact filter (use only for scans without lateral sample movement)
 ring_filter.method = 'jm'; 'wavelet-fft';
 ring_filter.waveletfft_dec_levels = 1:6; % decomposition levels for 'wavelet-fft'
 ring_filter.waveletfft_wname = 'db7';'db25';'db30'; % wavelet type, see 'FilterStripesCombinedWaveletFFT' or 'waveinfo'
@@ -93,12 +96,12 @@ phase_retrieval.padding = 1; % padding of intensities before phase retrieval, 0:
 tomo.run = 1; % run tomographic reconstruction
 tomo.run_interactive_mode = 1; % if tomo.run = 0, use to determine rot axis positions without processing the full tomogram;
 tomo.reco_mode = 'slice';'3D'; % slice-wise or full 3D backprojection. 'slice': volume must be centered at origin & no support of rotation axis tilt, reco binning, save compressed
-tomo.slab_wise = 1;
-tomo.slices_per_slab = [];
+tomo.slab_wise = 0;
+tomo.slices_per_slab = 1;%[];
 tomo.vol_size = [];%[-1 1 -1 1 -0.5 0.5];% 6-component vector [xmin xmax ymin ymax zmin zmax], for excentric rot axis pos / extended FoV;. if empty, volume is centerd within tomo.vol_shape. unit voxel size is assumed. if smaller than 10 values are interpreted as relative size w.r.t. the detector size. Take care bout minus signs! Note that if empty vol_size is dependent on the rotation axis position.
 tomo.vol_shape = []; %[1 1 1] shape (# voxels) of reconstruction volume. used for excentric rot axis pos. if empty, inferred from 'tomo.vol_size'. in absolute numbers of voxels or in relative number w.r.t. the default volume which is given by the detector width and height.
 tomo.rot_angle_offset = 0; % global rotation of reconstructed volume
-tomo.rot_angle_full_range = [];
+tomo.rot_angle_full_range = rot_angle_full_range; % in rad, read from reconlog if []: full angle of rotation including additional increment, or array of angles. if empty full rotation angles is determined automatically to pi or 2 pi
 tomo.rot_axis_offset = []; % rotation axis offset w.r.t to the image center. Assuming the rotation axis position to be centered in the FOV for standard scan, the offset should be close to zero.
 tomo.rot_axis_position = []; % if empty use automatic computation. EITHER OFFSET OR POSITION MUST BE EMPTY. YOU MUST NOT USE BOTH!
 tomo.rot_axis_offset_shift = []; %[]; % absolute lateral movement in pixels during fly-shift-scan, overwrite lateral shift read out from hdf5 log
@@ -114,7 +117,7 @@ tomo.butterworth_filter = 0; % use butterworth filter in addition to FBP filter
 tomo.butterworth_filter_order = 1;
 tomo.butterworth_filter_frequ_cutoff = 0.9;
 tomo.astra_pixel_size = 1; % detector pixel size for reconstruction: if different from one 'tomo.vol_size' must to be ajusted, too!
-tomo.take_neg_log = 1; % take negative logarithm. if empty, use 1 for attenuation contrast, 0 for phase contrast
+tomo.take_neg_log = 0; % take negative logarithm. if empty, use 1 for attenuation contrast, 0 for phase contrast
 tomo.algorithm = 'fbp';'sirt'; 'cgls';'sart';'em';'fbp-astra'; % SART/EM only work for 3D reco mode
 tomo.iterations = 40; % for 'sirt' or 'cgls'.
 tomo.sirt_MinConstraint = []; % If specified, all values below MinConstraint will be set to MinConstraint. This can be used to enforce non-negative reconstructions, for example.
@@ -126,7 +129,7 @@ tomo.rot_axis_search_extrema = 'max'; % string: 'min'/'max'. chose min or maximu
 tomo.rot_axis_search_fit = 1; %
 %%% OUTPUT %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 write.path = ''; % absolute path were output data will be stored. !!overwrites the write.to_scratch flag. if empty uses the beamtime directory and either 'processed' or 'scratch_cc'
-write.to_scratch = 1; % write to 'scratch_cc' instead of 'processed'
+write.to_scratch = 0; % write to 'scratch_cc' instead of 'processed'
 write.deleteFiles = 0; % delete files already existing in output folders. Useful if number or names of files differ when reprocessing.
 write.beamtimeID = ''; % string (regexp),typically beamtime ID, mandatory if 'write.deleteFiles' is true (safety check)
 write.scan_name_appendix = ''; % appendix to the output folder name which defaults to the scan name
@@ -134,7 +137,7 @@ write.parfolder = '';% parent folder to 'reco', 'sino', 'phase', and 'flat_corre
 write.subfolder_flatcor = ''; % subfolder in 'flat_corrected'
 write.subfolder_phase_map = ''; % subfolder in 'phase_map'
 write.subfolder_sino = ''; % subfolder in 'sino'
-write.subfolder_reco = ''; % subfolder in 'reco'
+write.subfolder_reco = 'noNegLog_ringFiltJM'; % subfolder in 'reco'
 write.flatcor = 0; % save preprocessed flat corrected projections
 write.sino = 0; % save sinograms (after preprocessing & before FBP filtering and phase retrieval)
 write.reco = 1; % save reconstructed slices (if tomo.run=1)
@@ -148,7 +151,7 @@ write.uint8_binned = 0; % save binned 8bit unsigned integer tiff using 'wwrite.c
 write.reco_binning_factor = 2; % IF BINNED VOLUMES ARE SAVED: binning factor of reconstructed volume
 write.compression_method = 'outlier';'histo';'full'; 'std'; 'threshold'; % method to compression dynamic range into [0, 1]
 write.compression_parameter = [0.02 0.02]; % compression-method specific parameter
-write.outputformat = 'tif';'hdf_volume';'hdf_slice'; % strinf'tif';
+write.outputformat = 'hdf_volume';'tif';'hdf_slice'; % string
 %%% INTERACTION %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 par.visual_output = 0; % show images and plots during reconstruction
 interactive_mode.show_stack_imagej = 1; % use imagej instead of MATLAB to scroll through images during interactive mode
@@ -167,12 +170,10 @@ interactive_mode.phase_retrieval_default_search_range = []; % if empty: asks for
 %%% HARDWARE / SOFTWARE %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 tomo.astra_link_data = 1; % ASTRA data objects become references to Matlab arrays. Reduces memory issues.
 par.use_cluster = 0; % if available: on MAXWELL nodes disp/nova/wga/wgs cluster computation can be used. Recommended only for large data sets since parpool creation and data transfer implies a lot of overhead.
-par.poolsize = 0.95; % number of workers used in a local parallel pool. if 0: use current config. if >= 1: absolute number. if 0 < poolsize < 1: relative amount of all cores to be used. if SLURM scheduling is available, a default number of workers is used.
-par.poolsize_gpu_limit_factor = 0.8; % Relative amount of GPU memory used for preprocessing during parloop. High values speed up Proprocessing, but increases out-of-memory failure
+par.poolsize = 20; % number of workers used in a local parallel pool. if 0: use current config. if >= 1: absolute number. if 0 < poolsize < 1: relative amount of all cores to be used. if SLURM scheduling is available, a default number of workers is used.
+par.poolsize_gpu_limit_factor = 0.5; % Relative amount of GPU memory used for preprocessing during parloop. High values speed up Proprocessing, but increases out-of-memory failure
 par.use_gpu_in_parfor = 1;
 par.gpu_index = []; % GPU Device index to use, Matlab notation: index starts from 1. default: [], use all
-%%% EXPERIMENTAL OR NOT YET IMPLEMENTED %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-write.uint8_segmented = 0; % experimental: threshold segmentaion for histograms with 2 distinct peaks: __/\_/\__
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%% END OF PARAMETERS / SETTINGS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -289,39 +290,42 @@ fprintf( '\n hostname : %s', getenv( 'HOSTNAME' ) );
 fprintf( '\n system memory: free, available, total : %.0f GiB, %.0f GiB, %.0f GiB', round([mem_free/1024^3, mem_avail/1024^3, mem_total/1024^3]) )
 
 % Start parallel CPU pool %%%
-[~, par.poolsize] = OpenParpool( par.poolsize , par.use_cluster, [beamtime_path filesep 'scratch_cc']);
-
-% GPU info
-if isempty( par.gpu_index )
-    par.gpu_index = 1:gpuDeviceCount;
+if ~strcmp(tomo.reco_mode,'slice') || interactive_mode.rot_axis_pos == 1
+    [~, par.poolsize] = OpenParpool( par.poolsize , par.use_cluster, [beamtime_path filesep 'scratch_cc']);
+    % GPU info
+    if isempty( par.gpu_index )
+        par.gpu_index = 1:gpuDeviceCount;
+    end
+    tomo.gpu_index = par.gpu_index;
+    % GPU info quick
+    % fprintf( '\n GPU : [index, total memory/GiB] =' )
+    % num_gpu = numel( par.gpu_index );
+    % for mm = 1:num_gpu
+    %     nn = par.gpu_index(mm);
+    %     gpu = parallel.gpu.GPUDevice.getDevice( nn );
+    %     mem_total = gpu.TotalMemory/1024^3;
+    %     fprintf( ' [%u %.3g]', nn, mem_total )
+    % end
+    % GPU info detailed, needed for parpool optimization
+    mem_avail_gpu = zeros([1, numel(par.gpu_index)]);
+    mem_total_gpu = mem_avail_gpu;
+    gpu_index = par.gpu_index;
+    num_gpu = numel( par.gpu_index );
+    
+    parfor mm = 1:num_gpu
+        nn = gpu_index(mm);
+        gpu = gpuDevice(nn);
+        gpu.reset;
+        mem_avail_gpu(mm) = gpu.AvailableMemory;
+        mem_total_gpu(mm) = gpu.TotalMemory;
+        ma = mem_avail_gpu(mm)/1024^3;
+        mt = mem_total_gpu(mm)/1024^3;
+        r = 100 * ma / mt;
+        fprintf( '\n GPU %u: memory: total: %.3g GiB, available: %.3g GiB (%.2f%%)', nn, mt, ma, r)
+    end
+    par.mem_avail_gpu = mem_avail_gpu;
+    par.mem_total_gpu = mem_total_gpu;
 end
-tomo.gpu_index = par.gpu_index;
-% GPU info quick
-% fprintf( '\n GPU : [index, total memory/GiB] =' )
-% num_gpu = numel( par.gpu_index );
-% for mm = 1:num_gpu
-%     nn = par.gpu_index(mm);
-%     gpu = parallel.gpu.GPUDevice.getDevice( nn );
-%     mem_total = gpu.TotalMemory/1024^3;
-%     fprintf( ' [%u %.3g]', nn, mem_total )
-% end
-% GPU info detailed, needed for parpool optimization
-mem_avail_gpu = zeros([1, numel(par.gpu_index)]);
-mem_total_gpu = mem_avail_gpu;
-gpu_index = par.gpu_index;
-parfor mm = 1:numel( par.gpu_index )
-    nn = gpu_index(mm);
-    gpu = gpuDevice(nn);
-    gpu.reset;
-    mem_avail_gpu(mm) = gpu.AvailableMemory;
-    mem_total_gpu(mm) = gpu.TotalMemory;
-    ma = mem_avail_gpu(mm)/1024^3;
-    mt = mem_total_gpu(mm)/1024^3;
-    r = 100 * ma / mt;
-    fprintf( '\n GPU %u: memory: total: %.3g GiB, available: %.3g GiB (%.2f%%)', nn, mt, ma, r)
-end
-par.mem_avail_gpu = mem_avail_gpu;
-par.mem_total_gpu = mem_total_gpu;
 
 % Save scan path to file
 filename = [userpath, filesep, 'path_to_scan'];
@@ -419,7 +423,7 @@ if exist(fn, 'File')
         n_angle = str2double(n_angle{1});
         fprintf('\n number of angles : %u', n_angle)
         angles = (0:n_angle - 1) * angularstep;
-        ar = n_angle * angularstep;        
+        ar = n_angle * angularstep;
         if isempty(tomo.rot_angle_full_range)
             tomo.rot_angle_full_range = ar;
         end
@@ -444,7 +448,7 @@ if exist(fn, 'File')
     if sum(b)
         reco_mode = str2double(c{2}{b});
         fprintf('\n reco mode : %f', reco_mode)
-        ar =  reco_mode * pi / 180;    
+        ar =  reco_mode * pi / 180;
     end
     
     if isempty(tomo.rot_angle_full_range)
@@ -485,11 +489,12 @@ if ~isempty( proj_range )
     sino = sino(proj_range, :);
 end
 %[s1, s2] = size( sino );
-sino = FilterPixel_par(sino);
+%sino = FilterPixel_par(sino);
 proj = reshape( sino, [im_shape_cropbin1, 1, num_proj_used] );
 
 %% TOMOGRAPHY: interactive mode to find rotation axis offset and tilt %%%%%
 [tomo, angles, tint] = interactive_mode_rot_axis( par, logpar, phase_retrieval, tomo, write, interactive_mode, proj, angles);
+tomo.angles = angles;
 
 %% Automatic rot axis determination
 tomo = find_rot_axis_offset_auto(tomo, proj, par, write, interactive_mode);
@@ -634,8 +639,7 @@ else
     % Slice-wise reco
     % Read sinogram, reco, write
     num_slices = numel( sino_names );
-    for nn = 1:num_slices
-        
+    parfor (nn = 1:num_slices,10)
         filename = sprintf('%s%s', sino_path, sino_names_mat(nn, :));
         sino = read_image( filename );
         sino = read_sino_trafo( sino );
@@ -655,20 +659,20 @@ else
             sino = real( ifft( bsxfun(@times, fft( sino, [], 1), filt), [], 1, 'symmetric') );
             sino = sino(1:im_shape_cropbin1,:,:);
             % Tomo
-            %gpu_index = mod( nn,  num_gpu ) + 1;
-            vol = astra_parallel2D( tomo, permute( sino, [3 1 2]), par.gpu_index);
-            % Save            
+            gpu_index = mod( nn,  num_gpu ) + 1;
+            vol = astra_parallel2D( tomo, permute( sino, [3 1 2]), gpu_index);
+            % Save
             switch outputformat
                 case 'tif'
-                    filename = sprintf( '%s/%s', save_path, sino_names_mat(nn,:));                    
+                    filename = sprintf( '%s/%s', save_path, sino_names_mat(nn,:));
                     write32bitTIFfromSingle(filename,vol)
                 case 'hdf_slice'
-                    filename = sprintf( '%s/%s.h5', save_path, sino_names_mat(nn,1:end-3));                    
+                    filename = sprintf( '%s/%s.h5', save_path, sino_names_mat(nn,1:end-3));
                     write_hdf(filename,vol(:,:,nn),'slice')
                 case 'hdf_volume'
+                    filename = sprintf( '%s%s.h5', save_path, scan_name)
                     [s1,s2] = size(vol);
-                    if nn == 1
-                        filename = sprintf( '%s/%s.h5', save_path, sino_names_mat(nn,1:end-3));
+                    if ~exist(filename,'file')
                         h5create(filename,'/volume',[s1 s2 num_slices],'Datatype','single')
                     end
                     start = [1 1 nn];

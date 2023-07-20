@@ -11,6 +11,13 @@ if isempty( proj_names )
     proj_names =  FilenameCell( [scan_path, '*img*.tif'] );
     par.raw_data = 0;
 end
+if isempty(proj_names)
+    fn = dir( [par.scan_path filesep 'tiff00*/*img.tif']);
+    for nn = numel( fn ):-1:1
+        [~,pf] = fileparts( fn(nn).folder );
+        proj_names{nn} = [pf filesep fn(nn).name];
+    end
+end
 if isempty( proj_names )
     proj_names =  FilenameCell( [scan_path, '*img*.raw'] );
     par.raw_data = 1;
@@ -25,11 +32,26 @@ if isempty( proj_names )
 end
 % Ref file names
 [ref_names, ref_full_path] = get_ref_names( scan_path );
+if isempty(ref_names)
+    fn = dir( [par.scan_path filesep 'tiff00*/*ref.tif']);
+    for nn = numel( fn ):-1:1
+        [~,pf] = fileparts( fn(nn).folder );
+        ref_names{nn} = [pf filesep fn(nn).name];
+        ref_full_path{nn} = [fn(nn).folder filesep fn(nn).name];
+    end
+end
 
 % Dark file names
 dark_names = FilenameCell( [scan_path, '*.dar'] );
 if isempty( dark_names )
     dark_names = FilenameCell( [scan_path, '*dar.tif'] );
+end
+if isempty(dark_names)
+    fn = dir( [par.scan_path filesep 'tiff00*/*dar.tif']);
+    for nn = numel( fn ):-1:1
+        [~,pf] = fileparts( fn(nn).folder );
+        dark_names{nn} = [pf filesep fn(nn).name];
+    end
 end
 if isempty( dark_names )
     dark_names =  FilenameCell( [scan_path, '*dar*.raw'] );
@@ -59,7 +81,7 @@ if ~isempty( ref_path )
         else
             rp_full = rp;
         end
-        
+
         % Check for asterisk indirectly
         if isfolder( rp_full )
             CheckTrailingSlash(rp_full)
@@ -82,9 +104,9 @@ if ~isempty( ref_path )
                 end
             end
         end
-        
+
     end
-    
+
     % Remove entries
     ref_path( ref_path_delete ) = [];
     ref_path = cat( 2, ref_path, ref_path_to_add );
@@ -100,7 +122,7 @@ if ~isempty( ref_path )
         ref_names = cat( 2, ref_names, rn );
         ref_full_path = cat( 2, ref_full_path, rfp );
     end
-    
+
 end
 
 %% Hack due to rewriting of tomoscan_flikit
@@ -112,15 +134,15 @@ if isempty( ref_names )
     stimg_name.time = h5read( h5log,'/entry/scan/data/image_file/time');
     stimg_key.value = h5read( h5log,'/entry/scan/data/image_key/value');
     stimg_key.time = double( h5read( h5log,'/entry/scan/data/image_key/time') );
-    
+
     % File names
     proj_names = stimg_name.value(stimg_key.value==0)';
     ref_names = stimg_name.value(stimg_key.value==1)';
     dark_names = stimg_name.value(stimg_key.value == 2 )';
-    
+
     ref_full_path = cellfun( @(a) [scan_path filesep a], ref_names, 'UniformOutput', 0 );
-    
-    %% name check for petra iii current is now useless    
+
+    %% name check for petra iii current is now useless
     cprintf( 'Red', '\nWarning: HACK. USELESS CROSS CHECK OF FILENAMES AND LOGFILE' )
 end
 

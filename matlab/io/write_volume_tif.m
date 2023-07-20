@@ -30,7 +30,7 @@ convert = ~strcmp(class(vol), im_class);
 
 fprintf( '\nSaving volume [%u %u %u] to \n %s', size( vol), save_path )
 switch im_class
-    case 'float'
+    case {'float','single'}
         parfor nn = 1:size( vol, 3)
             filename = sprintf('%s%s_%06u.tif', save_path, im_prefix, nn);            
             write32bitTIFfromSingle( filename, vol(:,:,nn) )

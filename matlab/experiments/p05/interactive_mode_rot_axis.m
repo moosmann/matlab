@@ -297,28 +297,47 @@ if tomo.run || tomo.run_interactive_mode
                 saveas( h_rot_off, sprintf( '%s%s.png', write.fig_path, regexprep( h_rot_off.Name, '\ |:', '_') ) );
                 
                 % Display
-                if show_stack_imagej && Bytes(vol(:,:,1)) < 2^32 - 1
+                if show_stack_imagej
                     p = [write.interactive_path 'rot_axis_pos' filesep datestr(now, 'yyyymmddTHHMMSS') filesep];
                     mkdir(p)
-                    fprintf('\nSaving images:\n %s', p)
-                    parfor nn = 1:size( vol, 3 )
-                        filename = sprintf('%srot_axis_pos_%06u.tif', p, nn );
-                        write32bitTIF(filename, vol(:,:,nn) );
+                    if Bytes(vol(:,:,1)) < 2^32 - 1
+                        fprintf('\nSaving tif image sequences:\n %s', p)
+                        parfor nn = 1:size( vol, 3 )
+                            filename = sprintf('%srot_axis_pos_%06u.tif', p, nn );
+                            write32bitTIF(filename, vol(:,:,nn) );
+                        end
+                    else
+                        fprintf('\nSaving h5 volume stack:\n %s', p)
+                        filename = sprintf('%srot_axis_pos.h5', p );
+                        if ~exist(filename,'file')
+                            h5create(filename,'/volume',size(vol),'Datatype','single')
+                        end
+                        h5write(filename,'/volume',vol)
                     end
                     p0 = pwd;
                     cd(p)
-                    fprintf('\nLoading imagej')
                     if show_stack_imagej_use_virtual
-                        unix('/asap3/petra3/gpfs/common/p05/jm/bin/imagej_opensequence &');
+                        if Bytes(vol(:,:,1)) < 2^32 - 1
+                            fprintf('\nLoading tif sequence as virtual stack in imagej')
+                            unix('/asap3/petra3/gpfs/common/p05/jm/bin/imagej_opensequence &');
+                        else
+                            fprintf('\nLoading h5 volume as virtual stack in fiji')
+                            unix('/asap3/petra3/gpfs/common/p05/jm/bin/fiji_open_h5 &');
+                        end
                     else
-                        unix('/asap3/petra3/gpfs/common/p05/jm/bin/imagej_opensequence_novirt &');
+                        if Bytes(vol(:,:,1)) < 2^32 - 1
+                            fprintf('\nLoading all images in imagej (no virtual stack)')
+                            unix('/asap3/petra3/gpfs/common/p05/jm/bin/imagej_opensequence_novirt &');
+                        else
+                            fprintf('\nLoading h5 volume as virtual stack in fiji')
+                            unix('/asap3/petra3/gpfs/common/p05/jm/bin/fiji_open_h5_novirt &');
+                        end
                     end
                     pause(3)
                     cd(p0)
                 else
                     nimplay(vol, 1, [], 'OFFSET: sequence of reconstructed slices using different rotation axis offsets')
                 end
-                
             end % isscalar( offset )
             
             if isscalar( offset )

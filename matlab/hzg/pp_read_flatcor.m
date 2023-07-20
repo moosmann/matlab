@@ -5,20 +5,20 @@ if par.read_flatcor
         par.read_flatcor_path = flatcor_path;
     end
     
-    % Angles
-    filename = [ write.reco_path filesep 'angles.mat' ];
-    if ~exist( filename, 'file' )
-        p = [fileparts( fileparts( par.read_flatcor_path ) ) filesep 'reco'];
-        filename = [ p filesep 'angles.mat' ];
-        if ~exist( filename, 'file')
-            p = [ fileparts( par.read_flatcor_path )  filesep 'reco'];
-            filename = [ p filesep 'angles.mat' ];        
-        end
-        if ~exist( filename, 'file')
-            error( 'angles.mat not found' )
-        end
-    end
-    load( filename, 'angles' );
+%     % Angles
+%     filename = [ write.reco_path filesep 'angles.mat' ];
+%     if ~exist( filename, 'file' )
+%         p = [fileparts( fileparts( par.read_flatcor_path ) ) filesep 'reco'];
+%         filename = [ p filesep 'angles.mat' ];
+%         if ~exist( filename, 'file')
+%             p = [ fileparts( par.read_flatcor_path )  filesep 'reco'];
+%             filename = [ p filesep 'angles.mat' ];        
+%         end
+%         if ~exist( filename, 'file')
+%             error( 'angles.mat not found' )
+%         end
+%     end
+%     load( filename, 'angles' );
     
     % File names
     data_struct = dir( [par.read_flatcor_path filesep '*.tif'] );
