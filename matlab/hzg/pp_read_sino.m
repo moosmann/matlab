@@ -23,7 +23,20 @@ if par.read_sino
     [sino, par.tiff_info] = read_image( filename, par );
     read_sino_trafo = par.read_sino_trafo;
     sino = read_sino_trafo( sino );
-    par.im_shape_cropbin1 = size( sino, 2 );
+    switch numel(par.sino_roi)
+        case 0
+            x0 = 1;
+            x1 = size( sino, 2 );
+            par.im_shape_cropbin1 = size( sino, 2 );
+        case 1
+            x0 = par.sino_roi(1);
+            x1 = size(sino,2) - par.sino_roi-1;
+            par.im_shape_cropbin1 = x1 - x0 + 1;
+        case 2
+            x0 = par.sino_roi(1);
+            x1 = par.sino_roi(2);
+            par.im_shape_cropbin1 = x1 - x0 + 1;
+    end
     num_proj_read = size( sino, 1 );
     num_proj_used = num_proj_read;
     
@@ -55,6 +68,7 @@ if par.read_sino
         filename = sprintf('%s%s', sino_path, sino_names_mat(nn, :));
         sino = read_image( filename );
         sino = read_sino_trafo( sino );
+        sino = sino(x0:x1,:);
         proj(:, nn, :) = reshape( sino, [im_shape_cropbin1, 1, num_proj_read] );
         %proj(:, nn, :) = permute( shiftdim( sino, -1 ) , [3 1 2] );
     end

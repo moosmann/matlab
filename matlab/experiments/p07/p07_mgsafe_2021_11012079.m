@@ -1,4 +1,4 @@
-function mgsafe_p07_11012079( SUBSETS, RUN_RECO, PRINT_PARAMETERS)
+function p07_mgsafe_2021_11012079( SUBSETS, RUN_RECO, PRINT_PARAMETERS)
 % Template function to loop over data sets given in the 'PARAMETER / DATA
 % SETS' section below. The 'DEFAULT PARAMETERS' section defines the default
 % paramters. To add a data / parameter to the loop, define your

@@ -168,6 +168,7 @@ parfor (nn = 1:numel(offset), 2*num_gpu_used)
 %     mm = mod(nn, num_gpu) + 1;
 %     tomo_par_nn.astra_gpu_index = gpu_index_list(mm); %#ok<PFBNS>
 %     fprintf('\n  par index: %2u, gpu list index: %2u, gpu index: %u', nn, mm, gpu_index_list(mm))
+    im = [];
     switch tomo_reco_mode
         case '3d'
             im = astra_parallel3D( tomo_par_nn, sino );

@@ -19,6 +19,7 @@ end
 % CPU pool size
 num_gpu_used = numel(gpu_index);
 p = gcp('nocreate');
+
 parpool_size = p.NumWorkers;
 
 % Acquire GPU memory consumption

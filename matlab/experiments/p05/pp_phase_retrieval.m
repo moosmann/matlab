@@ -25,15 +25,16 @@ lambda = E_to_lambda(energy);
 k = 2 * pi / lambda;
 z = edp(2);
 pixelsize = edp(3);
-b = N * edp(3);
+%b = N * edp(3);
+b = edp(3);
 NF = b^2 / lambda / z;
 fprintf( '\n energy : %g keV', energy / 1000 );
 fprintf( '\n lambda : %f pm', lambda*1e12 )
 fprintf( '\n k : %g 1/nm', k*1e-9 )
 fprintf( '\n propagation distance : %f m', z );
 fprintf( '\n effective pixel size binned : %g micron', pixelsize * 1e6);
-fprintf( '\n characteristic length (detector width) b : %f mm', b * 1000 )
-fprintf( '\n Fresnel number = b^2 / lambda / z: %g', NF )
+fprintf( '\n characteristic length = effective pixel size dx : %f mm', b * 1000 )
+fprintf( '\n Fresnel number = dx^2 / lambda / z: %g', NF )
 
 if interactive_mode.phase_retrieval == 1 && strcmpi( method, 'tieNLO_Schwinger' ) 
     interactive_mode.phase_retrieval = 0;

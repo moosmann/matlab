@@ -34,7 +34,8 @@ dbstop if error
 
 if nargin < 1
     scan_path = ...%pwd;
-        '/asap3/petra3/gpfs/p07/2023/data/11016192/processed/bmc006_B2_8rings_h2';
+    '/asap3/petra3/gpfs/p07/2023/data/11016192/processed/bmc015_B4_bobble_wt0p25_75px_b25_';
+    '/asap3/petra3/gpfs/p07/2023/data/11016192/processed/bmc006_B2_8rings_h2';
     '/asap3/petra3/gpfs/p07/2023/data/11016192/processed/bmc015_B4_bobble_wt0p25_75px_b25_';
     '/asap3/petra3/gpfs/p07/2023/data/11016192/processed/bmc003_B2_8rings';
     '/asap3/petra3/gpfs/p07/2022/data/11015573/processed/hereon_bmc_brain_small_roi_scan_44keV';
@@ -49,7 +50,7 @@ if nargin < 1
     '/asap3/petra3/gpfs/p07/2022/data/11015567/processed/mbs020_sample1_mgti_a';
 end
 if nargin < 2
-    rot_angle_full_range = 1*pi;
+    rot_angle_full_range = 2*pi;
 end
 if nargin < 3
     rot_axis_search_range = [];
@@ -61,10 +62,10 @@ end
 
 %%% SCAN %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %scan_path = '';pwd;
-raw_bin = 2; % projection binning factor: integer
+raw_bin = 4; % projection binning factor: integer
 proj_range = []; % projection range
 %read_sino_folder = sprintf( 'trans%02u', raw_bin);% string. default: '', picks first trans folder found
-read_sino_folder = sprintf( 'trans%02u_180', raw_bin);% string. default: '', picks first trans folder found
+read_sino_folder = sprintf( 'trans%02u_360', raw_bin);% string. default: '', picks first trans folder found
 %read_sino_folder = sprintf( 'test04', raw_bin);% string. default: '', picks first trans folder found
 %read_sino = 1; % read preprocessed sinograms. CHECK if negative log has to be taken!
 read_sino_trafo = @(x) (x);%rot90(x); % anonymous function applied to the image which is read e.g. @(x) rot90(x)
@@ -73,7 +74,7 @@ energy = []; % in eV!
 sample_detector_distance = []; % in m
 eff_pixel_size = []; % in m, read from reconlog.txt if []
 %%% RING FILTER
-ring_filter.apply = 1; % ring artifact filter (use only for scans without lateral sample movement)
+ring_filter.apply = 0; % ring artifact filter (use only for scans without lateral sample movement)
 ring_filter.method = 'jm'; 'wavelet-fft';
 ring_filter.waveletfft_dec_levels = 1:6; % decomposition levels for 'wavelet-fft'
 ring_filter.waveletfft_wname = 'db7';'db25';'db30'; % wavelet type, see 'FilterStripesCombinedWaveletFFT' or 'waveinfo'
@@ -117,7 +118,7 @@ tomo.butterworth_filter = 0; % use butterworth filter in addition to FBP filter
 tomo.butterworth_filter_order = 1;
 tomo.butterworth_filter_frequ_cutoff = 0.9;
 tomo.astra_pixel_size = 1; % detector pixel size for reconstruction: if different from one 'tomo.vol_size' must to be ajusted, too!
-tomo.take_neg_log = 0; % take negative logarithm. if empty, use 1 for attenuation contrast, 0 for phase contrast
+tomo.take_neg_log = 1; % take negative logarithm. if empty, use 1 for attenuation contrast, 0 for phase contrast
 tomo.algorithm = 'fbp';'sirt'; 'cgls';'sart';'em';'fbp-astra'; % SART/EM only work for 3D reco mode
 tomo.iterations = 40; % for 'sirt' or 'cgls'.
 tomo.sirt_MinConstraint = []; % If specified, all values below MinConstraint will be set to MinConstraint. This can be used to enforce non-negative reconstructions, for example.
@@ -137,7 +138,7 @@ write.parfolder = '';% parent folder to 'reco', 'sino', 'phase', and 'flat_corre
 write.subfolder_flatcor = ''; % subfolder in 'flat_corrected'
 write.subfolder_phase_map = ''; % subfolder in 'phase_map'
 write.subfolder_sino = ''; % subfolder in 'sino'
-write.subfolder_reco = 'noNegLog_ringFiltJM'; % subfolder in 'reco'
+write.subfolder_reco = ''; % subfolder in 'reco'
 write.flatcor = 0; % save preprocessed flat corrected projections
 write.sino = 0; % save sinograms (after preprocessing & before FBP filtering and phase retrieval)
 write.reco = 1; % save reconstructed slices (if tomo.run=1)
