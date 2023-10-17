@@ -70,7 +70,10 @@ angle_offset = assign_from_struct( tomo, 'rot_angle_offset', 0 );
 MinConstraint = assign_from_struct( tomo, 'MinConstraint', [] );
 MaxConstraint = assign_from_struct( tomo, 'MaxConstraint', [] );
 %vert_shift = assign_from_struct( tomo, 'vert_shift', [] );
-astra_gpu_index = assign_from_struct( tomo, 'astra_gpu_index', [] );
+astra_gpu_index = assign_from_struct( tomo, 'gpu_index', [] );
+if isempty(astra_gpu_index)
+    astra_gpu_index = assign_from_struct( tomo, 'astra_gpu_index', [] );
+end
 if isempty( rotation_axis_offset )
     rotation_axis_offset = assign_from_struct( tomo, 'rot_axis_offset', 0);
 end

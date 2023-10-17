@@ -33,7 +33,9 @@ close all hidden % close all open windows
 dbstop if error
 
 if nargin < 1
-    scan_path = ...%pwd;
+    scan_path = ... % pwd;
+    '/asap3/petra3/gpfs/p07/2023/data/11017607/processed/mosaic/bmc003_B4_paraffin/tests_hs01';
+    '/asap3/petra3/gpfs/p07/2023/data/11017206/processed/itaw006_cet547a_sd01_pp';
     '/asap3/petra3/gpfs/p07/2023/data/11016192/processed/bmc015_B4_bobble_wt0p25_75px_b25_';
     '/asap3/petra3/gpfs/p07/2023/data/11016192/processed/bmc006_B2_8rings_h2';
     '/asap3/petra3/gpfs/p07/2023/data/11016192/processed/bmc015_B4_bobble_wt0p25_75px_b25_';
@@ -62,7 +64,7 @@ end
 
 %%% SCAN %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %scan_path = '';pwd;
-raw_bin = 4; % projection binning factor: integer
+raw_bin = 2; % projection binning factor: integer
 proj_range = []; % projection range
 %read_sino_folder = sprintf( 'trans%02u', raw_bin);% string. default: '', picks first trans folder found
 read_sino_folder = sprintf( 'trans%02u_360', raw_bin);% string. default: '', picks first trans folder found
@@ -99,7 +101,7 @@ tomo.run_interactive_mode = 1; % if tomo.run = 0, use to determine rot axis posi
 tomo.reco_mode = 'slice';'3D'; % slice-wise or full 3D backprojection. 'slice': volume must be centered at origin & no support of rotation axis tilt, reco binning, save compressed
 tomo.slab_wise = 0;
 tomo.slices_per_slab = 1;%[];
-tomo.vol_size = [];%[-1 1 -1 1 -0.5 0.5];% 6-component vector [xmin xmax ymin ymax zmin zmax], for excentric rot axis pos / extended FoV;. if empty, volume is centerd within tomo.vol_shape. unit voxel size is assumed. if smaller than 10 values are interpreted as relative size w.r.t. the detector size. Take care bout minus signs! Note that if empty vol_size is dependent on the rotation axis position.
+tomo.vol_size = [-1 1 -1 1 -0.5 0.5];% 6-component vector [xmin xmax ymin ymax zmin zmax], for excentric rot axis pos / extended FoV;. if empty, volume is centerd within tomo.vol_shape. unit voxel size is assumed. if smaller than 10 values are interpreted as relative size w.r.t. the detector size. Take care bout minus signs! Note that if empty vol_size is dependent on the rotation axis position.
 tomo.vol_shape = []; %[1 1 1] shape (# voxels) of reconstruction volume. used for excentric rot axis pos. if empty, inferred from 'tomo.vol_size'. in absolute numbers of voxels or in relative number w.r.t. the default volume which is given by the detector width and height.
 tomo.rot_angle_offset = 0; % global rotation of reconstructed volume
 tomo.rot_angle_full_range = rot_angle_full_range; % in rad, read from reconlog if []: full angle of rotation including additional increment, or array of angles. if empty full rotation angles is determined automatically to pi or 2 pi
@@ -138,7 +140,7 @@ write.parfolder = '';% parent folder to 'reco', 'sino', 'phase', and 'flat_corre
 write.subfolder_flatcor = ''; % subfolder in 'flat_corrected'
 write.subfolder_phase_map = ''; % subfolder in 'phase_map'
 write.subfolder_sino = ''; % subfolder in 'sino'
-write.subfolder_reco = ''; % subfolder in 'reco'
+write.subfolder_reco = read_sino_folder;''; % subfolder in 'reco'
 write.flatcor = 0; % save preprocessed flat corrected projections
 write.sino = 0; % save sinograms (after preprocessing & before FBP filtering and phase retrieval)
 write.reco = 1; % save reconstructed slices (if tomo.run=1)
@@ -152,7 +154,7 @@ write.uint8_binned = 0; % save binned 8bit unsigned integer tiff using 'wwrite.c
 write.reco_binning_factor = 2; % IF BINNED VOLUMES ARE SAVED: binning factor of reconstructed volume
 write.compression_method = 'outlier';'histo';'full'; 'std'; 'threshold'; % method to compression dynamic range into [0, 1]
 write.compression_parameter = [0.02 0.02]; % compression-method specific parameter
-write.outputformat = 'hdf_volume';'tif';'hdf_slice'; % string
+write.outputformat = 'tif';'hdf_volume';'hdf_slice'; % string
 %%% INTERACTION %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 par.visual_output = 0; % show images and plots during reconstruction
 interactive_mode.show_stack_imagej = 1; % use imagej instead of MATLAB to scroll through images during interactive mode
@@ -171,7 +173,7 @@ interactive_mode.phase_retrieval_default_search_range = []; % if empty: asks for
 %%% HARDWARE / SOFTWARE %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 tomo.astra_link_data = 1; % ASTRA data objects become references to Matlab arrays. Reduces memory issues.
 par.use_cluster = 0; % if available: on MAXWELL nodes disp/nova/wga/wgs cluster computation can be used. Recommended only for large data sets since parpool creation and data transfer implies a lot of overhead.
-par.poolsize = 20; % number of workers used in a local parallel pool. if 0: use current config. if >= 1: absolute number. if 0 < poolsize < 1: relative amount of all cores to be used. if SLURM scheduling is available, a default number of workers is used.
+par.poolsize = 0.5; % number of workers used in a local parallel pool. if 0: use current config. if >= 1: absolute number. if 0 < poolsize < 1: relative amount of all cores to be used. if SLURM scheduling is available, a default number of workers is used.
 par.poolsize_gpu_limit_factor = 0.5; % Relative amount of GPU memory used for preprocessing during parloop. High values speed up Proprocessing, but increases out-of-memory failure
 par.use_gpu_in_parfor = 1;
 par.gpu_index = []; % GPU Device index to use, Matlab notation: index starts from 1. default: [], use all

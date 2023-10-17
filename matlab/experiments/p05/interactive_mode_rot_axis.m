@@ -54,7 +54,11 @@ if tomo.run || tomo.run_interactive_mode
     
     % retrieve index at angles 0 and pi
     [~, ind1] = min( abs( angles ));
-    [~, ind2] = min( abs( angles - pi ));
+    if max(angles) > 1.9 * pi
+        [~, ind2] = min( abs( angles - 2 * pi ));
+    else
+        [~, ind2] = min( abs( angles - pi ));
+    end
     
     [im_shape_cropbin1, im_shape_binned2, ~] = size( proj );
     
@@ -74,10 +78,15 @@ if tomo.run || tomo.run_interactive_mode
                 tomo.rot_axis_corr_area1 = [0.25 0.75];
             end
         end
-        tomo.rot_axis_corr_area1 = IndexParameterToRange( tomo.rot_axis_corr_area1, im_shape_cropbin1 );
-        tomo.rot_axis_corr_area2 = IndexParameterToRange( tomo.rot_axis_corr_area2, im_shape_binned2 );
-        im1c = RotAxisSymmetricCropping( proj(:,tomo.rot_axis_corr_area2,ind1), tomo.rot_axis_position, 1);
-        im2c = flipud(RotAxisSymmetricCropping( proj(:,tomo.rot_axis_corr_area2,ind2) , tomo.rot_axis_position, 1));
+        tomo.rot_axis_corr_area1 = IndexParameterToRange(tomo.rot_axis_corr_area1,im_shape_cropbin1);
+        tomo.rot_axis_corr_area2 = IndexParameterToRange(tomo.rot_axis_corr_area2,im_shape_binned2);        
+        if max(angles) > 1.9 * pi
+            im1c = proj(:,tomo.rot_axis_corr_area2,ind1);
+            im2c = proj(:,tomo.rot_axis_corr_area2,ind2);
+        else
+            im1c = RotAxisSymmetricCropping(proj(:,tomo.rot_axis_corr_area2,ind1),tomo.rot_axis_position,1);
+            im2c = flipud(RotAxisSymmetricCropping(proj(:,tomo.rot_axis_corr_area2,ind2),tomo.rot_axis_position,1));
+        end
         [optimizer, metric] = imregconfig('monomodal');
         tform_calc = imregtform(im2c, im1c, 'rigid', optimizer, metric);
         rot_axis_tilt_calc = asin( tform_calc.T(1,2) ) / 2;
@@ -171,11 +180,18 @@ if tomo.run || tomo.run_interactive_mode
                             fprintf('\n 2. Double click on rectangle OR right click on rectangle and choose ''Crop Image'''  )
                             fprintf('\n 3. Close figure window'  )
                             pause(1)
-                            figure('Name', 'Rotation axis offset: Set ROI for metric calculation')
-                            z = round( size(vol,3) / 2 );
-                            [~,rect] = imcrop(normat(vol(:,:,z)));
+                            figure('Name','Rotation axis offset: Set ROI for metric calculation')
+                            z = round(size(vol,3) / 2);
+                            im = vol(:,:,z);
+                            im = FilterHisto(im,4);
+                            im = normat(im);
+                            [~,rect] = imcrop(im);
                             rect = round(rect);
                             fprintf('\n ROI selection: y0, x0, h, w = %u %u %u %u', rect)
+                            x = rect(1) + rect(3)/2 - size(im,2)/2;
+                            y = rect(2) + rect(4)/2 - size(im,1)/2;
+                            d = sqrt(x^2 + y^2);
+                            fprintf('\n ROI distance from center: %u pixel',round(d))
                             itomo.rot_axis_offset_metric_roi = rect;
                         else
                             fprintf('\nNo reco available. Run loop first to reconstruct a volume.')
@@ -471,27 +487,36 @@ if tomo.run || tomo.run_interactive_mode
                         if isscalar( tilt )
                             cprintf( 'RED', '\n\nCross check tilt by correlation of projections 0 and pi rad: ' )
                             fprintf( 'Registration of projection' )
-                            tomo.rot_axis_position = im_shape_cropbin1 / 2 + tomo.rot_axis_offset;
-                            
+                            tomo.rot_axis_position = im_shape_cropbin1 / 2 + tomo.rot_axis_offset;                            
                             % Compare projection at 0 pi and projection at 1 pi corrected for rotation axis tilt
-                            im1c = RotAxisSymmetricCropping( proj(:,tomo.rot_axis_corr_area2,ind1), tomo.rot_axis_position, 1);
-                            im2c = flipud(RotAxisSymmetricCropping( proj(:,tomo.rot_axis_corr_area2,ind2) , tomo.rot_axis_position, 1));
+                            if max(angles) > 1.9 * pi
+                                im1c = proj(:,tomo.rot_axis_corr_area2,ind1);
+                                im2c = proj(:,tomo.rot_axis_corr_area2,ind2);
+                            else
+                                im1c = RotAxisSymmetricCropping( proj(:,tomo.rot_axis_corr_area2,ind1), tomo.rot_axis_position, 1);
+                                im2c = flipud(RotAxisSymmetricCropping( proj(:,tomo.rot_axis_corr_area2,ind2) , tomo.rot_axis_position, 1));
+                            end
+                            p = [write.im_path filesep 'correlation'];
+                            CheckAndMakePath(p)                            
+                            write32bitTIFfromSingle(sprintf('%s/proj%06u.tif',p,ind1),im1c)
+                            write32bitTIFfromSingle(sprintf('%s/proj%06u.tif',p,ind1),im2c)
                             [optimizer, metric] = imregconfig('monomodal');
                             tform_calc = imregtform(im2c, im1c, 'rigid', optimizer, metric);
                             rot_axis_tilt_calc = asin( tform_calc.T(1,2) ) / 2;
-                            im2c_warped_calc =  imwarp(im2c, tform_calc, 'OutputView', imref2d(size(im1c)));
+                            %im2c_warped_calc =  imwarp(im2c, tform_calc, 'OutputView', imref2d(size(im1c)));
                             tform_int = tform_calc;
                             tform_int.T = [cos( 2 * itomo.tilt ) sin( 2 * itomo.tilt ) 0; ...
                                 -sin( 2 * itomo.tilt ) cos( 2 * itomo.tilt ) 0 ; ...
-                                tform_calc.T(3,1) tform_calc.T(3,2) 1];
+                                0 0 1];
+                                %tform_calc.T(3,1) tform_calc.T(3,2) 1];
                             % Remove translation if very large which is
                             % likely to be incorrect
-                            if tform_int.T(3,1) > 10
-                                tform_int.T(3,1) = 0;
-                            end
-                            if tform_int.T(3,2) > 10
-                                tform_int.T(3,2) = 0;
-                            end
+%                             if abs(tform_int.T(3,1)) > 10
+%                                 tform_int.T(3,1) = 0;
+%                             end
+%                             if abs(tform_int.T(3,2)) > 10
+%                                 tform_int.T(3,2) = 0;
+%                             end
                             fprintf( '\n registration matrix translation: x, y = %f %f', tform_int.T(3,1), tform_int.T(3,2) );
                             fprintf( '\n registration matrix scale: x, y = %f %f', tform_int.T(1,1), tform_int.T(2,2) );
                             fprintf( '\n registration matrix shear: x, y = %f %f', tform_int.T(1,2), tform_int.T(2,1) );
@@ -500,25 +525,62 @@ if tomo.run || tomo.run_interactive_mode
                             % Shear: [1 sh_y 0, sh_x 1 0, 0 0 1]
                             % Rotation: [cos(t) sin(t) 0, -sin(t) cos(t) 0, 0 0 1]
                             
-                            im2c_warped_int =  imwarp(im2c, tform_int, 'OutputView', imref2d(size(im1c)));
-                            
-                            xt = 4 *ceil( 3 * abs( sin(2*itomo.tilt) ) * max( size(im1c)) ) + 10 + 2 *ceil(max( abs(tform_int.T(3,1:2))));
-                            
-                            if xt < size( im1c,1)  -10 && xt < size( im1c,2)  -10
-                                fprintf( '\n current rotation axis tilt from interactive mode: %g rad (%g deg)', itomo.tilt, itomo.tilt * 180 / pi)
-                                fprintf( '\n calcul. rotation axis tilt from registration    : %g rad (%g deg)', rot_axis_tilt_calc, rot_axis_tilt_calc * 180 / pi)
-                                
-                                name = sprintf( 'TILT: registered projections at %g and %g degree. rot axis tilt from INTERACTIVE mode: %g, rot axis offset: %g', angles(ind1)/pi*180, angles(ind2)/pi*180, tilt, offset);
-                                nimplay( cat(3, im1c(xt:end-xt,xt:end-xt)', im2c_warped_int(xt:end-xt,xt:end-xt)'), 1, 0, name)
-                                
-                                name = sprintf( 'TILT: registered projections at %g and %g degree. corrected. rot axis tilt from REGISTRATION: %g, rot axis offset: %g', angles(ind1)/pi*180, angles(ind2)/pi*180, rot_axis_tilt_calc, offset);
-                                nimplay( cat(3, im1c(xt:end-xt,xt:end-xt)', im2c_warped_calc(xt:end-xt,xt:end-xt)'), 1, 0, name)
-                                
-                                inp = input( '\n\nENTER ROTATION AXIS TILT, if empty use current tilt: ');
-                                if ~isempty( inp )
-                                    tilt = inp;
-                                end
+                            Rin = imref2d(size(im1c));
+                            Rin.XWorldLimits = Rin.XWorldLimits-1*mean(Rin.XWorldLimits);
+                            Rin.YWorldLimits = Rin.YWorldLimits-1*mean(Rin.YWorldLimits);
+                            %im2c_warped_int =  imwarp(im2c,tform_int,'OutputView',Rin);
+                            %im2c_warped_int =  imwarp(im2c,Rin,tform_int);
+                            fprintf( '\n Rotating 2nd image')
+                            im2c_warped_int = imrotate(im2c,-2 * tilt * 180 / pi,'bilinear','crop');
+                            %xt = 4 *ceil( 3 * abs( sin(2*itomo.tilt) ) * max( size(im1c)) ) + 10 + 2 *ceil(max( abs(tform_int.T(3,1:2))));
+                            %if xt < size( im1c,1)  -10 && xt < size( im1c,2)  -10
+                            fprintf( '\n current rotation axis tilt from interactive mode: %g rad (%g deg)', itomo.tilt, itomo.tilt * 180 / pi)
+                            fprintf( '\n calcul. rotation axis tilt from registration    : %g rad (%g deg)', rot_axis_tilt_calc, rot_axis_tilt_calc * 180 / pi)                            
+                            x0 = 1 + 2 * ceil(sin(2 * tilt) .* size(im1c,1));
+                            y0 = 1 + 2 * ceil(sin(2 * tilt) .* size(im1c,2));
+                            x1 = size(im1c,1)-x0;
+                            y1 = size(im1c,2)-y0;
+                            x = x0:x1;
+                            y = y0:y1;
+                            im1 = im1c(x,y)';
+                            im2 = im2c_warped_int(x,y)';
+                            out = ImageCorrelation(im1,im2);
+                            fprintf( '\n relative shift after rotation: %.1f, %0.1f',out.shift1,out.shift2)
+                            fprintf( '\n Interpolating 2nd image on shifted grid')
+                            [X,Y] = meshgrid(1:size(im1,2),1:size(im1,1));
+                            im2i = interp2(X,Y,im2,X - out.shift2,Y - out.shift1,'linear',mean2(im2));
+                            fprintf( '\n Cropping on common grid')
+                            if out.shift2 > 0
+                                y0 = 1 + ceil(out.shift2);
+                                y1 = size(im1,2);
+                            else
+                                y0 = 1;
+                                y1 = size(im1,2) + floor(out.shift2);
                             end
+                            if out.shift2 > 0
+                                x0 = 1 + ceil(out.shift1);
+                                x1 = size(im1,1);
+                            else
+                                x0 = 1;
+                                x1 = size(im1,1) + floor(out.shift1);
+                            end
+                            x = x0:x1;
+                            y = y0:y1;
+                            im1m = im1(x,y);
+                            im2im = im2i(x,y);
+                            name = sprintf( 'TILT: registered projections at %g and %g degree. rot axis tilt from INTERACTIVE mode: %g, rot axis offset: %g', angles(ind1)/pi*180, angles(ind2)/pi*180, tilt, offset);
+                            nimplay(cat(3,im1m,im2im), 1, 0, name)
+                            %nimplay( cat(3, im1c(xt:end-xt,xt:end-xt)', im2c_warped_int(xt:end-xt,xt:end-xt)'), 1, 0, name)
+                            
+%                             name = sprintf( 'TILT: registered projections at %g and %g degree. corrected. rot axis tilt from REGISTRATION: %g, rot axis offset: %g', angles(ind1)/pi*180, angles(ind2)/pi*180, rot_axis_tilt_calc, offset);
+%                             %nimplay( cat(3, im1c(xt:end-xt,xt:end-xt)', im2c_warped_calc(xt:end-xt,xt:end-xt)'), 1, 0, name)
+%                             nimplay( cat(3, im1c', im2c_warped_calc'), 1, 0, name)
+%                             
+                            inp = input( '\n\nENTER ROTATION AXIS TILT, if empty use current tilt: ');
+                            if ~isempty( inp )
+                                tilt = inp;
+                            end
+                            %end
                             
                             % Loop over offsets again?
                             inp = [];

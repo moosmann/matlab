@@ -39,48 +39,22 @@ dbstop if error
 par.quick_switch = 1;
 par.scan_path = pwd;
 %par.scan_path = last_folder_modified('')
-par.raw_bin = 3;
+par.raw_bin = 2;
 par.raw_roi = [];
-par.proj_range = [];1:8000;%14910;%beam dump itaw004 at proj# 14910
+par.proj_range = [];
 par.ref_range = 1;
-phase_retrieval.apply = 1;
-phase_retrieval.reg_par = 1;
-interactive_mode.phase_retrieval = 0;
-%image_correlation.num_flats = 10;
+phase_retrieval.apply = 0;
 image_correlation.method = 'mean';
-tomo.vol_size = [];%[-1.0 1.0 -1.0 1.0 -0.5 0.5];
-%write.subfolder_reco = 'proj1';
 write.to_scratch = 0;
 write.flatcor = 0;
 write.parfolder = '';
-par.stitch_projections = 0;
-par.crop_proj = 0;
-par.crop_at_rot_axis = 0;
 tomo.rot_axis_offset = [];
+interactive_mode.phase_retrieval = 0;
 interactive_mode.rot_axis_pos = 1;
 interactive_mode.rot_axis_tilt = 0;
-interactive_mode.lamino = 0; % find laminography tilt instead camera tilt
-interactive_mode.angles = 0;
-%interactive_mode.slice_number = round(1150 /4);
-tomo.rot_axis_search_auto = 0; % find extrema of metric within search range
-%tomo.rot_axis_search_range = 9:0.5:15; % search reach for automatic determination of the rotation axis offset, overwrite interactive result if not empty
-tomo.rot_axis_search_metric = 'neg'; % string: 'neg','entropy','iso-grad','laplacian','entropy-ML','abs'. Metric to find rotation axis offset
-tomo.rot_axis_search_extrema = 'max'; % string: 'min'/'max'. chose min or maximum position
-tomo.rot_axis_search_fit = 1; % bool: fit calculated metrics and find extrema, otherwise use extrema from search range
-tomo.rot_axis_offset_metric_roi = []; % 4-vector: [. ROI for metric calculation. roi = [y0, x0, y1-y0, x1-x0]. (x,y)=(0,0)=upper left
-par.use_gpu_in_parfor = 1;
-tomo.astra_link_data = 1;
-
-%par.read_flatcor = 1;
-%par.read_flatcor_path = '/asap3/petra3/gpfs/p07/2023/data/11014647/processed/014_ifbk_c1_dpc/w3/Int_q';
-%par.nexus_path = '/asap3/petra3/gpfs/p07/2023/data/11014647/raw/014_ifbk_c1_dpc_000';
-%tomo.rot_axis_offset = -1.25;%-831.25 / 4 * par.raw_bin;
-%tomo.vol_size = [-0.45 0.45 -0.45 0.45 -0.5 0.45];
-%tomo.rot_axis_tilt_camera = -0.008;
-%tomo.take_neg_log = 0;
+tomo.vol_size = [];
 
 %par.raw_roi = [2001 4000 2001 6000];
-% 
 % par.read_sino = 1;
 % par.scan_path = '/asap3/petra3/gpfs/p07/2023/data/11016192/processed/bmc006_B2_8rings_h2/';
 % par.read_sino_folder = 'trans02_180';
@@ -94,6 +68,29 @@ tomo.astra_link_data = 1;
 % tomo.reco_mode = 'slice';
 % write.subfolder_reco = '';
 % write.outputformat = 'hdf_volume';'tif';'hdf_slice'; % string
+
+% interactive_mode.rot_axis_pos = 0;
+% tomo.rot_axis_offset = 0;
+% tomo.vol_size = [];
+% par.read_flatcor = 1; 
+% tomo.rot_angle_full_range = (359.991 - 180) * pi / 180; % angle 47998
+% par.read_flatcor_path = '/asap3/petra3/gpfs/p07/2023/data/11017607/processed/mosaic/bmc003_B4_paraffin/tests_hs01/stitched_proj_filtered';
+% tomo.rot_angle_full_range = (359.997 - 180) * pi / 180; % angle 48000
+% par.read_flatcor_path = '/asap3/petra3/gpfs/p07/2023/data/11017607/processed/mosaic/bmc010_D_EtOH/tests_hs01/stitched_proj_filtered';
+% par.read_flatcor_trafo = @(im) im; %fliplr( im ); % anonymous function applied to the image which is read e.g. @(x) rot90(x)
+% par.read_flatcor_range = 1;
+% par.read_flatcor_bin = 2;
+% par.filter_sino = 0;
+% ring_filter.apply = 1;
+% phase_retrieval.apply = 1;
+% phase_retrieval.reg_par = 2.0;
+% par.energy = 67e3; % eV
+% par.sample_detector_distance = 0.8; % in m
+% par.eff_pixel_size = 0.0064/5.03813 * 1e-3; % m
+% tomo.reco_mode = 'slice';
+% write.subfolder_reco = '';
+% write.outputformat = 'hdf_volume';'tif';'hdf_slice'; % string
+
 % END OF QUICK SWITCH TO ALTERNATIVE SET OF PARAMETERS %%%%%%%%%%%%%%%%%%%%
 
 pp_parameter_switch % DO NOT DELETE THIS LINE
@@ -103,6 +100,8 @@ par.scan_path = pwd; % string/pwd. pwd: change to directory of the scan to be re
 par.ref_path = {}; % cell of strings. Additonal data sets to be included for the correlation of projections and reference images
 par.read_flatcor = 0; % read preprocessed flatfield-corrected projections. CHECK if negative log has to be taken!
 par.read_flatcor_path = ''; % absolute path containing flat-field corrected projections
+par.read_flatcor_range = 1;
+par.read_flatcor_bin = 1; % Binning of flat-corrected projections
 par.read_flatcor_trafo = @(im) im; %fliplr( im ); % anonymous function applied to the image which is read e.g. @(x) rot90(x)
 par.read_sino = 0; % read preprocessed sinograms. CHECK if negative log has to be taken!
 par.read_sino_folder = ''; % subfolder to scan path
@@ -141,7 +140,7 @@ pixel_filter_threshold_dark = [0.01 0.005]; % Dark fields: threshold parameter f
 pixel_filter_threshold_flat = [0.02 0.005]; % Flat fields: threshold parameter for hot/dark pixel filter, for details see 'FilterPixel'
 pixel_filter_threshold_proj = [0.02 0.005]; % Raw projection: threshold parameter for hot/dark pixel filter, for details see 'FilterPixel'
 pixel_filter_radius = [5 5]; % Increase only if blobs of zeros or other artefacts are expected. Can increase processing time heavily.
-par.ring_current_normalization = 0; % normalize flat fields and projections by ring current
+par.ring_current_normalization = 1; % normalize flat fields and projections by ring current
 image_correlation.method = 'median'; 'ssim-ml';'median';'entropy';'none';'ssim';'ssim-g';'std';'cov';'corr';'diff1-l1';'diff1-l2';'diff2-l1';'diff2-l2';'cross-entropy-12';'cross-entropy-21';'cross-entropy-x';
 % Correlation of projections and flat fields. Essential for DCM data. Typically improves reconstruction quality of DMM data, too.
 % Available methods ('ssim-ml'/'entropy' usually work best):
@@ -175,7 +174,7 @@ ring_filter.jm_median_width = 11; % multiple widths are applied consecutively, e
 par.strong_abs_thresh = 1; % if 1: does nothing, if < 1: flat-corrected values below threshold are set to one. Try with algebratic reco techniques.
 par.norm_sino = 0; % not recommended, can introduce severe artifacts, but sometimes improves quality
 % Workaround correction for image distortions using a quadratic dilation/compression of the projections/sinogram
-% Preferably, projection cropping of laterally shifted projetion 'crop_proj' is not used
+% Preferably, projection cropping of laterally shifted projection 'crop_proj' is not used
 par.distortion_correction_distance = 0; % scalar, in binned pixel, distance between two regions in the tomogram that can be properly reconstructed using different rotation axis offsets, if 0: no correction done
 par.distortion_correction_outer_offset = 0; % scalar, in pixel, rotation axis offset for the outer region. the offset for the inner region is used for reconstruction
 par.distortion_correction_exponent = 2; % scalar,  exponent of interpolation function: xq = x - 2 * offset_diff * (x / dist_offset).^exponent;
@@ -198,7 +197,8 @@ tomo.run = 1; % run tomographic reconstruction
 tomo.run_interactive_mode = 1; % if tomo.run = 0, use to determine rot axis positions without processing the full tomogram;
 tomo.reco_mode = '3D';'slice'; % slice-wise or full 3D backprojection. 'slice': volume must be centered at origin & no support of rotation axis tilt, reco binning, save compressed
 tomo.vol_size = [];%[-1 1 -1 1 -0.5 0.5];% 6-component vector [xmin xmax ymin ymax zmin zmax] for excentric rot axis pos or extended FoV;. if empty, volume is centerd within tomo.vol_shape. unit voxel size is assumed. if smaller than 10 values are interpreted as relative size w.r.t. the detector size. Take care bout minus signs! Note that if empty vol_size is dependent on the rotation axis position.
-% Orientation using Matlab's matrix notation: coordinate (0,0) = top left pixel
+% Orientation using Matlab's matrix notation: relative coordinates in a horizontal reconstruction plane using imagej (-0.5,-0.5) = top left
+% pixel, (0.5,0.5) = bottom right, (0,0) = center
 % [left, right, top, bottom, bottom slice, top slice]
 tomo.vol_shape = []; %[1 1 1] shape (# voxels) of reconstruction volume. used for excentric rot axis pos. if empty, inferred from 'tomo.vol_size'. in absolute numbers of voxels or in relative number w.r.t. the default volume which is given by the detector width and height.
 tomo.rot_angle_full_range = [];% 2 * pi ;[]; % in radians. if []: full angle of rotation including additional increment, or array of angles. if empty full rotation angles is determined automatically to pi or 2 pi
@@ -281,12 +281,12 @@ interactive_mode.phase_retrieval_default_search_range = []; % if empty: asks for
 interactive_mode.show_stack_imagej = 1; % use imagej instead of MATLAB to scroll through images during interactive mode
 interactive_mode.show_stack_imagej_use_virtual = 1; % use virtual stack for faster loading, but slower scrolling
 %%% HARDWARE / SOFTWARE %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-tomo.astra_link_data = 1; % ASTRA data objects become references to Matlab arrays. Reduces memory issues.
-par.gpu_index = []; % indices of GPU devices to use, Matlab notation: index starts from 1. default: [], uses all
+tomo.astra_link_data = 1; % boolean: ASTRA data objects become references to Matlab arrays. Reduces memory issues.
+par.gpu_index = []; % integer vector: indices of GPU devices to use, Matlab notation: index starts from 1. default: [], uses all
 par.use_cluster = 0; % if available: on MAXWELL nodes disp/nova/wga/wgs cluster computation can be used. Recommended only for large data sets since parpool creation and data transfer implies a lot of overhead.
-par.use_gpu_in_parfor = 0;
-par.poolsize = 0.5; % number of workers used in a local parallel pool. if 0: use current config. if >= 1: absolute number. if 0 < poolsize < 1: relative amount of all cores to be used. if SLURM scheduling is available, a default number of workers is used.
-par.poolsize_gpu_limit_factor = 0.5; % Relative amount of GPU memory used for preprocessing during parloop. High values speed up Proprocessing, but increases out-of-memory failure
+par.use_gpu_in_parfor = 1; % boolean
+par.poolsize = 0.5; % scalar: number of workers used in a local parallel pool. if 0: use current config. if >= 1: absolute number. if 0 < poolsize < 1: relative amount of all cores to be used. if SLURM scheduling is available, a default number of workers is used.
+par.poolsize_gpu_limit_factor = 0.5; % scalar: elative amount of GPU memory used for preprocessing during parloop. High values speed up Proprocessing, but increases out-of-memory failure
 phase_retrieval.use_parpool = 1; % bool. Disable parpool when out-of-memory error occurs during phase retrieval.
 par.window_state = 'minimized';'normal';'maximized';
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -313,7 +313,6 @@ logpar = [];
 s_stage_z_str =  '';
 imlogcell = [];
 scan_position_index = [];
-outputformat = write.outputformat;
 
 %%% Parameters set by reconstruction loop script 'p05_reco_loop' %%%%%%%%%%
 if nargin == 1 %exist( 'external_parameter' ,'var')
@@ -399,6 +398,8 @@ end
 %% Default assignment if non-existing or empty!
 %assign_default( '',  )
 assign_default( 'par.raw_bin', 2 );
+assign_default( 'par.read_flatcor_bin', 1 );
+assign_default( 'par.read_flatcor_range', 1 );
 assign_default( 'par.im_shape_raw', []);
 assign_default( 'par.im_format', '' );
 assign_default( 'par.tif_info', []);
@@ -476,12 +477,18 @@ assign_default( 'par.sino_roi', [])
 
 % Define variables from struct fields for convenience
 par.raw_bin = single( par.raw_bin );
-raw_bin = par.raw_bin;
-phase_bin = phase_retrieval.post_binning_factor; % alias for readablity
+if ~par.read_flatcor
+    raw_bin = par.raw_bin;
+else
+    raw_bin = par.read_flatcor_bin;
+    par.raw_bin = raw_bin;
+end
+phase_bin = phase_retrieval.post_binning_factor;
 eff_pixel_size_binned = raw_bin * par.eff_pixel_size;
 window_state = par.window_state;
+outputformat = write.outputformat;
 
-astra_clear % if reco was aborted, ASTRA memory is not cleared
+astra_clear % if reco was aborted, ASTRA memory was not cleared
 
 % Utility functions
 imsc1 = @(im) imsc( rot90( im ) );
@@ -571,9 +578,16 @@ im_path = write.im_path;
 im_path1 = [write.im_path '/images1/'];
 im_path2 = [write.im_path '/images2/'];
 im_path3 = [write.im_path '/images3/'];
-im_path1reco = [write.im_path '/reco1/'];
-im_path2reco = [write.im_path '/reco2/'];
-im_path3reco = [write.im_path '/reco3/'];
+if phase_retrieval.apply
+    im_path1reco = [write.im_path '/reco_phase1/'];
+    im_path2reco = [write.im_path '/reco_phase2/'];
+    im_path3reco = [write.im_path '/reco_phase3/'];
+    
+else
+    im_path1reco = [write.im_path '/reco1/'];
+    im_path2reco = [write.im_path '/reco2/'];
+    im_path3reco = [write.im_path '/reco3/'];
+end
 
 % Path to flat-field corrected projections
 flatcor_path = sprintf( '%s/flat_corrected/rawBin%u/', write.path, raw_bin );
@@ -868,8 +882,8 @@ if ~par.read_flatcor && ~par.read_sino
         end
         if isempty( imlogcell )
             % Get image name, key, time stamp and P3 current from log
-            %[stimg_name, stimg_key, petra, petra_scan] = pp_stimg_petra( nexuslog_name );
-            [stimg_name, stimg_key, petra, ~] = pp_stimg_petra( nexuslog_name );
+            %[stimg_name, stimg_key, petra, petra_scan] = pp_stimg_petra(nexuslog_name,par);
+            [stimg_name, stimg_key, petra, ~] = pp_stimg_petra(nexuslog_name,par);
             % rotation axis
             s_rot.time = double( h5read( nexuslog_name{1}, '/entry/scan/data/s_rot/time') );
             s_rot.value = h5read( nexuslog_name{1}, '/entry/scan/data/s_rot/value');
@@ -891,7 +905,7 @@ if ~par.read_flatcor && ~par.read_sino
             s_stage_z_str = '/entry/scan/data/s_stage_z';
         end
         % Display PETRA current
-        if par.visual_output && ~sum( isnan( petra.current ) )
+        if par.visual_output && ~isempty(petra) && ~sum( isnan( petra.current ) )
             name = 'PETRA beam current from status server';
             f = figure( 'Name', name, 'WindowState', window_state );
             x = double( petra.time - petra.time(1) ) / 1000 / 60;
@@ -1012,7 +1026,7 @@ if ~par.read_flatcor && ~par.read_sino
                 end
                 
                 % Plot offset shift%
-                if par.visual_output && std( scan_position ) ~= 0
+                if par.visual_output %&& std( scan_position ) ~= 0
                     f = figure( 'Name', 'rotation axis offset shift', 'WindowState', window_state );
                     
                     yyaxis left
@@ -1096,7 +1110,7 @@ if ~par.read_flatcor && ~par.read_sino
         end %if sum( strcmp('/entry/scan/data/s_stage_z',{a.Groups.Name}))
         
         %% Ring current
-        if numel(stimg_key.scan.value) == numel(stimg_name.scan.time)
+        if ~isempty(petra) && numel(stimg_key.scan.value) == numel(stimg_name.scan.time)
             X = double( petra.time );
             V = double( petra.current );
             Xq = double( stimg_name.scan.time );
@@ -1821,8 +1835,8 @@ if ~par.read_flatcor && ~par.read_sino
     fprintf( '\n angle increment: std = %g mrad = %g * pi/1000', dast/1000, dast/pi/1000 )
     angles123 = a(1:3);
     angles321 = a(end-4:end);
-    fprintf( '\n angles / pi: %f %f %f ... %f %f %f %f %f ', angles123/pi, angles321 )
-    fprintf( '\n angles / pi: %f * (%.2f %.2f %.2f ... %.2f %.2f %.2f %.2f %.2f )', da, angles123/da, angles321/da )
+    fprintf( '\n angles / pi: %f %f %f ... %f %f %f %f %f ', angles123/pi, angles321/pi)
+    fprintf( '\n angles: %f * (%.1f %.1f %.1f ... %.1f %.1f %.1f %.1f %.1f )', da, angles123/da, angles321/da )
     
     % Figure: Angles
     if par.visual_output
@@ -2157,7 +2171,7 @@ else
         d = dir([par.nexus_path filesep '*.h5']);
         nexuslog_name = [d.folder filesep d.name];
         s_rot.value = h5read( nexuslog_name, '/entry/scan/data/s_rot/value');
-        [~, stimg_key, ~, ~] = pp_stimg_petra( {nexuslog_name} );
+        [~, stimg_key, ~, ~] = pp_stimg_petra({nexuslog_name},par);
         angles = s_rot.value( ~boolean( stimg_key.scan.value(20+1:end) ) ) * pi / 180;
     end
     [tomo, angles, tint, par] = interactive_mode_rot_axis( par, logpar, phase_retrieval, tomo, write, interactive_mode, proj, angles);
