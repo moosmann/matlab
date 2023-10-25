@@ -7,6 +7,13 @@ if tomo.rot_axis_search_auto == 0
     return
 end
 
+if isempty(tomo.rot_axis_search_range)
+   tomo.rot_axis_search_range = interactive_mode.rot_axis_search_range;
+end
+if tomo.rot_axis_search_range_from_interactive
+    tomo.rot_axis_search_range = tomo.interactive_offset_range;
+end
+
 offset = tomo.rot_axis_search_range;
 search_metric = tomo.rot_axis_search_metric;
 extrema = tomo.rot_axis_search_extrema;
@@ -38,6 +45,10 @@ while isempty(extrema)
         end
     end
 end
+if isempty(tomo.rot_axis_search_slice)
+    tomo.rot_axis_search_slice = tomo.slice;
+end
+tomo.slice = tomo.rot_axis_search_slice;
 
 if ~isempty(offset) || ~isempty(search_metric)
         fprintf( '\nAutomatic rotation axis position determination.')
@@ -50,13 +61,10 @@ if ~isempty(offset) || ~isempty(search_metric)
     tomo_auto.offset = offset;
     [~, metrics_offset] = find_rot_axis_offset( tomo_auto, proj, par);
     
-    
     if tomo.rot_axis_search_verbose
-        
         % Metric minima
         [~, min_pos] = min(cell2mat({metrics_offset(:).val}));
         [~, max_pos] = max(cell2mat({metrics_offset(:).val}));
-        
         % Print image number, rotation axis values, and different metrics
         fprintf( ' no.' )
         fprintf( '%11s', 'offset', metrics_offset.name)

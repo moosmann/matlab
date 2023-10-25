@@ -1,4 +1,4 @@
-function [out,g_ft,uncropped]=Reco(int,alpha,EnergyDistancePixelsize,BinaryFilter,PerturbativeCorrection,Padding_FactorAndValue)
+function [out,g_ft,uncropped]=RecoExplicitTIE(int,alpha,EnergyDistancePixelsize,BinaryFilter,PerturbativeCorrection,Padding_FactorAndValue)
 
 % [out,g_ft,ctf_uncropped] =
 % Reco(int,alpha,EnergyDistancePixelsize,BinaryFilter,PerturbativeCorrection,Padding_FactorAndValue);
@@ -55,7 +55,7 @@ if nargout == 3
 end
 out.ctf       = out.ctf(xcut,ycut,:);
 % Projected CTF
-if BinaryFilter>0,
+if BinaryFilter>0
     % Create binary filter with threshold BinaryFilter.
     f = ones(dimx,dimy);
     f( (sineXiEta.^2<BinaryFilter) & (1/prefactor*(xi.^2 + eta.^2)/2>pi/2) ) = 0;

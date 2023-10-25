@@ -1,4 +1,4 @@
-function  [phi0,phi1,phi2] = rec(dataslice,padding,alpha,padvalue,renormalize);
+function  [phi0,phi1,phi2] = phase_retrieval_perturbative_backup(dataslice,padding,alpha,padvalue,renormalize)
 % Phase retrieval algorithm to first and second order in distance z. Input
 % is the intensity contrast at given distance. Output is the phase map of
 % the first order (Bronnikov) and two correction terms to the first order
@@ -11,10 +11,10 @@ function  [phi0,phi1,phi2] = rec(dataslice,padding,alpha,padvalue,renormalize);
 
 if (nargin<4) || isempty(padvalue)
     padvalue = 0;
-end;
+end
 if (nargin<5) || isempty(renormalize)
     renormalize = 1;
-end;
+end
 
 % Dimensions of input data array.
 [dim2,dim1] = size(dataslice);
@@ -60,10 +60,10 @@ phi2         = -pi/2*(iftxiphi_ft.^2 + iftetaphi_ft.^2);
 %iterations    = iterations - 1;
 %end;
 % Take real part and clip zero-padded matrices to original size
-if dimx~=dim1 | dimy~=dim2
+if dimx~=dim1 || dimy~=dim2
 fprintf(['Zero-padded %u x %u data to %u x %u and clipped to original ' ...
          'size.\n'],dim1,dim2,dimx,dimy);
-end;
+end
 ycut = 1+dimy/2-dim2/2:dimy/2+dim2/2;
 xcut = 1+dimx/2-dim1/2:dimx/2+dim1/2;
 phi0      = real(phi0(ycut,xcut));
@@ -76,4 +76,4 @@ maxval = max(max(phi0+phi1+phi2));
 phi0   = (phi0-maxval)/(maxval-minval);
 phi1   = (phi1)/(maxval-minval);
 phi2   = (phi2)/(maxval-minval);
-end;
+end

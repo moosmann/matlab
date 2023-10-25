@@ -138,6 +138,7 @@ if tomo.run || tomo.run_interactive_mode
         
         % Loop over offsets
         while ~isscalar( offset )
+            interactive_mode.rot_axis_search_range = offset;
             cprintf( 'RED', '\nEntering offset loop' )
             % Print parameters
             fprintf( '\n scan: %s', write.scan_name )
@@ -162,6 +163,7 @@ if tomo.run || tomo.run_interactive_mode
                         end
                         fprintf( ' new slice : %u (before: %u)', slice, itomo.slice );
                         itomo.slice = slice;
+                        tomo.slice = slice;
                     case 'd'
                         cprintf( 'RED', 'ENTERING DEBUG MODE. Continue with F5.' )
                         keyboard
@@ -254,6 +256,7 @@ if tomo.run || tomo.run_interactive_mode
                 % Reco parameter
                 [itomo.vol_shape, itomo.vol_size] = volshape_volsize( proj, itomo.vol_shape, itomo.vol_size, median(offset), 0);
                 itomo.offset = offset;
+                tomo.interactive_offset_range = offset;
                 if ~isempty( tilt )
                     itomo.tilt = tilt;
                 end

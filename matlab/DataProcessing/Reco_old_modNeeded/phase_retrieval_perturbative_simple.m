@@ -1,9 +1,9 @@
-function [phi0,phi11,phi12,phi13] = rec2(data,slice,padding,alpha,iterations);
+function [phi0,phi11,phi12,phi13] = phase_retrieval_perturbative_simple(data,slice,~,alpha,~)
 %phase retrieval algorithm to first and second order in distance z
 
 
 %dimensions of input data array
-[dim2,dim1,dimp] = size(data);
+[dim2,dim1,~] = size(data);
 dimx             = dim1;
 dimy             = dim2;
 

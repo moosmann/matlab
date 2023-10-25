@@ -20,6 +20,9 @@ end
 num_gpu_used = numel(gpu_index);
 p = gcp('nocreate');
 
+if isempty(p)%~isprop(p,'NumWorkers')
+    [p, par.poolsize] = OpenParpool( par.poolsize, par.use_cluster, par.pool_tmp_folder, 0, [] );
+end
 parpool_size = p.NumWorkers;
 
 % Acquire GPU memory consumption
@@ -57,8 +60,8 @@ gpu_index_list(gpu_index_list==0) = [];
 
 if verbose
     fprintf('\n Parpool size: %u', parpool_size)
-    fprintf( '\n GPUs to use:')
-    fprintf( ' %u', gpu_index)
+    fprintf('\n GPUs to use:')
+    fprintf(' %u', gpu_index)
      for nn = 1:num_gpu_used
         ma = mem_avail_gpu(nn)/1024^3;
         mt = mem_total_gpu(nn)/1024^3;
@@ -73,6 +76,5 @@ if verbose
     fprintf(' %7u', recos_per_gpu)
     fprintf('\n Parpool GPU index list:\n  ')
     fprintf(' %u', gpu_index_list)
-    fprintf('\n Parpool GPU index list length: %u', numel(gpu_index_list))
-    fprintf('\n')
+    fprintf('\n Parpool GPU index list length: %u', numel(gpu_index_list))    
 end

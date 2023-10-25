@@ -1,4 +1,4 @@
-function [phi,fts,lphi] = rec(dataslice,alpha,padding,padvalue,renormalize);
+function [phi,fts,lphi] = phase_retrieval_perturbative(dataslice,alpha,padding,padvalue,renormalize)
 % Phase retrieval algorithm to leading, next-to-leading and
 % next-to-next-to-leading order in z (sample-detector distance). Input is
 % pure phase-contrast intensity pattern given at z. Output stack includes
@@ -11,8 +11,8 @@ function [phi,fts,lphi] = rec(dataslice,alpha,padding,padvalue,renormalize);
 % of the retrieved phase. Therefore the result is renormalized to the
 % intervall [-1,0], and the corrections acoordingly adjusted.
 
-if (nargin<4)||isempty(padvalue),padvalue = 0;end;
-if (nargin<5)||isempty(renormalize),renormalize = 0;end;
+if (nargin<4)||isempty(padvalue),padvalue = 0;end
+if (nargin<5)||isempty(renormalize),renormalize = 0;end
 
 % Dimensions of input data array.
 [dim2,dim1] = size(dataslice);
@@ -68,14 +68,14 @@ phi(:,:,12) = ifft2(inv_lap.*fft2(- 1/6*(iftxiphi_ft.*ifft2( xi.*fft2( iftxig_ft
 phi(:,:,13) = ifft2(inv_lap.*fft2(-1/12*(iftxiphi_ft.*ifft2(lap.*xi.* fft2(-4*phi22)) ...
                                        +iftetaphi_ft.*ifft2(lap.*eta.*fft2(-4*phi22)))));
 % Substract mean.
-for ii=1:size(phi,3),phiii=phi(:,:,ii);phi(:,:,ii)=phiii-mean(phiii(:)); end;
+for ii=1:size(phi,3),phiii=phi(:,:,ii);phi(:,:,ii)=phiii-mean(phiii(:)); end
     clear phiii;
 
 % Take real part and clip zero-padded matrices to original size
-if dimx~=dim1 | dimy~=dim2
+if dimx~=dim1 || dimy~=dim2
 fprintf(['Zero-padded %u x %u data to %u x %u and clipped to original ' ...
          'size.\n'],dim1,dim2,dimx,dimy);
-end;
+end
 ycut  = 1+dimy/2-dim2/2:dimy/2+dim2/2;
 xcut  = 1+dimx/2-dim1/2:dimx/2+dim1/2;
 phi  = real(phi(ycut,xcut,:));
@@ -86,4 +86,4 @@ minval = min(phi(:));
 maxval = max(phi(:));
 phi(:,:,1) = phi(:,:,1)-maxval;
 phi  = phi./(maxval-minval);
-end;
+end

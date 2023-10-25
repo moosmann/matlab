@@ -158,14 +158,21 @@ for nn = numel(offset):-1:1
     %fprintf('\n  par pool index: %2u, gpu list index: %2u, gpu index: %u', nn, mm, gpu_index_list(mm))
 end
 
-fprintf('\n Interactive par loop:\n')
+fprintf('\n Offset par loop:\n')
+fprintf('\n slice: %u',slice)
+if isempty(rect)
+    fprintf('\n roi: []')
+else
+    fprintf('\n roi: ')
+    fprintf(' %u',rect)
+end
 parfor (nn = 1:numel(offset), 2*num_gpu_used)
-%parfor (nn = 1:numel(offset), 2 * num_gpu)
-%for nn = 1:numel(offset)
-
+    %parfor (nn = 1:numel(offset), 2 * num_gpu)
+    %for nn = 1:numel(offset)
+    
     % Reco
     tomo_par_nn = tomo_par(nn);
-%     mm = mod(nn, num_gpu) + 1;
+    %     mm = mod(nn, num_gpu) + 1;
 %     tomo_par_nn.astra_gpu_index = gpu_index_list(mm); %#ok<PFBNS>
 %     fprintf('\n  par index: %2u, gpu list index: %2u, gpu index: %u', nn, mm, gpu_index_list(mm))
     im = [];

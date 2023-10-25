@@ -232,6 +232,8 @@ tomo.rot_axis_search_metric = 'iso-grad'; % string: 'neg','entropy','iso-grad','
 tomo.rot_axis_search_extrema = 'max'; % string: 'min'/'max'. chose min or maximum position
 tomo.rot_axis_search_fit = 1; % bool: fit calculated metrics and find extrema, otherwise use extrema from search range
 tomo.rot_axis_offset_metric_roi = []; % 4-vector: [. ROI for metric calculation. roi = [y0, x0, y1-y0, x1-x0]. (x,y)=(0,0)=upper left
+tomo.rot_axis_search_slice = []; % scalar: slice used to find rot axis. if empty: uses slice from interactive mode, if that is empty uses central slice.
+tomo.rot_axis_search_range_from_interactive = 0; % boolean: use search range from interactive mode
 %%% OUTPUT %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 write.path = ''; %'/gpfs/petra3/scratch/moosmanj'; % absolute path were output data will be stored. !!overwrites the write.to_scratch flag. if empty uses the beamtime directory and either 'processed' or 'scratch_cc'
 write.to_scratch = 0; % write to 'scratch_cc' instead of 'processed'
@@ -451,6 +453,7 @@ assign_default( 'write.scan_name_appendix', '' )
 assign_default( 'write.uint8_segmented', 0 )
 assign_default( 'interactive_mode.rot_axis_pos_default_search_range', -4:0.5:4 )
 assign_default( 'interactive_mode.rot_axis_tilt_default_search_range', -0.005:0.001:0.005 )
+assign_default( 'interactive_mode.rot_axis_search_range', [] )
 assign_default( 'interactive_mode.phase_retrieval', 0 )
 assign_default( 'interactive_mode.phase_retrieval_default_search_range', [] )
 assign_default( 'interactive_mode.angles', 0 );
@@ -465,6 +468,10 @@ assign_default( 'tomo.rot_axis_search_verbose', 1);
 assign_default( 'tomo.rot_axis_search_extrema', 'max' );
 assign_default( 'tomo.rot_axis_search_fit', 1 );
 assign_default( 'tomo.rot_axis_offset_metric_roi', [] );
+assign_default( 'tomo.rot_axis_search_slice', [] );
+assign_default( 'tomo.rot_axis_search_range_from_interactive', 0 );
+assign_default( 'tomo.interactive_offset_range', []);
+assign_default( 'tomo.slice', [] );
 assign_default( 'interactive_mode.show_stack_imagej', 1 )
 assign_default( 'interactive_mode.show_stack_imagej_use_virtual', 1 )
 assign_default( 'par.distortion_correction_distance', 0)
@@ -631,8 +638,8 @@ fprintf( '\n hostname : %s', getenv( 'HOSTNAME' ) );
 fprintf( '\n RAM: free, available, total : %.0f GiB (%g%%), %.0f GiB (%g%%), %.0f GiB', round([mem_free/1024^3, 100 * mem_free/mem_total_cpu, mem_avail_cpu/1024^3, 100*mem_avail_cpu/mem_total_cpu mem_total_cpu/1024^3]) )
 
 % Start parallel CPU pool
-parpool_tmp_folder = [beamtime_path filesep 'scratch_cc'];
-[~, par.poolsize] = OpenParpool( par.poolsize, par.use_cluster, parpool_tmp_folder, 0, [] );
+par.pool_tmp_folder = [beamtime_path filesep 'scratch_cc'];
+[~, par.poolsize] = OpenParpool( par.poolsize, par.use_cluster, par.pool_tmp_folder, 0, [] );
 
 if isempty( par.gpu_index )
     par.gpu_index = 1:gpuDeviceCount;
@@ -1330,16 +1337,20 @@ if ~par.read_flatcor && ~par.read_sino
     
     %% Flat field %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     t = toc;
-    fprintf( '\nProcessing %u flat fields.', num_ref_used )
+    fprintf('\nProcessing %u flat fields.',num_ref_used )
     % Correlation roi area
-    flat_corr_area1 = IndexParameterToRange( image_correlation.area_width, im_shape_roi(1) );
-    flat_corr_area2 = IndexParameterToRange( image_correlation.area_height, im_shape_roi(2) );
+    flat_corr_area1 = IndexParameterToRange(image_correlation.area_width,im_shape_roi(1));
+    flat_corr_area2 = IndexParameterToRange(image_correlation.area_height,im_shape_roi(2));
     % Preallocation
-    flat = zeros( [im_shape_binned1, im_shape_binned2, num_ref_used], 'single');
+    flat = zeros([im_shape_binned1, im_shape_binned2, num_ref_used],'single');
+    flat_min = zeros([1 num_ref_used],'single');
+    flat_max = zeros([1 num_ref_used],'single');
+    flat_mean = zeros([1 num_ref_used],'single');
+    flat_std = zeros([1 num_ref_used],'single');
+    num_zeros = zeros(1,num_ref_used,'single');
     flat_corr_area_width_binned = floor( numel( flat_corr_area1 ) / 2 / raw_bin );
     flat_corr_area_height_binned = floor( numel( flat_corr_area2 ) / 2 / raw_bin );
-    roi_flat = zeros( flat_corr_area_width_binned, flat_corr_area_height_binned, num_ref_used, 'single');
-    num_zeros = zeros( 1, num_ref_used );
+    roi_flat = zeros( flat_corr_area_width_binned, flat_corr_area_height_binned, num_ref_used, 'single');    
     fprintf( '\n allocated memory: %.2f GiB', Bytes( flat, 3 ) )
     refs_to_use = zeros( 1, size( flat,3), 'logical');
     filt_pix_par.threshold_hot = pixel_filter_threshold_flat(1);
@@ -1362,10 +1373,8 @@ if ~par.read_flatcor && ~par.read_sino
     read_image_par = @(filename) read_image( filename, par );
     parfor ( nn = 1:num_ref_used, poolsize_max_gpu )
         
-        % Read
-        %filename = sprintf('%s%s', scan_path, ref_names_mat(nn,:));
-        filename = ref_full_path{nn};
-        %im_int = read_image( filename, par );
+        % Read        
+        filename = ref_full_path{nn};        
         im_int = read_image_par( filename );
         
         % Filter pixel
@@ -1390,9 +1399,52 @@ if ~par.read_flatcor && ~par.read_sino
         refs_to_use(nn) = ~boolean( num_zeros(nn)  );
         
         % Assign image to stack
-        flat(:, :, nn) = im_float_binned;
+        flat(:,:,nn) = im_float_binned;
+        % Statistics
+        flat_min(nn) = min2(im_float_binned);
+        flat_max(nn) = max2(im_float_binned);
+        flat_mean(nn) = mean2(im_float_binned);
+        flat_std(nn) = std2(im_float_binned);
     end
     toc_bytes.read_flat = tocBytes( gcp, startS );
+    
+    % Plot image statistics
+    if par.visual_output
+        name = 'image statistics: flat fields';
+        his = figure( 'Name', name, 'WindowState', window_state );
+        %ref_ind = [cur.ref(par.ref_range).ind];
+
+        subplot(2,2,1);
+        plot(flat_min,'.')
+        axis tight
+        xlabel('image no.')
+        title('min')
+        
+        subplot(2,2,2);
+        plot(flat_max,'.')
+        axis tight
+        xlabel('image no.')
+        title('max')
+        
+        subplot(2,2,3);
+        plot(flat_mean,'.')
+        axis tight
+        xlabel( 'image no.' )
+        title('mean')
+        
+        subplot(2,2,4);
+        plot(flat_std,'.')
+        axis tight
+        xlabel('image no.')
+        title('max')
+        
+        %legend( sprintf( 'flats, mean: %.2f mA', ref_rcm), sprintf( 'projs, mean: %.2f mA', proj_rcm) )
+        
+        drawnow
+        CheckAndMakePath(fig_path)
+        fig_filename = sprintf('%sfig%02u_%s.png',fig_path,his.Number,regexprep( his.Name,'\ |:', '_'));
+        saveas(his, fig_filename);
+    end
     
     % Delete empty refs
     zz = ~refs_to_use;
@@ -1581,11 +1633,15 @@ if ~par.read_flatcor && ~par.read_sino
     % Preallocation
     im_shape_cropbin1 = floor( (x1(1) - x0(1) + 1) / raw_bin );
     proj = zeros( im_shape_cropbin1, im_shape_binned2, num_proj_used, 'single');
+    proj_min = zeros([1 num_proj_used],'single');
+    proj_max = zeros([1 num_proj_used],'single');
+    proj_mean = zeros([1 num_proj_used],'single');
+    proj_std = zeros([1 num_proj_used],'single');
+    num_zeros = zeros( 1, num_proj_used,'single');
     fprintf( '\n allocated memory: %.2f GiB', Bytes( proj, 3 ) )
-    projs_to_use = zeros( 1, size( proj,3), 'logical' );
-    num_zeros = zeros( 1, num_proj_used );
+    projs_to_use = zeros( 1, size( proj,3), 'logical' );    
     parfor ( nn = 1:num_proj_used, poolsize_max_gpu )
-        im = proj(:,:,nn);
+        %im = proj(:,:,nn);
         % Read projection
         filename = sprintf('%s%s', scan_path, img_names_mat(nn,:));
         %im_int = read_image( filename, '', par.raw_roi, par.tif_info, par.im_shape_raw, par.dtype, par.im_trafo );
@@ -1614,13 +1670,100 @@ if ~par.read_flatcor && ~par.read_sino
         projs_to_use(nn) = ~boolean( num_zeros(nn)  );
         
         % Assign image to stack
-        proj(:, :, nn) = im_float_binned + im;
+        %proj(:, :, nn) = im_float_binned + im; WTF???
+        proj(:, :, nn) = im_float_binned;
+        
+        % Statistics
+        proj_min(nn) = min2(im_float_binned);
+        proj_max(nn) = max2(im_float_binned);
+        proj_mean(nn) = mean2(im_float_binned);
+        proj_std(nn) = std2(im_float_binned);
     end
     
     fprintf( '\n duration : %.1f s (%.2f min)', toc - t, ( toc - t ) / 60 )
     t = toc;
     %fprintf( '\npostprocessing projections:' )
     toc_bytes.read_proj = tocBytes( gcp, startS );
+    
+    % Plot image statistics
+    if par.visual_output
+        name = 'image statistics: projections';
+        his = figure( 'Name', name, 'WindowState', window_state );
+        %ref_ind = [cur.ref(par.ref_range).ind];
+
+        subplot(2,2,1);
+        plot(proj_min,'.')
+        axis tight
+        xlabel('image no.')
+        title('min')
+        
+        subplot(2,2,2);
+        plot(proj_max,'.')
+        axis tight
+        xlabel('image no.')
+        title('max')
+        
+        subplot(2,2,3);
+        plot(proj_mean,'.')
+        axis tight
+        xlabel( 'image no.' )
+        title('mean')
+        
+        subplot(2,2,4);
+        plot(proj_std,'.')
+        axis tight
+        xlabel('image no.')
+        title('max')
+        
+        %legend( sprintf( 'flats, mean: %.2f mA', ref_rcm), sprintf( 'projs, mean: %.2f mA', proj_rcm) )
+        
+        drawnow
+        CheckAndMakePath(fig_path)
+        fig_filename = sprintf('%sfig%02u_%s.png',fig_path,his.Number,regexprep( his.Name,'\ |:', '_'));
+        saveas(his, fig_filename);
+    end
+    
+    % Plot image statistics
+    if par.visual_output && exist('cur','var')
+        name = 'image statistics: flat fields and projections';
+        his = figure( 'Name', name, 'WindowState', window_state );
+        
+        ref_ind = [cur.ref(par.ref_range).ind];
+        proj_ind = [cur.proj(par.proj_range).ind];
+
+        subplot(2,2,1);
+        plot(ref_ind,flat_min,proj_ind,proj_min,'.')
+        legend({'ref','proj'})
+        axis tight
+        xlabel('image no.')
+        title('min')
+        
+        subplot(2,2,2);
+        plot(ref_ind,flat_max,proj_ind,proj_max,'.')
+        legend({'ref','proj'})
+        axis tight
+        xlabel('image no.')
+        title('max')
+        
+        subplot(2,2,3);
+        plot(ref_ind,flat_mean,proj_ind,proj_mean,'.')
+        legend({'ref','proj'})
+        axis tight
+        xlabel( 'image no.' )
+        title('mean')
+        
+        subplot(2,2,4);
+        plot(ref_ind,flat_std,proj_ind,proj_std,'.')
+        legend({'ref','proj'})
+        axis tight
+        xlabel('image no.')
+        title('max')
+        
+        drawnow
+        CheckAndMakePath(fig_path)
+        fig_filename = sprintf('%sfig%02u_%s.png',fig_path,his.Number,regexprep( his.Name,'\ |:', '_'));
+        saveas(his, fig_filename);
+    end
     
     % Delete empty projections
     zz = ~projs_to_use;
@@ -2566,7 +2709,15 @@ if tomo.run
     fprintf( '\nTomographic reconstruction:')
     fprintf( '\n method : %s', tomo.algorithm )
     fprintf( '\n angle scaling : %g', tomo.angle_scaling )
-    fprintf( '\n angles [first last]/pi : [%g %g]', angles( [1 end] ) / pi )
+    fprintf( '\n angles [first last]/pi : [%g %g]', angles( [1 end] ) / pi )    
+    ro = tomo.rot_axis_offset( ceil( numel( tomo.rot_axis_offset ) / 2 ) );
+    rp = tomo.rot_axis_position( ceil( numel( tomo.rot_axis_position ) / 2 ) );
+    fprintf( '\n rotation axis offset: %.2f', ro );
+    fprintf( '\n rotation axis position: %.2f', rp );
+    fprintf( '\n rotation axis tilt camera: %g rad (%g deg)', tomo.rot_axis_tilt_camera, tomo.rot_axis_tilt_camera * 180 / pi)
+    fprintf( '\n rotation axis tilt lamino: %g rad (%g deg)', tomo.rot_axis_tilt_lamino, tomo.rot_axis_tilt_lamino * 180 / pi)
+    tilt =  tomo.rot_axis_tilt_camera;
+    fprintf( '\n rotation axis position: %.2f', rp );
     fprintf( '\n volume shape : [%g, %g, %g]', tomo.vol_shape )
     vol_mem = prod( tomo.vol_shape ) * 4;
     fprintf( '\n volume memory : %.2f GiB', vol_mem / 1024^3 )
