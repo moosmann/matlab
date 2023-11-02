@@ -49,7 +49,8 @@ if nargin < 4
     %stitched_volume_path = '/gpfs/petra3/scratch/moosmanj/stitch_tadpole';
     %stitched_volume_path = '/gpfs/petra3/scratch/moosmanj/stitch_test_bottom2top';
     %stitched_volume_path = '/gpfs/petra3/scratch/moosmanj/stitch_bee';
-    stitched_volume_path = '/gpfs/petra3/scratch/moosmanj/itaw';
+    %stitched_volume_path = '/gpfs/petra3/scratch/moosmanj/itaw';
+    stitched_volume_path = '/asap3/petra3/gpfs/p07/2023/data/11017206/processed/itaw012_cet548a_OO01_Oo';
 end
 if nargin < 5
     scan_mask = [];%[1 1 0 0 0 0 0 0 0];

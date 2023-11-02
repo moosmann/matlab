@@ -494,12 +494,12 @@ par.scan_path = [raw_path 'itaw011_cet495b_M548_20_Ha_h_2']; ADD
 
 par.raw_bin = 2;
 proj_range = 1;
-tomo.vol_size = [];%[-1 1 -1 1 -0.5 0.5];
+tomo.vol_size = [];
 tomo.rot_axis_offset = 0.85 / 2 * par.raw_bin;
 tomo.rot_axis_tilt_camera = 0.0028;
 phase_retrieval.apply = 0;
 phase_retrieval.method = 'tie';
-phase_retrieval.reg_par = 1.0; % 
+phase_retrieval.reg_par = 1.0; 
 interactive_mode.rot_axis_pos = 1;
 interactive_mode.rot_axis_tilt = 0;
 tomo.rot_axis_search_auto = 0; 
@@ -510,41 +510,50 @@ tomo.rot_axis_search_fit = 1;
 tomo.rot_axis_offset_metric_roi = [];
 tomo.rot_axis_search_range_from_interactive = 1;
 
-tomo.rot_axis_search_range = -0.2 + (-0.7:0.1:0.7); 
-tomo.rot_axis_search_slice = 0.2;
+% a
+tomo.rot_axis_offset = 0.5 * 2 /  par.raw_bin;
 par.scan_path = [raw_path 'itaw012_cet548a_OO01_Oo_a_0']; ADD
-% h5 error
-par.ring_current_normalization = 0;
+par.ring_current_normalization = 0; % h5 error
 par.scan_path = [raw_path 'itaw012_cet548a_OO01_Oo_a_1']; ADD
 par.ring_current_normalization = 1;
 par.scan_path = [raw_path 'itaw012_cet548a_OO01_Oo_a_2']; ADD
-tomo.rot_axis_search_slice = [];
+% b
+tomo.rot_axis_offset = 0.65 * 2 /  par.raw_bin;
 par.scan_path = [raw_path 'itaw012_cet548a_OO01_Oo_b_0']; ADD
 par.scan_path = [raw_path 'itaw012_cet548a_OO01_Oo_b_1']; ADD
 par.scan_path = [raw_path 'itaw012_cet548a_OO01_Oo_b_2']; ADD
-tomo.rot_axis_search_range = 0.75 + (-0.7:0.1:0.7); 
+% c
+tomo.rot_axis_offset = 0.75 * 2 /  par.raw_bin;
 par.scan_path = [raw_path 'itaw012_cet548a_OO01_Oo_c_0']; ADD
 par.scan_path = [raw_path 'itaw012_cet548a_OO01_Oo_c_1']; ADD
 par.scan_path = [raw_path 'itaw012_cet548a_OO01_Oo_c_2']; ADD
-tomo.rot_axis_search_range = 1.15 + (-0.7:0.1:0.7); 
+% d
+tomo.rot_axis_offset = 1.15 * 2 /  par.raw_bin;
 par.scan_path = [raw_path 'itaw012_cet548a_OO01_Oo_d_0']; ADD
 par.scan_path = [raw_path 'itaw012_cet548a_OO01_Oo_d_1']; ADD
 par.scan_path = [raw_path 'itaw012_cet548a_OO01_Oo_d_2']; ADD
-tomo.rot_axis_search_range = 1.4 + (-0.7:0.1:0.7); 
+% e
+tomo.rot_axis_offset = 1.4 * 2 /  par.raw_bin;
 par.scan_path = [raw_path 'itaw012_cet548a_OO01_Oo_e_0']; ADD
 par.scan_path = [raw_path 'itaw012_cet548a_OO01_Oo_e_1']; ADD
 par.scan_path = [raw_path 'itaw012_cet548a_OO01_Oo_e_2']; ADD
+% f
+tomo.rot_axis_offset = 1.1 * 2 /  par.raw_bin;
 par.scan_path = [raw_path 'itaw012_cet548a_OO01_Oo_f_0']; ADD
 par.scan_path = [raw_path 'itaw012_cet548a_OO01_Oo_f_1']; ADD
 par.scan_path = [raw_path 'itaw012_cet548a_OO01_Oo_f_2']; ADD
+% g
+tomo.rot_axis_offset = 1.7 * 2 /  par.raw_bin;
 par.scan_path = [raw_path 'itaw012_cet548a_OO01_Oo_g_0']; ADD
 par.scan_path = [raw_path 'itaw012_cet548a_OO01_Oo_g_1']; ADD
 par.scan_path = [raw_path 'itaw012_cet548a_OO01_Oo_g_2']; ADD
+% h
+tomo.rot_axis_offset = 0.4 * 2 /  par.raw_bin;
 par.scan_path = [raw_path 'itaw012_cet548a_OO01_Oo_h_0']; ADD
 par.scan_path = [raw_path 'itaw012_cet548a_OO01_Oo_h_1']; ADD
 par.scan_path = [raw_path 'itaw012_cet548a_OO01_Oo_h_2']; ADD
-tomo.rot_axis_search_range = 0.55 + (-0.7:0.1:0.7); 
-%tomo.rot_axis_offset = 0.4 / 2 * par.raw_bin;
+% i
+tomo.rot_axis_offset = 0.4 * 2 /  par.raw_bin;
 par.scan_path = [raw_path 'itaw012_cet548a_OO01_Oo_i_0']; ADD
 par.scan_path = [raw_path 'itaw012_cet548a_OO01_Oo_i_1']; ADD
 par.scan_path = [raw_path 'itaw012_cet548a_OO01_Oo_i_2']; ADD

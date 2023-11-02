@@ -34,6 +34,7 @@ dbstop if error
 
 if nargin < 1
     scan_path = ... % pwd;
+    '/asap3/petra3/gpfs/p07/2023/data/11017206/processed/itaw012_cet548a_OO01_Oo';
     '/asap3/petra3/gpfs/p07/2023/data/11017607/processed/mosaic/bmc003_B4_paraffin/tests_hs01';
     '/asap3/petra3/gpfs/p07/2023/data/11017206/processed/itaw006_cet547a_sd01_pp';
     '/asap3/petra3/gpfs/p07/2023/data/11016192/processed/bmc015_B4_bobble_wt0p25_75px_b25_';
@@ -52,7 +53,7 @@ if nargin < 1
     '/asap3/petra3/gpfs/p07/2022/data/11015567/processed/mbs020_sample1_mgti_a';
 end
 if nargin < 2
-    rot_angle_full_range = 2*pi;
+    rot_angle_full_range = [];1*pi;
 end
 if nargin < 3
     rot_axis_search_range = [];
@@ -67,7 +68,7 @@ end
 raw_bin = 2; % projection binning factor: integer
 proj_range = []; % projection range
 %read_sino_folder = sprintf( 'trans%02u', raw_bin);% string. default: '', picks first trans folder found
-read_sino_folder = sprintf( 'trans%02u_360', raw_bin);% string. default: '', picks first trans folder found
+read_sino_folder = sprintf( 'trans%02u_180', raw_bin);% string. default: '', picks first trans folder found
 %read_sino_folder = sprintf( 'test04', raw_bin);% string. default: '', picks first trans folder found
 %read_sino = 1; % read preprocessed sinograms. CHECK if negative log has to be taken!
 read_sino_trafo = @(x) (x);%rot90(x); % anonymous function applied to the image which is read e.g. @(x) rot90(x)
@@ -99,9 +100,9 @@ phase_retrieval.padding = 1; % padding of intensities before phase retrieval, 0:
 tomo.run = 1; % run tomographic reconstruction
 tomo.run_interactive_mode = 1; % if tomo.run = 0, use to determine rot axis positions without processing the full tomogram;
 tomo.reco_mode = 'slice';'3D'; % slice-wise or full 3D backprojection. 'slice': volume must be centered at origin & no support of rotation axis tilt, reco binning, save compressed
-tomo.slab_wise = 0;
-tomo.slices_per_slab = 1;%[];
-tomo.vol_size = [-1 1 -1 1 -0.5 0.5];% 6-component vector [xmin xmax ymin ymax zmin zmax], for excentric rot axis pos / extended FoV;. if empty, volume is centerd within tomo.vol_shape. unit voxel size is assumed. if smaller than 10 values are interpreted as relative size w.r.t. the detector size. Take care bout minus signs! Note that if empty vol_size is dependent on the rotation axis position.
+tomo.slab_wise = 1;
+tomo.slices_per_slab = [];
+tomo.vol_size = [];[-1 1 -1 1 -0.5 0.5];% 6-component vector [xmin xmax ymin ymax zmin zmax], for excentric rot axis pos / extended FoV;. if empty, volume is centerd within tomo.vol_shape. unit voxel size is assumed. if smaller than 10 values are interpreted as relative size w.r.t. the detector size. Take care bout minus signs! Note that if empty vol_size is dependent on the rotation axis position.
 tomo.vol_shape = []; %[1 1 1] shape (# voxels) of reconstruction volume. used for excentric rot axis pos. if empty, inferred from 'tomo.vol_size'. in absolute numbers of voxels or in relative number w.r.t. the default volume which is given by the detector width and height.
 tomo.rot_angle_offset = 0; % global rotation of reconstructed volume
 tomo.rot_angle_full_range = rot_angle_full_range; % in rad, read from reconlog if []: full angle of rotation including additional increment, or array of angles. if empty full rotation angles is determined automatically to pi or 2 pi
@@ -484,7 +485,7 @@ if tomo.rot_angle_full_range > 90
 end
 
 nn = round(im_shape_binned2 / 2 );
-filename = sprintf('%s%s', sino_path, sino_names_mat(end, :));
+filename = sprintf('%s%s', sino_path, sino_names_mat(nn,:));
 
 sino = read_image( filename );
 sino = read_sino_trafo( sino );
@@ -531,6 +532,7 @@ padding = tomo.fbp_filter_padding;
 padding_method = tomo.fbp_filter_padding_method;
 save_path = sprintf( '%sfloat_rawBin%u/%s', reco_path, raw_bin);
 CheckAndMakePath( save_path );
+fprintf('\n save path: %s',save_path)
 take_neg_log = tomo.take_neg_log;
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -639,6 +641,7 @@ if tomo.slab_wise
     end
     
 else
+    fprintf( '\nStart slice-wise reconstruction')
     % Slice-wise reco
     % Read sinogram, reco, write
     num_slices = numel( sino_names );
