@@ -46,13 +46,22 @@ else
     end
     switch output_type
         
-        case 'float'            
+        case 'float'
             parfor nn = 1:size( vol, 3)
                 filename = sprintf( '%sreco_%s_%06u.tif', save_path, scan_name, nn + counter_offset);
                 write32bitTIFfromSingle( filename, vol( :, :, nn) )
             end
             
-        case 'uint16'            
+        case 'float_adapthisteq'
+            imah = @(im) (adapthisteq(normat(im)));
+            parfor nn = 1:size( vol, 3)
+                filename = sprintf( '%sreco_%s_%06u.tif', save_path, scan_name, nn + counter_offset);
+                im = vol(:,:,nn);
+                im = imah(im);
+                write32bitTIFfromSingle(filename,im)
+            end
+            
+        case 'uint16'
             parfor nn = 1:size( vol, 3)
                 filename = sprintf( '%sreco_%s_%06u.tif', save_path, scan_name, nn + counter_offset);
                 imwrite( uint16( (2^16 - 1) * vol( :, :, nn) ), filename );

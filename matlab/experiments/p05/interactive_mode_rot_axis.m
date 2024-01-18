@@ -554,18 +554,18 @@ if tomo.run || tomo.run_interactive_mode
                             im2i = interp2(X,Y,im2,X - out.shift2,Y - out.shift1,'linear',mean2(im2));
                             fprintf( '\n Cropping on common grid')
                             if out.shift2 > 0
-                                y0 = 1 + ceil(out.shift2);
+                                y0 = 1 + ceil(abs(out.shift2));
                                 y1 = size(im1,2);
                             else
                                 y0 = 1;
-                                y1 = size(im1,2) + floor(out.shift2);
+                                y1 = size(im1,2) + floor(abs(out.shift2));
                             end
                             if out.shift2 > 0
-                                x0 = 1 + ceil(out.shift1);
+                                x0 = 1 + ceil(abs(out.shift1));
                                 x1 = size(im1,1);
                             else
                                 x0 = 1;
-                                x1 = size(im1,1) + floor(out.shift1);
+                                x1 = size(im1,1) + floor(abs(out.shift1));
                             end
                             x = x0:x1;
                             y = y0:y1;

@@ -52,7 +52,8 @@ if ~isempty(SUBSETS)
                         if isstruct( out )
                             fprintf( '\n' )
                         end
-                        disp( out )
+                        %disp( out )
+                        fprintf('%s\n',num2str(out))
                     end
                 end
             else
@@ -67,7 +68,8 @@ if ~isempty(SUBSETS)
                     if isstruct( out )
                         fprintf( '\n' )
                     end
-                    disp( out )
+                    %disp( out )
+                    fprintf('%s',num2str(out))
                 end
             end
         else

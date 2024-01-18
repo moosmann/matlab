@@ -137,7 +137,7 @@ ring_filter.method = 'jm'; 'wavelet-fft';
 ring_filter.waveletfft_dec_levels = 1:6; % decomposition levels for 'wavelet-fft'
 ring_filter.waveletfft_wname = 'db7';'db25';'db30'; % wavelet type, see 'FilterStripesCombinedWaveletFFT' or 'waveinfo'
 ring_filter.waveletfft_sigma = 3; %  suppression factor for 'wavelet-fft'
-ring_filter.jm_median_width = 11; % multiple widths are applied consecutively, eg [3 11 21 31 39];
+ring_filter.jm_median_width = [7 11 15]; % multiple widths are applied consecutively, eg [3 11 21 31 39];
 par.strong_abs_thresh = 1; % if 1: does nothing, if < 1: flat-corrected values below threshold are set to one. Try with algebratic reco techniques.
 par.norm_sino = 0; % not recommended, can introduce severe artifacts, but sometimes improves quality
 % Workaround correction for image distortions using a quadratic dilation/compression of the projections/sinogram
@@ -264,6 +264,7 @@ SET_DEFAULT
 %% PARAMETER / DATA SETS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 raw_path = '/asap3/petra3/gpfs/p07/2023/data/11017206/raw/';
+write.outputformat = 'tif';'hdf_slice';'hdf_volume';
 
 ring_filter.apply = 1;
 phase_retrieval.apply = 0;
@@ -283,35 +284,34 @@ write.outputformat = 'tif';
 %tomo.rot_axis_tilt_camera = 0.0033/2;
 %tomo.take_neg_log = 0;
 
-
 %itaw012_cet548a_OO01_Oo_c_1
 par.scan_path = '/asap3/petra3/gpfs/p07/2023/data/11017206/raw/itaw012_cet548a_OO01_Oo_c_1';
 par.raw_bin = 2;
 proj_range = 1;
 tomo.vol_size = [];%[-1 1 -1 1 -0.5 0.5];
 tomo.rot_axis_offset = 0.85 / 2 * par.raw_bin;
-tomo.rot_axis_tilt_camera = 0.0028;
 interactive_mode.rot_axis_pos = 0;
 interactive_mode.rot_axis_tilt = 0;
 ADD
 
-par.scan_path = [raw_path 'itaw001_cet547a_sd01_pp_testroi']; ADD
-par.scan_path = [raw_path 'itaw002_cet547a_sd01_pp_roi_stepscan']; ADD
-
-par.scan_path = [raw_path 'itaw003_cet547a_sd01_pp_a']; ADD
-
-par.scan_path = [raw_path 'itaw004_cet547a_sd01_pp_r_a']; ADD
-par.scan_path = [raw_path 'itaw005_cet547a_sd01_pp_r_a']; ADD
-par.scan_path = [raw_path 'itaw006_cet547a_sd01_pp_l_a']; ADD
-par.scan_path = [raw_path 'itaw006_cet547a_sd01_pp_l_b']; ADD
-par.scan_path = [raw_path 'itaw006_cet547a_sd01_pp_l_c']; ADD
-par.scan_path = [raw_path 'itaw006_cet547a_sd01_pp_l_d']; ADD
-par.scan_path = [raw_path 'itaw006_cet547a_sd01_pp_l_e']; ADD
-par.scan_path = [raw_path 'itaw006_cet547a_sd01_pp_r_a']; ADD
-par.scan_path = [raw_path 'itaw006_cet547a_sd01_pp_r_b']; ADD
-par.scan_path = [raw_path 'itaw006_cet547a_sd01_pp_r_c']; ADD
-par.scan_path = [raw_path 'itaw006_cet547a_sd01_pp_r_d']; ADD
-par.scan_path = [raw_path 'itaw006_cet547a_sd01_pp_r_e']; ADD
+%% itaw004_cet547a_sd01_pp
+% par.scan_path = [raw_path 'itaw001_cet547a_sd01_pp_testroi']; ADD
+% par.scan_path = [raw_path 'itaw002_cet547a_sd01_pp_roi_stepscan']; ADD
+% 
+% par.scan_path = [raw_path 'itaw003_cet547a_sd01_pp_a']; ADD
+%
+% par.scan_path = [raw_path 'itaw004_cet547a_sd01_pp_r_a']; ADD
+% par.scan_path = [raw_path 'itaw005_cet547a_sd01_pp_r_a']; ADD
+% par.scan_path = [raw_path 'itaw006_cet547a_sd01_pp_l_a']; ADD
+% par.scan_path = [raw_path 'itaw006_cet547a_sd01_pp_l_b']; ADD
+% par.scan_path = [raw_path 'itaw006_cet547a_sd01_pp_l_c']; ADD
+% par.scan_path = [raw_path 'itaw006_cet547a_sd01_pp_l_d']; ADD
+% par.scan_path = [raw_path 'itaw006_cet547a_sd01_pp_l_e']; ADD
+% par.scan_path = [raw_path 'itaw006_cet547a_sd01_pp_r_a']; ADD
+% par.scan_path = [raw_path 'itaw006_cet547a_sd01_pp_r_b']; ADD
+% par.scan_path = [raw_path 'itaw006_cet547a_sd01_pp_r_c']; ADD
+% par.scan_path = [raw_path 'itaw006_cet547a_sd01_pp_r_d']; ADD
+% par.scan_path = [raw_path 'itaw006_cet547a_sd01_pp_r_e']; ADD
 
 % % itaw006_cet547a_sd01_pp_r_c
 % par.distortion_correction_distance = 1000;
@@ -325,172 +325,352 @@ par.scan_path = [raw_path 'itaw006_cet547a_sd01_pp_r_e']; ADD
 % par.distortion_correction_exponent = 2;
 % write.parfolder = regexprep(sprintf('distcorrOffsetDiff%3.1f', par.tmp),'\.','p');
 
-par.scan_path = [raw_path 'itaw007_a_0']; ADD
-par.scan_path = [raw_path 'itaw007_a_1']; ADD
-par.scan_path = [raw_path 'itaw007_a_2']; ADD
-par.scan_path = [raw_path 'itaw007_a_3']; ADD
-par.scan_path = [raw_path 'itaw007_a_4']; ADD
-par.scan_path = [raw_path 'itaw007_b_0']; ADD
-par.scan_path = [raw_path 'itaw007_b_1']; ADD
-par.scan_path = [raw_path 'itaw007_b_2']; ADD
-par.scan_path = [raw_path 'itaw007_b_3']; ADD
-par.scan_path = [raw_path 'itaw007_b_4']; ADD
-par.scan_path = [raw_path 'itaw007_c_0']; ADD
-par.scan_path = [raw_path 'itaw007_c_1']; ADD
-par.scan_path = [raw_path 'itaw007_c_2']; ADD
-par.scan_path = [raw_path 'itaw007_c_3']; ADD
-par.scan_path = [raw_path 'itaw007_c_4']; ADD
-par.scan_path = [raw_path 'itaw007_d_0']; ADD
-par.scan_path = [raw_path 'itaw007_d_1']; ADD
-par.scan_path = [raw_path 'itaw007_d_2']; ADD
-par.scan_path = [raw_path 'itaw007_d_3']; ADD
-par.scan_path = [raw_path 'itaw007_d_4']; ADD
-par.scan_path = [raw_path 'itaw007_e_0']; ADD
-par.scan_path = [raw_path 'itaw007_e_1']; ADD
-par.scan_path = [raw_path 'itaw007_e_2']; ADD
-par.scan_path = [raw_path 'itaw007_e_3']; ADD
-par.scan_path = [raw_path 'itaw007_e_4']; ADD
-par.scan_path = [raw_path 'itaw007_f_0']; ADD
-par.scan_path = [raw_path 'itaw007_f_1']; ADD
-par.scan_path = [raw_path 'itaw007_f_2']; ADD
-par.scan_path = [raw_path 'itaw007_f_3']; ADD
-par.scan_path = [raw_path 'itaw007_f_4']; ADD
-par.scan_path = [raw_path 'itaw007_g_0']; ADD
-par.scan_path = [raw_path 'itaw007_g_1']; ADD
-par.scan_path = [raw_path 'itaw007_g_2']; ADD
-par.scan_path = [raw_path 'itaw007_g_3']; ADD
-par.scan_path = [raw_path 'itaw007_g_4']; ADD
-par.scan_path = [raw_path 'itaw007_h_0']; ADD
-par.scan_path = [raw_path 'itaw007_h_1']; ADD
-par.scan_path = [raw_path 'itaw007_h_2']; ADD
-par.scan_path = [raw_path 'itaw007_h_3']; ADD
-par.scan_path = [raw_path 'itaw007_h_4']; ADD
-par.scan_path = [raw_path 'itaw007_i_0']; ADD
-par.scan_path = [raw_path 'itaw007_i_1']; ADD
-par.scan_path = [raw_path 'itaw007_i_2']; ADD
-par.scan_path = [raw_path 'itaw007_i_3']; ADD
-par.scan_path = [raw_path 'itaw007_i_4']; ADD
-par.scan_path = [raw_path 'itaw007_j_0']; ADD
-par.scan_path = [raw_path 'itaw007_j_1']; ADD
-par.scan_path = [raw_path 'itaw007_j_2']; ADD
-par.scan_path = [raw_path 'itaw007_j_3']; ADD
-par.scan_path = [raw_path 'itaw007_j_4']; ADD
-par.scan_path = [raw_path 'itaw007_k_0']; ADD
-par.scan_path = [raw_path 'itaw007_k_1']; ADD
-par.scan_path = [raw_path 'itaw007_k_2']; ADD
-par.scan_path = [raw_path 'itaw007_k_3']; ADD
-par.scan_path = [raw_path 'itaw007_k_4']; ADD
-par.scan_path = [raw_path 'itaw007_l_0']; ADD
-par.scan_path = [raw_path 'itaw007_l_1']; ADD
-par.scan_path = [raw_path 'itaw007_l_2']; ADD
-par.scan_path = [raw_path 'itaw007_l_3']; ADD
-par.scan_path = [raw_path 'itaw007_l_4']; ADD
-par.scan_path = [raw_path 'itaw007_m_0']; ADD
-par.scan_path = [raw_path 'itaw007_m_1']; ADD
-par.scan_path = [raw_path 'itaw007_m_2']; ADD
-par.scan_path = [raw_path 'itaw007_m_3']; ADD
-par.scan_path = [raw_path 'itaw007_m_4']; ADD
+%% itaw006_cet547a_sd01_pp: Stitched left part
+par.scan_path = '/asap3/petra3/gpfs/p07/2023/data/11017206/processed/itaw006_cet547a_sd01_pp';
+par.nexus_path = '/asap3/petra3/gpfs/p07/2023/data/11017206/raw/itaw006_cet547a_sd01_pp_r_c';
+par.read_sino = 1; 
+par.read_sino_folder = 'trans02_180';
+par.read_sino_trafo = @(x) (x);
+par.sino_roi = []; % horizontal ROI when reading sinograms, vertical ROI not yet implemented
+par.filter_sino = 1; % bool. Pixel filtering of sinogram.
+pixel_filter_sino.threshold_hot = 0;0.0005;
+pixel_filter_sino.threshold_dark = 0;0.00005;
+pixel_filter_sino.medfilt_neighboorhood = [3 3];
+pixel_filter_sino.filter_dead_pixel = 1;
+pixel_filter_sino.filter_Inf = 1;
+pixel_filter_sino.filter_NaN = 1;
+pixel_filter_sino.verbose = 0;
+pixel_filter_sino.use_gpu = par.use_gpu_in_parfor;
+ring_filter.apply = 0;
+tomo.rot_axis_offset = 0;
+tomo.rot_axis_offset = 0;
+interactive_mode.rot_axis_pos = 0;
+phase_retrieval.apply = 1;
+phase_retrieval.reg_par = 1.0;
+interactive_mode.phase_retrieval = 1;
+ADD
 
-% Can be deleted, scan again
-par.scan_path = [raw_path 'itaw007_cet433b_UT1611_Pp_a_0']; ADD
-par.scan_path = [raw_path 'itaw007_cet433b_UT1611_Pp_a_1']; ADD
-par.scan_path = [raw_path 'itaw007_cet433b_UT1611_Pp_a_2']; ADD
-par.scan_path = [raw_path 'itaw007_cet433b_UT1611_Pp_b_0']; ADD
-par.scan_path = [raw_path 'itaw007_cet433b_UT1611_Pp_b_1']; ADD
-par.scan_path = [raw_path 'itaw007_cet433b_UT1611_Pp_b_2']; ADD
-par.scan_path = [raw_path 'itaw007_cet433b_UT1611_Pp_c_0']; ADD
-par.scan_path = [raw_path 'itaw007_cet433b_UT1611_Pp_c_1']; ADD
-par.scan_path = [raw_path 'itaw007_cet433b_UT1611_Pp_c_2']; ADD
-par.scan_path = [raw_path 'itaw007_cet433b_UT1611_Pp_d_0']; ADD
-par.scan_path = [raw_path 'itaw007_cet433b_UT1611_Pp_d_1']; ADD
-par.scan_path = [raw_path 'itaw007_cet433b_UT1611_Pp_d_2']; ADD
 
-par.scan_path = [raw_path 'itaw009_cet452a_FF99_Bp_a_0']; ADD
-par.scan_path = [raw_path 'itaw009_cet452a_FF99_Bp_a_1']; ADD
-par.scan_path = [raw_path 'itaw009_cet452a_FF99_Bp_a_2']; ADD
-par.scan_path = [raw_path 'itaw009_cet452a_FF99_Bp_a_3']; ADD
-par.scan_path = [raw_path 'itaw009_cet452a_FF99_Bp_a_4']; ADD
-par.scan_path = [raw_path 'itaw009_cet452a_FF99_Bp_b_0']; ADD
-par.scan_path = [raw_path 'itaw009_cet452a_FF99_Bp_b_1']; ADD
-par.scan_path = [raw_path 'itaw009_cet452a_FF99_Bp_b_2']; ADD
-par.scan_path = [raw_path 'itaw009_cet452a_FF99_Bp_b_3']; ADD
-par.scan_path = [raw_path 'itaw009_cet452a_FF99_Bp_b_4']; ADD
-par.scan_path = [raw_path 'itaw009_cet452a_FF99_Bp_c_0']; ADD
-par.scan_path = [raw_path 'itaw009_cet452a_FF99_Bp_c_1']; ADD
-par.scan_path = [raw_path 'itaw009_cet452a_FF99_Bp_c_2']; ADD
-par.scan_path = [raw_path 'itaw009_cet452a_FF99_Bp_c_3']; ADD
-par.scan_path = [raw_path 'itaw009_cet452a_FF99_Bp_c_4']; ADD
-par.scan_path = [raw_path 'itaw009_cet452a_FF99_Bp_d_0']; ADD
-par.scan_path = [raw_path 'itaw009_cet452a_FF99_Bp_d_1']; ADD
-par.scan_path = [raw_path 'itaw009_cet452a_FF99_Bp_d_2']; ADD
-par.scan_path = [raw_path 'itaw009_cet452a_FF99_Bp_d_3']; ADD
-par.scan_path = [raw_path 'itaw009_cet452a_FF99_Bp_d_4']; ADD
-par.scan_path = [raw_path 'itaw009_cet452a_FF99_Bp_e_0']; ADD
-par.scan_path = [raw_path 'itaw009_cet452a_FF99_Bp_e_1']; ADD
-par.scan_path = [raw_path 'itaw009_cet452a_FF99_Bp_e_2']; ADD
-par.scan_path = [raw_path 'itaw009_cet452a_FF99_Bp_e_3']; ADD
-par.scan_path = [raw_path 'itaw009_cet452a_FF99_Bp_e_4']; ADD
-par.scan_path = [raw_path 'itaw009_cet452a_FF99_Bp_f_0']; ADD
-par.scan_path = [raw_path 'itaw009_cet452a_FF99_Bp_f_1']; ADD
-par.scan_path = [raw_path 'itaw009_cet452a_FF99_Bp_f_2']; ADD
-par.scan_path = [raw_path 'itaw009_cet452a_FF99_Bp_f_3']; ADD
-par.scan_path = [raw_path 'itaw009_cet452a_FF99_Bp_f_4']; ADD
-par.scan_path = [raw_path 'itaw009_cet452a_FF99_Bp_g_0']; ADD
-par.scan_path = [raw_path 'itaw009_cet452a_FF99_Bp_g_1']; ADD
-par.scan_path = [raw_path 'itaw009_cet452a_FF99_Bp_g_2']; ADD
-par.scan_path = [raw_path 'itaw009_cet452a_FF99_Bp_g_3']; ADD
-par.scan_path = [raw_path 'itaw009_cet452a_FF99_Bp_g_4']; ADD
-par.scan_path = [raw_path 'itaw009_cet452a_FF99_Bp_h_0']; ADD
-par.scan_path = [raw_path 'itaw009_cet452a_FF99_Bp_h_1']; ADD
-par.scan_path = [raw_path 'itaw009_cet452a_FF99_Bp_h_2']; ADD
-par.scan_path = [raw_path 'itaw009_cet452a_FF99_Bp_h_3']; ADD
-par.scan_path = [raw_path 'itaw009_cet452a_FF99_Bp_h_4']; ADD
-par.scan_path = [raw_path 'itaw009_cet452a_FF99_Bp_i_0']; ADD
-par.scan_path = [raw_path 'itaw009_cet452a_FF99_Bp_i_1']; ADD
-par.scan_path = [raw_path 'itaw009_cet452a_FF99_Bp_i_2']; ADD
-par.scan_path = [raw_path 'itaw009_cet452a_FF99_Bp_i_3']; ADD
-par.scan_path = [raw_path 'itaw009_cet452a_FF99_Bp_i_4']; ADD
-par.scan_path = [raw_path 'itaw009_cet452a_FF99_Bp_j_0']; ADD
-par.scan_path = [raw_path 'itaw009_cet452a_FF99_Bp_j_1']; ADD
-par.scan_path = [raw_path 'itaw009_cet452a_FF99_Bp_j_2']; ADD
-par.scan_path = [raw_path 'itaw009_cet452a_FF99_Bp_j_3']; ADD
-par.scan_path = [raw_path 'itaw009_cet452a_FF99_Bp_j_4']; ADD
 
-par.scan_path = [raw_path 'itaw010_cet433b_UT1611_Pp_a_0']; ADD
-par.scan_path = [raw_path 'itaw010_cet433b_UT1611_Pp_a_1']; ADD
-par.scan_path = [raw_path 'itaw010_cet433b_UT1611_Pp_b_0']; ADD
-par.scan_path = [raw_path 'itaw010_cet433b_UT1611_Pp_b_1']; ADD
-par.scan_path = [raw_path 'itaw010_cet433b_UT1611_Pp_c_0']; ADD
-par.scan_path = [raw_path 'itaw010_cet433b_UT1611_Pp_c_1']; ADD
-par.scan_path = [raw_path 'itaw010_cet433b_UT1611_Pp_d_0']; ADD
-par.scan_path = [raw_path 'itaw010_cet433b_UT1611_Pp_d_1']; ADD
-par.scan_path = [raw_path 'itaw010_cet433b_UT1611_Pp_e_0']; ADD
-par.scan_path = [raw_path 'itaw010_cet433b_UT1611_Pp_e_1']; ADD
 
-par.scan_path = [raw_path 'itaw011_cet495b_M548_20_Ha_a_0']; ADD
-par.scan_path = [raw_path 'itaw011_cet495b_M548_20_Ha_a_1']; ADD
-par.scan_path = [raw_path 'itaw011_cet495b_M548_20_Ha_a_2']; ADD
-par.scan_path = [raw_path 'itaw011_cet495b_M548_20_Ha_b_0']; ADD
-par.scan_path = [raw_path 'itaw011_cet495b_M548_20_Ha_b_1']; ADD
-par.scan_path = [raw_path 'itaw011_cet495b_M548_20_Ha_b_2']; ADD
-par.scan_path = [raw_path 'itaw011_cet495b_M548_20_Ha_c_0']; ADD
-par.scan_path = [raw_path 'itaw011_cet495b_M548_20_Ha_c_1']; ADD
-par.scan_path = [raw_path 'itaw011_cet495b_M548_20_Ha_c_2']; ADD
-par.scan_path = [raw_path 'itaw011_cet495b_M548_20_Ha_d_0']; ADD
-par.scan_path = [raw_path 'itaw011_cet495b_M548_20_Ha_d_1']; ADD
-par.scan_path = [raw_path 'itaw011_cet495b_M548_20_Ha_d_2']; ADD
-par.scan_path = [raw_path 'itaw011_cet495b_M548_20_Ha_e_0']; ADD
-par.scan_path = [raw_path 'itaw011_cet495b_M548_20_Ha_e_1']; ADD
-par.scan_path = [raw_path 'itaw011_cet495b_M548_20_Ha_e_2']; ADD
-par.scan_path = [raw_path 'itaw011_cet495b_M548_20_Ha_f_0']; ADD
-par.scan_path = [raw_path 'itaw011_cet495b_M548_20_Ha_f_1']; ADD
-par.scan_path = [raw_path 'itaw011_cet495b_M548_20_Ha_f_2']; ADD
-par.scan_path = [raw_path 'itaw011_cet495b_M548_20_Ha_g_0']; ADD
-par.scan_path = [raw_path 'itaw011_cet495b_M548_20_Ha_g_1']; ADD
-par.scan_path = [raw_path 'itaw011_cet495b_M548_20_Ha_g_2']; ADD
-par.scan_path = [raw_path 'itaw011_cet495b_M548_20_Ha_h_0']; ADD
-par.scan_path = [raw_path 'itaw011_cet495b_M548_20_Ha_h_1']; ADD
-par.scan_path = [raw_path 'itaw011_cet495b_M548_20_Ha_h_2']; ADD
+par.energy = [];
+par.sample_detector_distance = [];
+par.eff_pixel_size = [];
+pixel_filter_sino.threshold_hot = 0;
+pixel_filter_sino.threshold_dark = 0;
+pixel_filter_sino.medfilt_neighboorhood = [3 3];
+pixel_filter_sino.filter_dead_pixel = 1;
+pixel_filter_sino.filter_Inf = 1;
+pixel_filter_sino.filter_NaN = 1;
+pixel_filter_sino.verbose = 0;
+pixel_filter_sino.use_gpu = par.use_gpu_in_parfor;
+ring_filter.apply = 1;
+ring_filter.jm_median_width = [3 11];
+tomo.reco_mode = '3D';
+tomo.rot_angle_full_range = [];
+tomo.rot_axis_tilt_camera = 0;
+tomo.rot_axis_offset = 0;
+tomo.vol_size = [];
+write.float_adapthisteq = 0;
+phase_retrieval.apply = 0;
+interactive_mode.rot_axis_pos = 0;
+interactive_mode.rot_axis_tilt = 0;
+ADD
+
+phase_retrieval.apply = 1;
+phase_retrieval.reg_par = 1.0;
+ring_filter.apply = 1;
+ring_filter.jm_median_width = [3 11];
+interactive_mode.phase_retrieval = 0;
+ADD
+
+phase_retrieval.apply = 1;
+phase_retrieval.reg_par = 2.0;
+ring_filter.apply = 1;
+ring_filter.jm_median_width = [3 11];
+interactive_mode.phase_retrieval = 0;
+ADD
+
+
+
+
+
+
+
+%% itaw007
+% par.scan_path = [raw_path 'itaw007_a_0']; ADD
+% par.scan_path = [raw_path 'itaw007_a_1']; ADD
+% par.scan_path = [raw_path 'itaw007_a_2']; ADD
+% par.scan_path = [raw_path 'itaw007_a_3']; ADD
+% par.scan_path = [raw_path 'itaw007_a_4']; ADD
+% par.scan_path = [raw_path 'itaw007_b_0']; ADD
+% par.scan_path = [raw_path 'itaw007_b_1']; ADD
+% par.scan_path = [raw_path 'itaw007_b_2']; ADD
+% par.scan_path = [raw_path 'itaw007_b_3']; ADD
+% par.scan_path = [raw_path 'itaw007_b_4']; ADD
+% par.scan_path = [raw_path 'itaw007_c_0']; ADD
+% par.scan_path = [raw_path 'itaw007_c_1']; ADD
+% par.scan_path = [raw_path 'itaw007_c_2']; ADD
+% par.scan_path = [raw_path 'itaw007_c_3']; ADD
+% par.scan_path = [raw_path 'itaw007_c_4']; ADD
+% par.scan_path = [raw_path 'itaw007_d_0']; ADD
+% par.scan_path = [raw_path 'itaw007_d_1']; ADD
+% par.scan_path = [raw_path 'itaw007_d_2']; ADD
+% par.scan_path = [raw_path 'itaw007_d_3']; ADD
+% par.scan_path = [raw_path 'itaw007_d_4']; ADD
+% par.scan_path = [raw_path 'itaw007_e_0']; ADD
+% par.scan_path = [raw_path 'itaw007_e_1']; ADD
+% par.scan_path = [raw_path 'itaw007_e_2']; ADD
+% par.scan_path = [raw_path 'itaw007_e_3']; ADD
+% par.scan_path = [raw_path 'itaw007_e_4']; ADD
+% par.scan_path = [raw_path 'itaw007_f_0']; ADD
+% par.scan_path = [raw_path 'itaw007_f_1']; ADD
+% par.scan_path = [raw_path 'itaw007_f_2']; ADD
+% par.scan_path = [raw_path 'itaw007_f_3']; ADD
+% par.scan_path = [raw_path 'itaw007_f_4']; ADD
+% par.scan_path = [raw_path 'itaw007_g_0']; ADD
+% par.scan_path = [raw_path 'itaw007_g_1']; ADD
+% par.scan_path = [raw_path 'itaw007_g_2']; ADD
+% par.scan_path = [raw_path 'itaw007_g_3']; ADD
+% par.scan_path = [raw_path 'itaw007_g_4']; ADD
+% par.scan_path = [raw_path 'itaw007_h_0']; ADD
+% par.scan_path = [raw_path 'itaw007_h_1']; ADD
+% par.scan_path = [raw_path 'itaw007_h_2']; ADD
+% par.scan_path = [raw_path 'itaw007_h_3']; ADD
+% par.scan_path = [raw_path 'itaw007_h_4']; ADD
+% par.scan_path = [raw_path 'itaw007_i_0']; ADD
+% par.scan_path = [raw_path 'itaw007_i_1']; ADD
+% par.scan_path = [raw_path 'itaw007_i_2']; ADD
+% par.scan_path = [raw_path 'itaw007_i_3']; ADD
+% par.scan_path = [raw_path 'itaw007_i_4']; ADD
+% par.scan_path = [raw_path 'itaw007_j_0']; ADD
+% par.scan_path = [raw_path 'itaw007_j_1']; ADD
+% par.scan_path = [raw_path 'itaw007_j_2']; ADD
+% par.scan_path = [raw_path 'itaw007_j_3']; ADD
+% par.scan_path = [raw_path 'itaw007_j_4']; ADD
+% par.scan_path = [raw_path 'itaw007_k_0']; ADD
+% par.scan_path = [raw_path 'itaw007_k_1']; ADD
+% par.scan_path = [raw_path 'itaw007_k_2']; ADD
+% par.scan_path = [raw_path 'itaw007_k_3']; ADD
+% par.scan_path = [raw_path 'itaw007_k_4']; ADD
+% par.scan_path = [raw_path 'itaw007_l_0']; ADD
+% par.scan_path = [raw_path 'itaw007_l_1']; ADD
+% par.scan_path = [raw_path 'itaw007_l_2']; ADD
+% par.scan_path = [raw_path 'itaw007_l_3']; ADD
+% par.scan_path = [raw_path 'itaw007_l_4']; ADD
+% par.scan_path = [raw_path 'itaw007_m_0']; ADD
+% par.scan_path = [raw_path 'itaw007_m_1']; ADD
+% par.scan_path = [raw_path 'itaw007_m_2']; ADD
+% par.scan_path = [raw_path 'itaw007_m_3']; ADD
+% par.scan_path = [raw_path 'itaw007_m_4']; ADD
+
+%% itaw009_cet452a_FF99_Bp
+% par.scan_path = [raw_path 'itaw009_cet452a_FF99_Bp_a_0']; ADD
+% par.scan_path = [raw_path 'itaw009_cet452a_FF99_Bp_a_1']; ADD
+% par.scan_path = [raw_path 'itaw009_cet452a_FF99_Bp_a_2']; ADD
+% par.scan_path = [raw_path 'itaw009_cet452a_FF99_Bp_a_3']; ADD
+% par.scan_path = [raw_path 'itaw009_cet452a_FF99_Bp_a_4']; ADD
+% par.scan_path = [raw_path 'itaw009_cet452a_FF99_Bp_b_0']; ADD
+% par.scan_path = [raw_path 'itaw009_cet452a_FF99_Bp_b_1']; ADD
+% par.scan_path = [raw_path 'itaw009_cet452a_FF99_Bp_b_2']; ADD
+% par.scan_path = [raw_path 'itaw009_cet452a_FF99_Bp_b_3']; ADD
+% par.scan_path = [raw_path 'itaw009_cet452a_FF99_Bp_b_4']; ADD
+% par.scan_path = [raw_path 'itaw009_cet452a_FF99_Bp_c_0']; ADD
+% par.scan_path = [raw_path 'itaw009_cet452a_FF99_Bp_c_1']; ADD
+% par.scan_path = [raw_path 'itaw009_cet452a_FF99_Bp_c_2']; ADD
+% par.scan_path = [raw_path 'itaw009_cet452a_FF99_Bp_c_3']; ADD
+% par.scan_path = [raw_path 'itaw009_cet452a_FF99_Bp_c_4']; ADD
+% par.scan_path = [raw_path 'itaw009_cet452a_FF99_Bp_d_0']; ADD
+% par.scan_path = [raw_path 'itaw009_cet452a_FF99_Bp_d_1']; ADD
+% par.scan_path = [raw_path 'itaw009_cet452a_FF99_Bp_d_2']; ADD
+% par.scan_path = [raw_path 'itaw009_cet452a_FF99_Bp_d_3']; ADD
+% par.scan_path = [raw_path 'itaw009_cet452a_FF99_Bp_d_4']; ADD
+% par.scan_path = [raw_path 'itaw009_cet452a_FF99_Bp_e_0']; ADD
+% par.scan_path = [raw_path 'itaw009_cet452a_FF99_Bp_e_1']; ADD
+% par.scan_path = [raw_path 'itaw009_cet452a_FF99_Bp_e_2']; ADD
+% par.scan_path = [raw_path 'itaw009_cet452a_FF99_Bp_e_3']; ADD
+% par.scan_path = [raw_path 'itaw009_cet452a_FF99_Bp_e_4']; ADD
+% par.scan_path = [raw_path 'itaw009_cet452a_FF99_Bp_f_0']; ADD
+% par.scan_path = [raw_path 'itaw009_cet452a_FF99_Bp_f_1']; ADD
+% par.scan_path = [raw_path 'itaw009_cet452a_FF99_Bp_f_2']; ADD
+% par.scan_path = [raw_path 'itaw009_cet452a_FF99_Bp_f_3']; ADD
+% par.scan_path = [raw_path 'itaw009_cet452a_FF99_Bp_f_4']; ADD
+% par.scan_path = [raw_path 'itaw009_cet452a_FF99_Bp_g_0']; ADD
+% par.scan_path = [raw_path 'itaw009_cet452a_FF99_Bp_g_1']; ADD
+% par.scan_path = [raw_path 'itaw009_cet452a_FF99_Bp_g_2']; ADD
+% par.scan_path = [raw_path 'itaw009_cet452a_FF99_Bp_g_3']; ADD
+% par.scan_path = [raw_path 'itaw009_cet452a_FF99_Bp_g_4']; ADD
+% par.scan_path = [raw_path 'itaw009_cet452a_FF99_Bp_h_0']; ADD
+% par.scan_path = [raw_path 'itaw009_cet452a_FF99_Bp_h_1']; ADD
+% par.scan_path = [raw_path 'itaw009_cet452a_FF99_Bp_h_2']; ADD
+% par.scan_path = [raw_path 'itaw009_cet452a_FF99_Bp_h_3']; ADD
+% par.scan_path = [raw_path 'itaw009_cet452a_FF99_Bp_h_4']; ADD
+% par.scan_path = [raw_path 'itaw009_cet452a_FF99_Bp_i_0']; ADD
+% par.scan_path = [raw_path 'itaw009_cet452a_FF99_Bp_i_1']; ADD
+% par.scan_path = [raw_path 'itaw009_cet452a_FF99_Bp_i_2']; ADD
+% par.scan_path = [raw_path 'itaw009_cet452a_FF99_Bp_i_3']; ADD
+% par.scan_path = [raw_path 'itaw009_cet452a_FF99_Bp_i_4']; ADD
+% par.scan_path = [raw_path 'itaw009_cet452a_FF99_Bp_j_0']; ADD
+% par.scan_path = [raw_path 'itaw009_cet452a_FF99_Bp_j_1']; ADD
+% par.scan_path = [raw_path 'itaw009_cet452a_FF99_Bp_j_2']; ADD
+% par.scan_path = [raw_path 'itaw009_cet452a_FF99_Bp_j_3']; ADD
+% par.scan_path = [raw_path 'itaw009_cet452a_FF99_Bp_j_4']; ADD
+
+%% raw_path 'itaw010_cet433b_UT1611_Pp
+par.raw_bin = 2;
+proj_range = 1;
+tomo.vol_size = [];
+tomo.rot_axis_tilt_camera = 0.0028;
+phase_retrieval.apply = 0;
+phase_retrieval.method = 'tie';
+phase_retrieval.reg_par = 1.0; 
+interactive_mode.rot_axis_pos = 1;
+interactive_mode.rot_axis_tilt = 0;
+tomo.rot_axis_search_auto = 0; 
+tomo.rot_axis_search_range = 0.8 + (-0.7:0.1:0.7); 
+tomo.rot_axis_search_metric = 'iso-grad';
+tomo.rot_axis_search_extrema = 'min';
+tomo.rot_axis_search_fit = 1; 
+tomo.rot_axis_offset_metric_roi = [];
+tomo.rot_axis_search_range_from_interactive = 1;
+
+% par.scan_path = [raw_path 'itaw010_cet433b_UT1611_Pp_a_0']; ADD
+% par.scan_path = [raw_path 'itaw010_cet433b_UT1611_Pp_a_1']; ADD
+% par.scan_path = [raw_path 'itaw010_cet433b_UT1611_Pp_b_0']; ADD
+% par.scan_path = [raw_path 'itaw010_cet433b_UT1611_Pp_b_1']; ADD
+% par.scan_path = [raw_path 'itaw010_cet433b_UT1611_Pp_c_0']; ADD
+% par.scan_path = [raw_path 'itaw010_cet433b_UT1611_Pp_c_1']; ADD
+% par.scan_path = [raw_path 'itaw010_cet433b_UT1611_Pp_d_0']; ADD
+% par.scan_path = [raw_path 'itaw010_cet433b_UT1611_Pp_d_1']; ADD
+% par.scan_path = [raw_path 'itaw010_cet433b_UT1611_Pp_e_0']; ADD
+% par.scan_path = [raw_path 'itaw010_cet433b_UT1611_Pp_e_1']; ADD
+
+
+interactive_mode.rot_axis_pos = 1;
+interactive_mode.rot_axis_tilt = 1;
+tomo.reco_mode = '3D';
+tomo.rot_angle_full_range = pi;
+tomo.rot_axis_tilt_camera = 0.0028;
+tomo.rot_axis_tilt_camera = 0;
+tomo.rot_axis_offset = 0;
+tomo.vol_size = [];
+par.scan_path = '/asap3/petra3/gpfs/p07/2023/data/11017206/processed/itaw010_cet433b_UT1611_Pp';
+par.nexus_path = '/asap3/petra3/gpfs/p07/2023/data/11017206/raw/itaw010_cet433b_UT1611_Pp_a_0';
+par.read_sino = 1; 
+par.read_sino_folder = 'trans02_180';
+par.read_sino_trafo = @(x) (x);
+par.sino_roi = []; 
+par.filter_sino = 0; 
+%tomo.rot_angle_full_range = (359.991 - 180) * pi / 180; % angle 47998
+par.filter_sino = 0;
+ring_filter.apply = 1;
+phase_retrieval.apply = 0;
+phase_retrieval.reg_par = 2.0;  
+%par.energy = 67e3; % eV
+%par.sample_detector_distance = 0.8; % in m
+%par.eff_pixel_size = 0.0064/5.03813 * 1e-3; % m
+write.subfolder_reco = '';
+ADD
+
+par.scan_path = '/asap3/petra3/gpfs/p07/2023/data/11017206/processed/itaw010_cet433b_UT1611_Pp';
+par.nexus_path = '/asap3/petra3/gpfs/p07/2023/data/11017206/raw/itaw010_cet433b_UT1611_Pp_a_0';
+par.read_sino = 1; 
+par.read_sino_folder = 'trans02_180';
+par.read_sino_trafo = @(x) (x);
+par.sino_roi = []; 
+par.filter_sino = 1;
+par.energy = [];
+par.sample_detector_distance = [];
+par.eff_pixel_size = [];
+pixel_filter_sino.threshold_hot = 0;0.0005;
+pixel_filter_sino.threshold_dark = 0;0.00005;
+pixel_filter_sino.medfilt_neighboorhood = [3 3];
+pixel_filter_sino.filter_dead_pixel = 1;
+pixel_filter_sino.filter_Inf = 1;
+pixel_filter_sino.filter_NaN = 1;
+pixel_filter_sino.verbose = 0;
+pixel_filter_sino.use_gpu = par.use_gpu_in_parfor;
+ring_filter.apply = 0;
+tomo.reco_mode = '3D';
+tomo.rot_angle_full_range = [];
+tomo.rot_axis_tilt_camera = 0;
+tomo.rot_axis_offset = 0;
+tomo.vol_size = [];
+write.float_adapthisteq = 0;
+interactive_mode.rot_axis_pos = 0;
+interactive_mode.rot_axis_tilt = 0;
+ADD
+
+phase_retrieval.apply = 1;
+phase_retrieval.reg_par = 1.0;
+ring_filter.apply = 1;
+ring_filter.jm_median_width = [3 11];
+interactive_mode.phase_retrieval = 0;
+ADD
+
+phase_retrieval.apply = 1;
+phase_retrieval.reg_par = 2.0;
+ring_filter.apply = 1;
+ring_filter.jm_median_width = [3 11];
+interactive_mode.phase_retrieval = 0;
+ADD
+
+ring_filter.apply = 1;
+write.subfolder_reco = 'ring_filter_jm11';
+ring_filter.jm_median_width = 11;
+phase_retrieval.apply = 0;
+ADD
+
+phase_retrieval.apply = 1;
+ADD
+
+phase_retrieval.apply = 1;
+write.subfolder_reco = 'ring_filter_jm3';
+ring_filter.jm_median_width = 3;
+ADD
+
+write.subfolder_reco = 'ring_filter_jm7';
+ring_filter.jm_median_width = 7;
+ADD
+
+write.subfolder_reco = 'ring_filter_jm11';
+ring_filter.jm_median_width = 11;
+ADD
+
+write.subfolder_reco = 'ring_filter_jm3_7_11';
+ring_filter.jm_median_width = [3 7 11];
+ADD
+
+write.subfolder_reco = 'ring_filter_jm3_7_11_21';
+ring_filter.jm_median_width = [3 7 11 21];
+ADD
+
+
+%% itaw011_cet495b_M548_20_Ha
+% par.scan_path = [raw_path 'itaw011_cet495b_M548_20_Ha_a_0']; ADD
+% par.scan_path = [raw_path 'itaw011_cet495b_M548_20_Ha_a_1']; ADD
+% par.scan_path = [raw_path 'itaw011_cet495b_M548_20_Ha_a_2']; ADD
+% par.scan_path = [raw_path 'itaw011_cet495b_M548_20_Ha_b_0']; ADD
+% par.scan_path = [raw_path 'itaw011_cet495b_M548_20_Ha_b_1']; ADD
+% par.scan_path = [raw_path 'itaw011_cet495b_M548_20_Ha_b_2']; ADD
+% par.scan_path = [raw_path 'itaw011_cet495b_M548_20_Ha_c_0']; ADD
+% par.scan_path = [raw_path 'itaw011_cet495b_M548_20_Ha_c_1']; ADD
+% par.scan_path = [raw_path 'itaw011_cet495b_M548_20_Ha_c_2']; ADD
+% par.scan_path = [raw_path 'itaw011_cet495b_M548_20_Ha_d_0']; ADD
+% par.scan_path = [raw_path 'itaw011_cet495b_M548_20_Ha_d_1']; ADD
+% par.scan_path = [raw_path 'itaw011_cet495b_M548_20_Ha_d_2']; ADD
+% par.scan_path = [raw_path 'itaw011_cet495b_M548_20_Ha_e_0']; ADD
+% par.scan_path = [raw_path 'itaw011_cet495b_M548_20_Ha_e_1']; ADD
+% par.scan_path = [raw_path 'itaw011_cet495b_M548_20_Ha_e_2']; ADD
+% par.scan_path = [raw_path 'itaw011_cet495b_M548_20_Ha_f_0']; ADD
+% par.scan_path = [raw_path 'itaw011_cet495b_M548_20_Ha_f_1']; ADD
+% par.scan_path = [raw_path 'itaw011_cet495b_M548_20_Ha_f_2']; ADD
+% par.scan_path = [raw_path 'itaw011_cet495b_M548_20_Ha_g_0']; ADD
+% par.scan_path = [raw_path 'itaw011_cet495b_M548_20_Ha_g_1']; ADD
+% par.scan_path = [raw_path 'itaw011_cet495b_M548_20_Ha_g_2']; ADD
+% par.scan_path = [raw_path 'itaw011_cet495b_M548_20_Ha_h_0']; ADD
+% par.scan_path = [raw_path 'itaw011_cet495b_M548_20_Ha_h_1']; ADD
+% par.scan_path = [raw_path 'itaw011_cet495b_M548_20_Ha_h_2']; ADD
 
 par.raw_bin = 2;
 proj_range = 1;
@@ -558,30 +738,31 @@ par.scan_path = [raw_path 'itaw012_cet548a_OO01_Oo_i_0']; ADD
 par.scan_path = [raw_path 'itaw012_cet548a_OO01_Oo_i_1']; ADD
 par.scan_path = [raw_path 'itaw012_cet548a_OO01_Oo_i_2']; ADD
 
-par.scan_path = [raw_path 'itaw013_cet518a_MB7_Mb_a_0']; ADD
-par.scan_path = [raw_path 'itaw013_cet518a_MB7_Mb_a_1']; ADD
-par.scan_path = [raw_path 'itaw013_cet518a_MB7_Mb_a_2']; ADD
-par.scan_path = [raw_path 'itaw013_cet518a_MB7_Mb_b_0']; ADD
-par.scan_path = [raw_path 'itaw013_cet518a_MB7_Mb_b_1']; ADD
-par.scan_path = [raw_path 'itaw013_cet518a_MB7_Mb_b_2']; ADD
-par.scan_path = [raw_path 'itaw013_cet518a_MB7_Mb_c_0']; ADD
-par.scan_path = [raw_path 'itaw013_cet518a_MB7_Mb_c_1']; ADD
-par.scan_path = [raw_path 'itaw013_cet518a_MB7_Mb_c_2']; ADD
-par.scan_path = [raw_path 'itaw013_cet518a_MB7_Mb_d_0']; ADD
-par.scan_path = [raw_path 'itaw013_cet518a_MB7_Mb_d_1']; ADD
-par.scan_path = [raw_path 'itaw013_cet518a_MB7_Mb_d_2']; ADD
-par.scan_path = [raw_path 'itaw013_cet518a_MB7_Mb_e_0']; ADD
-par.scan_path = [raw_path 'itaw013_cet518a_MB7_Mb_e_1']; ADD
-par.scan_path = [raw_path 'itaw013_cet518a_MB7_Mb_e_2']; ADD
-par.scan_path = [raw_path 'itaw013_cet518a_MB7_Mb_f_0']; ADD
-par.scan_path = [raw_path 'itaw013_cet518a_MB7_Mb_f_1']; ADD
-par.scan_path = [raw_path 'itaw013_cet518a_MB7_Mb_f_2']; ADD
-par.scan_path = [raw_path 'itaw013_cet518a_MB7_Mb_g_0']; ADD
-par.scan_path = [raw_path 'itaw013_cet518a_MB7_Mb_g_1']; ADD
-par.scan_path = [raw_path 'itaw013_cet518a_MB7_Mb_g_2']; ADD
-par.scan_path = [raw_path 'itaw013_cet518a_MB7_Mb_h_0']; ADD
-par.scan_path = [raw_path 'itaw013_cet518a_MB7_Mb_h_1']; ADD
-par.scan_path = [raw_path 'itaw013_cet518a_MB7_Mb_h_2']; ADD
+%% itaw013_cet518a_MB7_Mb
+% par.scan_path = [raw_path 'itaw013_cet518a_MB7_Mb_a_0']; ADD
+% par.scan_path = [raw_path 'itaw013_cet518a_MB7_Mb_a_1']; ADD
+% par.scan_path = [raw_path 'itaw013_cet518a_MB7_Mb_a_2']; ADD
+% par.scan_path = [raw_path 'itaw013_cet518a_MB7_Mb_b_0']; ADD
+% par.scan_path = [raw_path 'itaw013_cet518a_MB7_Mb_b_1']; ADD
+% par.scan_path = [raw_path 'itaw013_cet518a_MB7_Mb_b_2']; ADD
+% par.scan_path = [raw_path 'itaw013_cet518a_MB7_Mb_c_0']; ADD
+% par.scan_path = [raw_path 'itaw013_cet518a_MB7_Mb_c_1']; ADD
+% par.scan_path = [raw_path 'itaw013_cet518a_MB7_Mb_c_2']; ADD
+% par.scan_path = [raw_path 'itaw013_cet518a_MB7_Mb_d_0']; ADD
+% par.scan_path = [raw_path 'itaw013_cet518a_MB7_Mb_d_1']; ADD
+% par.scan_path = [raw_path 'itaw013_cet518a_MB7_Mb_d_2']; ADD
+% par.scan_path = [raw_path 'itaw013_cet518a_MB7_Mb_e_0']; ADD
+% par.scan_path = [raw_path 'itaw013_cet518a_MB7_Mb_e_1']; ADD
+% par.scan_path = [raw_path 'itaw013_cet518a_MB7_Mb_e_2']; ADD
+% par.scan_path = [raw_path 'itaw013_cet518a_MB7_Mb_f_0']; ADD
+% par.scan_path = [raw_path 'itaw013_cet518a_MB7_Mb_f_1']; ADD
+% par.scan_path = [raw_path 'itaw013_cet518a_MB7_Mb_f_2']; ADD
+% par.scan_path = [raw_path 'itaw013_cet518a_MB7_Mb_g_0']; ADD
+% par.scan_path = [raw_path 'itaw013_cet518a_MB7_Mb_g_1']; ADD
+% par.scan_path = [raw_path 'itaw013_cet518a_MB7_Mb_g_2']; ADD
+% par.scan_path = [raw_path 'itaw013_cet518a_MB7_Mb_h_0']; ADD
+% par.scan_path = [raw_path 'itaw013_cet518a_MB7_Mb_h_1']; ADD
+% par.scan_path = [raw_path 'itaw013_cet518a_MB7_Mb_h_2']; ADD
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

@@ -34,6 +34,8 @@ dbstop if error
 
 if nargin < 1
     scan_path = ... % pwd;
+    '/asap3/petra3/gpfs/p07/2023/data/11017206/processed/itaw006_cet547a_sd01_pp';
+    '/asap3/petra3/gpfs/p07/2023/data/11017206/processed/itaw010_cet433b_UT1611_Pp';
     '/asap3/petra3/gpfs/p07/2023/data/11017206/processed/itaw012_cet548a_OO01_Oo';
     '/asap3/petra3/gpfs/p07/2023/data/11017607/processed/mosaic/bmc003_B4_paraffin/tests_hs01';
     '/asap3/petra3/gpfs/p07/2023/data/11017206/processed/itaw006_cet547a_sd01_pp';
@@ -84,9 +86,9 @@ ring_filter.waveletfft_wname = 'db7';'db25';'db30'; % wavelet type, see 'FilterS
 ring_filter.waveletfft_sigma = 3; %  suppression factor for 'wavelet-fft'
 ring_filter.jm_median_width = 11; % multiple widths are applied consecutively, eg [3 11 21 31 39];
 %%% PIXEL FILTER
-filter_sino = 0; % Filter hot pixesl
-pixel_filter_threshold = [0.002 0.000]; % threshold parameter for hot/dark pixel filter, for details see 'FilterPixel'
-pixel_filter_radius = [5 5];
+filter_sino = 1; % Filter hot pixesl
+pixel_filter_threshold = [0.001 0.00005]; % threshold parameter for hot/dark pixel filter, for details see 'FilterPixel'
+pixel_filter_radius = [3 3];
 %%% PHASE RETRIEVAL %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 phase_retrieval.apply = 0; % See 'PhaseFilter' for detailed description of parameters !
 phase_retrieval.apply_before = 0; % before stitching, interactive mode, etc. For phase-contrast data with an excentric rotation axis phase retrieval should be done afterwards. To find the rotataion axis position use this option in a first run, and then turn it of afterwards.
@@ -99,7 +101,7 @@ phase_retrieval.padding = 1; % padding of intensities before phase retrieval, 0:
 %%% TOMOGRAPHY %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 tomo.run = 1; % run tomographic reconstruction
 tomo.run_interactive_mode = 1; % if tomo.run = 0, use to determine rot axis positions without processing the full tomogram;
-tomo.reco_mode = 'slice';'3D'; % slice-wise or full 3D backprojection. 'slice': volume must be centered at origin & no support of rotation axis tilt, reco binning, save compressed
+tomo.reco_mode = 'slice';%'3D'; % slice-wise or full 3D backprojection. 'slice': volume must be centered at origin & no support of rotation axis tilt, reco binning, save compressed
 tomo.slab_wise = 1;
 tomo.slices_per_slab = [];
 tomo.vol_size = [];[-1 1 -1 1 -0.5 0.5];% 6-component vector [xmin xmax ymin ymax zmin zmax], for excentric rot axis pos / extended FoV;. if empty, volume is centerd within tomo.vol_shape. unit voxel size is assumed. if smaller than 10 values are interpreted as relative size w.r.t. the detector size. Take care bout minus signs! Note that if empty vol_size is dependent on the rotation axis position.
@@ -110,6 +112,7 @@ tomo.rot_axis_offset = []; % rotation axis offset w.r.t to the image center. Ass
 tomo.rot_axis_position = []; % if empty use automatic computation. EITHER OFFSET OR POSITION MUST BE EMPTY. YOU MUST NOT USE BOTH!
 tomo.rot_axis_offset_shift = []; %[]; % absolute lateral movement in pixels during fly-shift-scan, overwrite lateral shift read out from hdf5 log
 tomo.rot_axis_tilt_camera = 0; % in rad. camera tilt w.r.t rotation axis.
+%tomo.rot_axis_tilt_camera = 0.0028;
 tomo.rot_axis_tilt_lamino = 0; %
 tomo.rot_axis_corr_area1 = []; % ROI to correlate projections at angles 0 & pi. Use [0.75 1] or so for scans with an excentric rotation axis
 tomo.rot_axis_corr_area2 = []; % ROI to correlate projections at angles 0 & pi
@@ -356,7 +359,7 @@ filt_pix_par.threshold_dark = pixel_filter_threshold(2);
 filt_pix_par.medfilt_neighboorhood = pixel_filter_radius;
 filt_pix_par.filter_dead_pixel = 1;
 filt_pix_par.filter_Inf = 0;
-filt_pix_par.filter_NaN = 0;
+filt_pix_par.filter_NaN = 1;
 filt_pix_par.verbose = 0;
 filt_pix_par.use_gpu = par.use_gpu_in_parfor;
 FilterPixel_par = @(sino) FilterPixel(sino, filt_pix_par);
@@ -439,6 +442,8 @@ if exist(fn, 'File')
         pixelsize = c{2}(b);
         pixelsize = str2double(pixelsize{1});
         fprintf('\n pixelsize : %f', pixelsize)
+        c{1}(b) = [];
+        c{2}(b) = [];
     end
     
     b = contains(c{1},'pixelsize');
