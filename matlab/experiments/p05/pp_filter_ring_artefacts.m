@@ -1,13 +1,16 @@
 function proj = pp_filter_ring_artefacts( ring_filter, proj, angles, par )
-% Filter ring artefacts for P05 data.
+% Filter ring artefacts using wavelet-fft method or averaged sinogram.
 %
 % Written by Julian Moosmann.
 %
 % [proj, h] = pp_filter_ring_artefacts( ring_filter, proj, angles, par )
 
-t = toc;
+verbose = par.verbose;
+if verbose
+    t = toc;
+end
 window_state  = par.window_state;
-fprintf( '\nFilter ring artifacts using %s: ', ring_filter.method)
+PrintVerbose(verbose,'\nFilter ring artifacts using %s: ', ring_filter.method)
 imsc1 = @(im) imsc( flipud( im' ) );
 % sort angles for displaying and non-contiguous acquisition
 [~, sorted_angle_index] = sort( angles );
@@ -30,7 +33,9 @@ switch lower( ring_filter.method )
             proj(:,nn,:) = sino;
         end
         sino_filt = squeeze( proj(:,sino_slice,sorted_angle_index) )';
-        fprintf( ' done in %.1f s (%.2f min)', toc-t, (toc-t)/60)
+        if verbose
+            fprintf( '\n duration: %.1f s (%.2f min)', toc-t, (toc-t)/60)
+        end
         
         if par.visual_output
             figure('Name', 'Sinogram and ring filter', 'WindowState', window_state  );
@@ -69,20 +74,39 @@ switch lower( ring_filter.method )
                 
                 %f=md./m;
                 mask = proj_mean_med ./ proj_mean;
+                if verbose
+                    fprintf('\n ring filter mask min/max for median %u: %f, %f',nn, min( mask(:) ), max( mask(:) ) );
+                end
                 
                 %im=bsxfun(@times,im,f);
-                proj = bsxfun( @times, proj, mask);
+                [~, ~, t] = free_memory;
+                m = Bytes(proj) / t; 
+                if m < 0.4
+                    proj = bsxfun( @times, proj, mask);
+                else
+                    if verbose
+                        fprintf('\n %.3f%% of total memory %.3f GiB occupied, switch to for loop',m*100,t/1024^3);
+                    end
+                    for mm = 1:size(proj,3)
+                        im = proj(:,:,mm);
+                        im = im .* mask;
+                        proj(:,:,mm) = im;
+                    end
+                end
             end
         else
             proj_mean = mean( proj, 3);
             proj_mean_med = medfilt2( proj_mean, [ring_filter.jm_median_width, 1], 'symmetric' );
             mask = proj_mean_med ./ proj_mean;
+            if verbose
+                fprintf('\n ring filter mask min/max for median %u: %f, %f',ring_filter.jm_median_width, min( mask(:) ), max( mask(:) ) );
+            end
             proj = bsxfun( @times, proj, mask);
         end
         sino_filt = squeeze( proj(:,sino_slice,sorted_angle_index) )';
-        
-        fprintf( ' Time elapsed: %.1f s (%.2f min)', toc-t, (toc-t)/60)
-        fprintf( '\n ring filter mask min/max: %f, %f', min( mask(:) ), max( mask(:) ) )
+        if verbose
+            fprintf('\n duration: %.1f s (%.2f min)', toc-t, (toc-t)/60)            
+        end
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         if par.visual_output
             figure('Name', 'Sinogram and ring filter', 'WindowState', window_state);

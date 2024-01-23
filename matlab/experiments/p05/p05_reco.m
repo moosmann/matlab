@@ -173,9 +173,9 @@ image_correlation.method = 'median'; 'ssim-ml';'median';'entropy';'none';'ssim';
 % 'diff1/2-l1/2': L1/L2-norm of anisotropic (diff1-l*) or isotropic (diff2-l*) difference of projections and flat fields
 % 'cross-entropy-*' : asymmetric (12,21) and symmetric (x) cross entropy
 image_correlation.force_calc = 0; % bool. force compuation of correlation even though a (previously computed) corrlation matrix exists
-image_correlation.num_flats = 11; % number of best maching flat fields used for correction
-image_correlation.area_width = [0.25 0.75];%[1 100];% correlation area: index vector or relative/absolute position of [first pix, last pix], negative indexing is supported
-image_correlation.area_height = [0.4 0.6]; %[0.90 0.98];[0.25 0.75]; % correlation area [bottom top]: index vector or relative/absolute position of [first pix, last pix]
+image_correlation.num_flats = 11; % integer. number of best maching flat fields used for correction
+image_correlation.area_width = [1 100];% 2-vector. correlation area: index vector or relative/absolute position of [first pix, last pix], negative indexing is supported
+image_correlation.area_height = [0.25 0.75]; % 2/vector. correlation area [bottom top]: index vector or relative/absolute position of [first pix, last pix]
 image_correlation.filter = 1; % bool, filter ROI before correlation
 image_correlation.filter_type = 'median'; % string. correlation ROI filter type, currently only 'median' is implemnted
 image_correlation.filter_parameter = {[5 5], 'symmetric'}; % cell. filter paramaters to be parsed with {:}
@@ -196,10 +196,10 @@ par.distortion_correction_distance = 0; % scalar, in binned pixel, distance betw
 par.distortion_correction_outer_offset = 0; % scalar, in pixel, rotation axis offset for the outer region. the offset for the inner region is used for reconstruction
 par.distortion_correction_exponent = 2; % scalar,  exponent of interpolation function: xq = x - 2 * offset_diff * (x / dist_offset).^exponent;
 %%% PHASE RETRIEVAL %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-phase_retrieval.apply = 0; % See 'PhaseFilter' for detailed description of parameters !
-phase_retrieval.apply_before = 0; % before stitching, interactive mode, etc. For phase-contrast data with an excentric rotation axis phase retrieval should be done afterwards. To find the rotataion axis position use this option in a first run, and then turn it of afterwards.
-phase_retrieval.post_binning_factor = 1; % Binning factor after phase retrieval, but before tomographic reconstruction
-phase_retrieval.method = 'tie';'tieNLO_Schwinger';'dpc';'tie';'qp';'qpcut'; %'qp' 'ctf' 'tie' 'qp2' 'qpcut'
+phase_retrieval.apply = 0; % bool. See 'PhaseFilter' for detailed description of parameters !
+phase_retrieval.apply_before = 0; % bool. before stitching, interactive mode, etc. For phase-contrast data with an excentric rotation axis phase retrieval should be done afterwards. To find the rotataion axis position use this option in a first run, and then turn it of afterwards.
+phase_retrieval.post_binning_factor = 1; % bool. Binning factor after phase retrieval, but before tomographic reconstruction
+phase_retrieval.method = 'tie'; % string. Available methods: 'qp' 'ctf' 'tie' 'qp2' 'qpcut', 'tieNLO_Schwinger'
 % Interactive phase retrieval not supported for method 'tieNLO_Schwinger'
 phase_retrieval.reg_par = 1.0; % regularization parameter. larger values tend to blurrier images. smaller values tend to original data.
 phase_retrieval.bin_filt = 0.1; % threshold for quasiparticle retrieval 'qp', 'qp2'
@@ -325,16 +325,6 @@ fprintf( weblink )
 close all hidden;
 close all force;
 
-tic;
-verbose = 1;
-vert_shift = 0;
-offset_shift = 0;
-scan_position = [];
-logpar = [];
-s_stage_z_str =  '';
-imlogcell = [];
-scan_position_index = [];
-
 %%% Parameters set by reconstruction loop script 'p05_reco_loop' %%%%%%%%%%
 if nargin == 1 %exist('external_parameter' ,'var')
     % Fields of parameter struct from loop script
@@ -351,7 +341,6 @@ if nargin == 1 %exist('external_parameter' ,'var')
     par.visual_output = 1;
     % interactive_mode.rot_axis_pos = 0;
 end
-par.raw_data = 0;
 
 %%% QUICK SWITCH PARAMETERS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 if isfield( par, 'quick_switch' ) && par.quick_switch
@@ -378,6 +367,17 @@ if isfield( par, 'quick_switch' ) && par.quick_switch
     clear par_quick_switch struct_name struct_tmp field_name_cell field_name eval_string
     cprintf('Red', '\nATTENTION: Quick parameter switch is turned on!\n\n' )
 end
+tic;
+verbose = 1;
+vert_shift = 0;
+offset_shift = 0;
+scan_position = [];
+logpar = [];
+s_stage_z_str =  '';
+imlogcell = [];
+scan_position_index = [];
+par.raw_data = 0;
+par.verbose = verbose;
 
 % DPC data
 if phase_retrieval.apply && strcmpi( phase_retrieval.method, 'dpc' )
@@ -2185,18 +2185,19 @@ else
     %% Read flat corrected projections %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     pp_read_flatcor
 end
-%% Pixel filter sino
-if par.filter_sino
-    fprintf('\nPixel filter sinogram')
-    t = toc;
-    FilterPixel_par = @(im_int) FilterPixel(im_int,pixel_filter_sino);
-    parfor nn = 1:size(proj,3)
-        im = proj(:,:,nn);
-        im = FilterPixel_par(im);
-        proj(:,:,nn) = im;
-    end
-    fprintf('\n duration : %.1f (%.2f min)', toc-t, (toc-t)/60)
-end
+% moved to pp_read_sino
+% %% Pixel filter sino
+% if par.filter_sino
+%     fprintf('\nPixel filter sinogram')
+%     t = toc;
+%     FilterPixel_par = @(im_int) FilterPixel(im_int,pixel_filter_sino);
+%     parfor nn = 1:size(proj,3)
+%         im = proj(:,:,nn);
+%         im = FilterPixel_par(im);
+%         proj(:,:,nn) = im;
+%     end
+%     fprintf('\n duration : %.1f (%.2f min)', toc-t, (toc-t)/60)
+% end
 
 %% Phase retrieval before interactive mode %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 tint_phase = 0;

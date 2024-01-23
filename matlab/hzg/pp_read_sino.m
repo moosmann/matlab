@@ -171,11 +171,17 @@ if par.read_sino
     %% Read sinogram
     im_shape_cropbin1 = par.im_shape_cropbin1;
     im_shape_binned1 = im_shape_cropbin1;
+    filter_sino = par.filter_sino;
+    num_gpu = gpuDeviceCount;
     parfor nn = 1:size( proj, 2 )
         filename = sprintf('%s%s', sino_path, sino_names_mat(nn,:));
         sino = read_image( filename );
         sino = read_sino_trafo( sino );
         sino = sino(x0:x1,:);
+        if filter_sino
+            gpu_index = mod(mm, num_gpu) + 1;
+            sino = FilterPixel(sino,pixel_filter_sino,gpu_index);
+        end
         proj(:, nn,:) = reshape( sino, [im_shape_cropbin1, 1, num_proj_read] );
         %proj(:, nn,:) = permute( shiftdim( sino, -1 ) , [3 1 2] );
     end

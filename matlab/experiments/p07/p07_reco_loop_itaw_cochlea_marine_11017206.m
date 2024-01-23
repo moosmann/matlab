@@ -275,6 +275,7 @@ tomo.vol_size = [];%[-1.0 1.0 -1.0 1.0 -0.5 0.5];
 write.flatcor = 0;
 write.parfolder = '';
 write.outputformat = 'tif';
+par.verbose = 0;
 
 %par.read_flatcor = 1;
 %par.read_flatcor_path = '/asap3/petra3/gpfs/p07/2023/data/11014647/processed/014_ifbk_c1_dpc/w3/Int_q';
@@ -350,9 +351,6 @@ phase_retrieval.reg_par = 1.0;
 interactive_mode.phase_retrieval = 1;
 ADD
 
-
-
-
 par.energy = [];
 par.sample_detector_distance = [];
 par.eff_pixel_size = [];
@@ -390,11 +388,6 @@ ring_filter.apply = 1;
 ring_filter.jm_median_width = [3 11];
 interactive_mode.phase_retrieval = 0;
 ADD
-
-
-
-
-
 
 
 %% itaw007
@@ -737,6 +730,42 @@ tomo.rot_axis_offset = 0.4 * 2 /  par.raw_bin;
 par.scan_path = [raw_path 'itaw012_cet548a_OO01_Oo_i_0']; ADD
 par.scan_path = [raw_path 'itaw012_cet548a_OO01_Oo_i_1']; ADD
 par.scan_path = [raw_path 'itaw012_cet548a_OO01_Oo_i_2']; ADD
+
+% Stitched
+par.scan_path = '/asap3/petra3/gpfs/p07/2023/data/11017206/processed/itaw012_cet548a_OO01_Oo';
+par.nexus_path = '/asap3/petra3/gpfs/p07/2023/data/11017206/raw/itaw012_cet548a_OO01_Oo_a_0';
+par.read_sino = 1; 
+par.read_sino_folder = 'trans02_180';
+par.read_sino_trafo = @(x) (x);
+par.sino_roi = []; 
+par.filter_sino = 1;
+par.energy = [];
+par.sample_detector_distance = [];
+par.eff_pixel_size = [];
+pixel_filter_sino.threshold_hot = 0.0005;
+pixel_filter_sino.threshold_dark = 0.00005;
+pixel_filter_sino.medfilt_neighboorhood = [3 3];
+pixel_filter_sino.filter_dead_pixel = 1;
+pixel_filter_sino.filter_Inf = 1;
+pixel_filter_sino.filter_NaN = 1;
+pixel_filter_sino.verbose = 0;
+pixel_filter_sino.use_gpu = par.use_gpu_in_parfor;
+ring_filter.apply = 0;
+ring_filter.jm_median_width = [3 11];
+phase_retrieval.apply = 1;
+phase_retrieval.method = 'tie';
+phase_retrieval.reg_par = 1.0; 
+phase_retrieval.use_parpool = 0;
+tomo.reco_mode = '3D';
+tomo.rot_angle_full_range = [];
+tomo.rot_axis_tilt_camera = 0;
+tomo.rot_axis_offset = 0;
+tomo.vol_size = [];
+write.reco = 0;
+write.float_adapthisteq = 0;
+interactive_mode.rot_axis_pos = 0;
+interactive_mode.rot_axis_tilt = 0;
+ADD
 
 %% itaw013_cet518a_MB7_Mb
 % par.scan_path = [raw_path 'itaw013_cet518a_MB7_Mb_a_0']; ADD
