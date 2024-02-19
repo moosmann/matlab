@@ -48,14 +48,14 @@ else
         
         case 'float'
             parfor nn = 1:size( vol, 3)
-                filename = sprintf( '%sreco_%s_%06u.tif', save_path, scan_name, nn + counter_offset);
+                filename = sprintf( '%sreco_%s_%06u.tif', save_path, scan_name, nn - 1 + counter_offset);
                 write32bitTIFfromSingle( filename, vol( :, :, nn) )
             end
             
         case 'float_adapthisteq'
             imah = @(im) (adapthisteq(normat(im)));
             parfor nn = 1:size( vol, 3)
-                filename = sprintf( '%sreco_%s_%06u.tif', save_path, scan_name, nn + counter_offset);
+                filename = sprintf( '%sreco_%s_%06u.tif', save_path, scan_name, nn - 1 + counter_offset);
                 im = vol(:,:,nn);
                 im = imah(im);
                 write32bitTIFfromSingle(filename,im)
@@ -63,13 +63,13 @@ else
             
         case 'uint16'
             parfor nn = 1:size( vol, 3)
-                filename = sprintf( '%sreco_%s_%06u.tif', save_path, scan_name, nn + counter_offset);
+                filename = sprintf( '%sreco_%s_%06u.tif', save_path, scan_name, nn - 1  + counter_offset);
                 imwrite( uint16( (2^16 - 1) * vol( :, :, nn) ), filename );
             end
             
         case 'uint8'            
             parfor nn = 1:size( vol, 3)
-                filename = sprintf( '%sreco_%s_%06u.tif', save_path, scan_name, nn + counter_offset);
+                filename = sprintf( '%sreco_%s_%06u.tif', save_path, scan_name, nn - 1 + counter_offset);
                 imwrite( uint8( (2^8 - 1) * vol( :, :, nn) ), filename );
             end
         otherwise

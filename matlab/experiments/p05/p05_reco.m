@@ -56,28 +56,6 @@ tomo.vol_size = [];
 par.ring_current_normalization = 0;
 par.crop_proj = 0;
 
-par.read_sino = 1;
-%par.scan_path = '/asap3/petra3/gpfs/p07/2023/data/11016192/processed/bmc006_B2_8rings_h2/';
-%par.scan_path = '/asap3/petra3/gpfs/p07/2023/data/11019133/processed/bmc002_81718_mousebrain_202311_DESY';
-par.scan_path = '/asap3/petra3/gpfs/p07/2023/data/11019133/processed/bmc004_85681_mousebrain_202311_DESY';
-%par.scan_path = '/asap3/petra3/gpfs/p07/2023/data/11019133/processed/bmc005_84225_mousebrain_202311_DESY';
-%par.scan_path = '/asap3/petra3/gpfs/p07/2023/data/11019133/processed/bmc007_81513_mousebrain_202311_DESY';
-%par.scan_path = '/asap3/petra3/gpfs/p07/2023/data/11019133/processed/bmc008_85679_mousebrain_202311_DESY';
-par.sino_roi = [];%[151, 37141 - 150];
-par.read_sino_folder = 'trans02_180';
-tomo.rot_angle_full_range = pi;
-tomo.rot_axis_offset = 0;
-par.filter_sino = 0;
-ring_filter.apply = 0;
-par.energy = 67e3; % eV
-par.sample_detector_distance = 0.8; % in m
-par.eff_pixel_size =  1.27051e-6; % in m
-phase_retrieval.apply = 1;
-phase_retrieval.reg_par = 2.0;
-tomo.reco_mode = '3D';
-write.subfolder_reco = '';
-write.float_adapthisteq = 0; 
-write.outputformat = 'tif';
 
 % interactive_mode.rot_axis_pos = 0;
 % tomo.rot_axis_offset = 0;
@@ -116,6 +94,7 @@ par.read_flatcor_trafo = @(im) im; %fliplr( im ); % anonymous function applied t
 par.read_sino = 0; % read preprocessed sinograms. CHECK if negative log has to be taken!
 par.read_sino_folder = ''; % subfolder to scan path
 par.read_sino_trafo = @(x) (x);%rot90(x); % anonymous function applied to the image which is read e.g. @(x) rot90(x)
+par.read_sino_range = 1;
 par.sino_roi = []; % horizontal ROI when reading sinograms, vertical ROI not yet implemented
 par.filter_sino = 1; % bool. Pixel filtering of sinogram using parameters below:
 pixel_filter_sino.threshold_hot = 0;
@@ -501,6 +480,8 @@ assign_default('par.distortion_correction_exponent', 2)
 assign_default('par.gpu_index', [])
 assign_default('write.outputformat', 'tif')
 assign_default('par.sino_roi', [])
+assign_default('par.read_sino_range',1);
+
 %assign_default('',  )
 
 % Define variables from struct fields for convenience
@@ -2706,7 +2687,8 @@ end
 if phase_retrieval.apply && ~dpc_reco
     if ~phase_retrieval.apply_before
         % Retrieval
-        [proj, write, tomo, tint_phase] = pp_phase_retrieval( proj, phase_retrieval, tomo, write, interactive_mode );
+        %[proj, write, tomo, tint_phase] = pp_phase_retrieval( proj, phase_retrieval, tomo, write, interactive_mode );
+        pp_phase_retrieval
     end
 end
 im_path1reco = [im_path1reco write.phase_appendix filesep];
@@ -2731,7 +2713,7 @@ if tomo.run
     if tilt_cam ~= 0        
         fprintf('\n rotation axis tilt across camera: [h v] = [%.1f %.1f] pixel binned', tan(tilt_cam)*[im_shape_binned1 im_shape_binned2])
     end
-    fprintf('\n rotation axis position: %.2f', rp );
+    %fprintf('\n rotation axis position: %.2f', rp );
     fprintf('\n volume shape : [%g, %g, %g]', tomo.vol_shape )
     vol_mem = prod( tomo.vol_shape ) * 4;
     fprintf('\n volume memory : %.2f GiB', vol_mem / 1024^3 )
@@ -2817,24 +2799,51 @@ if tomo.run
             take_neg_log = tomo.take_neg_log;
             padding = tomo.fbp_filter_padding;
             padding_method = tomo.fbp_filter_padding_method;
-            startS = ticBytes( gcp );
-            mem_per_proj = 2 * 2 * 2 * 4 * prod(size(proj, 1));
-            % copying * complex * padding * bit detpth * (dim1 * dim2)
-            poolsize_max_fbp_filter = floor( 0.9 * mem_avail_cpu / mem_per_proj );
-            %fprintf('\n filter poolsize limit : %u ', poolsize_max_fbp_filter )
-            parfor (nn = 1:size( proj, 3), poolsize_max_fbp_filter)
-                im = proj(:,:,nn);
-                im = NegLog( im, take_neg_log);
-                im = padarray( im, padding * [proj_shape1 0 0], padding_method, 'post' );
-                im = fft( im, [], 1);
-                im = fun_times( im, filt );
-                im = ifft( im, [], 1, 'symmetric');
-                im = real( im );
-                im = im(1:proj_shape1,:,:)
-                proj(:,:,nn) = im;
+            
+            switch lower( tomo.reco_mode )
+                case '3d'
+                    fprintf('\n mode: 3d')
+                    startS = ticBytes( gcp );
+                    mem_per_proj = 2 * 2 * 2 * 4 * prod(size(proj, 1));
+                    % copying * complex * padding * bit detpth * (dim1 * dim2)
+                    poolsize_max_fbp_filter = floor( 0.9 * mem_avail_cpu / mem_per_proj );
+                    %fprintf('\n filter poolsize limit : %u ', poolsize_max_fbp_filter )
+                    parfor (nn = 1:size( proj, 3), poolsize_max_fbp_filter)
+                        im = proj(:,:,nn);
+                        im = NegLog( im, take_neg_log);
+                        im = padarray( im, padding * [proj_shape1 0 0], padding_method, 'post' );
+                        im = fft( im, [], 1);
+                        im = fun_times( im, filt );
+                        im = ifft( im, [], 1, 'symmetric');
+                        im = real( im );
+                        im = im(1:proj_shape1,:,:);
+                        proj(:,:,nn) = im;
+                    end
+                toc_bytes.fbp_filter_sino = tocBytes( gcp, startS );
+                case 'slice'
+                    fprintf('\n mode: slice')
+                    fprintf('\n slice number:\n')
+                    nn_count = 0;
+                    for nn = size(proj,3):-1:1
+                        if mod(nn-1,100) == 0 || nn == size(proj,3) || nn == 1
+                            nn_count = nn_count + 1;
+                            fprintf(' %u',nn)
+                            if ~mod(nn_count,25)
+                                fprintf('\n')
+                            end
+                        end
+                        im = proj(:,:,nn);
+                        im = NegLog( im, take_neg_log);
+                        im = padarray( im, padding * [proj_shape1 0 0], padding_method, 'post' );
+                        im = fft( im, [], 1);
+                        im = fun_times( im, filt );
+                        im = ifft( im, [], 1, 'symmetric');
+                        im = real( im );
+                        im = im(1:proj_shape1,:,:);
+                        proj(:,:,nn) = im;
+                    end
             end
             fprintf('\n duration : %.2f min.', (toc - t2) / 60)
-            toc_bytes.fbp_filter_sino = tocBytes( gcp, startS );
         else
             proj = NegLog( proj, tomo.take_neg_log );
         end
@@ -3079,10 +3088,9 @@ if tomo.run
                 fprintf('\n GPU poolsize limit factor : %g', par.poolsize_gpu_limit_factor )
                 fprintf('\n GPU memory induced maximum poolsize : %u ', poolsize_max_astra )
                 
-                fprintf('\n Start parallel GPU reco: ' )
+                fprintf('\n Start (parallel) GPU reco: ' )
                 gpu_index = par.gpu_index;
-                num_gpu = numel( gpu_index );
-                poolsize_max_astra = min( [poolsize_max_astra, 3 *  num_gpu] );
+                num_gpu = numel( gpu_index );                
                 write_reco = write.reco;
                 write_float =  write.float;
                 %reco_path = write.reco_path;
@@ -3093,7 +3101,17 @@ if tomo.run
                     case 'hdf_volume'
                         h5_filename = sprintf('%s%s.h5', write.reco_path, scan_name);
                 end
-                parfor (nn = 1:num_slices, poolsize_max_astra)
+                %poolsize_max_astra = min( [poolsize_max_astra, 3 *  num_gpu] );
+                %parfor (nn = 1:num_slices, poolsize_max_astra)
+                nn_count = 0;
+                for nn = 1:num_slices
+                    if mod(nn-1,100) == 0 || nn == num_slices || nn == 1 || nn_count == 0
+                        nn_count = nn_count + 1;
+                        fprintf(' %u',nn)
+                        if ~mod(nn_count,25)
+                            fprintf('\n')
+                        end
+                    end
                     
                     if ~isscalar( rot_axis_offset_reco )
                         rotation_axis_offset = rot_axis_offset_reco(nn);
@@ -3117,13 +3135,6 @@ if tomo.run
                                 write_volume( write_float, vol, 'float', write, raw_bin, phase_bin, 1, nn, 0, '' );
                                 %fprintf('\n duration : %.2f min.', (toc - t) / 60)
                             end
-                        case 'hdf_slice'
-                            error('Not implemented')
-                            %                             for mm = 1:num_slices
-                            %                                 sino_name = slab_sino_names_mat(mm,:);
-                            %                                 filename = sprintf('%s%s.h5', save_path, sino_name(1:end-3));
-                            %                                 write_hdf(filename,vol(:,:,mm),'slice')
-                            %                             end
                         case 'hdf_volume'
                             [s1,s2] = size(vol);
                             if ~exist(h5_filename,'file')
@@ -3139,7 +3150,7 @@ if tomo.run
     end
     
     %% Plot data transfer from/to workers
-    if par.visual_output
+    if par.visual_output && exist('toc_bytes','var')
         bytes_sum = [0 0];
         f = figure('Name', 'Parallel pool data transfer during image correlation', 'WindowState', window_state );
         str = {};

@@ -34,6 +34,9 @@ dbstop if error
 
 if nargin < 1
     scan_path = ... % pwd;
+        '/asap3/petra3/gpfs/p07/2023/data/11019133/processed/bmc009_81212_mousebrain_202311_DESY';
+    '/asap3/petra3/gpfs/p07/2023/data/11017206/processed/itaw009_cet452a_FF99_Bp';
+    '/asap3/petra3/gpfs/p07/2023/data/11017206/processed/itaw007_cet488b_F18096_Bp';
     '/asap3/petra3/gpfs/p07/2023/data/11017206/processed/itaw013_cet518a_MB7_Mb';
     '/asap3/petra3/gpfs/p07/2023/data/11017206/processed/itaw011_cet495b_M548_20_Ha';
     '/asap3/petra3/gpfs/p07/2023/data/11017206/processed/itaw012_cet548a_OO01_Oo';
@@ -86,7 +89,7 @@ ring_filter.method = 'jm'; 'wavelet-fft';
 ring_filter.waveletfft_dec_levels = 1:6; % decomposition levels for 'wavelet-fft'
 ring_filter.waveletfft_wname = 'db7';'db25';'db30'; % wavelet type, see 'FilterStripesCombinedWaveletFFT' or 'waveinfo'
 ring_filter.waveletfft_sigma = 3; %  suppression factor for 'wavelet-fft'
-ring_filter.jm_median_width = [3 11]; % multiple widths are applied consecutively, eg [3 11 21 31 39];
+ring_filter.jm_median_width = [3 7 11]; % multiple widths are applied consecutively, eg [3 11 21 31 39];
 %%% PIXEL FILTER
 filter_sino = 1; % Filter hot pixesl
 pixel_filter_threshold = [0.001 0.00005]; % threshold parameter for hot/dark pixel filter, for details see 'FilterPixel'
@@ -180,7 +183,7 @@ interactive_mode.phase_retrieval_default_search_range = []; % if empty: asks for
 tomo.astra_link_data = 1; % ASTRA data objects become references to Matlab arrays. Reduces memory issues.
 par.use_cluster = 0; % if available: on MAXWELL nodes disp/nova/wga/wgs cluster computation can be used. Recommended only for large data sets since parpool creation and data transfer implies a lot of overhead.
 par.poolsize = 0.5; % number of workers used in a local parallel pool. if 0: use current config. if >= 1: absolute number. if 0 < poolsize < 1: relative amount of all cores to be used. if SLURM scheduling is available, a default number of workers is used.
-par.poolsize_gpu_limit_factor = 0.45; % Relative amount of GPU memory used for preprocessing during parloop. High values speed up Proprocessing, but increases out-of-memory failure
+par.poolsize_gpu_limit_factor = 0.5; % Relative amount of GPU memory used for preprocessing during parloop. High values speed up Proprocessing, but increases out-of-memory failure
 par.use_gpu_in_parfor = 1;
 par.gpu_index = []; % GPU Device index to use, Matlab notation: index starts from 1. default: [], use all
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

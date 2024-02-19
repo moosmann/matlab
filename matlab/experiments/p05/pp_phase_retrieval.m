@@ -1,4 +1,4 @@
-function [proj, write, tomo, tint] = pp_phase_retrieval( proj, phase_retrieval, tomo, write, interactive_mode )
+%function [proj, write, tomo, tint] = pp_phase_retrieval( proj, phase_retrieval, tomo, write, interactive_mode )
 % Phase retrieval for P05/P07 data.
 %
 % Written by Julian Moosmann, 2018-01-11, last version: 2018-07-27
@@ -7,6 +7,7 @@ function [proj, write, tomo, tint] = pp_phase_retrieval( proj, phase_retrieval, 
 
 %% Main %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 t = toc;
+t0 = t;
 scan_name = assign_from_struct( write, 'scan_name', '' );
 
 method = phase_retrieval.method;
@@ -508,8 +509,7 @@ if strcmpi( method, 'tieNLO_Schwinger' )
         proj(:,:,nn) = -g;
     end
     fprintf( '\n done in %g s (%.2f min)', toc-t-tint, (toc-t-tint)/60)
-else
-    
+else 
     %% Phase retrieval filter
     im_shape = [size(proj,1) , size(proj,2)];
     im_shape_pad = (1 + padding) * im_shape;
@@ -553,22 +553,31 @@ else
             %proj(:,:,nn) = gather( im(1:raw_im_shape_binned1, 1:raw_im_shape_binned2) );
         end
     else
-        fprintf( 'without parpool' )
-        for nn = 1:size(proj, 3)
-            im = proj(:,:,nn);
-            im = padarray( im, padding * im_shape, 'symmetric', 'post' );
-            im = fft2( im );
-            im = phase_filter .* im ;
-            im = ifft2( im );
-            im = -real( im );
-            im = im(1:im_shape(1), 1:im_shape(2));
-            proj(:,:,nn) = im;
+        fprintf( '\n without parpool' )
+        fprintf( '\n slice number:\n' )
+        nn_count = 0;
+        for nn = size(proj, 3):-1:1
+            if mod(nn-1,100) == 0 || nn == size(proj,3) || nn == 1
+                nn_count = nn_count + 1;
+                fprintf(' %u',nn)
+                if ~mod(nn_count,25)
+                    fprintf('\n')
+                end
+            end
+                        im = proj(:,:,nn);
+                        im = padarray( im, padding * im_shape, 'symmetric', 'post' );
+                        im = fft2( im );
+                        im = phase_filter .* im ;
+                        im = ifft2( im );
+                        im = -real( im );
+                        im = im(1:im_shape(1), 1:im_shape(2));
+                        proj(:,:,nn) = im;
             % combined GPU and parfor usage requires memory management
             %im = padarray( gpuArray( proj(:,:,nn) ), raw_im_shape_binned, 'post', 'symmetric' );
             %proj(:,:,nn) = gather( im(1:raw_im_shape_binned1, 1:raw_im_shape_binned2) );
         end
     end
-    fprintf( '\n done in %g s (%.2f min)', toc-t-tint, (toc-t-tint)/60)
+    fprintf( '\n duration: %g s (%.2f min)', toc-t-tint, (toc-t-tint)/60)
 end
 
 %% Post phase retrieval binning
@@ -581,7 +590,7 @@ if phase_bin > 1
         proj_bin(:,:,nn) = Binning( proj(:,:,nn), phase_bin ) / phase_bin^2;
     end
     proj = proj_bin;
-    fprintf( ' done in %g s (%.2f min)', toc - t, (toc - t) / 60)
+    fprintf( ' duration: %g s (%.2f min)', toc - t, (toc - t) / 60)
 end
 
 %% Save phase maps

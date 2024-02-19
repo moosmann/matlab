@@ -233,6 +233,7 @@ write.compression_parameter = [0.02 0.02]; % compression-method specific paramet
 % 'histo' : [LOW HIGH] = write.compression_parameter (100*LOW)% and (100*HIGH)% of the original histogram, e.g. [0.02 0.02]
 write.uint8_segmented = 0; % experimental: threshold segmentaion for histograms with 2 distinct peaks: __/\_/\__
 write.outputformat = 'tif';'hdf_volume';'hdf_slice'; % string. Not yet implemented for all reco modes
+write.float_adapthisteq = 0;
 %%% INTERACTION %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 par.visual_output = 1; % show images and plots during reconstruction
 interactive_mode.rot_axis_pos = 1; % reconstruct slices with dif+ferent rotation axis offsets
@@ -251,7 +252,7 @@ interactive_mode.show_stack_imagej_use_virtual = 1; % use virtual stack for fast
 tomo.astra_link_data = 1; % ASTRA data objects become references to Matlab arrays. Reduces memory issues.
 par.gpu_index = []; % indices of GPU devices to use, Matlab notation: index starts from 1. default: [], uses all
 par.use_cluster = 0; % if available: on MAXWELL nodes disp/nova/wga/wgs cluster computation can be used. Recommended only for large data sets since parpool creation and data transfer implies a lot of overhead.
-par.use_gpu_in_parfor = 0;
+par.use_gpu_in_parfor = 1;
 par.poolsize = 0.5; % number of workers used in a local parallel pool. if 0: use current config. if >= 1: absolute number. if 0 < poolsize < 1: relative amount of all cores to be used. if SLURM scheduling is available, a default number of workers is used.
 par.poolsize_gpu_limit_factor = 0.5; % Relative amount of GPU memory used for preprocessing during parloop. High values speed up Proprocessing, but increases out-of-memory failure
 phase_retrieval.use_parpool = 1; % bool. Disable parpool when out-of-memory error occurs during phase retrieval.
@@ -267,15 +268,40 @@ raw_path = '/asap3/petra3/gpfs/p07/2023/data/11017206/raw/';
 write.outputformat = 'tif';'hdf_slice';'hdf_volume';
 
 ring_filter.apply = 1;
+par.raw_bin = 2;
+proj_range = 1;
+tomo.vol_size = [];%[-1 1 -1 1 -0.5 0.5];
 phase_retrieval.apply = 0;
 phase_retrieval.reg_par = 1;
 interactive_mode.phase_retrieval = 0;
 image_correlation.method = 'mean';
-tomo.vol_size = [];%[-1.0 1.0 -1.0 1.0 -0.5 0.5];
-write.flatcor = 0;
+tomo.vol_size = [];
 write.parfolder = '';
 write.outputformat = 'tif';
 par.verbose = 0;
+
+%% itaw001_cet547a_sd01_pp_testroi
+par.scan_path = [raw_path 'itaw001_cet547a_sd01_pp_testroi']; 
+write.flatcor = 1; % save preprocessed flat corrected projections
+tomo.rot_axis_offset = 56.9 / 2 * par.raw_bin;
+tomo.rot_axis_tilt_camera = 0.0028;
+phase_retrieval.apply = 0;
+phase_retrieval.reg_par = 1.0;
+phase_retrieval.apply = 0;
+phase_retrieval.reg_par = 1.0;
+interactive_mode.rot_axis_pos = 0;
+interactive_mode.rot_axis_tilt = 0;
+ADD
+
+phase_retrieval.apply = 1;
+ADD
+
+phase_retrieval.reg_par = 2.0;
+ADD
+
+%% itaw002_cet547a_sd01_pp_roi_stepscan
+par.scan_path = [raw_path 'itaw002_cet547a_sd01_pp_roi_stepscan'];
+ADD
 
 %par.read_flatcor = 1;
 %par.read_flatcor_path = '/asap3/petra3/gpfs/p07/2023/data/11014647/processed/014_ifbk_c1_dpc/w3/Int_q';
@@ -285,19 +311,19 @@ par.verbose = 0;
 %tomo.rot_axis_tilt_camera = 0.0033/2;
 %tomo.take_neg_log = 0;
 
+write.flatcor = 0;
+
 %itaw012_cet548a_OO01_Oo_c_1
 par.scan_path = '/asap3/petra3/gpfs/p07/2023/data/11017206/raw/itaw012_cet548a_OO01_Oo_c_1';
 par.raw_bin = 2;
 proj_range = 1;
-tomo.vol_size = [];%[-1 1 -1 1 -0.5 0.5];
-tomo.rot_axis_offset = 0.85 / 2 * par.raw_bin;
+tomo.vol_size = [];
+tomo.rot_axis_offset = 56.9 / 2 * par.raw_bin;
 interactive_mode.rot_axis_pos = 0;
 interactive_mode.rot_axis_tilt = 0;
 ADD
 
 %% itaw004_cet547a_sd01_pp
-% par.scan_path = [raw_path 'itaw001_cet547a_sd01_pp_testroi']; ADD
-% par.scan_path = [raw_path 'itaw002_cet547a_sd01_pp_roi_stepscan']; ADD
 % 
 % par.scan_path = [raw_path 'itaw003_cet547a_sd01_pp_a']; ADD
 %
@@ -391,6 +417,67 @@ ADD
 
 
 %% itaw007
+% stitched
+
+% Stitched
+par.scan_path = '/asap3/petra3/gpfs/p07/2023/data/11017206/processed/itaw007_cet488b_F18096_Bp';
+par.nexus_path = '/asap3/petra3/gpfs/p07/2023/data/11017206/raw/itaw007_a_0';
+par.raw_bin = 3;
+par.read_sino = 1; 
+par.read_sino_folder = 'trans03_180';
+par.read_sino_trafo = @(x) (x);
+par.sino_roi = []; 
+par.filter_sino = 1;
+par.energy = [];
+par.sample_detector_distance = [];
+par.eff_pixel_size = [];
+pixel_filter_sino.threshold_hot = 0.0005;
+pixel_filter_sino.threshold_dark = 0.00005;
+pixel_filter_sino.medfilt_neighboorhood = [3 3];
+pixel_filter_sino.filter_dead_pixel = 1;
+pixel_filter_sino.filter_Inf = 1;
+pixel_filter_sino.filter_NaN = 1;
+pixel_filter_sino.verbose = 0;
+pixel_filter_sino.use_gpu = par.use_gpu_in_parfor;
+ring_filter.apply = 0;
+par.sino_roi = []; 
+par.filter_sino = 1;
+par.energy = [];
+par.sample_detector_distance = [];
+par.eff_pixel_size = [];
+pixel_filter_sino.threshold_hot = 0;0.0005;
+pixel_filter_sino.threshold_dark = 0;0.00005;
+pixel_filter_sino.medfilt_neighboorhood = [3 3];
+pixel_filter_sino.filter_dead_pixel = 1;
+pixel_filter_sino.filter_Inf = 1;
+pixel_filter_sino.filter_NaN = 1;
+pixel_filter_sino.verbose = 0;
+pixel_filter_sino.use_gpu = par.use_gpu_in_parfor;
+ring_filter.apply = 1;
+ring_filter.jm_median_width = [3 7 11];
+phase_retrieval.method = 'tie';
+phase_retrieval.use_parpool = 0;
+tomo.reco_mode = 'slice';
+tomo.rot_angle_full_range = [];
+tomo.rot_axis_tilt_camera = 0;
+tomo.rot_axis_offset = 0;
+tomo.vol_size = [];
+write.reco = 1;
+write.float_adapthisteq = 0;
+interactive_mode.rot_axis_pos = 0;
+interactive_mode.rot_axis_tilt = 0;
+phase_retrieval.apply = 0;
+phase_retrieval.reg_par = 1.0; 
+par.poolsize = 0.45; 
+par.use_gpu_in_parfor = 1;
+ADD
+
+phase_retrieval.apply = 1;
+phase_retrieval.reg_par = 1.0; 
+ADD
+
+par.raw_bin = 3;
+
 % par.scan_path = [raw_path 'itaw007_a_0']; ADD
 % par.scan_path = [raw_path 'itaw007_a_1']; ADD
 % par.scan_path = [raw_path 'itaw007_a_2']; ADD
@@ -538,38 +625,26 @@ tomo.rot_axis_search_range_from_interactive = 1;
 % par.scan_path = [raw_path 'itaw010_cet433b_UT1611_Pp_e_0']; ADD
 % par.scan_path = [raw_path 'itaw010_cet433b_UT1611_Pp_e_1']; ADD
 
-
-interactive_mode.rot_axis_pos = 1;
-interactive_mode.rot_axis_tilt = 1;
-tomo.reco_mode = '3D';
-tomo.rot_angle_full_range = pi;
-tomo.rot_axis_tilt_camera = 0.0028;
-tomo.rot_axis_tilt_camera = 0;
-tomo.rot_axis_offset = 0;
-tomo.vol_size = [];
+% Stitched
 par.scan_path = '/asap3/petra3/gpfs/p07/2023/data/11017206/processed/itaw010_cet433b_UT1611_Pp';
 par.nexus_path = '/asap3/petra3/gpfs/p07/2023/data/11017206/raw/itaw010_cet433b_UT1611_Pp_a_0';
 par.read_sino = 1; 
 par.read_sino_folder = 'trans02_180';
 par.read_sino_trafo = @(x) (x);
 par.sino_roi = []; 
-par.filter_sino = 0; 
-%tomo.rot_angle_full_range = (359.991 - 180) * pi / 180; % angle 47998
-par.filter_sino = 0;
-ring_filter.apply = 1;
-phase_retrieval.apply = 0;
-phase_retrieval.reg_par = 2.0;  
-%par.energy = 67e3; % eV
-%par.sample_detector_distance = 0.8; % in m
-%par.eff_pixel_size = 0.0064/5.03813 * 1e-3; % m
-write.subfolder_reco = '';
-ADD
-
-par.scan_path = '/asap3/petra3/gpfs/p07/2023/data/11017206/processed/itaw010_cet433b_UT1611_Pp';
-par.nexus_path = '/asap3/petra3/gpfs/p07/2023/data/11017206/raw/itaw010_cet433b_UT1611_Pp_a_0';
-par.read_sino = 1; 
-par.read_sino_folder = 'trans02_180';
-par.read_sino_trafo = @(x) (x);
+par.filter_sino = 1;
+par.energy = [];
+par.sample_detector_distance = [];
+par.eff_pixel_size = [];
+pixel_filter_sino.threshold_hot = 0.0005;
+pixel_filter_sino.threshold_dark = 0.00005;
+pixel_filter_sino.medfilt_neighboorhood = [3 3];
+pixel_filter_sino.filter_dead_pixel = 1;
+pixel_filter_sino.filter_Inf = 1;
+pixel_filter_sino.filter_NaN = 1;
+pixel_filter_sino.verbose = 0;
+pixel_filter_sino.use_gpu = par.use_gpu_in_parfor;
+ring_filter.apply = 0;
 par.sino_roi = []; 
 par.filter_sino = 1;
 par.energy = [];
@@ -583,61 +658,28 @@ pixel_filter_sino.filter_Inf = 1;
 pixel_filter_sino.filter_NaN = 1;
 pixel_filter_sino.verbose = 0;
 pixel_filter_sino.use_gpu = par.use_gpu_in_parfor;
-ring_filter.apply = 0;
-tomo.reco_mode = '3D';
+ring_filter.apply = 1;
+ring_filter.jm_median_width = [3 7 11];
+phase_retrieval.method = 'tie';
+phase_retrieval.reg_par = 1.0; 
+phase_retrieval.use_parpool = 0;
+tomo.reco_mode = 'slice';
 tomo.rot_angle_full_range = [];
 tomo.rot_axis_tilt_camera = 0;
 tomo.rot_axis_offset = 0;
 tomo.vol_size = [];
+write.reco = 1;
 write.float_adapthisteq = 0;
 interactive_mode.rot_axis_pos = 0;
 interactive_mode.rot_axis_tilt = 0;
-ADD
-
-phase_retrieval.apply = 1;
-phase_retrieval.reg_par = 1.0;
-ring_filter.apply = 1;
-ring_filter.jm_median_width = [3 11];
-interactive_mode.phase_retrieval = 0;
-ADD
-
-phase_retrieval.apply = 1;
-phase_retrieval.reg_par = 2.0;
-ring_filter.apply = 1;
-ring_filter.jm_median_width = [3 11];
-interactive_mode.phase_retrieval = 0;
-ADD
-
-ring_filter.apply = 1;
-write.subfolder_reco = 'ring_filter_jm11';
-ring_filter.jm_median_width = 11;
 phase_retrieval.apply = 0;
 ADD
 
 phase_retrieval.apply = 1;
 ADD
 
-phase_retrieval.apply = 1;
-write.subfolder_reco = 'ring_filter_jm3';
-ring_filter.jm_median_width = 3;
+phase_retrieval.reg_par = 2.0; 
 ADD
-
-write.subfolder_reco = 'ring_filter_jm7';
-ring_filter.jm_median_width = 7;
-ADD
-
-write.subfolder_reco = 'ring_filter_jm11';
-ring_filter.jm_median_width = 11;
-ADD
-
-write.subfolder_reco = 'ring_filter_jm3_7_11';
-ring_filter.jm_median_width = [3 7 11];
-ADD
-
-write.subfolder_reco = 'ring_filter_jm3_7_11_21';
-ring_filter.jm_median_width = [3 7 11 21];
-ADD
-
 
 %% itaw011_cet495b_M548_20_Ha
 % par.scan_path = [raw_path 'itaw011_cet495b_M548_20_Ha_a_0']; ADD
@@ -664,7 +706,6 @@ ADD
 % par.scan_path = [raw_path 'itaw011_cet495b_M548_20_Ha_h_0']; ADD
 % par.scan_path = [raw_path 'itaw011_cet495b_M548_20_Ha_h_1']; ADD
 % par.scan_path = [raw_path 'itaw011_cet495b_M548_20_Ha_h_2']; ADD
-
 par.raw_bin = 2;
 proj_range = 1;
 tomo.vol_size = [];
@@ -679,57 +720,94 @@ tomo.rot_axis_search_auto = 0;
 tomo.rot_axis_search_range = 0.8 + (-0.7:0.1:0.7); 
 tomo.rot_axis_search_metric = 'iso-grad';
 tomo.rot_axis_search_extrema = 'min';
-tomo.rot_axis_search_fit = 1; 
+tomo.rot_axis_search_fit = 0; 
 tomo.rot_axis_offset_metric_roi = [];
-tomo.rot_axis_search_range_from_interactive = 1;
+tomo.rot_axis_search_range_from_interactive = 0;
 
-% a
-tomo.rot_axis_offset = 0.5 * 2 /  par.raw_bin;
-par.scan_path = [raw_path 'itaw012_cet548a_OO01_Oo_a_0']; ADD
-par.ring_current_normalization = 0; % h5 error
-par.scan_path = [raw_path 'itaw012_cet548a_OO01_Oo_a_1']; ADD
-par.ring_current_normalization = 1;
-par.scan_path = [raw_path 'itaw012_cet548a_OO01_Oo_a_2']; ADD
-% b
-tomo.rot_axis_offset = 0.65 * 2 /  par.raw_bin;
-par.scan_path = [raw_path 'itaw012_cet548a_OO01_Oo_b_0']; ADD
-par.scan_path = [raw_path 'itaw012_cet548a_OO01_Oo_b_1']; ADD
-par.scan_path = [raw_path 'itaw012_cet548a_OO01_Oo_b_2']; ADD
-% c
-tomo.rot_axis_offset = 0.75 * 2 /  par.raw_bin;
-par.scan_path = [raw_path 'itaw012_cet548a_OO01_Oo_c_0']; ADD
-par.scan_path = [raw_path 'itaw012_cet548a_OO01_Oo_c_1']; ADD
-par.scan_path = [raw_path 'itaw012_cet548a_OO01_Oo_c_2']; ADD
-% d
-tomo.rot_axis_offset = 1.15 * 2 /  par.raw_bin;
-par.scan_path = [raw_path 'itaw012_cet548a_OO01_Oo_d_0']; ADD
-par.scan_path = [raw_path 'itaw012_cet548a_OO01_Oo_d_1']; ADD
-par.scan_path = [raw_path 'itaw012_cet548a_OO01_Oo_d_2']; ADD
-% e
-tomo.rot_axis_offset = 1.4 * 2 /  par.raw_bin;
-par.scan_path = [raw_path 'itaw012_cet548a_OO01_Oo_e_0']; ADD
-par.scan_path = [raw_path 'itaw012_cet548a_OO01_Oo_e_1']; ADD
-par.scan_path = [raw_path 'itaw012_cet548a_OO01_Oo_e_2']; ADD
-% f
-tomo.rot_axis_offset = 1.1 * 2 /  par.raw_bin;
-par.scan_path = [raw_path 'itaw012_cet548a_OO01_Oo_f_0']; ADD
-par.scan_path = [raw_path 'itaw012_cet548a_OO01_Oo_f_1']; ADD
-par.scan_path = [raw_path 'itaw012_cet548a_OO01_Oo_f_2']; ADD
-% g
-tomo.rot_axis_offset = 1.7 * 2 /  par.raw_bin;
-par.scan_path = [raw_path 'itaw012_cet548a_OO01_Oo_g_0']; ADD
-par.scan_path = [raw_path 'itaw012_cet548a_OO01_Oo_g_1']; ADD
-par.scan_path = [raw_path 'itaw012_cet548a_OO01_Oo_g_2']; ADD
-% h
-tomo.rot_axis_offset = 0.4 * 2 /  par.raw_bin;
-par.scan_path = [raw_path 'itaw012_cet548a_OO01_Oo_h_0']; ADD
-par.scan_path = [raw_path 'itaw012_cet548a_OO01_Oo_h_1']; ADD
-par.scan_path = [raw_path 'itaw012_cet548a_OO01_Oo_h_2']; ADD
-% i
-tomo.rot_axis_offset = 0.4 * 2 /  par.raw_bin;
-par.scan_path = [raw_path 'itaw012_cet548a_OO01_Oo_i_0']; ADD
-par.scan_path = [raw_path 'itaw012_cet548a_OO01_Oo_i_1']; ADD
-par.scan_path = [raw_path 'itaw012_cet548a_OO01_Oo_i_2']; ADD
+% Stitched
+par.scan_path = '/asap3/petra3/gpfs/p07/2023/data/11017206/processed/itaw011_cet495b_M548_20_Ha';
+par.nexus_path = '/asap3/petra3/gpfs/p07/2023/data/11017206/raw/itaw011_cet495b_M548_20_Ha_a_0';
+par.read_sino = 1; 
+par.read_sino_folder = 'trans02_180';
+par.read_sino_trafo = @(x) (x);
+par.sino_roi = []; 
+par.filter_sino = 1;
+par.energy = [];
+par.sample_detector_distance = [];
+par.eff_pixel_size = [];
+pixel_filter_sino.threshold_hot = 0.0005;
+pixel_filter_sino.threshold_dark = 0.00005;
+pixel_filter_sino.medfilt_neighboorhood = [3 3];
+pixel_filter_sino.filter_dead_pixel = 1;
+pixel_filter_sino.filter_Inf = 1;
+pixel_filter_sino.filter_NaN = 1;
+pixel_filter_sino.verbose = 0;
+pixel_filter_sino.use_gpu = par.use_gpu_in_parfor;
+ring_filter.apply = 0;
+ring_filter.jm_median_width = [3 11];
+phase_retrieval.apply = 1;
+phase_retrieval.method = 'tie';
+phase_retrieval.reg_par = 1.0; 
+phase_retrieval.use_parpool = 0;
+tomo.reco_mode = 'slice';
+tomo.rot_angle_full_range = [];
+tomo.rot_axis_tilt_camera = 0;
+tomo.rot_axis_offset = 0;
+tomo.vol_size = [];
+write.reco = 1;
+write.float_adapthisteq = 0;
+interactive_mode.rot_axis_pos = 0;
+interactive_mode.rot_axis_tilt = 0;
+ADD
+
+%% itaw012_cet548a_OO01_Oo
+% % a
+% tomo.rot_axis_offset = 0.5 * 2 /  par.raw_bin;
+% par.scan_path = [raw_path 'itaw012_cet548a_OO01_Oo_a_0']; ADD
+% par.ring_current_normalization = 0; % h5 error
+% par.scan_path = [raw_path 'itaw012_cet548a_OO01_Oo_a_1']; ADD
+% par.ring_current_normalization = 1;
+% par.scan_path = [raw_path 'itaw012_cet548a_OO01_Oo_a_2']; ADD
+% % b
+% tomo.rot_axis_offset = 0.65 * 2 /  par.raw_bin;
+% par.scan_path = [raw_path 'itaw012_cet548a_OO01_Oo_b_0']; ADD
+% par.scan_path = [raw_path 'itaw012_cet548a_OO01_Oo_b_1']; ADD
+% par.scan_path = [raw_path 'itaw012_cet548a_OO01_Oo_b_2']; ADD
+% % c
+% tomo.rot_axis_offset = 0.75 * 2 /  par.raw_bin;
+% par.scan_path = [raw_path 'itaw012_cet548a_OO01_Oo_c_0']; ADD
+% par.scan_path = [raw_path 'itaw012_cet548a_OO01_Oo_c_1']; ADD
+% par.scan_path = [raw_path 'itaw012_cet548a_OO01_Oo_c_2']; ADD
+% % d
+% tomo.rot_axis_offset = 1.15 * 2 /  par.raw_bin;
+% par.scan_path = [raw_path 'itaw012_cet548a_OO01_Oo_d_0']; ADD
+% par.scan_path = [raw_path 'itaw012_cet548a_OO01_Oo_d_1']; ADD
+% par.scan_path = [raw_path 'itaw012_cet548a_OO01_Oo_d_2']; ADD
+% % e
+% tomo.rot_axis_offset = 1.4 * 2 /  par.raw_bin;
+% par.scan_path = [raw_path 'itaw012_cet548a_OO01_Oo_e_0']; ADD
+% par.scan_path = [raw_path 'itaw012_cet548a_OO01_Oo_e_1']; ADD
+% par.scan_path = [raw_path 'itaw012_cet548a_OO01_Oo_e_2']; ADD
+% % f
+% tomo.rot_axis_offset = 1.1 * 2 /  par.raw_bin;
+% par.scan_path = [raw_path 'itaw012_cet548a_OO01_Oo_f_0']; ADD
+% par.scan_path = [raw_path 'itaw012_cet548a_OO01_Oo_f_1']; ADD
+% par.scan_path = [raw_path 'itaw012_cet548a_OO01_Oo_f_2']; ADD
+% % g
+% tomo.rot_axis_offset = 1.7 * 2 /  par.raw_bin;
+% par.scan_path = [raw_path 'itaw012_cet548a_OO01_Oo_g_0']; ADD
+% par.scan_path = [raw_path 'itaw012_cet548a_OO01_Oo_g_1']; ADD
+% par.scan_path = [raw_path 'itaw012_cet548a_OO01_Oo_g_2']; ADD
+% % h
+% tomo.rot_axis_offset = 0.4 * 2 /  par.raw_bin;
+% par.scan_path = [raw_path 'itaw012_cet548a_OO01_Oo_h_0']; ADD
+% par.scan_path = [raw_path 'itaw012_cet548a_OO01_Oo_h_1']; ADD
+% par.scan_path = [raw_path 'itaw012_cet548a_OO01_Oo_h_2']; ADD
+% % i
+% tomo.rot_axis_offset = 0.4 * 2 /  par.raw_bin;
+% par.scan_path = [raw_path 'itaw012_cet548a_OO01_Oo_i_0']; ADD
+% par.scan_path = [raw_path 'itaw012_cet548a_OO01_Oo_i_1']; ADD
+% par.scan_path = [raw_path 'itaw012_cet548a_OO01_Oo_i_2']; ADD
 
 % Stitched
 par.scan_path = '/asap3/petra3/gpfs/p07/2023/data/11017206/processed/itaw012_cet548a_OO01_Oo';
@@ -756,7 +834,46 @@ phase_retrieval.apply = 1;
 phase_retrieval.method = 'tie';
 phase_retrieval.reg_par = 1.0; 
 phase_retrieval.use_parpool = 0;
-tomo.reco_mode = '3D';
+tomo.reco_mode = 'slice';
+tomo.rot_angle_full_range = [];
+tomo.rot_axis_tilt_camera = 0;
+tomo.rot_axis_offset = 0;
+tomo.vol_size = [];
+write.reco = 1;
+write.float_adapthisteq = 0;
+interactive_mode.rot_axis_pos = 0;
+interactive_mode.rot_axis_tilt = 0;
+ADD
+
+%% itaw013_cet518a_MB7_Mb
+% Stitched
+par.scan_path = '/asap3/petra3/gpfs/p07/2023/data/11017206/processed/itaw013_cet518a_MB7_Mb';
+par.nexus_path = '/asap3/petra3/gpfs/p07/2023/data/11017206/raw/itaw013_cet518a_MB7_Mb_a_0';
+par.read_sino = 1; 
+par.read_sino_folder = 'trans02_180';
+par.read_sino_trafo = @(x) (x);
+par.read_sino_range = [30,6330];
+%par.read_sino_range = [3001,4000];
+par.sino_roi = []; 
+par.filter_sino = 1;
+par.energy = [];
+par.sample_detector_distance = [];
+par.eff_pixel_size = [];
+pixel_filter_sino.threshold_hot = 0.0005;
+pixel_filter_sino.threshold_dark = 0.00005;
+pixel_filter_sino.medfilt_neighboorhood = [3 3];
+pixel_filter_sino.filter_dead_pixel = 1;
+pixel_filter_sino.filter_Inf = 1;
+pixel_filter_sino.filter_NaN = 1;
+pixel_filter_sino.verbose = 0;
+pixel_filter_sino.use_gpu = par.use_gpu_in_parfor;
+ring_filter.apply = 0;
+ring_filter.jm_median_width = [3 11];
+phase_retrieval.apply = 1;
+phase_retrieval.method = 'tie';
+phase_retrieval.reg_par = 1.0; 
+phase_retrieval.use_parpool = 0;
+tomo.reco_mode = 'slice';
 tomo.rot_angle_full_range = [];
 tomo.rot_axis_tilt_camera = 0;
 tomo.rot_axis_offset = 0;
@@ -766,32 +883,6 @@ write.float_adapthisteq = 0;
 interactive_mode.rot_axis_pos = 0;
 interactive_mode.rot_axis_tilt = 0;
 ADD
-
-%% itaw013_cet518a_MB7_Mb
-% par.scan_path = [raw_path 'itaw013_cet518a_MB7_Mb_a_0']; ADD
-% par.scan_path = [raw_path 'itaw013_cet518a_MB7_Mb_a_1']; ADD
-% par.scan_path = [raw_path 'itaw013_cet518a_MB7_Mb_a_2']; ADD
-% par.scan_path = [raw_path 'itaw013_cet518a_MB7_Mb_b_0']; ADD
-% par.scan_path = [raw_path 'itaw013_cet518a_MB7_Mb_b_1']; ADD
-% par.scan_path = [raw_path 'itaw013_cet518a_MB7_Mb_b_2']; ADD
-% par.scan_path = [raw_path 'itaw013_cet518a_MB7_Mb_c_0']; ADD
-% par.scan_path = [raw_path 'itaw013_cet518a_MB7_Mb_c_1']; ADD
-% par.scan_path = [raw_path 'itaw013_cet518a_MB7_Mb_c_2']; ADD
-% par.scan_path = [raw_path 'itaw013_cet518a_MB7_Mb_d_0']; ADD
-% par.scan_path = [raw_path 'itaw013_cet518a_MB7_Mb_d_1']; ADD
-% par.scan_path = [raw_path 'itaw013_cet518a_MB7_Mb_d_2']; ADD
-% par.scan_path = [raw_path 'itaw013_cet518a_MB7_Mb_e_0']; ADD
-% par.scan_path = [raw_path 'itaw013_cet518a_MB7_Mb_e_1']; ADD
-% par.scan_path = [raw_path 'itaw013_cet518a_MB7_Mb_e_2']; ADD
-% par.scan_path = [raw_path 'itaw013_cet518a_MB7_Mb_f_0']; ADD
-% par.scan_path = [raw_path 'itaw013_cet518a_MB7_Mb_f_1']; ADD
-% par.scan_path = [raw_path 'itaw013_cet518a_MB7_Mb_f_2']; ADD
-% par.scan_path = [raw_path 'itaw013_cet518a_MB7_Mb_g_0']; ADD
-% par.scan_path = [raw_path 'itaw013_cet518a_MB7_Mb_g_1']; ADD
-% par.scan_path = [raw_path 'itaw013_cet518a_MB7_Mb_g_2']; ADD
-% par.scan_path = [raw_path 'itaw013_cet518a_MB7_Mb_h_0']; ADD
-% par.scan_path = [raw_path 'itaw013_cet518a_MB7_Mb_h_1']; ADD
-% par.scan_path = [raw_path 'itaw013_cet518a_MB7_Mb_h_2']; ADD
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

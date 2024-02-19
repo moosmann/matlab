@@ -11,15 +11,13 @@ if par.read_sino
     data_struct = dir( [sino_path filesep '*.tif'] );
     if isempty( data_struct )
         error('\n Sinograms not found.')
-    else
-        sino_names = {data_struct.name};
-        par.im_shape_binned2 = numel( sino_names );
-        im_shape_binned2 = par.im_shape_binned2;
     end
+    sino_names = {data_struct.name};    
     sino_names_mat = NameCellToMat( sino_names );
+    num_sino_found = numel(sino_names);
     
     % Parameters
-    filename = sprintf('%s%s', sino_path, sino_names_mat( round( par.im_shape_binned2 / 2 ),:));
+    filename = sprintf('%s%s', sino_path, sino_names_mat( round(num_sino_found / 2 ),:));
     par.tifftrafo = 0;
     [sino, par.tiff_info] = read_image( filename, par );
     read_sino_trafo = par.read_sino_trafo;
@@ -39,11 +37,26 @@ if par.read_sino
             x1 = par.sino_roi(2);
             par.im_shape_cropbin1 = x1 - x0 + 1;
     end
-    num_proj_read = size( sino, 1 );
-    %num_proj_used = size( sino, 1 );
-    num_proj_used = num_proj_read;
+    num_proj_read = size( sino, 1);
+    num_proj_used = size( sino, 1 );
     
-    
+    read_sino_range = par.read_sino_range;
+    if isempty(read_sino_range)
+        read_sino_range = 1;
+    end
+    switch numel(read_sino_range)
+        case 1
+            read_sino_range = 1:read_sino_range:num_sino_found;
+        case 2
+            read_sino_range = read_sino_range(1):read_sino_range(2);
+    end
+    sino_names_mat = sino_names_mat(read_sino_range,:);
+    num_sino_used = size(sino_names_mat,1);
+    im_shape_binned2 = num_sino_used;
+    par.num_sino_used = num_sino_used;
+    par.num_sino_found = num_sino_found;
+    par.im_shape_binned2 = num_sino_used;
+        
     %% Read parameters from reconlog.txt
     fn = [scan_path filesep 'reconlog.txt'];
     if exist(fn, 'File')
@@ -82,7 +95,7 @@ if par.read_sino
             end
         end
         
-        % pixel size
+        %scan  pixel size
         b = contains(c{1},'scan_pixelsize');
         if sum(b)
             pixelsize = c{2}(b);
@@ -92,6 +105,7 @@ if par.read_sino
             c{2}(b) = [];
         end
         
+        % pixel size
         b = contains(c{1},'pixelsize');
         if sum(b)
             pixelsize = str2double(c{2}{b});
@@ -99,6 +113,7 @@ if par.read_sino
             eff_pixel_size = rawbin * pixelsize / 1000;
         end
         
+        % reco mode
         b = contains(c{1},'reco_mode');
         if sum(b)
             reco_mode = str2double(c{2}{b});
@@ -163,17 +178,19 @@ if par.read_sino
     fprintf('\n fresnel number =  pixelsize^2 / lambda / z: %f',  par.fresnel_number )
     
     %% Preallocation
-    fprintf( '\nRead sinograms.')
-    proj = zeros( par.im_shape_cropbin1, par.im_shape_binned2, num_proj_read, 'single');
+    fprintf( '\nRead sinograms.')    
+    proj = zeros( par.im_shape_cropbin1, num_sino_used, num_proj_read, 'single');
+    fprintf( '\n sinograms found: %u', num_sino_found);
+    fprintf( '\n sinograms used: %u', num_sino_used);
     fprintf( '\n allocated memory: %.2f GiB.', Bytes( proj, 3 ) )
-    fprintf( '\n shape: [num_pixel num_slice num_proj] = [%u %u %u]', par.im_shape_cropbin1, par.im_shape_binned2, num_proj_read )
+    fprintf( '\n shape: [num_pixel num_slice num_proj] = [%u %u %u]', par.im_shape_cropbin1, num_sino_used, num_proj_read )
     
     %% Read sinogram
     im_shape_cropbin1 = par.im_shape_cropbin1;
     im_shape_binned1 = im_shape_cropbin1;
     filter_sino = par.filter_sino;
     num_gpu = gpuDeviceCount;
-    parfor nn = 1:size( proj, 2 )
+    parfor nn = 1:num_sino_used
         filename = sprintf('%s%s', sino_path, sino_names_mat(nn,:));
         sino = read_image( filename );
         sino = read_sino_trafo( sino );
@@ -182,10 +199,9 @@ if par.read_sino
             gpu_index = mod(mm, num_gpu) + 1;
             sino = FilterPixel(sino,pixel_filter_sino,gpu_index);
         end
-        proj(:, nn,:) = reshape( sino, [im_shape_cropbin1, 1, num_proj_read] );
-        %proj(:, nn,:) = permute( shiftdim( sino, -1 ) , [3 1 2] );
+        proj(:, nn,:) = reshape( sino, [im_shape_cropbin1, 1, num_proj_read] );        
     end
-    fprintf( '\n read in %.1f s (%.2f min)', toc - t, ( toc - t ) / 60 )
+    fprintf( '\n duration %.1f s (%.2f min)', toc - t, ( toc - t ) / 60 )
     
     %% Plot data
     if par.visual_output
