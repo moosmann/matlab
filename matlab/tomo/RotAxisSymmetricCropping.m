@@ -52,25 +52,3 @@ else
         end        
     end
 end
-    
-% INCONSISTENT AND THUS OBSOLET CODE
-% % Rot axis is centered
-% if rot_axis_pos == size( im, dim ) / 2
-%     return
-% 
-% % Rot axis is left to center    
-% elseif rot_axis_pos < size( im, dim ) / 2
-%     if dim == 1
-%         im = im(1:round(2*rot_axis_pos), :, :);
-%     elseif dim == 2
-%         im = im(:, 1:round(2*rot_axis_pos), :);
-%     end
-% % Rot axis is right to center
-% else
-%     newWidth = size( im, dim) - rot_axis_pos;
-%     if dim == 1
-%         im = im(end-round(2*newWidth)+1:end, :, :);        
-%     elseif dim == 2
-%         im = im( :, end-round(2*newWidth)+1:end, :);
-%     end
-% end

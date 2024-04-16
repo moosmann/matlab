@@ -54,12 +54,8 @@ if tomo.run || tomo.run_interactive_mode
     
     % retrieve index at angles 0 and pi
     [~, ind1] = min( abs( angles ));
-    if max(angles) > 1.9 * pi
-        [~, ind2] = min( abs( angles - 2 * pi ));
-    else
-        [~, ind2] = min( abs( angles - pi ));
-    end
-    
+    [~, ind2] = min( abs( angles - pi ));
+        
     [im_shape_cropbin1, im_shape_binned2, ~] = size( proj );
     
     tomo.rot_axis_position = im_shape_cropbin1 / 2 + tomo.rot_axis_offset;
@@ -332,6 +328,7 @@ if tomo.run || tomo.run_interactive_mode
                             h5create(filename,'/volume',size(vol),'Datatype','single')
                         end
                         h5write(filename,'/volume',vol)
+                        h5writeatt(filename,'/volume/','element_size_um', [1,1,1]);
                     end
                     p0 = pwd;
                     cd(p)
@@ -364,12 +361,13 @@ if tomo.run || tomo.run_interactive_mode
                 %% TILT %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
                 if interactive_mode.rot_axis_tilt
                     
-                    cprintf( 'RED', '\n\nEntering tilt loop:' )
-                    cprintf( 'Magenta', '\n current rotation axis TILT : %g rad = %g deg', itomo.tilt, itomo.tilt * 180 / pi)
-                    fprintf( '\n calcul. rotation axis TILT : %g rad = %g deg', rot_axis_tilt_calc, rot_axis_tilt_calc * 180 / pi)
-                    fprintf( '\n default tilt range : current TILT + [')
-                    fprintf( ' %.2g', interactive_mode.rot_axis_tilt_default_search_range )
-                    fprintf( ']' )
+                    cprintf('RED', '\n\nEntering tilt loop:' )
+                    cprintf('Magenta', '\n current rotation axis TILT : %g rad = %g deg', itomo.tilt, itomo.tilt * 180 / pi)
+                    fprintf('\n calcul. rotation axis TILT : %g rad = %g deg', rot_axis_tilt_calc, rot_axis_tilt_calc * 180 / pi)
+                    fprintf('\n image registration first and pi-shifted [index angle]: [%u %f] [%u %f] ',ind1,angles(ind1),ind2,angles(ind2))
+                    fprintf('\n default tilt range : current TILT + [')
+                    fprintf(' %.2g', interactive_mode.rot_axis_tilt_default_search_range )
+                    fprintf(']' )
                     
                     % Loop over tilts
                     while ~isscalar( tilt )
@@ -492,17 +490,26 @@ if tomo.run || tomo.run_interactive_mode
                             fprintf( 'Registration of projection' )
                             tomo.rot_axis_position = im_shape_cropbin1 / 2 + tomo.rot_axis_offset;                            
                             % Compare projection at 0 pi and projection at 1 pi corrected for rotation axis tilt
-                            if max(angles) > 1.9 * pi
-                                im1c = proj(:,tomo.rot_axis_corr_area2,ind1);
-                                im2c = proj(:,tomo.rot_axis_corr_area2,ind2);
+                            y = round(size(proj,2)*[0.1 0.9]);
+                            y = y(1):y(2);
+                            s1 = size(proj,1);
+                            if offset > 0
+                                rpos = s1/2 + offset;
+                                d = s1 - rpos;
+                                pos = s1 - 2*d;
+                                im1c = proj(pos:end,y,ind1);
+                                im2c = flipud(proj(pos:end,y,ind2));
                             else
-                                im1c = RotAxisSymmetricCropping( proj(:,tomo.rot_axis_corr_area2,ind1), tomo.rot_axis_position, 1);
-                                im2c = flipud(RotAxisSymmetricCropping( proj(:,tomo.rot_axis_corr_area2,ind2) , tomo.rot_axis_position, 1));
+                                pos = round(2*(s1/2 + offset));
+                                im1c = proj(1:pos,y,ind1);
+                                im2c = flipud(proj(1:pos,y,ind2));
+%                             im1c = RotAxisSymmetricCropping( proj(:,tomo.rot_axis_corr_area2,ind1),pos,1);
+%                             im2c = flipud(RotAxisSymmetricCropping( proj(:,tomo.rot_axis_corr_area2,ind2),pos,1));
                             end
                             p = [write.im_path filesep 'correlation'];
                             CheckAndMakePath(p)                            
                             write32bitTIFfromSingle(sprintf('%s/proj%06u.tif',p,ind1),im1c)
-                            write32bitTIFfromSingle(sprintf('%s/proj%06u.tif',p,ind1),im2c)
+                            write32bitTIFfromSingle(sprintf('%s/proj%06u.tif',p,ind2),im2c)
                             [optimizer, metric] = imregconfig('monomodal');
                             tform_calc = imregtform(im2c, im1c, 'rigid', optimizer, metric);
                             rot_axis_tilt_calc = asin( tform_calc.T(1,2) ) / 2;
@@ -539,38 +546,49 @@ if tomo.run || tomo.run_interactive_mode
                             %if xt < size( im1c,1)  -10 && xt < size( im1c,2)  -10
                             fprintf( '\n current rotation axis tilt from interactive mode: %g rad (%g deg)', itomo.tilt, itomo.tilt * 180 / pi)
                             fprintf( '\n calcul. rotation axis tilt from registration    : %g rad (%g deg)', rot_axis_tilt_calc, rot_axis_tilt_calc * 180 / pi)                            
-                            x0 = 1 + 2 * ceil(sin(2 * tilt) .* size(im1c,1));
-                            y0 = 1 + 2 * ceil(sin(2 * tilt) .* size(im1c,2));
+                            x0 = max([1 + 2 * ceil(sin(2 * tilt) .* size(im1c,1)),1]);
+                            y0 = max([1 + 2 * ceil(sin(2 * tilt) .* size(im1c,2)),1]);
                             x1 = size(im1c,1)-x0;
                             y1 = size(im1c,2)-y0;
                             x = x0:x1;
                             y = y0:y1;
                             im1 = im1c(x,y)';
-                            im2 = im2c_warped_int(x,y)';
+                            im2org = im2c(x,y)';
+                            im2 = im2c_warped_int(x,y)';                            
                             out = ImageCorrelation(im1,im2);
                             fprintf( '\n relative shift after rotation: %.1f, %0.1f',out.shift1,out.shift2)
                             fprintf( '\n Interpolating 2nd image on shifted grid')
                             [X,Y] = meshgrid(1:size(im1,2),1:size(im1,1));
-                            im2i = interp2(X,Y,im2,X - out.shift2,Y - out.shift1,'linear',mean2(im2));
+                            im2i = interp2(X,Y,im2,X - out.shift2,Y - out.shift1,'linear',mean2(im2));                            
                             fprintf( '\n Cropping on common grid')
                             if out.shift2 > 0
                                 y0 = 1 + ceil(abs(out.shift2));
                                 y1 = size(im1,2);
                             else
                                 y0 = 1;
-                                y1 = size(im1,2) + floor(abs(out.shift2));
+                                y1 = size(im1,2) + floor(out.shift2);
                             end
-                            if out.shift2 > 0
+                            if out.shift1 > 0
                                 x0 = 1 + ceil(abs(out.shift1));
                                 x1 = size(im1,1);
                             else
                                 x0 = 1;
-                                x1 = size(im1,1) + floor(abs(out.shift1));
+                                x1 = size(im1,1) + floor(out.shift1);
                             end
-                            x = x0:x1;
-                            y = y0:y1;
+                            % tilt crop, worst case
+                            d = ceil(max(size(im1)) * sin(abs(tilt))) + 1;
+                            x = x0+d:x1-d;
+                            y = y0+d:y1-d;
                             im1m = im1(x,y);
+                            im2orgm = im2org(x,y);
+                            im2m = im2(x,y);
                             im2im = im2i(x,y);
+                            p2 = [write.im_path filesep 'correlation' filesep 'cropped'];
+                            CheckAndMakePath(p2)   
+                            write32bitTIFfromSingle(sprintf('%s/proj%06u.tif',p2,ind1),im1m)
+                            write32bitTIFfromSingle(sprintf('%s/proj%06u.tif',p2,ind2),im2orgm)
+                            write32bitTIFfromSingle(sprintf('%s/proj%06u_warped.tif',p2,ind2),im2m)
+                            write32bitTIFfromSingle(sprintf('%s/proj%06u_warped_shifted.tif',p2,ind2),im2im)
                             name = sprintf( 'TILT: registered projections at %g and %g degree. rot axis tilt from INTERACTIVE mode: %g, rot axis offset: %g', angles(ind1)/pi*180, angles(ind2)/pi*180, tilt, offset);
                             nimplay(cat(3,im1m,im2im), 1, 0, name)
                             %nimplay( cat(3, im1c(xt:end-xt,xt:end-xt)', im2c_warped_int(xt:end-xt,xt:end-xt)'), 1, 0, name)

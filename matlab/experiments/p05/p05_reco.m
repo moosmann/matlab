@@ -36,7 +36,16 @@ dbstop if error
 % !!! QUICK SWITCH TO ALTERNATIVE SET OF PARAMETERS !!!
 % !!! OVERWRITES PARAMETERS BELOW QUICK SWITCH SECTION !!!
 % Just copy parameter and set quick switch to 1
-par.quick_switch = 0;
+par.quick_switch = 1;
+
+par.read_flatcor = 1;
+par.read_flatcor_path =  '/asap3/petra3/gpfs/p07/2023/data/11015836/processed/tuhh001_su_001/flat_corrected/rawBin4';
+par.nexus_path = '/asap3/petra3/gpfs/p07/2023/data/11015836/raw/tuhh001_su_001';
+par.eff_pixel_size = 1e-6;
+par.read_flatcor_bin = 4;
+par.read_flatcor_range = 10;
+write.to_scratch = 1;
+
 par.scan_path = pwd;
 %par.scan_path = last_folder_modified('')
 par.raw_bin = 2;
@@ -44,18 +53,23 @@ par.raw_roi = -4;
 par.proj_range = [];
 par.ref_range = 1;
 phase_retrieval.apply = 0;
+phase_retrieval.reg_par = 1.0;
 image_correlation.method = 'mean';%'ssim-ml';%
-write.to_scratch = 0;
-write.flatcor = 0;
-write.parfolder = '';
-tomo.rot_axis_offset = [];
-interactive_mode.phase_retrieval = 0;
-interactive_mode.rot_axis_pos = 0;
-interactive_mode.rot_axis_tilt = 0;
-tomo.vol_size = [];
-par.ring_current_normalization = 0;
-par.crop_proj = 0;
 
+% write.flatcor = 0;
+% write.parfolder = '';
+% tomo.rot_axis_offset = -879.0;
+% tomo.rot_axis_tilt_camera = -0.0045;
+% write.subfolder_reco = '';
+% interactive_mode.phase_retrieval = 0;
+% interactive_mode.rot_axis_pos = 1;
+% interactive_mode.rot_axis_tilt = 1;
+% tomo.vol_size = [];
+% par.ring_current_normalization = 1;
+% par.crop_proj = 0;
+% par.distortion_correction_distance = 0;1153; % scalar, in binned pixel, distance between two regions in the tomogram that can be properly reconstructed using different rotation axis offsets, if 0: no correction done
+% par.distortion_correction_outer_offset = -877; % scalar, in pixel, rotation axis offset for the outer region. the offset for the inner region is used for reconstruction
+% par.distortion_correction_exponent = 2; % scalar,  exponent of interpolation function: xq = x - 2 * offset_diff * (x / dist_offset).^exponent;
 
 % interactive_mode.rot_axis_pos = 0;
 % tomo.rot_axis_offset = 0;
@@ -86,6 +100,7 @@ pp_parameter_switch % DO NOT DELETE THIS LINE
 %%% SCAN %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 par.scan_path = pwd; % string/pwd. pwd: change to directory of the scan to be reconstructed, string: absolute scan path, last_folder_modified('folder')
 par.ref_path = {}; % cell of strings. Additonal data sets to be included for the correlation of projections and reference images
+par.nexus_path = ''; % string, absolute path to h5 file
 par.read_flatcor = 0; % read preprocessed flatfield-corrected projections. CHECK if negative log has to be taken!
 par.read_flatcor_path = ''; % absolute path containing flat-field corrected projections
 par.read_flatcor_range = 1; % scalar or vector. range of flatcorrected projections to be read
@@ -231,7 +246,7 @@ tomo.rot_axis_offset_metric_roi = []; % 4-vector: [. ROI for metric calculation.
 tomo.rot_axis_search_slice = []; % scalar: slice used to find rot axis. if empty: uses slice from interactive mode, if that is empty uses central slice.
 tomo.rot_axis_search_range_from_interactive = 0; % boolean: use search range from interactive mode
 %%% OUTPUT %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-write.path = '/beegfs/desy/user/moosmanj/itaw'; %'/gpfs/petra3/scratch/moosmanj'; % string. absolute path were output data will be stored. !!overwrites the write.to_scratch flag. if empty uses the beamtime directory and either 'processed' or 'scratch_cc'
+write.path = '';'/beegfs/desy/user/moosmanj/itaw'; %'/gpfs/petra3/scratch/moosmanj'; % string. absolute path were output data will be stored. !!overwrites the write.to_scratch flag. if empty uses the beamtime directory and either 'processed' or 'scratch_cc'
 write.to_scratch = 0; % write to 'scratch_cc' instead of 'processed'
 write.deleteFiles = 0; % delete files already existing in output folders. Useful if number or names of files differ when reprocessing.
 write.beamtimeID = ''; % string (regexp),typically beamtime ID, mandatory if 'write.deleteFiles' is true (safety check)
@@ -251,7 +266,7 @@ write.float_adapthisteq = 0; % save float with adaptive histogram equalization f
 write.uint16 = 0; % save 16bit unsigned integer tiff using 'write.compression_method'
 write.uint8 = 0; % save binned 8bit unsigned integer tiff using 'write.compression_method'
 % Optionally save binned reconstructions, only works in '3D' reco_mode
-write.float_binned = 1; % save binned single precision (32-bit float) tiff
+write.float_binned = 0; % save binned single precision (32-bit float) tiff
 write.uint16_binned = 0; % save binned 16bit unsigned integer tiff using 'write.compression_method'
 write.uint8_binned = 0; % save binned 8bit unsigned integer tiff using 'wwrite.compression_method'
 write.reco_binning_factor = 2; % IF BINNED VOLUMES ARE SAVED: binning factor of reconstructed volume
@@ -481,6 +496,8 @@ assign_default('par.gpu_index', [])
 assign_default('write.outputformat', 'tif')
 assign_default('par.sino_roi', [])
 assign_default('par.read_sino_range',1);
+assign_default('par.nexus_path','');
+assign_default('pixel_filter_sino',[]);
 
 %assign_default('',  )
 
@@ -491,6 +508,9 @@ if ~par.read_flatcor
 else
     raw_bin = par.read_flatcor_bin;
     par.raw_bin = raw_bin;
+    if ~isempty(par.eff_pixel_size)
+        par.eff_pixel_size_binned = raw_bin * par.eff_pixel_size;
+    end
 end
 phase_bin = phase_retrieval.post_binning_factor;
 window_state = par.window_state;
@@ -806,9 +826,8 @@ if ~par.read_flatcor && ~par.read_sino
     [logpar, cur, cam] = p05_log( scanlog_name );
     if isempty( par.eff_pixel_size )
         par.eff_pixel_size = logpar.eff_pixel_size;
-    end
-    eff_pixel_size_binned = raw_bin * par.eff_pixel_size;
-    par.eff_pixel_size_binned = eff_pixel_size_binned;
+    end    
+    par.eff_pixel_size_binned = raw_bin * par.eff_pixel_size;
     exposure_time = logpar.exposure_time;
     if isfield( logpar, 's_in_pos' )
         s_in_pos_mm = logpar.s_in_pos;
@@ -2302,8 +2321,9 @@ else
         d = dir([par.nexus_path filesep '*.h5']);
         nexuslog_name = [d.folder filesep d.name];
         s_rot.value = h5read( nexuslog_name, '/entry/scan/data/s_rot/value');
+        par.num_dark = h5read( nexuslog_name, '/entry/scan/n_dark');
         [~, stimg_key, ~, ~] = pp_stimg_petra({nexuslog_name},par);
-        angles = s_rot.value( ~boolean( stimg_key.scan.value(20+1:end) ) ) * pi / 180;
+        angles = s_rot.value( ~boolean( stimg_key.scan.value(par.num_dark+1:end) ) ) * pi / 180;
     end
     [tomo, angles, tint, par] = interactive_mode_rot_axis( par, logpar, phase_retrieval, tomo, write, interactive_mode, proj, angles);
 end

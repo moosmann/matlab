@@ -1,17 +1,17 @@
 function [out, mac] = magnesium_gadolinium( energy_eV, mass_fraction_percent, thickness_m )
-% Return material constants for cadmium tungstate (CdWO4).
+% Return material constants for a Mg-Gd alloy.
 %
 % Writen by J. Moosmann
 
 % Arguments
 if nargin < 1
-    energy_eV = [20 30 40] * 1e3;
+    energy_eV = [10 30 40] * 1e3;
 end
 if nargin < 2
     mass_fraction_percent = 10; % mass percent
 end
 if nargin < 3
-    thickness_m = 1e-6;
+    thickness_m = 2e-3;
 end
 
 %% Main %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
