@@ -270,7 +270,7 @@ if tomo.run || tomo.run_interactive_mode
                 [~, max_pos] = max(cell2mat({metrics_offset(:).val}));
                 
                 % Print image number, rotation axis values, and different metrics
-                fprintf( ' no.' )
+                fprintf( '\n no.' )
                 fprintf( '%12s ', 'offset', metrics_offset.name)
                 for nn = 1:numel(offset)
                     if offset(nn) == tomo.rot_axis_offset
@@ -424,7 +424,7 @@ if tomo.run || tomo.run_interactive_mode
                             [~, max_pos] = max( cell2mat( {metrics_tilt(:).val} ) );
                             
                             % Print image number and rotation axis tilt
-                            fprintf( ' no.' )
+                            fprintf( '\n no.' )
                             fprintf( '%12s ', 'tilt/rad', 'tilt/deg', metrics_tilt.name )
                             for nn = 1:numel(tilt)
                                 fprintf( '\n%4u%12g %12g ', nn, tilt(nn), tilt(nn)/pi*180 )
@@ -688,7 +688,7 @@ if tomo.run || tomo.run_interactive_mode
                             [~, max_pos] = max( cell2mat( {metrics_angle_scaling(:).val} ) );
                             
                             % Print image number and angle_scaling
-                            fprintf( ' no.' )
+                            fprintf( '\n no.' )
                             fprintf( '%12s ', 'scaling', metrics_angle_scaling.name )
                             for nn = 1:numel(angle_scaling)
                                 fprintf( sprintf( '\n%4u%12f ', nn, angle_scaling(nn) ) )

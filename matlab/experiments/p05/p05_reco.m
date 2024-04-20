@@ -37,61 +37,17 @@ dbstop if error
 % !!! OVERWRITES PARAMETERS BELOW QUICK SWITCH SECTION !!!
 % Just copy parameter and set quick switch to 1
 par.quick_switch = 1;
-
-par.read_flatcor = 1;
-par.read_flatcor_path =  '/asap3/petra3/gpfs/p07/2023/data/11015836/processed/tuhh001_su_001/flat_corrected/rawBin4';
-par.nexus_path = '/asap3/petra3/gpfs/p07/2023/data/11015836/raw/tuhh001_su_001';
-par.eff_pixel_size = 1e-6;
-par.read_flatcor_bin = 4;
-par.read_flatcor_range = 10;
-write.to_scratch = 1;
-
-par.scan_path = pwd;
-%par.scan_path = last_folder_modified('')
-par.raw_bin = 2;
-par.raw_roi = -4;
-par.proj_range = [];
-par.ref_range = 1;
+par.raw_roi = [];
+%image_correlation.method = 'median';
 phase_retrieval.apply = 0;
-phase_retrieval.reg_par = 1.0;
-image_correlation.method = 'mean';%'ssim-ml';%
-
-% write.flatcor = 0;
-% write.parfolder = '';
-% tomo.rot_axis_offset = -879.0;
-% tomo.rot_axis_tilt_camera = -0.0045;
-% write.subfolder_reco = '';
-% interactive_mode.phase_retrieval = 0;
-% interactive_mode.rot_axis_pos = 1;
-% interactive_mode.rot_axis_tilt = 1;
-% tomo.vol_size = [];
-% par.ring_current_normalization = 1;
-% par.crop_proj = 0;
-% par.distortion_correction_distance = 0;1153; % scalar, in binned pixel, distance between two regions in the tomogram that can be properly reconstructed using different rotation axis offsets, if 0: no correction done
-% par.distortion_correction_outer_offset = -877; % scalar, in pixel, rotation axis offset for the outer region. the offset for the inner region is used for reconstruction
-% par.distortion_correction_exponent = 2; % scalar,  exponent of interpolation function: xq = x - 2 * offset_diff * (x / dist_offset).^exponent;
-
-% interactive_mode.rot_axis_pos = 0;
-% tomo.rot_axis_offset = 0;
-% tomo.vol_size = [];
-% par.read_flatcor = 1; 
-% tomo.rot_angle_full_range = (359.991 - 180) * pi / 180; % angle 47998
-% par.read_flatcor_path = '/asap3/petra3/gpfs/p07/2023/data/11017607/processed/mosaic/bmc003_B4_paraffin/tests_hs01/stitched_proj_filtered';
-% tomo.rot_angle_full_range = (359.997 - 180) * pi / 180; % angle 48000
-% par.read_flatcor_path = '/asap3/petra3/gpfs/p07/2023/data/11017607/processed/mosaic/bmc010_D_EtOH/tests_hs01/stitched_proj_filtered';
-% par.read_flatcor_trafo = @(im) im; %fliplr( im ); % anonymous function applied to the image which is read e.g. @(x) rot90(x)
-% par.read_flatcor_range = 1;
-% par.read_flatcor_bin = 2;
-% par.filter_sino = 0;
-% ring_filter.apply = 1;
-% phase_retrieval.apply = 1;
-% phase_retrieval.reg_par = 2.0;
-% par.energy = 67e3; % eV
-% par.sample_detector_distance = 0.8; % in m
-% par.eff_pixel_size = 0.0064/5.03813 * 1e-3; % m
-% tomo.reco_mode = 'slice';
-% write.subfolder_reco = '';
-% write.outputformat = 'hdf_volume';'tif';'hdf_slice'; % string
+ring_filter.apply = 1; 
+phase_retrieval.reg_par = 1.2;
+interactive_mode.phase_retrieval = 0;
+interactive_mode.rot_axis_tilt = 0; 
+%par.proj_range = [1:2500]; 
+%write.subfolder_reco = 'proj1';
+par.proj_range = [2501:5001]; 
+write.subfolder_reco = 'proj2';
 
 % END OF QUICK SWITCH TO ALTERNATIVE SET OF PARAMETERS %%%%%%%%%%%%%%%%%%%%
 
@@ -151,8 +107,8 @@ pixel_filter_threshold_dark = [0.01 0.005]; % Dark fields: threshold parameter f
 pixel_filter_threshold_flat = [0.02 0.005]; % Flat fields: threshold parameter for hot/dark pixel filter, for details see 'FilterPixel'
 pixel_filter_threshold_proj = [0.02 0.005]; % Raw projection: threshold parameter for hot/dark pixel filter, for details see 'FilterPixel'
 pixel_filter_radius = [5 5]; % Increase only if blobs of zeros or other artefacts are expected. Can increase processing time heavily.
-par.ring_current_normalization = 1; % normalize flat fields and projections by ring current
-image_correlation.method = 'median'; 'ssim-ml';'median';'entropy';'none';'ssim';'ssim-g';'std';'cov';'corr';'diff1-l1';'diff1-l2';'diff2-l1';'diff2-l2';'cross-entropy-12';'cross-entropy-21';'cross-entropy-x';
+par.ring_current_normalization = 0; % normalize flat fields and projections by ring current
+image_correlation.method = 'ssim-ml';'median'; 'median';'entropy';'none';'ssim';'ssim-g';'std';'cov';'corr';'diff1-l1';'diff1-l2';'diff2-l1';'diff2-l2';'cross-entropy-12';'cross-entropy-21';'cross-entropy-x';
 % Correlation of projections and flat fields. Essential for DCM data. Typically improves reconstruction quality of DMM data, too.
 % Available methods ('ssim-ml'/'entropy' usually work best):
 % 'none' : no correlation, for DPC
@@ -175,7 +131,7 @@ image_correlation.filter_type = 'median'; % string. correlation ROI filter type,
 image_correlation.filter_parameter = {[5 5], 'symmetric'}; % cell. filter paramaters to be parsed with {:}
 % 'median' : using medfilt2, parameters: {[M N]-neighboorhood, 'padding'}
 % 'wiener' : using wiender2, parameters: {[M N]-neighboorhood}
-ring_filter.apply = 1; % ring artifact filter (use only for scans without lateral sample movement)
+ring_filter.apply = 0; % ring artifact filter (use only for scans without lateral sample movement)
 ring_filter.apply_before_stitching = 0; % ! Consider when phase retrieval is applied !
 ring_filter.method = 'jm'; 'wavelet-fft';
 ring_filter.waveletfft_dec_levels = 1:6; % decomposition levels for 'wavelet-fft'
@@ -190,7 +146,7 @@ par.distortion_correction_distance = 0; % scalar, in binned pixel, distance betw
 par.distortion_correction_outer_offset = 0; % scalar, in pixel, rotation axis offset for the outer region. the offset for the inner region is used for reconstruction
 par.distortion_correction_exponent = 2; % scalar,  exponent of interpolation function: xq = x - 2 * offset_diff * (x / dist_offset).^exponent;
 %%% PHASE RETRIEVAL %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-phase_retrieval.apply = 0; % bool. See 'PhaseFilter' for detailed description of parameters !
+phase_retrieval.apply = 1; % bool. See 'PhaseFilter' for detailed description of parameters !
 phase_retrieval.apply_before = 0; % bool. before stitching, interactive mode, etc. For phase-contrast data with an excentric rotation axis phase retrieval should be done afterwards. To find the rotataion axis position use this option in a first run, and then turn it of afterwards.
 phase_retrieval.post_binning_factor = 1; % bool. Binning factor after phase retrieval, but before tomographic reconstruction
 phase_retrieval.method = 'tie'; % string. Available methods: 'qp' 'ctf' 'tie' 'qp2' 'qpcut', 'tieNLO_Schwinger'
@@ -246,7 +202,7 @@ tomo.rot_axis_offset_metric_roi = []; % 4-vector: [. ROI for metric calculation.
 tomo.rot_axis_search_slice = []; % scalar: slice used to find rot axis. if empty: uses slice from interactive mode, if that is empty uses central slice.
 tomo.rot_axis_search_range_from_interactive = 0; % boolean: use search range from interactive mode
 %%% OUTPUT %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-write.path = '';'/beegfs/desy/user/moosmanj/itaw'; %'/gpfs/petra3/scratch/moosmanj'; % string. absolute path were output data will be stored. !!overwrites the write.to_scratch flag. if empty uses the beamtime directory and either 'processed' or 'scratch_cc'
+write.path = ''; %'/gpfs/petra3/scratch/moosmanj'; % string. absolute path were output data will be stored. !!overwrites the write.to_scratch flag. if empty uses the beamtime directory and either 'processed' or 'scratch_cc'
 write.to_scratch = 0; % write to 'scratch_cc' instead of 'processed'
 write.deleteFiles = 0; % delete files already existing in output folders. Useful if number or names of files differ when reprocessing.
 write.beamtimeID = ''; % string (regexp),typically beamtime ID, mandatory if 'write.deleteFiles' is true (safety check)
@@ -256,7 +212,7 @@ write.subfolder_flatcor = ''; % subfolder in 'flat_corrected'
 write.subfolder_phase_map = ''; % subfolder in 'phase_map'
 write.subfolder_sino = ''; % subfolder in 'sino'
 write.subfolder_reco = ''; % subfolder in 'reco'
-write.flatcor = 1; % save preprocessed flat corrected projections
+write.flatcor = 0; % save preprocessed flat corrected projections
 write.phase_map = 0; % save phase maps (if phase retrieval is not 0)
 write.sino = 0; % save sinograms (after preprocessing & before FBP filtering and phase retrieval)
 write.phase_sino = 0; % save sinograms of phase maps
@@ -293,14 +249,14 @@ interactive_mode.slice_number = 0.5; % default slice number. if in [0,1): relati
 interactive_mode.phase_retrieval = 1; % Interactive retrieval to determine regularization parameter
 interactive_mode.phase_retrieval_default_search_range = []; % if empty: asks for search range when entering interactive mode, otherwise directly start with given search range
 interactive_mode.show_stack_imagej = 1; % use imagej instead of MATLAB to scroll through images during interactive mode
-interactive_mode.show_stack_imagej_use_virtual = 1; % use virtual stack for faster loading, but slower scrolling
+interactive_mode.show_stack_imagej_use_virtual = 0; % use virtual stack for faster loading, but slower scrolling
 %%% HARDWARE / SOFTWARE %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 tomo.astra_link_data = 1; % boolean: ASTRA data objects become references to Matlab arrays. Reduces memory issues.
 par.gpu_index = []; % integer vector: indices of GPU devices to use, Matlab notation: index starts from 1. default: [], uses all
 par.use_cluster = 0; % if available: on MAXWELL nodes disp/nova/wga/wgs cluster computation can be used. Recommended only for large data sets since parpool creation and data transfer implies a lot of overhead.
 par.use_gpu_in_parfor = 1; % boolean
 pixel_filter_sino.use_gpu = par.use_gpu_in_parfor;
-par.poolsize = 0.5; % scalar: number of workers used in a local parallel pool. if 0: use current config. if >= 1: absolute number. if 0 < poolsize < 1: relative amount of all cores to be used. if SLURM scheduling is available, a default number of workers is used.
+par.poolsize = 0.8; % scalar: number of workers used in a local parallel pool. if 0: use current config. if >= 1: absolute number. if 0 < poolsize < 1: relative amount of all cores to be used. if SLURM scheduling is available, a default number of workers is used.
 par.poolsize_gpu_limit_factor = 0.5; % scalar: elative amount of GPU memory used for preprocessing during parloop. High values speed up Proprocessing, but increases out-of-memory failure
 phase_retrieval.use_parpool = 1; % bool. Disable parpool when out-of-memory error occurs during phase retrieval.
 par.window_state = 'minimized';'normal';'maximized';
@@ -3265,7 +3221,7 @@ if tomo.run
             fprintf(fid, 'min_max_of_all_corrected_flats : %6g %6g\n', flat_min2, flat_max2);
             fprintf(fid, 'min_max_of_all_raws :  %6g %6g\n', raw_min1, raw_max1);
             fprintf(fid, 'min_max_of_all_corrected_raws :  %6g %6g\n', raw_min2, raw_max2);
-            fprintf(fid, 'min_max_of_all_flat_corr_projs : %g %g \n', x, proj_max);
+            fprintf(fid, 'min_max_of_all_flat_corr_projs : %g %g \n', min(proj_min), max(proj_max));
         end
         fprintf(fid, 'par.strong_abs_thresh : %f m\n', par.strong_abs_thresh);
         % Phase retrieval

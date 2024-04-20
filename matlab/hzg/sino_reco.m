@@ -34,8 +34,8 @@ dbstop if error
 
 if nargin < 1
     scan_path = ... % pwd;
+        '/asap3/petra3/gpfs/p07/2023/data/11017607/processed/bmc003_brainB_slice4_paraffin_5p6mm_8rings';
     '/asap3/petra3/gpfs/p07/2023/data/11017607/processed/bmc010_brainD_wholeEtOH_zM72p4_10rings';
-    '/asap3/petra3/gpfs/p07/2023/data/11017607/processed/bmc003_brainB_slice4_paraffin_5p6mm_8rings';
     '/asap3/petra3/gpfs/p07/2023/data/11017598/processed/tig002_81217_mousebrain_202309_DESY';
     '/asap3/petra3/gpfs/p07/2023/data/11019133/processed/bmc009_81212_mousebrain_202311_DESY';
     '/asap3/petra3/gpfs/p07/2023/data/11017206/processed/itaw009_cet452a_FF99_Bp';
@@ -116,7 +116,7 @@ tomo.vol_size = [];%[-.1 0.1 -0.1 0.1 -0.5 0.5];%[-1 1 -1 1 -0.5 0.5];% 6-compon
 tomo.vol_shape = []; %[1 1 1] shape (# voxels) of reconstruction volume. used for excentric rot axis pos. if empty, inferred from 'tomo.vol_size'. in absolute numbers of voxels or in relative number w.r.t. the default volume which is given by the detector width and height.
 tomo.rot_angle_offset = 0; % global rotation of reconstructed volume
 tomo.rot_angle_full_range = rot_angle_full_range; % in rad, read from reconlog if []: full angle of rotation including additional increment, or array of angles. if empty full rotation angles is determined automatically to pi or 2 pi
-tomo.rot_axis_offset = 0;%[]; % rotation axis offset w.r.t to the image center. Assuming the rotation axis position to be centered in the FOV for standard scan, the offset should be close to zero.
+tomo.rot_axis_offset = 9170.80 ;%[]; % rotation axis offset w.r.t to the image center. Assuming the rotation axis position to be centered in the FOV for standard scan, the offset should be close to zero.
 tomo.rot_axis_position = []; % if empty use automatic computation. EITHER OFFSET OR POSITION MUST BE EMPTY. YOU MUST NOT USE BOTH!
 tomo.rot_axis_offset_shift = []; %[]; % absolute lateral movement in pixels during fly-shift-scan, overwrite lateral shift read out from hdf5 log
 tomo.rot_axis_tilt_camera = 0; % in rad. camera tilt w.r.t rotation axis.
@@ -171,7 +171,7 @@ write.outputformat = 'tif';'hdf_volume';'hdf_slice'; % string
 par.visual_output = 0; % show images and plots during reconstruction
 interactive_mode.show_stack_imagej = 1; % use imagej instead of MATLAB to scroll through images during interactive mode
 interactive_mode.show_stack_imagej_use_virtual = 0; % use virtual stack for faster loading, but slower scrolling
-interactive_mode.rot_axis_pos = 1; % reconstruct slices with dif+ferent rotation axis offsets
+interactive_mode.rot_axis_pos = 0; % reconstruct slices with dif+ferent rotation axis offsets
 interactive_mode.rot_axis_pos_default_search_range = []; % if empty: asks for search range when entering interactive mode
 interactive_mode.rot_axis_tilt = 0; % reconstruct slices with different offset AND tilts of the rotation axis
 interactive_mode.rot_axis_tilt_default_search_range = []; % if empty: asks for search range when entering interactive mode

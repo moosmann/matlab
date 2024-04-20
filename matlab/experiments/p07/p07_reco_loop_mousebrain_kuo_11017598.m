@@ -428,6 +428,18 @@ ADD
 phase_retrieval.apply = 1;
 ADD
 
+% Different phase reg par
+par.scan_path = [proc_path 'tig004_81166_mousebrain_202309_DESY'];
+par.nexus_path = [regexprep(par.scan_path,'processed','raw') '_height_a'];
+par.raw_bin = 2;
+par.read_sino_folder = 'trans02_180';
+phase_retrieval.apply = 1;
+phase_retrieval.reg_par = 0.0;ADD
+phase_retrieval.reg_par = 0.2;ADD
+phase_retrieval.reg_par = 0.4;ADD
+phase_retrieval.reg_par = 0.6;ADD
+phase_retrieval.reg_par = 0.8;ADD
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 p05_reco_loop( SUBSETS, RUN_RECO, PRINT_PARAMETERS)
