@@ -113,7 +113,7 @@ middle = fileread( sprintf('%s%s', p, 'reco_loop_template_middle.m' ) );
 middle_2 = fileread( sprintf('%s%s', p, 'reco_loop_template_middle_2.m' ) );
 bottom = fileread( sprintf( '%s%s', p, 'reco_loop_template_bottom.m' ) );
 
-% Write top: function defition, help arguments
+% Write top: function definition, help arguments
 fid = fopen( filename, 'w');
 func_name = sprintf( '%s', func_name);
 fprintf(fid, 'function %s%s', func_name, top);
@@ -128,7 +128,8 @@ writetag = 0;
 while 1
     c = textscan(fidrec,'%s',1, 'Delimiter', {'\n'});
     c = c{1}{1};
-    if strcmp( c, '%% PARAMETERS / SETTINGS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%')
+    %if strcmp( c, '%% PARAMETERS / SETTINGS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%')
+    if strcmp( c, 'pp_parameter_switch % DO NOT DELETE OR EDIT THIS LINE %%%%%%%%%%%%%%%%%%%%%')        
         writetag = 1;
         continue
     end    

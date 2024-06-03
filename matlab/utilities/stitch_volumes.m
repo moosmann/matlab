@@ -10,8 +10,8 @@ function [s, vol] = stitch_volumes( scan_path, scan_subfolder, reco_subfolder, s
 %   be used for stitching.
 % stitched_volume_path : string. default: scan_path (without trailing
 %   underscores) or, if scan_path is a cell, the last cell string + 'stitched_volume'
-% scan_mask : binary mask. Choose subset of scans found with binary mask
-%   with a length of number of scans found.
+% scan_mask : binary mask. Choose a subset of the scans found to be
+% stitchted using a binary mask with a length of the number of scans found.
 % noisecut : string = 'new' (default) or 'old'. old methods works for certain scans
 %   only. new methods checks SNR by slicewise calculation of std/mean and
 %   matches the SNR of the two volumes within the overlap region.
@@ -29,13 +29,22 @@ function [s, vol] = stitch_volumes( scan_path, scan_subfolder, reco_subfolder, s
 tic
 if nargin < 1
     %'/asap3/petra3/gpfs/p07/2023/data/11017206/processed/itaw012_cet548a_OO01_Oo_d_1/reco/float_rawBin2'
-    scan_path = '/asap3/petra3/gpfs/p07/2023/data/11017206/processed/itaw012_cet548a_OO01_Oo';
+   % scan_path = '/asap3/petra3/gpfs/p07/2023/data/11017206/processed/itaw012_cet548a_OO01_Oo';
+    %scan_path = '/asap3/petra3/gpfs/p07/2024/data/11018402/processed/gst0017_40bar_sh1_full';
+    %scan_path = '/asap3/petra3/gpfs/p07/2024/data/11018402/processed/gst0021_V_sh1_full';
+    %scan_path = '/asap3/petra3/gpfs/p07/2024/data/11018402/processed/gst0020_9bar_sh1_full';
+    %scan_path = '/asap3/petra3/gpfs/p07/2024/data/11018402/processed/gst00*_9bar_sh1_full';
     %scan_path = '/asap3/petra3/gpfs/p05/2022/data/11015593/processed/roe_111_bee';
     %scan_path = '/asap3/petra3/gpfs/p05/2017/data/11003950/processed/syn22_77L_Mg5Gd_8w';% top 2 bottom
     %scan_path = '/asap3/petra3/gpfs/p05/2018/data/11004263/processed/syn004_96R_Mg5Gd_8w'; % bottom 2 top
     %scan_path = '/asap3/petra3/gpfs/p05/2018/data/11004263/processed/syn018_35L_PEEK_8w'; %
     %scan_path = '/asap3/petra3/gpfs/p05/2021/data/11009652/processed/zfmk_024_Tenebrio_'; % top 2 bottom
     %scan_path = '/asap3/petra3/gpfs/p05/2022/data/11012631/processed/lib_02_tadpole_';
+    %scan_path = {'/asap3/petra3/gpfs/p07/2024/data/11020251/processed/swerim005_sa03_sura_k32_a','/asap3/petra3/gpfs/p07/2024/data/11020251/processed/swerim006_sa03_sura_k32_b'};
+    %scan_path = {'/asap3/petra3/gpfs/p07/2024/data/11020251/processed/swerim007_sa04_sura_b32_a','/asap3/petra3/gpfs/p07/2024/data/11020251/processed/swerim008_sa04_sura_b32_b'};
+    %scan_path = {'/asap3/petra3/gpfs/p07/2024/data/11020251/processed/swerim010_sa07_voestalpine_s2_a','/asap3/petra3/gpfs/p07/2024/data/11020251/processed/swerim011_sa07_voestalpine_s2_b'};
+   %scan_path = {'/asap3/petra3/gpfs/p07/2024/data/11020251/processed/swerim012_sa08_voestalpine_s3_a','/asap3/petra3/gpfs/p07/2024/data/11020251/processed/swerim013_sa08_voestalpine_s3_b'};
+    scan_path = {'/asap3/petra3/gpfs/p07/2024/data/11020251/processed/swerim017_sa12_voestalpine_s7_a','/asap3/petra3/gpfs/p07/2024/data/11020251/processed/swerim018_sa12_voestalpine_s7_b'};
 end
 if nargin < 2
     %scan_subfolder = 'reco_phase/tie_regPar1p00';
@@ -46,14 +55,15 @@ if nargin < 3
     reco_subfolder = 'float_rawBin2';
 end
 if nargin < 4
-    %stitched_volume_path = '/gpfs/petra3/scratch/moosmanj/stitch_tadpole';
-    %stitched_volume_path = '/gpfs/petra3/scratch/moosmanj/stitch_test_bottom2top';
-    %stitched_volume_path = '/gpfs/petra3/scratch/moosmanj/stitch_bee';
-    %stitched_volume_path = '/gpfs/petra3/scratch/moosmanj/itaw';
-    stitched_volume_path = '/asap3/petra3/gpfs/p07/2023/data/11017206/processed/itaw012_cet548a_OO01_Oo';
+    %stitched_volume_path = '';
+    %stitched_volume_path = '/asap3/petra3/gpfs/p07/2024/data/11020251/processed/swerim_sa03_sura_k32';
+    %stitched_volume_path = '/asap3/petra3/gpfs/p07/2024/data/11020251/processed/swerim_sa04_sura_b32_a';
+    %stitched_volume_path = '/asap3/petra3/gpfs/p07/2024/data/11020251/processed/swerim_sa07_voestalpine_s2';
+    %stitched_volume_path = '/asap3/petra3/gpfs/p07/2024/data/11020251/processed/swerim_sa08_voestalpine_s3';
+    stitched_volume_path = '/asap3/petra3/gpfs/p07/2024/data/11020251/processed/swerim_sa12_voestalpine_s7';
 end
 if nargin < 5
-    scan_mask = [];%[1 1 0 0 0 0 0 0 0];
+    scan_mask = [];
     %scan_mask = [1 1 0 0 0];
 end
 if nargin < 6
@@ -68,35 +78,32 @@ end
 stitch_level_fac = 1.5;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Output path
-if isempty( stitched_volume_path )
+if isempty(stitched_volume_path)
     % Remove trailing underscores
-    scan_path2 = scan_path;
-    if scan_path2(end) == '_'
-        scan_path2(end) = [];
+    if iscell(stitched_volume_path)
+        stitched_volume_path = scan_path{1};
+    else
+        stitched_volume_path = scan_path;
     end
-    stitched_volume_path  = sprintf( '%s/%s/%s', scan_path2, scan_subfolder, reco_subfolder);
-    while strcmp(scan_path2(end), '_')
-        scan_path2(end) = [];
+    while strcmp(stitched_volume_path(end), '_')
+        stitched_volume_path(end) = [];
     end
-    stitched_volume_figure  = sprintf( '%s/%s/stitched_volume_%s', scan_path2, scan_subfolder, reco_subfolder);
-    stitched_volume_log_path  = sprintf( '%s/%s', scan_path2, scan_subfolder);
-    CheckAndMakePath( stitched_volume_path )
+    [~,stitched_name]=fileparts(stitched_volume_path);
+    stitched_volume_path  = sprintf( '%s/%s/%s', stitched_volume_path, scan_subfolder, reco_subfolder);
+    stitched_volume_figure  = sprintf( '%s/%s/stitched_volume_%s', stitched_volume_path, scan_subfolder, reco_subfolder);
+    stitched_volume_log_path  = sprintf( '%s/%s', stitched_volume_path, scan_subfolder);    
 else
-    % Remove trailing underscores
-    scan_path2 = scan_path;
-    if scan_path2(end) == '_'
-        scan_path2(end) = [];
-    end
+    [~,stitched_name]=fileparts(stitched_volume_path);
     CheckAndMakePath( stitched_volume_path )
     stitched_volume_path = [stitched_volume_path filesep scan_subfolder];
     CheckAndMakePath( stitched_volume_path )
     stitched_volume_figure  = sprintf( '%s/stitched_volume', stitched_volume_path);
     stitched_volume_log_path  = stitched_volume_path;
-    stitched_volume_path = [stitched_volume_path filesep reco_subfolder];
-    CheckAndMakePath( stitched_volume_path )
+    stitched_volume_path = [stitched_volume_path filesep reco_subfolder];   
 end
-fprintf( '\nOutpath: %s' , stitched_volume_path )
-
+CheckAndMakePath( stitched_volume_path )
+fprintf('\noutpath: %s' , stitched_volume_path)
+fprintf('\nstitched name: %s' , stitched_name)
 ca;
 %% Read parameters and data %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 fprintf('\nRead parameters and volumes')
@@ -296,9 +303,9 @@ for nn = 1:num_scans
     s(nn).zval = zval;
     
     % Print info
-    fprintf( '\n %2u. volume. first val: %f (%f) | %i %i', nn, zval(1), zval_first,  round(zval(1)/effective_pixel_size_binned), round(zval_first /effective_pixel_size_binned ));
-    fprintf( '\n %2u. volume.  last val: %f (%f) | %i %i', nn, zval(end), zval_last, round(zval(end)/effective_pixel_size_binned), round(zval_last/effective_pixel_size_binned )  );
-    fprintf( ', diff: %f (%f)', zval(end) - zval(1), zval_last - zval_first)
+    fprintf( '\n %2u. volume. first val: %.3f (%.3f) mm = %i (%i) voxel', nn, zval(1)/1000, zval_first/1000,  round(zval(1)/effective_pixel_size_binned), round(zval_first /effective_pixel_size_binned ));
+    fprintf( '\n %2u. volume.  last val: %.3f (%.3f) mm = %i (%i) voxel', nn, zval(end)/1000, zval_last/1000, round(zval(end)/effective_pixel_size_binned), round(zval_last/effective_pixel_size_binned )  );
+    fprintf( ', diff: %.3f (%.3f) mm', (zval(end) - zval(1))/1000, (zval_last - zval_first)/1000)
     if nn > 1 && nn <= num_scans
         if top2bottom
             if s(nn-1).zval_first > s(nn).zval_last
@@ -332,7 +339,7 @@ end
 
 %% Remove offset %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 zoffset = min( [s(:).zval] );
-fap = figure( 'Name', '\nAbsolute Positions' );
+fap = figure( 'Name', 'Absolute Positions' );
 lgnd = cell( [1 num_scans] );
 fprintf( '\nAbsolute positions without offset: ' )
 for nn = 1:num_scans
@@ -757,12 +764,12 @@ for nn = 1:num_scans
     fprintf( '\n %2u. vol: %5u, %5u (of %5u)', nn, z1, z2, s(nn).size(3) )
 end
 %% Save stitched volume
-CheckAndMakePath( stitched_volume_path )
-if ~iscell( scan_path2 )
-    [~,name]=fileparts(scan_path2);
-else
-    [~,name]=fileparts(scan_path{end});
-end
+CheckAndMakePath(stitched_volume_path)
+% if ~iscell( scan_path2 )
+%     [~,name]=fileparts(scan_path2);
+% else
+%     [~,name]=fileparts(scan_path{end});
+% end
 if top2bottom
     index_offset = 0;
     for nn = 1:num_scans
@@ -776,7 +783,7 @@ if top2bottom
             parfor ll = zrange % loop over slices taken
                 % create properly increasing file index
                 ind =  1 + (zmax - ll) + index_offset
-                filename = sprintf( '%s/%s_%06u.tif', stitched_volume_path, name, ind);
+                filename = sprintf( '%s/%s_%06u.tif', stitched_volume_path, stitched_name, ind);
                 im = vol(:,:,ll);
                 write32bitTIFfromSingle( filename, im )
             end
@@ -796,7 +803,7 @@ else
         if ~testing
             parfor ll = zrange
                 ind =  1 + (ll - zmin) + index_offset
-                filename = sprintf( '%s/%s_%06u.tif', stitched_volume_path, name, ind);
+                filename = sprintf( '%s/%s_%06u.tif', stitched_volume_path, stitched_name, ind);
                 im = vol(:,:,ll);
                 write32bitTIFfromSingle( filename, im )
             end

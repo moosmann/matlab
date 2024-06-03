@@ -188,15 +188,26 @@ if par.read_sino
     %% Read sinogram
     im_shape_cropbin1 = par.im_shape_cropbin1;
     im_shape_binned1 = im_shape_cropbin1;
-    filter_sino = par.filter_sino;
-    num_gpu = gpuDeviceCount;
-    parfor nn = 1:num_sino_used
+    filter_sino = par.filter_sino;    
+    gpus = par.gpu_index;
+    num_gpu = numel(gpus);        
+    if par.use_gpu_in_parfor
+        % Limit by GPU pixel filter: 2 * single + 2 * uint16 + 1 * logical
+        gpu_mem_requ_per_im = prod( size(sino) + 2 * pixel_filter_radius ) * (4 + 4 + 2 + 2 + 1 );
+        poolsize_max_gpu = floor( par.poolsize_gpu_limit_factor * min( mem_avail_gpu ) / gpu_mem_requ_per_im );
+        fprintf(' \n estimated GPU memory required per image for pixel filtering : %g MiB', gpu_mem_requ_per_im / 1024^2 )
+        fprintf(' \n GPU poolsize limit factor : %g', par.poolsize_gpu_limit_factor )
+        fprintf(' \n GPU memory induced maximum poolsize : %u', poolsize_max_gpu )
+    else
+        poolsize_max_gpu = par.poolsize;
+    end
+    parfor (nn = 1:num_sino_used,poolsize_max_gpu)
         filename = sprintf('%s%s', sino_path, sino_names_mat(nn,:));
-        sino = read_image( filename );
-        sino = read_sino_trafo( sino );
+        sino = read_image(filename);
+        sino = read_sino_trafo(sino);
         sino = sino(x0:x1,:);
-        if filter_sino
-            gpu_index = mod(mm, num_gpu) + 1;
+        if filter_sino            
+            gpu_index = gpus(mod(nn, num_gpu) + 1);
             sino = FilterPixel(sino,pixel_filter_sino,gpu_index);
         end
         proj(:, nn,:) = reshape( sino, [im_shape_cropbin1, 1, num_proj_read] );        

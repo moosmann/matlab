@@ -62,12 +62,14 @@ if ~isempty(offset) || ~isempty(search_metric)
     [~, metrics_offset] = find_rot_axis_offset( tomo_auto, proj, par);
     
     if tomo.rot_axis_search_verbose
+        
         % Metric minima
         [~, min_pos] = min(cell2mat({metrics_offset(:).val}));
         [~, max_pos] = max(cell2mat({metrics_offset(:).val}));
+        
         % Print image number, rotation axis values, and different metrics
-        fprintf( ' no.' )
-        fprintf( '%11s', 'offset', metrics_offset.name)
+        fprintf( '\n no.' )
+        fprintf( '%12s', 'offset', metrics_offset.name)
         cp = 0;
         for nn = 1:numel(offset)
             if cp

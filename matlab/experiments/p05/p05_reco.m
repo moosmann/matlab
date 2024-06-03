@@ -36,22 +36,11 @@ dbstop if error
 % !!! QUICK SWITCH TO ALTERNATIVE SET OF PARAMETERS !!!
 % !!! OVERWRITES PARAMETERS BELOW QUICK SWITCH SECTION !!!
 % Just copy parameter and set quick switch to 1
-par.quick_switch = 1;
-par.raw_roi = [];
-%image_correlation.method = 'median';
-phase_retrieval.apply = 0;
-ring_filter.apply = 1; 
-phase_retrieval.reg_par = 1.2;
-interactive_mode.phase_retrieval = 0;
-interactive_mode.rot_axis_tilt = 0; 
-%par.proj_range = [1:2500]; 
-%write.subfolder_reco = 'proj1';
-par.proj_range = [2501:5001]; 
-write.subfolder_reco = 'proj2';
+par.quick_switch = 0;
 
 % END OF QUICK SWITCH TO ALTERNATIVE SET OF PARAMETERS %%%%%%%%%%%%%%%%%%%%
 
-pp_parameter_switch % DO NOT DELETE THIS LINE
+pp_parameter_switch % DO NOT DELETE OR EDIT THIS LINE %%%%%%%%%%%%%%%%%%%%%
 
 %%% SCAN %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 par.scan_path = pwd; % string/pwd. pwd: change to directory of the scan to be reconstructed, string: absolute scan path, last_folder_modified('folder')
@@ -84,11 +73,7 @@ par.read_filenames_from_disk = 0; % only for stepscans with tiff subfolders
 %%% PREPROCESSING %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 par.raw_bin = 2; % projection binning factor: integer
 par.raw_roi = []; % vertical and/or horizontal ROI; coordinate (1,1) = top left pixel; supports absolute, relative, negative, and mixed indexing.
-% []: use full image;
-% [y0 y1]: vertical ROI, skips first raw_roi(1)-1 lines, reads until raw_roi(2); if raw_roi(2) < 0 reads until end - |raw_roi(2)|; relative indexing similar.
-% [y0 y1 x0 x1]: vertical + horzontal ROI, each ROI as above
-% if scalar = 0: auto roi, selects vertical ROI automatically. Use only for DCM. Not working for *.raw data where images are flipped and DMM data.
-% if scalar < 1: Threshold is set as min(proj(:,:,[1 end])) + abs(raw_roi)*median(dark(:)). raw_roi=-1 defaults to min(proj(:,:,[1 end])) + 4*median(dark(:))
+% []: use full image; oi=-1 defaults to min(proj(:,:,[1 end])) + 4*median(dark(:))
 par.im_trafo = '';% 'rot90(im,1)'; % string to be evaluated after reading data in the case the image is flipped/rotated/etc due to changes at the beamline, e.g. 'rot90(im)'
 par.filter_ref = @(x) (x);
 par.filter_proj = @(x) (x);
@@ -107,7 +92,7 @@ pixel_filter_threshold_dark = [0.01 0.005]; % Dark fields: threshold parameter f
 pixel_filter_threshold_flat = [0.02 0.005]; % Flat fields: threshold parameter for hot/dark pixel filter, for details see 'FilterPixel'
 pixel_filter_threshold_proj = [0.02 0.005]; % Raw projection: threshold parameter for hot/dark pixel filter, for details see 'FilterPixel'
 pixel_filter_radius = [5 5]; % Increase only if blobs of zeros or other artefacts are expected. Can increase processing time heavily.
-par.ring_current_normalization = 0; % normalize flat fields and projections by ring current
+par.ring_current_normalization = 1; % normalize flat fields and projections by ring current
 image_correlation.method = 'ssim-ml';'median'; 'median';'entropy';'none';'ssim';'ssim-g';'std';'cov';'corr';'diff1-l1';'diff1-l2';'diff2-l1';'diff2-l2';'cross-entropy-12';'cross-entropy-21';'cross-entropy-x';
 % Correlation of projections and flat fields. Essential for DCM data. Typically improves reconstruction quality of DMM data, too.
 % Available methods ('ssim-ml'/'entropy' usually work best):
@@ -146,7 +131,7 @@ par.distortion_correction_distance = 0; % scalar, in binned pixel, distance betw
 par.distortion_correction_outer_offset = 0; % scalar, in pixel, rotation axis offset for the outer region. the offset for the inner region is used for reconstruction
 par.distortion_correction_exponent = 2; % scalar,  exponent of interpolation function: xq = x - 2 * offset_diff * (x / dist_offset).^exponent;
 %%% PHASE RETRIEVAL %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-phase_retrieval.apply = 1; % bool. See 'PhaseFilter' for detailed description of parameters !
+phase_retrieval.apply = 0; % bool. See 'PhaseFilter' for detailed description of parameters !
 phase_retrieval.apply_before = 0; % bool. before stitching, interactive mode, etc. For phase-contrast data with an excentric rotation axis phase retrieval should be done afterwards. To find the rotataion axis position use this option in a first run, and then turn it of afterwards.
 phase_retrieval.post_binning_factor = 1; % bool. Binning factor after phase retrieval, but before tomographic reconstruction
 phase_retrieval.method = 'tie'; % string. Available methods: 'qp' 'ctf' 'tie' 'qp2' 'qpcut', 'tieNLO_Schwinger'
@@ -878,7 +863,11 @@ if ~par.read_flatcor && ~par.read_sino
                 s_stage_x.time = double( h5read( nexuslog_name{1}, '/entry/scan/data/s_stage_x/time') );
                 s_stage_x.value = h5read( nexuslog_name{1}, '/entry/scan/data/s_stage_x/value');
                 if ~isempty( s_stage_x.value )
-                    ind = ~boolean( stimg_key.scan.value(logpar.n_dark+1:end) );
+                    if numel(s_stage_x.value) == numel(stimg_key.value)
+                        ind = stimg_key.value == 0;
+                    else
+                        ind = ~boolean( stimg_key.scan.value(logpar.n_dark+1:end) );
+                    end
                     offset_shift_mm = s_stage_x.value( ind );
                 else
                     offset_shift_mm = 0;
@@ -1781,7 +1770,7 @@ if ~par.read_flatcor && ~par.read_sino
             fprintf('\n Ring current normalization' )
             %proj = fun_times( proj, scale_factor );
             proj = scale_factor .* proj;
-            
+            fprintf('\n duration : %.1f s (%.2f min)', toc - t, ( toc - t ) / 60 )
             % Plot ring current
             if par.visual_output && exist('ref_rc', 'var' )
                 name = 'PETRA III beam current: Interpolation at image time stamps';
@@ -1804,17 +1793,16 @@ if ~par.read_flatcor && ~par.read_sino
                 saveas(hrc, fig_filename);
             end
         else
-            cprintf('Red', '\nWARNING: Projections not normalized by ring current. Names read from directory and log-file are inconsistent.\n')
+            cprintf('Red', '\n WARNING: Projections not normalized by ring current. Names read from directory and log-file are inconsistent.\n')
         end
     else
-        cprintf('Red', '\nWARNING: Projections not normalized by ring current.\n')
+        cprintf('Red', '\n WARNING: Projections not normalized by ring current.\n')
     end
     
     raw_min2 = min( proj(:) );
     raw_max2 = max( proj(:) );
     num_empty = sum( ~projs_to_use(:) );
-    num_proj_used = num_proj_used - num_empty;
-    fprintf('\n duration : %.1f s (%.2f min)', toc - t, ( toc - t ) / 60 )
+    num_proj_used = num_proj_used - num_empty;    
     fprintf('\n crop left  min/max : %u %u', min( x0 ), max( x0 ) )
     fprintf('\n crop right min/max : %u %u', min( x1 ), max( x1 ) )
     fprintf('\n image shape cropbin1 : %u', im_shape_cropbin1 )
