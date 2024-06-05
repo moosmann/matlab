@@ -51,7 +51,7 @@ if isempty( slice )
     slice = round( num_row / 2 );
 else
     if slice < 1 && slice >= 0
-        slice = round((size( proj, 2 ) - 1) * slice + 1 );
+        slice = floor((size( proj, 2 ) - 1) * slice + 1 );
     end
 end
 tomo.slice = slice;
@@ -167,8 +167,8 @@ else
     fprintf(' %u',rect)
 end
 parfor (nn = 1:numel(offset), 2*num_gpu_used)
-    %parfor (nn = 1:numel(offset), 2 * num_gpu)
-    %for nn = 1:numel(offset)
+%parfor (nn = 1:numel(offset), 2 * num_gpu)
+%for nn = 1:numel(offset)
     
     % Reco
     tomo_par_nn = tomo_par(nn);

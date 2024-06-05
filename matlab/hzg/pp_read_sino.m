@@ -46,8 +46,18 @@ if par.read_sino
     end
     switch numel(read_sino_range)
         case 1
-            read_sino_range = 1:read_sino_range:num_sino_found;
+            if read_sino_range >= 0 && read_sino_range < 1
+                read_sino_range = floor( (num_sino_found - 1) * read_sino_range + 1 );
+            else
+                read_sino_range = 1:read_sino_range:num_sino_found;
+            end
         case 2
+            if read_sino_range(1) >= 0 && read_sino_range(1) < 1
+                read_sino_range(1) = floor( (num_sino_found - 1) * read_sino_range(1) + 1 );
+            end
+            if read_sino_range(2) >= 0 && read_sino_range(2) < 1
+                read_sino_range(2) = floor( (num_sino_found - 1) * read_sino_range(2) + 1 );
+            end
             read_sino_range = read_sino_range(1):read_sino_range(2);
     end
     sino_names_mat = sino_names_mat(read_sino_range,:);
@@ -56,7 +66,7 @@ if par.read_sino
     par.num_sino_used = num_sino_used;
     par.num_sino_found = num_sino_found;
     par.im_shape_binned2 = num_sino_used;
-        
+    
     %% Read parameters from reconlog.txt
     fn = [scan_path filesep 'reconlog.txt'];
     if exist(fn, 'File')

@@ -60,12 +60,18 @@ end
 
 %% Size
 if isempty( vol_size )    
-    vol_size(1) = ceil( -vol_shape(1)/2 );
-    vol_size(2) = floor( vol_shape(1)/2 );
-    vol_size(3) = ceil( -vol_shape(2)/2 );
-    vol_size(4) = floor( vol_shape(2)/2 );
-    vol_size(5) = ceil( -vol_shape(3)/2 );
-    vol_size(6) = floor( vol_shape(3)/2 );
+%     vol_size(1) = ceil( -vol_shape(1)/2 );
+%     vol_size(2) = floor( vol_shape(1)/2 );
+%     vol_size(3) = ceil( -vol_shape(2)/2 );
+%     vol_size(4) = floor( vol_shape(2)/2 );
+%     vol_size(5) = ceil( -vol_shape(3)/2 );
+%     vol_size(6) = floor( vol_shape(3)/2 );
+    vol_size(1) = -vol_shape(1)/2;
+    vol_size(2) = vol_shape(1)/2; 
+    vol_size(3) = -vol_shape(2)/2;
+    vol_size(4) = vol_shape(2)/2;
+    vol_size(5) = -vol_shape(3)/2;
+    vol_size(6) = vol_shape(3)/2;
 else
     if abs( vol_size(1) ) < abs_rel_thresh
         vol_size(1) = sign( vol_size(1) ) * ( abs( vol_size(1) ) * (vol_shape_hor -1)  );
@@ -79,12 +85,10 @@ else
     if abs( vol_size(4) ) < abs_rel_thresh
         vol_size(4) = sign( vol_size(4) ) * ( abs( vol_size(4) ) * (vol_shape_hor -1) );
     end
-    if abs( vol_size(5) ) < abs_rel_thresh
+    if vol_size(6) - vol_size(5) < 1
         vol_size(5) = sign( vol_size(5) ) * ( abs( vol_size(5) ) * (vol_shape_vert-1) );
-    end
-    if abs( vol_size(6) ) < abs_rel_thresh
         vol_size(6) = sign( vol_size(6) ) * ( abs( vol_size(6) ) * (vol_shape_vert-1) );
-    end
+    end    
 end
 
 %% Print info

@@ -54,7 +54,7 @@ par.read_flatcor_trafo = @(im) im; %fliplr( im ); % anonymous function applied t
 par.read_sino = 0; % read preprocessed sinograms. CHECK if negative log has to be taken!
 par.read_sino_folder = ''; % subfolder to scan path
 par.read_sino_trafo = @(x) (x);%rot90(x); % anonymous function applied to the image which is read e.g. @(x) rot90(x)
-par.read_sino_range = 1;
+par.read_sino_range = 1; % scalar, vector. If integer >= 1: interpreted as increment. if scalar in [0,1): interpreted as relative slice number. if 2-vector: interpreted as absolute or relative slice number of first/last slice to read
 par.sino_roi = []; % horizontal ROI when reading sinograms, vertical ROI not yet implemented
 par.filter_sino = 1; % bool. Pixel filtering of sinogram using parameters below:
 pixel_filter_sino.threshold_hot = 0;
@@ -2252,27 +2252,19 @@ if par.virt_s_pos
     fprintf('\n tomo.vol_size shifted : ')
     fprintf(' %.1f', tomo.vol_size )
 end
-if dpc_reco
-    tomo.vol_shape = [];
-    tomo.vol_size = [];
-    [tomo.vol_shape, tomo.vol_size] = volshape_volsize( dpc_att, tomo.vol_shape, tomo.vol_size, tomo.rot_axis_offset, verbose );
-    [tomo, angles, tint] = interactive_mode_rot_axis( par, logpar, phase_retrieval, tomo, write, interactive_mode, dpc_att, angles);
-else
-    %%%%
-    %%%% TODO: FIX error if tilt check is 1 but pos check is 0
-    %%%%
-    if ~exist('angles','var') || isempty(angles)
-        d = dir([par.nexus_path filesep '*.h5']);
-        nexuslog_name = [d.folder filesep d.name];
-        s_rot.value = h5read( nexuslog_name, '/entry/scan/data/s_rot/value');
-        par.num_dark = h5read( nexuslog_name, '/entry/scan/n_dark');
-        [~, stimg_key, ~, ~] = pp_stimg_petra({nexuslog_name},par);
-        angles = s_rot.value( ~boolean( stimg_key.scan.value(par.num_dark+1:end) ) ) * pi / 180;
-    end
-    [tomo, angles, tint, par] = interactive_mode_rot_axis( par, logpar, phase_retrieval, tomo, write, interactive_mode, proj, angles);
+
+if ~exist('angles','var') || isempty(angles)
+    d = dir([par.nexus_path filesep '*.h5']);
+    nexuslog_name = [d.folder filesep d.name];
+    s_rot.value = h5read( nexuslog_name, '/entry/scan/data/s_rot/value');
+    par.num_dark = h5read( nexuslog_name, '/entry/scan/n_dark');
+    [~, stimg_key, ~, ~] = pp_stimg_petra({nexuslog_name},par);
+    angles = s_rot.value( ~boolean( stimg_key.scan.value(par.num_dark+1:end) ) ) * pi / 180;
 end
+[tomo, angles, tint, par] = interactive_mode_rot_axis( par, logpar, phase_retrieval, tomo, write, interactive_mode, proj, angles);
 
 %% Automatic rot axis determination
+tomo.angles = angles;
 tomo = find_rot_axis_offset_auto(tomo, proj, par, write, interactive_mode);
 
 %% Distortion correction
@@ -2895,22 +2887,24 @@ if tomo.run
                 imah = @(im) (adapthisteq(normat(im)));
                 
                 % Save ortho slices x
-                nn = round( size( vol, 1 ) / 2);
-                im = squeeze( vol(nn,:,:) );
-                CheckAndMakePath(im_path1reco)
-                filename = sprintf('%sreco_1Mid.tif', im_path1reco );
-                write32bitTIFfromSingle( filename, rot90(im,-1) );
-                filename = sprintf('%sreco_1MidAdaptHisteq.tif', im_path1reco );
-                write32bitTIFfromSingle( filename, rot90(imah(im),-1) );
-                
-                % Save ortho slices y
-                CheckAndMakePath(im_path2reco)
-                nn = round( size( vol, 2 ) / 2);
-                im = squeeze( vol(:,nn,:) );
-                filename = sprintf('%sreco_2Mid.tif', im_path2reco );
-                write32bitTIFfromSingle( filename, rot90(im,-1) );
-                filename = sprintf('%sreco_2MidAdaptHisteq.tif', im_path2reco );
-                write32bitTIFfromSingle( filename, rot90(imah(im),-1) );
+                if ndims(vol) == 3
+                    nn = round( size( vol, 1 ) / 2);
+                    im = squeeze( vol(nn,:,:) );
+                    CheckAndMakePath(im_path1reco)
+                    filename = sprintf('%sreco_1Mid.tif', im_path1reco );
+                    write32bitTIFfromSingle( filename, rot90(im,-1) );
+                    filename = sprintf('%sreco_1MidAdaptHisteq.tif', im_path1reco );
+                    write32bitTIFfromSingle( filename, rot90(imah(im),-1) );
+                    
+                    % Save ortho slices y
+                    CheckAndMakePath(im_path2reco)
+                    nn = round( size( vol, 2 ) / 2);
+                    im = squeeze( vol(:,nn,:) );
+                    filename = sprintf('%sreco_2Mid.tif', im_path2reco );
+                    write32bitTIFfromSingle( filename, rot90(im,-1) );
+                    filename = sprintf('%sreco_2MidAdaptHisteq.tif', im_path2reco );
+                    write32bitTIFfromSingle( filename, rot90(imah(im),-1) );
+                end
                 
                 % Save ortho slices z
                 CheckAndMakePath(im_path3reco)
@@ -2929,7 +2923,12 @@ if tomo.run
                         }
                     f = h{1}{2};
                     fname = h{1}{1};
-                    for dd = 1:3
+                    if ndims(vol) == 3
+                        d0 = 1;
+                    else
+                        d0 = 3;
+                    end
+                    for dd = d0:3
                         im = squeeze( f(vol,dd));
                         switch outputformat
                             case 'tif'

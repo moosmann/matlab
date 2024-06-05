@@ -297,16 +297,18 @@ phase_retrieval.apply = 0;
 phase_retrieval.reg_par = 1.0;
 interactive_mode.phase_retrieval = 1;
 
-interactive_mode.rot_axis_pos = 1;
+interactive_mode.rot_axis_pos = 0;
 tomo.rot_axis_search_auto = 1;
 tomo.rot_axis_search_range = 0.0 + (-2:0.1:2);
 tomo.rot_axis_search_metric = 'neg';
 tomo.rot_axis_search_extrema = 'min'; 
 tomo.rot_axis_search_fit = 0;
 
+par.read_sino_range = 1;
+
 par.scan_path = [proc_path 'fk0101_s1_b']; par.nexus_path = regexprep(par.scan_path,'processed','raw'); ADD
 
-par.scan_path = [proc_path 'fk0102_s2_a']; par.nexus_path = regexprep(par.scan_path,'processed','raw'); ADD
+%par.scan_path = [proc_path 'fk0102_s2_a']; par.nexus_path = regexprep(par.scan_path,'processed','raw'); ADD
 
 par.scan_path = [proc_path 'fk0102_s2_b']; par.nexus_path = regexprep(par.scan_path,'processed','raw'); ADD 
 
@@ -326,7 +328,7 @@ par.scan_path = [proc_path 'fk0109_s09_a']; par.nexus_path = regexprep(par.scan_
 
 par.scan_path = [proc_path 'fk0113_s13_a']; par.nexus_path = regexprep(par.scan_path,'processed','raw'); ADD 
 
-par.scan_path = [proc_path 'fk0113_s14_a']; par.nexus_path = regexprep(par.scan_path,'processed','raw'); ADD 
+%par.scan_path = [proc_path 'fk0113_s14_a']; par.nexus_path = regexprep(par.scan_path,'processed','raw'); ADD 
 
 par.scan_path = [proc_path 'fk0114_s14_a']; par.nexus_path = regexprep(par.scan_path,'processed','raw'); ADD 
 

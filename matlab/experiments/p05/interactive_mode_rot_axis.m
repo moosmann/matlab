@@ -95,7 +95,7 @@ if tomo.run || tomo.run_interactive_mode
     tint = 0;
     if interactive_mode.rot_axis_pos
         tint = toc;
-        cprintf( 'RED', '\n\nENTER INTERACTIVE MODE' )
+        cprintf('RED','\nSTART OF INTERACTIVE MODE')
         
         % parameter strcut for interactive functions
         itomo = tomo;
@@ -114,7 +114,7 @@ if tomo.run || tomo.run_interactive_mode
         if interactive_mode.slice_number > 1 && interactive_mode.slice_number <= size( proj, 2 )
             slice = interactive_mode.slice_number;
         elseif interactive_mode.slice_number <= 1 && interactive_mode.slice_number >= 0
-            slice = round((size( proj, 2 ) - 1) * interactive_mode.slice_number + 1 );
+            slice = floor((size( proj, 2 ) - 1) * interactive_mode.slice_number + 1 );
         end
         
         itomo.offset = tomo.rot_axis_offset;
@@ -137,16 +137,16 @@ if tomo.run || tomo.run_interactive_mode
             interactive_mode.rot_axis_search_range = offset;
             cprintf( 'RED', '\nEntering offset loop' )
             % Print parameters
-            fprintf( '\n scan: %s', write.scan_name )
-            fprintf( '\n number of pixels: %u', im_shape_cropbin1)
-            fprintf( '\n image center: %.1f', im_shape_cropbin1 / 2)
-            fprintf( '\n current slice : %u', slice)
-            fprintf( '\n current rotation axis position : %.2f', itomo.rot_axis_position)
-            fprintf( '\n current rotation axis TILT : %g rad = %g deg', itomo.tilt, itomo.tilt * 180 / pi)
-            cprintf( 'Magenta', '\n current rotation axis OFFSET : %.2f', itomo.rot_axis_offset )
-            fprintf( '\n default offset range : current OFFSET + [')
-            fprintf( ' %.2g', interactive_mode.rot_axis_pos_default_search_range )
-            fprintf( ']' )
+            fprintf('\n scan: %s', write.scan_name )
+            fprintf('\n number of pixels: %u', im_shape_cropbin1)
+            fprintf('\n image center: %.1f', im_shape_cropbin1 / 2)
+            fprintf('\n current slice : %u', slice)
+            fprintf('\n current rotation axis position : %.2f', itomo.rot_axis_position)
+            fprintf('\n current rotation axis TILT : %g rad = %g deg', itomo.tilt, itomo.tilt * 180 / pi)
+            fprintf('\n current rotation axis OFFSET : %.2f', itomo.rot_axis_offset )
+            fprintf('\n default offset range : current OFFSET + [')
+            fprintf(' %.2g', interactive_mode.rot_axis_pos_default_search_range )
+            fprintf(']' )
             
             % Query parameters
             inp = '';
