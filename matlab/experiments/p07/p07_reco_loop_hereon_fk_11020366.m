@@ -257,7 +257,7 @@ interactive_mode.show_stack_imagej_use_virtual = 0; % use virtual stack for fast
 tomo.astra_link_data = 1; % boolean: ASTRA data objects become references to Matlab arrays. Reduces memory issues.
 par.gpu_index = []; % integer vector: indices of GPU devices to use, Matlab notation: index starts from 1. default: [], uses all
 par.use_cluster = 0; % if available: on MAXWELL nodes disp/nova/wga/wgs cluster computation can be used. Recommended only for large data sets since parpool creation and data transfer implies a lot of overhead.
-par.use_gpu_in_parfor = 1; % boolean
+par.use_gpu_in_parfor = 0; % boolean
 pixel_filter_sino.use_gpu = par.use_gpu_in_parfor;
 par.poolsize = 0.8; % scalar: number of workers used in a local parallel pool. if 0: use current config. if >= 1: absolute number. if 0 < poolsize < 1: relative amount of all cores to be used. if SLURM scheduling is available, a default number of workers is used.
 par.poolsize_gpu_limit_factor = 0.5; % scalar: elative amount of GPU memory used for preprocessing during parloop. High values speed up Proprocessing, but increases out-of-memory failure
@@ -298,10 +298,11 @@ phase_retrieval.reg_par = 1.0;
 interactive_mode.phase_retrieval = 1;
 
 interactive_mode.rot_axis_pos = 0;
+pixel_filter_sino.use_gpu = 0;
 tomo.rot_axis_search_auto = 1;
 tomo.rot_axis_search_range = 0.0 + (-2:0.1:2);
 tomo.rot_axis_search_metric = 'neg';
-tomo.rot_axis_search_extrema = 'min'; 
+tomo.rot_axis_search_extrema = 'max'; 
 tomo.rot_axis_search_fit = 0;
 
 par.read_sino_range = 1;
@@ -333,6 +334,8 @@ par.scan_path = [proc_path 'fk0113_s13_a']; par.nexus_path = regexprep(par.scan_
 par.scan_path = [proc_path 'fk0114_s14_a']; par.nexus_path = regexprep(par.scan_path,'processed','raw'); ADD 
 
 par.scan_path = [proc_path 'fk0115_s15_a']; par.nexus_path = regexprep(par.scan_path,'processed','raw'); ADD 
+
+par.scan_path = [proc_path 'fk0116_s16_b']; par.nexus_path = regexprep(par.scan_path,'processed','raw'); ADD 
 
 par.read_sino = 0; 
 interactive_mode.rot_axis_pos = 0;

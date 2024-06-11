@@ -85,10 +85,12 @@ else
     if abs( vol_size(4) ) < abs_rel_thresh
         vol_size(4) = sign( vol_size(4) ) * ( abs( vol_size(4) ) * (vol_shape_hor -1) );
     end
-    if vol_size(6) - vol_size(5) < 1
+    if abs(vol_size(5)) < abs_rel_thresh
         vol_size(5) = sign( vol_size(5) ) * ( abs( vol_size(5) ) * (vol_shape_vert-1) );
+    end
+    if abs(vol_size(6))  < abs_rel_thresh
         vol_size(6) = sign( vol_size(6) ) * ( abs( vol_size(6) ) * (vol_shape_vert-1) );
-    end    
+    end
 end
 
 %% Print info

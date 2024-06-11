@@ -182,10 +182,11 @@ im(mask) = im_med(mask);
 
 % Retrieve form GPU
 if use_gpu
-    im_int = gather( im(mfnh1+1:end-mfnh1,mfnh2+1:end-mfnh2) );
+    im_int = gather( im(mfnh1+1:end-mfnh1,mfnh2+1:end-mfnh2) );     
 else
     im_int = im(mfnh1+1:end-mfnh1,mfnh2+1:end-mfnh2) ;
 end
+clear im im_med mask
 
 %% Print info
 if verbose
