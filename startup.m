@@ -50,3 +50,13 @@ fprintf( '\nulimit -u : ' )
 unix( 'ulimit -u;' );
 fprintf( evalc('feature(''numcores'');') );
 %fprintf( '\n' )
+
+%% Time to start
+d = dir('~/.matlab/startml');
+%t0 = second(datetime(d.datenum,'ConvertFrom','datenum'));
+t0 = datetime(d.date);
+t1 = datetime('now');
+dt = t1 - t0;
+fprintf('Startup time: %s',dt)
+
+fprintf( '\n' )

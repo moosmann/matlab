@@ -17,7 +17,7 @@ if nargin < 4
     raw_im_shape = 'kit';
 end
 if nargin < 5
-    parloop = 0;
+    parloop = 1;
 end
 if nargin < 6
     verbose = 1;

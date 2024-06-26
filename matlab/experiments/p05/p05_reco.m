@@ -45,7 +45,6 @@ write.to_scratch = 1;
 interactive_mode.rot_axis_pos = 1;
 tomo.reco_mode =  '3D';'slice';
 
-
 % END OF QUICK SWITCH TO ALTERNATIVE SET OF PARAMETERS %%%%%%%%%%%%%%%%%%%%
 
 pp_parameter_switch % DO NOT DELETE OR EDIT THIS LINE %%%%%%%%%%%%%%%%%%%%%
@@ -62,7 +61,7 @@ par.read_flatcor_trafo = @(im) im; %fliplr( im ); % anonymous function applied t
 par.read_sino = 0; % read preprocessed sinograms. CHECK if negative log has to be taken!
 par.read_sino_folder = ''; % subfolder to scan path
 par.read_sino_trafo = @(x) (x);%rot90(x); % anonymous function applied to the image which is read e.g. @(x) rot90(x)
-par.read_sino_range = 1; % scalar, vector. If integer >= 1: interpreted as increment. if scalar in [0,1): interpreted as relative slice number. if 2-vector: interpreted as absolute or relative slice number of first/last slice to read
+par.read_sino_range = 1; % scalar, vector. If integer in [1,10]: interpreted as increment, else slice number. if scalar in [0,1): interpreted as relative slice number. if 2-vector: interpreted as absolute or relative slice number of first/last slice to read
 par.sino_roi = []; % horizontal ROI when reading sinograms, vertical ROI not yet implemented
 par.filter_sino = 1; % bool. Pixel filtering of sinogram using parameters below:
 pixel_filter_sino.threshold_hot = 0;
@@ -228,7 +227,7 @@ write.compression_parameter = [0.02 0.02]; % compression-method specific paramet
 % 'std' : NUM = write.compression_parameter, mean +/- NUM*std, dynamic range is rescaled to within -/+ NUM standard deviations around the mean value
 % 'histo' : [LOW HIGH] = write.compression_parameter (100*LOW)% and (100*HIGH)% of the original histogram, e.g. [0.02 0.02]
 write.uint8_segmented = 0; % experimental: threshold segmentaion for histograms with 2 distinct peaks: __/\_/\__
-write.outputformat = 'tif';'hdf_volume'; % string. Not yet implemented for all reco modes
+write.outputformat = 'hdf_volume'; 'tif';% string. Not yet implemented for all reco modes
 %%% INTERACTION %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 par.visual_output = 1; % show images and plots during reconstruction
 interactive_mode.rot_axis_pos = 1; % reconstruct slices with dif+ferent rotation axis offsets
@@ -626,16 +625,20 @@ end
 % GPU info detailed, needed for parpool optimization
 mem_avail_gpu = zeros([1, numel(par.gpu_index)]);
 mem_total_gpu = mem_avail_gpu;
+ngpu = mem_avail_gpu;
 parfor mm = 1:numel( par.gpu_index )
     nn = par.gpu_index(mm);
+    ngpu(mm) = nn;
     gpu = gpuDevice(nn);
-    gpu.reset;
+    %gpu.reset;
     mem_avail_gpu(mm) = gpu.AvailableMemory;
     mem_total_gpu(mm) = gpu.TotalMemory;
-    ma = mem_avail_gpu(mm)/1024^3;
-    mt = mem_total_gpu(mm)/1024^3;
+end
+for n = 1:numel(ngpu)
+    ma = mem_avail_gpu(n)/1024^3;
+    mt = mem_total_gpu(n)/1024^3;
     r = 100 * ma / mt;
-    fprintf('\n GPU %u: memory: total: %.3g GiB, available: %.3g GiB (%.2f%%)', nn, mt, ma, r)
+    fprintf('\n GPU %u: memory: total: %.3g GiB, available: %.3g GiB (%.2f%%)', ngpu(n), mt, ma, r)
 end
 tomo.astra_gpu_index = par.gpu_index;
 par.mem_avail_gpu = mem_avail_gpu;
@@ -2678,7 +2681,8 @@ if tomo.run
         fprintf('\n rotation axis tilt across camera: [h v] = [%.1f %.1f] pixel binned', tan(tilt_cam)*[im_shape_binned1 im_shape_binned2])
     end
     %fprintf('\n rotation axis position: %.2f', rp );
-    fprintf('\n volume shape : [%g, %g, %g]', tomo.vol_shape )
+    fprintf('\n volume shape : [%g %g %g]', tomo.vol_shape )
+    fprintf('\n volume size : [%g %g %g %g %g %g]', tomo.vol_size )
     vol_mem = prod( tomo.vol_shape ) * 4;
     fprintf('\n volume memory : %.2f GiB', vol_mem / 1024^3 )
     
@@ -2788,7 +2792,8 @@ if tomo.run
                     fprintf('\n mode: slice')
                     fprintf('\n slice number:\n')
                     nn_count = 0;
-                    for nn = size(proj,3):-1:1
+                    %for nn = size(proj,3):-1:1
+                    for nn = size(proj,2):-1:1
                         if mod(nn-1,100) == 0 || nn == size(proj,3) || nn == 1
                             nn_count = nn_count + 1;
                             fprintf(' %u',nn)
@@ -2796,7 +2801,8 @@ if tomo.run
                                 fprintf('\n')
                             end
                         end
-                        im = proj(:,:,nn);
+                        %im = proj(:,:,nn);
+                        im = proj(:,nn,:);
                         im = NegLog( im, take_neg_log);
                         im = padarray( im, padding * [proj_shape1 0 0], padding_method, 'post' );
                         im = fft( im, [], 1);
@@ -2804,7 +2810,8 @@ if tomo.run
                         im = ifft( im, [], 1, 'symmetric');
                         im = real( im );
                         im = im(1:proj_shape1,:,:);
-                        proj(:,:,nn) = im;
+                        %proj(:,:,nn) = im;
+                        proj(:,nn,:) = im;
                     end
             end
             fprintf('\n duration : %.2f min.', (toc - t2) / 60)
@@ -3125,18 +3132,18 @@ if tomo.run
         bytes_sum = [0 0];
         f = figure('Name', 'Parallel pool data transfer during image correlation', 'WindowState', window_state );
         str = {};
-        fn = fieldnames( toc_bytes );
+        fn = fieldnames(toc_bytes);
         marker = 'xs*+.od';
         marker_color = 'gbrmycw';
         %y yellow m magenta	c cyan r red g green b blue	w white k black
-        for nn = 1:numel( fn )
+        for nn = 1:numel(fn)
             fnn = fn{nn};
             X = toc_bytes.(fnn );
-            plot( X / 1024^3, [marker(nn) marker_color(nn)] )
+            plot(X / 1024^3, [marker(nn) marker_color(nn)])
             hold on
-            bytes_sum = bytes_sum + sum( X );
+            bytes_sum = bytes_sum + sum(X);
             fnn = regexprep( fnn, '_', ' ' );
-            str = cat(2, str, { sprintf('%s: to', fnn ), sprintf('%s: from', fnn ) } );
+            str = cat(2,str,{sprintf('%s: to', fnn),sprintf('%s: from',fnn)});
         end
         axis tight
         title( sprintf('Data transfer of workers in parpool. Total: %.1f GiB (to), %.1f GiB (from)', bytes_sum / 1024^3 ) )

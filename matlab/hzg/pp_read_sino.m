@@ -48,7 +48,7 @@ if par.read_sino
         case 1
             if read_sino_range >= 0 && read_sino_range < 1
                 read_sino_range = floor( (num_sino_found - 1) * read_sino_range + 1 );
-            else
+            elseif read_sino_range >= 1 && read_sino_range < 10
                 read_sino_range = 1:read_sino_range:num_sino_found;
             end
         case 2

@@ -295,29 +295,58 @@ pixel_filter_sino.verbose = 0;
 pixel_filter_sino.use_gpu = par.use_gpu_in_parfor;
 ring_filter.apply = 1;
 interactive_mode.rot_axis_pos = 0;
-phase_retrieval.apply = 1;
+phase_retrieval.apply = 0;
 phase_retrieval.reg_par = 1.0;
-interactive_mode.phase_retrieval = 0;
+interactive_mode.phase_retrieval = 1;
+tomo.reco_mode = 'slice'; '3D';
+write.outputformat = 'hdf_volume';'tif';
 
 par.scan_path = [proc_path 'bmc003_brainB_slice4_paraffin_5p6mm_8rings'];
 par.nexus_path = [regexprep(par.scan_path,'processed','raw') '_00'];
+par.read_sino_range = 0.5; 
+
 tomo.rot_axis_offset = 9170.80;
 
-par.scan_path = [raw_path 'bmc001_brainB_slice4_paraffin_5p6mm']; ADD
+par.scan_path = [proc_path 'bmc001_brainB_slice4_paraffin_5p6mm']; 
+par.nexus_path = [regexprep(par.scan_path,'processed','raw') '_00'];
+ADD
 
-par.scan_path = [raw_path 'bmc003_brainB_slice4_paraffin_5p6mm_8rings_scan_rot_m0028']; ADD
+tomo.vol_size = [-0.2 0.2 -0.2 0.2 -0.5 0.5];
+par.scan_path = [proc_path 'bmc003_brainB_slice4_paraffin_5p6mm_8rings_scan_rot_m0028']; 
+par.scan_path = [raw_path 'bmc008_brainB_slice2_paraffin_00'];
+ADD
 
-par.scan_path = [raw_path 'bmc008_brainB_slice2_paraffin_00']; ADD
+par.scan_path = [proc_path 'bmc008_brainB_slice2_paraffin_00']; ADD
 
-par.scan_path = [raw_path 'bmc010_brainD_wholeEtOH_zM72p4_10rings']; ADD
+par.scan_path = [proc_path 'bmc010_brainD_wholeEtOH_zM72p4_10rings'];
+par.nexus_path = [regexprep(par.scan_path,'processed','raw') '_00'];
+ADD
 
-par.scan_path = [raw_path 'bmc010_brainD_wholeEtOH_zM72p4_10rings_00']; ADD
+par.scan_path = [proc_path 'bmc010_brainD_wholeEtOH_zM72p4_10rings_00']; ADD
 
-par.scan_path = [raw_path 'bmc010_brainD_wholeEtOH_zM72p4_10rings_scanrot_m0028']; ADD
+par.scan_path = [proc_path 'bmc010_brainD_wholeEtOH_zM72p4_10rings_scanrot_m0028']; 
+par.nexus_path = [regexprep(par.scan_path,'processed','raw') '_00'];
+ADD
 
-par.scan_path = [raw_path 'bmc011_brainB_slice2_paraffin_6mm_8rings_00']; ADD
+par.scan_path = [proc_path 'bmc011_brainB_slice2_paraffin_6mm_8rings_00']; ADD
 
-par.scan_path = [raw_path 'bmc012_brainB_slice3_EtOH_tank_9rings_00']; ADD
+par.scan_path = [proc_path 'bmc012_brainB_slice3_EtOH_tank_9rings_00']; ADD
+
+interactive_mode.phase_retrieval = 0;
+interactive_mode.rot_axis_pos = 1;
+proc_path = '/asap3/petra3/gpfs/p07/2024/data/11020288/processed/';
+%raw_path =  '/asap3/petra3/gpfs/p07/2024/data/11020288/scratch_cc/';
+par.scan_path = [proc_path 'bmc008_B4_8rings'];
+par.nexus_path = [regexprep(par.scan_path,'processed','scratch_cc') '_00'];
+%par.read_sino_trafo = @(x) Binning(x,2);
+tomo.vol_size = [];[-0.2 0.2 -0.2 0.2 -0.5 0.5];
+tomo.vol_size = [0 0.0 -0.5 0.5 -0.5 0.5];
+par.read_sino_range = 0.5; 
+% 2x 4x 2474.2
+% 2x 2x 4946.9: innen 4946.4 au-en 4947.4
+% 2x 1x innen 9892, 
+tomo.rot_axis_offset = 9170.80; % at 2x raw binning: central region, outher region worse, partially better with slightly differen offset, possibly thermal expansion.
+ADD
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
