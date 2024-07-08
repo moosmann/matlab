@@ -301,19 +301,25 @@ interactive_mode.phase_retrieval = 1;
 tomo.reco_mode = 'slice'; '3D';
 write.outputformat = 'hdf_volume';'tif';
 
-par.scan_path = [proc_path 'bmc003_brainB_slice4_paraffin_5p6mm_8rings'];
-par.nexus_path = [regexprep(par.scan_path,'processed','raw') '_00'];
 par.read_sino_range = 0.5; 
+tomo.vol_size = [-0.2 0.2 -0.2 0.2 -0.5 0.5];
 
-tomo.rot_axis_offset = 9170.80;
+%par.read_sino_range = 1;
+%tomo.vol_size = [-0.5 0.5 -0.5 0.5 -0.5 0.5];
 
 par.scan_path = [proc_path 'bmc001_brainB_slice4_paraffin_5p6mm']; 
 par.nexus_path = [regexprep(par.scan_path,'processed','raw') '_00'];
+tomo.rot_axis_offset = 9170.80;
 ADD
 
-tomo.vol_size = [-0.2 0.2 -0.2 0.2 -0.5 0.5];
+par.scan_path = [proc_path 'bmc003_brainB_slice4_paraffin_5p6mm_8rings']; 
+par.nexus_path = '/asap3/petra3/gpfs/p07/2023/data/11017607/raw/bmc003_brainB_slice4_paraffin_5p6mm_8rings_00';
+tomo.rot_axis_offset = 9170.8;
+ADD
+
 par.scan_path = [proc_path 'bmc003_brainB_slice4_paraffin_5p6mm_8rings_scan_rot_m0028']; 
-par.scan_path = [raw_path 'bmc008_brainB_slice2_paraffin_00'];
+par.nexus_path = '/asap3/petra3/gpfs/p07/2023/data/11017607/raw/bmc003_brainB_slice4_paraffin_5p6mm_8rings_00';
+tomo.rot_axis_offset = 9170.8;
 ADD
 
 par.scan_path = [proc_path 'bmc008_brainB_slice2_paraffin_00']; ADD

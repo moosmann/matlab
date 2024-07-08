@@ -36,10 +36,10 @@ dbstop if error
 % !!! QUICK SWITCH TO ALTERNATIVE SET OF PARAMETERS !!!
 % !!! OVERWRITES PARAMETERS BELOW QUICK SWITCH SECTION !!!
 % Just copy parameter and set quick switch to 1
-par.quick_switch = 1;
+par.quick_switch = 0;
 
 par.raw_bin = 4; 
-par.raw_roi = [0.1 0.9];
+par.raw_roi = [0.4 0.5];
 par.proj_range = 2;
 write.to_scratch = 1; 
 interactive_mode.rot_axis_pos = 1;
@@ -630,7 +630,7 @@ parfor mm = 1:numel( par.gpu_index )
     nn = par.gpu_index(mm);
     ngpu(mm) = nn;
     gpu = gpuDevice(nn);
-    %gpu.reset;
+    gpu.reset;
     mem_avail_gpu(mm) = gpu.AvailableMemory;
     mem_total_gpu(mm) = gpu.TotalMemory;
 end
@@ -808,8 +808,8 @@ if ~par.read_flatcor && ~par.read_sino
         filename = ref_full_path{1};
         if ~par.raw_data
             %[im_raw, par.tif_info] = read_image( filename, '', [], [], [], '', par.im_trafo );
-            [im_raw, par.tif_info] = read_image( filename, par);
-            par.im_shape_raw = size( im_raw );
+            [im_raw, par.tif_info] = read_image(filename,par,1);
+            par.im_shape_raw = size(im_raw);
         else
             switch lower( cam )
                 case 'ehd'
@@ -1223,6 +1223,7 @@ if ~par.read_flatcor && ~par.read_sino
         % Limit by GPU pixel filter: 2 * single + 2 * uint16 + 1 * logical
         gpu_mem_requ_per_im = prod( im_shape_roi + 2 * pixel_filter_radius ) * (4 + 4 + 2 + 2 + 1 );
         poolsize_max_gpu = floor( par.poolsize_gpu_limit_factor * min( mem_avail_gpu ) / gpu_mem_requ_per_im );
+        poolsize_max_gpu = max([poolsize_max_gpu,numel(par.gpu_index)]);
         fprintf(' \n estimated GPU memory required per image for pixel filtering : %g MiB', gpu_mem_requ_per_im / 1024^2 )
         fprintf(' \n GPU poolsize limit factor : %g', par.poolsize_gpu_limit_factor )
         fprintf(' \n GPU memory induced maximum poolsize : %u', poolsize_max_gpu )
@@ -1374,7 +1375,7 @@ if ~par.read_flatcor && ~par.read_sino
         
         % Discard if any pixel is zero.
         refs_to_use(nn) = ~boolean( num_zeros(nn)  );
-        
+
         % Assign image to stack
         flat(:,:,nn) = im_float_binned;
         % Statistics
@@ -1383,8 +1384,12 @@ if ~par.read_flatcor && ~par.read_sino
         flat_mean(nn) = mean2(im_float_binned);
         flat_std(nn) = std2(im_float_binned);
     end
+    if ~sum(refs_to_use)
+        cprintf('Red', '\nWARNING: All flat fields discarded\n')
+        dbstop
+    end
     toc_bytes.read_flat = tocBytes( gcp, startS );
-    
+
     % Plot image statistics
     if par.visual_output
         name = 'image statistics: flat fields';
@@ -3353,6 +3358,11 @@ if tomo.run
     diary off
     % END %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     dbclear if error
+    parfor mm = 1:numel( par.gpu_index )
+        nn = par.gpu_index(mm);
+        gpu = gpuDevice(nn);
+        gpu.reset;
+    end
     if ~strcmp( getenv('USER'), 'moosmanj' )
         clear vol proj;
     end

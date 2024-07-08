@@ -380,7 +380,9 @@ tomo.rot_axis_offset = 2.5 / 2 * par.raw_bin;
 ADD
 
 
-par.scan_path = [raw_path 'gst0021_V_sh1_full_01']; ADD
+par.scan_path = [raw_path 'gst0021_V_sh1_full_01'];
+tomo.rot_axis_offset = 0.5 / 2 * par.raw_bin;
+ADD
 
 par.scan_path = [raw_path 'gst0021_V_sh1_full_02']; ADD
 
@@ -398,11 +400,9 @@ par.scan_path = [raw_path 'gst0021_V_sh1_full_08']; ADD
 
 par.scan_path = [raw_path 'gst0021_V_sh1_full_09']; ADD
 
-write.flatcor = 1; 
 par.scan_path = [raw_path 'gst0021_V_sh1_full_10']; ADD
 
 par.scan_path = [raw_path 'gst0017_40bar_sh1_full_02']; ADD
-write.flatcor = 0; 
 
 par.scan_path = [raw_path 'gst0021_V_sh1_full_11']; ADD
 

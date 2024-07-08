@@ -56,6 +56,9 @@ try
             
             DATA_SET_NUM = DATA_SET_NUM + 1;
             parameter_struct.DATA_SET_NUM = DATA_SET_NUM;
+            if strcmp(parameter_struct.par.scan_path(end),'/')
+                parameter_struct.par.scan_path(end) = '';
+            end
             PARAMETER_CELL{DATA_SET_NUM} = parameter_struct;
             
         case {'d', 'default'}
