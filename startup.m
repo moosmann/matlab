@@ -17,15 +17,13 @@ fprintf( '\nuserpath : %s', userpath );
 fprintf( '\nCUDA_PATH : %s', getenv( 'CUDA_PATH' ) );
 
 %% ASTRA
-% ASTRA 1.99(?) local, compiled 2020-07-06
 ASTRA_PATH = getenv( 'ASTRA_PATH' );
 astra_path = [ ASTRA_PATH '/matlab' ];
-addpath( genpath( astra_path ) );
 fprintf( '\nASTRA_PATH : %s', ASTRA_PATH );
+addpath( genpath( astra_path ) );
 fprintf( '\nAdd ASTRA path : %s', astra_path );
-astra_samples_path = '/asap3/petra3/gpfs/common/p05/astra/git/astra-toolbox/samples/matlab';
+astra_samples_path = getenv( 'ASTRA_SAMPLES_PATH' );
 fprintf( '\nAdd ASTRA samples path : %s', astra_samples_path );
-%rmpath( '/asap3/petra3/gpfs/common/p05/jm/matlab/matlab/astra/samples' )
 addpath( genpath( astra_samples_path ) );
 
 %% MATLAB path

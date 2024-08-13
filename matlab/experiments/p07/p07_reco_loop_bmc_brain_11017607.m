@@ -263,7 +263,7 @@ interactive_mode.show_stack_imagej_use_virtual = 1; % use virtual stack for fast
 tomo.astra_link_data = 1; % boolean: ASTRA data objects become references to Matlab arrays. Reduces memory issues.
 par.gpu_index = []; % integer vector: indices of GPU devices to use, Matlab notation: index starts from 1. default: [], uses all
 par.use_cluster = 0; % if available: on MAXWELL nodes disp/nova/wga/wgs cluster computation can be used. Recommended only for large data sets since parpool creation and data transfer implies a lot of overhead.
-par.use_gpu_in_parfor = 1; % boolean
+par.use_gpu_in_parfor = 0; % boolean
 pixel_filter_sino.use_gpu = par.use_gpu_in_parfor;
 par.poolsize = 0.5; % scalar: number of workers used in a local parallel pool. if 0: use current config. if >= 1: absolute number. if 0 < poolsize < 1: relative amount of all cores to be used. if SLURM scheduling is available, a default number of workers is used.
 par.poolsize_gpu_limit_factor = 0.5; % scalar: elative amount of GPU memory used for preprocessing during parloop. High values speed up Proprocessing, but increases out-of-memory failure
@@ -292,26 +292,31 @@ pixel_filter_sino.filter_dead_pixel = 1;
 pixel_filter_sino.filter_Inf = 1;
 pixel_filter_sino.filter_NaN = 1;
 pixel_filter_sino.verbose = 0;
+par.use_gpu_in_parfor = 1;
 pixel_filter_sino.use_gpu = par.use_gpu_in_parfor;
 ring_filter.apply = 1;
-interactive_mode.rot_axis_pos = 0;
-phase_retrieval.apply = 0;
+phase_retrieval.apply = 1;
 phase_retrieval.reg_par = 1.0;
-interactive_mode.phase_retrieval = 1;
+interactive_mode.phase_retrieval = 0;
 tomo.reco_mode = 'slice'; '3D';
 write.outputformat = 'hdf_volume';'tif';
+
+interactive_mode.rot_axis_pos = 0;
+write.to_scratch = 0;
 
 par.read_sino_range = 0.5; 
 tomo.vol_size = [-0.2 0.2 -0.2 0.2 -0.5 0.5];
 
-%par.read_sino_range = 1;
+par.read_sino_range = 1;
 %tomo.vol_size = [-0.5 0.5 -0.5 0.5 -0.5 0.5];
+tomo.vol_size = [-1 1 -1 1 -0.5 0.5];
 
 par.scan_path = [proc_path 'bmc001_brainB_slice4_paraffin_5p6mm']; 
 par.nexus_path = [regexprep(par.scan_path,'processed','raw') '_00'];
 tomo.rot_axis_offset = 9170.80;
 ADD
 
+%% bmc003
 par.scan_path = [proc_path 'bmc003_brainB_slice4_paraffin_5p6mm_8rings']; 
 par.nexus_path = '/asap3/petra3/gpfs/p07/2023/data/11017607/raw/bmc003_brainB_slice4_paraffin_5p6mm_8rings_00';
 tomo.rot_axis_offset = 9170.8;
@@ -322,18 +327,29 @@ par.nexus_path = '/asap3/petra3/gpfs/p07/2023/data/11017607/raw/bmc003_brainB_sl
 tomo.rot_axis_offset = 9170.8;
 ADD
 
+%% bmc008
 par.scan_path = [proc_path 'bmc008_brainB_slice2_paraffin_00']; ADD
 
+%% bmc010
+interactive_mode.rot_axis_pos = 0;
+%par.read_sino_trafo = @(x) Binning(x,4);%(x);
+% Position at 4x unclear, first probably
+%tomo.rot_axis_offset = 4 * 2797.45; 
+%tomo.rot_axis_offset = 4 * 2798.20;
+%tomo.rot_axis_offset = 11190.000;% Minima
+tomo.rot_axis_offset = 11189.100; % Mattias guess
 par.scan_path = [proc_path 'bmc010_brainD_wholeEtOH_zM72p4_10rings'];
 par.nexus_path = [regexprep(par.scan_path,'processed','raw') '_00'];
 ADD
 
-par.scan_path = [proc_path 'bmc010_brainD_wholeEtOH_zM72p4_10rings_00']; ADD
-
 par.scan_path = [proc_path 'bmc010_brainD_wholeEtOH_zM72p4_10rings_scanrot_m0028']; 
-par.nexus_path = [regexprep(par.scan_path,'processed','raw') '_00'];
+par.nexus_path = '/asap3/petra3/gpfs/p07/2023/data/11017607/raw/bmc010_brainD_wholeEtOH_zM72p4_10rings_00';
+%par.nexus_path = [regexprep(par.scan_path,'processed','raw') '_00'];
 ADD
 
+par.scan_path = [proc_path 'bmc010_brainD_wholeEtOH_zM72p4_10rings_00']; ADD
+
+%% bmc011
 par.scan_path = [proc_path 'bmc011_brainB_slice2_paraffin_6mm_8rings_00']; ADD
 
 par.scan_path = [proc_path 'bmc012_brainB_slice3_EtOH_tank_9rings_00']; ADD

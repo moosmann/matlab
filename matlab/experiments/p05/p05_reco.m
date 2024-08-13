@@ -39,11 +39,19 @@ dbstop if error
 par.quick_switch = 0;
 
 par.raw_bin = 4; 
-par.raw_roi = [0.4 0.5];
+par.raw_roi = [0.45 0.55];
 par.proj_range = 2;
 write.to_scratch = 1; 
-interactive_mode.rot_axis_pos = 1;
+interactive_mode.rot_axis_pos = 0;
 tomo.reco_mode =  '3D';'slice';
+tomo.rot_axis_search_auto = 1; % find extrema of metric within search range
+tomo.rot_axis_search_range = []; % search reach for automatic determination of the rotation axis offset, overwrite interactive result if not empty
+tomo.rot_axis_search_metric = 'iso-grad'; % string: 'neg','entropy','iso-grad','laplacian','entropy-ML','abs'. Metric to find rotation axis offset
+tomo.rot_axis_search_extrema = 'max'; % string: 'min'/'max'. chose min or maximum position
+tomo.rot_axis_search_fit = 1; % bool: fit calculated metrics and find extrema, otherwise use extrema from search range
+tomo.rot_axis_offset_metric_roi = []; % 4-vector: [. ROI for metric calculation. roi = [y0, x0, y1-y0, x1-x0]. (x,y)=(0,0)=upper left
+tomo.rot_axis_search_slice = []; % scalar: slice used to find rot axis. if empty: uses slice from interactive mode, if that is empty uses central slice.
+tomo.rot_axis_search_range_from_interactive = 0; % boo
 
 % END OF QUICK SWITCH TO ALTERNATIVE SET OF PARAMETERS %%%%%%%%%%%%%%%%%%%%
 
@@ -528,8 +536,9 @@ fclose( fid );
 fprintf('%s', scan_name )
 write.scan_name = scan_name;
 write.is_phase = phase_retrieval.apply;
-fprintf(' at %s', datetime )
-fprintf('\n scan_path:\n  %s', scan_path )
+fprintf(' at %s', datetime)
+fprintf('\n scan_path:\n  %s', scan_path)
+fprintf('\n provided nexus path:\n  %s', par.nexus_path)
 
 % Save scan path to file
 filename = [userpath, filesep, 'path_to_scan'];
@@ -1223,7 +1232,9 @@ if ~par.read_flatcor && ~par.read_sino
         % Limit by GPU pixel filter: 2 * single + 2 * uint16 + 1 * logical
         gpu_mem_requ_per_im = prod( im_shape_roi + 2 * pixel_filter_radius ) * (4 + 4 + 2 + 2 + 1 );
         poolsize_max_gpu = floor( par.poolsize_gpu_limit_factor * min( mem_avail_gpu ) / gpu_mem_requ_per_im );
-        poolsize_max_gpu = max([poolsize_max_gpu,numel(par.gpu_index)]);
+        %% TODO: Check max poolsize
+        %poolsize_max_gpu = max([poolsize_max_gpu,numel(par.gpu_index)]);
+        poolsize_max_gpu = poolsize_max_gpu * numel(par.gpu_index);
         fprintf(' \n estimated GPU memory required per image for pixel filtering : %g MiB', gpu_mem_requ_per_im / 1024^2 )
         fprintf(' \n GPU poolsize limit factor : %g', par.poolsize_gpu_limit_factor )
         fprintf(' \n GPU memory induced maximum poolsize : %u', poolsize_max_gpu )
@@ -3067,6 +3078,8 @@ if tomo.run
                 % ASTRA parpool GPU limit
                 gpu_mem_requ_per_reco = ( prod( tomo.vol_shape(1:2) ) + size( proj, 1) * size( proj, 3) ) * 4;
                 poolsize_max_astra = floor( par.poolsize_gpu_limit_factor * min( mem_avail_gpu ) / gpu_mem_requ_per_reco );
+                %% TODO: Check max poolsize
+                poolsize_max_gpu = poolsize_max_gpu * numel(par.gpu_index);
                 fprintf('\n estimated GPU memory per reco : %g MiB', gpu_mem_requ_per_reco / 1024^2 )
                 fprintf('\n GPU poolsize limit factor : %g', par.poolsize_gpu_limit_factor )
                 fprintf('\n GPU memory induced maximum poolsize : %u ', poolsize_max_astra )
