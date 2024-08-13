@@ -28,6 +28,8 @@ addpath( genpath( astra_samples_path ) );
 
 %% MATLAB path
 fprintf( '\nMATLAB_PATH : %s', getenv( 'MATLAB_PATH' ) );
+fprintf( '\nMATLABPATH : %s', getenv( 'MATLABPATH' ) );
+fprintf( '\nMATLAB_USER_PATH : %s', getenv( 'MATLAB_USER_PATH' ) );
 
 %% ImageJ
 %imagej_matlab = '/asap3/petra3/gpfs/common/p05/jm/imagej/Fiji.app/scripts';
