@@ -528,7 +528,8 @@ diary(fn_diary)
 diary on
 
 % Save raw path to file for shell short cut
-filename = [userpath, filesep, 'path_to_raw'];
+%filename = [userpath, filesep, 'path_to_raw'];
+filename = [getenv('HOME'), filesep, 'path_to_raw'];
 fid = fopen( filename , 'w' );
 fprintf( fid, '%s', par.raw_path );
 fclose( fid );
@@ -541,7 +542,8 @@ fprintf('\n scan_path:\n  %s', scan_path)
 fprintf('\n provided nexus path:\n  %s', par.nexus_path)
 
 % Save scan path to file
-filename = [userpath, filesep, 'path_to_scan'];
+%filename = [userpath, filesep, 'path_to_scan'];
+filename = [getenv('HOME'), filesep, 'path_to_scan'];
 fid = fopen( filename , 'w' );
 fprintf( fid, '%s', scan_path );
 fclose( fid );
@@ -2989,7 +2991,8 @@ if tomo.run
                     CheckAndMakePath( write.reco_path, 0 )
                     
                     % Save reco path to file
-                    filename = [userpath, filesep, 'path_to_reco'];
+                    %filename = [userpath, filesep, 'path_to_reco'];
+                    filename = [getenv('HOME'), filesep, 'path_to_reco'];
                     fid = fopen( filename , 'w' );
                     fprintf( fid, '%s', write.reco_path );
                     fclose( fid );
@@ -3065,7 +3068,8 @@ if tomo.run
                 if write.reco
                     CheckAndMakePath( write.reco_path, 0 )
                     % Save reco path to file
-                    filename = [userpath, filesep, 'path_to_reco'];
+                    %filename = [userpath, filesep, 'path_to_reco'];
+                    filename = [getenv('HOME'), filesep, 'path_to_reco'];
                     fid = fopen( filename , 'w' );
                     fprintf( fid, '%s', write.reco_path );
                     fclose( fid );
