@@ -41,7 +41,7 @@ fprintf( '\nMATLAB_USER_PATH : %s', getenv( 'MATLAB_USER_PATH' ) );
 %% Default figure properties
 % Set default color map to grayscale instead of jet
 set(groot, 'DefaultFigureColormap', gray)
-set(groot,'DefaultFigureGraphicsSmoothing','off')
+%set(groot,'DefaultFigureGraphicsSmoothing','off')
 set( groot, 'DefaultFigureRenderer', 'painter')
 
 %% Core info

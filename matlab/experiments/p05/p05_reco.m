@@ -36,15 +36,15 @@ dbstop if error
 % !!! QUICK SWITCH TO ALTERNATIVE SET OF PARAMETERS !!!
 % !!! OVERWRITES PARAMETERS BELOW QUICK SWITCH SECTION !!!
 % Just copy parameter and set quick switch to 1
-par.quick_switch = 0;
+par.quick_switch = 1;
 
-par.raw_bin = 4; 
-par.raw_roi = [0.45 0.55];
-par.proj_range = 2;
+par.raw_bin = 2;
+par.raw_roi = [];[0.45 0.55];
+par.proj_range = 1;
 write.to_scratch = 1; 
 interactive_mode.rot_axis_pos = 0;
 tomo.reco_mode =  '3D';'slice';
-tomo.rot_axis_search_auto = 1; % find extrema of metric within search range
+tomo.rot_axis_search_auto = 0; % find extrema of metric within search range
 tomo.rot_axis_search_range = []; % search reach for automatic determination of the rotation axis offset, overwrite interactive result if not empty
 tomo.rot_axis_search_metric = 'iso-grad'; % string: 'neg','entropy','iso-grad','laplacian','entropy-ML','abs'. Metric to find rotation axis offset
 tomo.rot_axis_search_extrema = 'max'; % string: 'min'/'max'. chose min or maximum position
@@ -203,7 +203,7 @@ tomo.rot_axis_search_slice = []; % scalar: slice used to find rot axis. if empty
 tomo.rot_axis_search_range_from_interactive = 0; % boolean: use search range from interactive mode
 %%% OUTPUT %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 write.path = ''; %'/gpfs/petra3/scratch/moosmanj'; % string. absolute path were output data will be stored. !!overwrites the write.to_scratch flag. if empty uses the beamtime directory and either 'processed' or 'scratch_cc'
-write.to_scratch = 0; % write to 'scratch_cc' instead of 'processed'
+write.to_scratch = 1; % write to 'scratch_cc' instead of 'processed'
 write.deleteFiles = 0; % delete files already existing in output folders. Useful if number or names of files differ when reprocessing.
 write.beamtimeID = ''; % string (regexp),typically beamtime ID, mandatory if 'write.deleteFiles' is true (safety check)
 write.scan_name_appendix = ''; % appendix to the output folder name which defaults to the scan name
@@ -539,7 +539,7 @@ write.scan_name = scan_name;
 write.is_phase = phase_retrieval.apply;
 fprintf(' at %s', datetime)
 fprintf('\n scan_path:\n  %s', scan_path)
-fprintf('\n provided nexus path:\n  %s', par.nexus_path)
+fprintf('\n provided nexus path: %s', par.nexus_path)
 
 % Save scan path to file
 %filename = [userpath, filesep, 'path_to_scan'];
@@ -656,13 +656,16 @@ par.mem_avail_gpu = mem_avail_gpu;
 par.mem_total_gpu = mem_total_gpu;
 
 % Renderer
-d = opengl('data');
-r = d.Renderer;
-fprintf('\n OpenGL renderer : %s', r)
-if d.Software
-    fprintf('\n' )
-    warning(' Software rendering is used. For improved GUI performance, log in directly to the Maxwell node with FastX to enable hardware acceleration.')
-end
+r = rendererinfo;
+fprintf('\nGraphics renderer information')
+fprintf('\n GraphicsRenderer: %s',r.GraphicsRenderer)
+fprintf('\n RendererDevice: %s',r.RendererDevice)
+fprintf('\n Version: %s',r.Version)
+fprintf('\n HardwareSupportLevel: %s',r.Details.HardwareSupportLevel)
+% if d.Software
+%     fprintf('\n' )
+%     warning(' Software rendering is used. For improved GUI performance, log in directly to the Maxwell node with FastX to enable hardware acceleration.')
+% end
 
 if ~par.read_flatcor && ~par.read_sino
     
@@ -715,7 +718,7 @@ if ~par.read_flatcor && ~par.read_sino
             ref_full_path = cellfun( @(a) [scan_path a], ref_names, 'UniformOutput', 0 );
             dark_names = fns( im_key == 2 )';
             
-            if numel( par.proj_range ) == 1
+            if isscalar( par.proj_range )
                 num_proj_found = numel(proj_names);
                 par.proj_range = 1:par.proj_range:num_proj_found;
             end
@@ -761,10 +764,10 @@ if ~par.read_flatcor && ~par.read_sino
     if isempty( par.ref_range )
         par.ref_range = 1;
     end
-    if numel( par.ref_range ) == 1
+    if isscalar( par.ref_range )
         par.ref_range = 1:par.ref_range:num_ref_found;
     end
-    if numel( par.proj_range ) == 1
+    if isscalar( par.proj_range )
         par.proj_range = 1:par.proj_range:num_proj_found;
     end
     %dark_nums = CellString2Vec( dark_names );
@@ -3089,8 +3092,7 @@ if tomo.run
                 fprintf('\n GPU memory induced maximum poolsize : %u ', poolsize_max_astra )
                 
                 fprintf('\n Start (parallel) GPU reco: ' )
-                gpu_index = par.gpu_index;
-                num_gpu = numel( gpu_index );                
+                gpu_index = par.gpu_index;                
                 write_reco = write.reco;
                 write_float =  write.float;
                 %reco_path = write.reco_path;
@@ -3101,6 +3103,7 @@ if tomo.run
                     case 'hdf_volume'
                         h5_filename = sprintf('%s%s.h5', write.reco_path, scan_name);
                 end
+                %num_gpu = numel( gpu_index );                
                 %poolsize_max_astra = min( [poolsize_max_astra, 3 *  num_gpu] );
                 %parfor (nn = 1:num_slices, poolsize_max_astra)
                 nn_count = 0;
