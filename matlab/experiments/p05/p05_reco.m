@@ -36,22 +36,22 @@ dbstop if error
 % !!! QUICK SWITCH TO ALTERNATIVE SET OF PARAMETERS !!!
 % !!! OVERWRITES PARAMETERS BELOW QUICK SWITCH SECTION !!!
 % Just copy parameter and set quick switch to 1
-par.quick_switch = 1;
+par.quick_switch = 0;
 
 par.raw_bin = 2;
-par.raw_roi = [];[0.45 0.55];
-par.proj_range = 1;
-write.to_scratch = 1; 
-interactive_mode.rot_axis_pos = 0;
-tomo.reco_mode =  '3D';'slice';
-tomo.rot_axis_search_auto = 0; % find extrema of metric within search range
-tomo.rot_axis_search_range = []; % search reach for automatic determination of the rotation axis offset, overwrite interactive result if not empty
-tomo.rot_axis_search_metric = 'iso-grad'; % string: 'neg','entropy','iso-grad','laplacian','entropy-ML','abs'. Metric to find rotation axis offset
-tomo.rot_axis_search_extrema = 'max'; % string: 'min'/'max'. chose min or maximum position
-tomo.rot_axis_search_fit = 1; % bool: fit calculated metrics and find extrema, otherwise use extrema from search range
-tomo.rot_axis_offset_metric_roi = []; % 4-vector: [. ROI for metric calculation. roi = [y0, x0, y1-y0, x1-x0]. (x,y)=(0,0)=upper left
-tomo.rot_axis_search_slice = []; % scalar: slice used to find rot axis. if empty: uses slice from interactive mode, if that is empty uses central slice.
-tomo.rot_axis_search_range_from_interactive = 0; % boo
+% par.raw_roi = [];[0.4 0.6];
+% par.proj_range = 1;
+% write.to_scratch = 1; 
+% interactive_mode.rot_axis_pos = 1;
+% tomo.reco_mode = '3D';'slice';
+% par.read_filenames_from_disk = 0;
+% image_correlation.method = 'median'; 'median';'entropy';'none';'ssim';'ssim-g';'std';'cov';'corr';'diff1-l1';'diff1-l2';'diff2-l1';'diff2-l2';'cross-entropy-12';'cross-entropy-21';'cross-entropy-x';
+% tomo.vol_size = [];[-1 1 -1 1 -0.5 0.5];
+% interactive_mode.rot_axis_tilt = 0; 
+% write.flatcor = 0;
+% phase_retrieval.apply = 0;
+% par.ring_current_normalization = 1;
+% par.energy = [];
 
 % END OF QUICK SWITCH TO ALTERNATIVE SET OF PARAMETERS %%%%%%%%%%%%%%%%%%%%
 
@@ -80,7 +80,7 @@ pixel_filter_sino.filter_Inf = 1;
 pixel_filter_sino.filter_NaN = 1;
 pixel_filter_sino.verbose = 0;
 par.energy = []; % eV! if empty: read from log file (log file values can be ambiguous or even missing sometimes)
-par.sample_detector_distance = []; % in m. if empty: read from log file
+par.sample_detector_distance = 0.15; % in m. if empty: read from log file
 par.eff_pixel_size = []; % in m. if empty: read from log lfile. effective pixel size =  detector pixel size / magnification
 par.pixel_scaling = []; % to account for mismatch of eff_pixel_size with, ONLY APPLIED BEFORE TOMOGRAPHIC RECONSTRUCTION, HAS TO BE CHANGED!
 par.read_image_log = 0; % bool, default: 0. Read metadata from image log instead hdf5, if image log exists
@@ -131,14 +131,15 @@ image_correlation.filter_type = 'median'; % string. correlation ROI filter type,
 image_correlation.filter_parameter = {[5 5], 'symmetric'}; % cell. filter paramaters to be parsed with {:}
 % 'median' : using medfilt2, parameters: {[M N]-neighboorhood, 'padding'}
 % 'wiener' : using wiender2, parameters: {[M N]-neighboorhood}
-ring_filter.apply = 0; % ring artifact filter (use only for scans without lateral sample movement)
+ring_filter.apply = 1; % ring artifact filter (use only for scans without lateral sample movement)
 ring_filter.apply_before_stitching = 0; % ! Consider when phase retrieval is applied !
-ring_filter.method = 'jm'; 'wavelet-fft';
+ring_filter.method = 'jm'; %'wavelet-fft';'jm'; 
 ring_filter.waveletfft_dec_levels = 1:6; % decomposition levels for 'wavelet-fft'
 ring_filter.waveletfft_wname = 'db7';'db25';'db30'; % wavelet type, see 'FilterStripesCombinedWaveletFFT' or 'waveinfo'
 ring_filter.waveletfft_sigma = 3; % integer scalar. suppression factor for 'wavelet-fft'
 ring_filter.jm_median_width = 11; % integer scalar or vector. median averaging filter to be applied to angular averaged sinogram, multiple widths are applied consecutively, eg [3 11 21 31 39];
 par.strong_abs_thresh = 1; % if 1: does nothing, if < 1: flat-corrected values below threshold are set to one. Try with algebratic reco techniques.
+par.delete_empty_projections = 0; % bool. Delete projections that conain zeros
 par.norm_sino = 0; % not recommended, can introduce severe artifacts, but sometimes improves quality
 % Workaround correction for image distortions using a quadratic dilation/compression of the projections/sinogram
 % Preferably, projection cropping of laterally shifted projection 'crop_proj' is not used
@@ -203,7 +204,7 @@ tomo.rot_axis_search_slice = []; % scalar: slice used to find rot axis. if empty
 tomo.rot_axis_search_range_from_interactive = 0; % boolean: use search range from interactive mode
 %%% OUTPUT %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 write.path = ''; %'/gpfs/petra3/scratch/moosmanj'; % string. absolute path were output data will be stored. !!overwrites the write.to_scratch flag. if empty uses the beamtime directory and either 'processed' or 'scratch_cc'
-write.to_scratch = 1; % write to 'scratch_cc' instead of 'processed'
+write.to_scratch = 0; % write to 'scratch_cc' instead of 'processed'
 write.deleteFiles = 0; % delete files already existing in output folders. Useful if number or names of files differ when reprocessing.
 write.beamtimeID = ''; % string (regexp),typically beamtime ID, mandatory if 'write.deleteFiles' is true (safety check)
 write.scan_name_appendix = ''; % appendix to the output folder name which defaults to the scan name
@@ -212,7 +213,7 @@ write.subfolder_flatcor = ''; % subfolder in 'flat_corrected'
 write.subfolder_phase_map = ''; % subfolder in 'phase_map'
 write.subfolder_sino = ''; % subfolder in 'sino'
 write.subfolder_reco = ''; % subfolder in 'reco'
-write.flatcor = 0; % save preprocessed flat corrected projections
+write.flatcor = 1; % save preprocessed flat corrected projections
 write.phase_map = 0; % save phase maps (if phase retrieval is not 0)
 write.sino = 0; % save sinograms (after preprocessing & before FBP filtering and phase retrieval)
 write.phase_sino = 0; % save sinograms of phase maps
@@ -235,14 +236,14 @@ write.compression_parameter = [0.02 0.02]; % compression-method specific paramet
 % 'std' : NUM = write.compression_parameter, mean +/- NUM*std, dynamic range is rescaled to within -/+ NUM standard deviations around the mean value
 % 'histo' : [LOW HIGH] = write.compression_parameter (100*LOW)% and (100*HIGH)% of the original histogram, e.g. [0.02 0.02]
 write.uint8_segmented = 0; % experimental: threshold segmentaion for histograms with 2 distinct peaks: __/\_/\__
-write.outputformat = 'hdf_volume'; 'tif';% string. Not yet implemented for all reco modes
+write.outputformat = 'tif';'hdf_volume'; % string. Not yet implemented for all reco modes
 %%% INTERACTION %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 par.visual_output = 1; % show images and plots during reconstruction
 interactive_mode.rot_axis_pos = 1; % reconstruct slices with dif+ferent rotation axis offsets
 interactive_mode.rot_axis_pos_default_search_range = []; % if empty: asks for search range when entering interactive mode
 interactive_mode.rot_axis_tilt = 0; % reconstruct slices with different offset AND tilts of the rotation axis
 interactive_mode.rot_axis_tilt_default_search_range = []; % if empty: asks for search range when entering interactive mode
-interactive_mode.lamino = 0; % find laminography tilt instead camera tilt
+interactive_mode.lamino = 1; % find laminography tilt instead camera tilt
 interactive_mode.angles = 0; % reconstruct slices with different scalings of angles
 interactive_mode.angle_scaling_default_search_range = []; % if empty: use a variaton of -/+5 * (angle increment / maximum angle)
 interactive_mode.slice_number = 0.5; % default slice number. if in [0,1): relative, if in (1, N]: absolute
@@ -254,7 +255,7 @@ interactive_mode.show_stack_imagej_use_virtual = 0; % use virtual stack for fast
 tomo.astra_link_data = 1; % boolean: ASTRA data objects become references to Matlab arrays. Reduces memory issues.
 par.gpu_index = []; % integer vector: indices of GPU devices to use, Matlab notation: index starts from 1. default: [], uses all
 par.use_cluster = 0; % if available: on MAXWELL nodes disp/nova/wga/wgs cluster computation can be used. Recommended only for large data sets since parpool creation and data transfer implies a lot of overhead.
-par.use_gpu_in_parfor = 1; % boolean
+par.use_gpu_in_parfor = 0; % boolean
 pixel_filter_sino.use_gpu = par.use_gpu_in_parfor;
 par.poolsize = 0.8; % scalar: number of workers used in a local parallel pool. if 0: use current config. if >= 1: absolute number. if 0 < poolsize < 1: relative amount of all cores to be used. if SLURM scheduling is available, a default number of workers is used.
 par.poolsize_gpu_limit_factor = 0.5; % scalar: elative amount of GPU memory used for preprocessing during parloop. High values speed up Proprocessing, but increases out-of-memory failure
@@ -454,7 +455,7 @@ assign_default('par.sino_roi', [])
 assign_default('par.read_sino_range',1);
 assign_default('par.nexus_path','');
 assign_default('pixel_filter_sino',[]);
-
+assign_default('par.delete_empty_projections',0)
 %assign_default('',  )
 
 % Define variables from struct fields for convenience
@@ -1387,7 +1388,7 @@ if ~par.read_flatcor && ~par.read_sino
         im_float_binned = Binning( im_int, raw_bin) / raw_bin^2;
         
         % Count for zeros
-        num_zeros(nn) =  sum( im_float_binned(:) < 1  );
+        num_zeros(nn) =  nnz( im_float_binned(:) < 1  );
         
         % Discard if any pixel is zero.
         refs_to_use(nn) = ~boolean( num_zeros(nn)  );
@@ -1483,7 +1484,7 @@ if ~par.read_flatcor && ~par.read_sino
     
     flat_min2 = min( flat(:) );
     flat_max2 = max( flat(:) );
-    nn =  sum( flat(:) < 1 );
+    nn =  nnz( flat(:) < 1 );
     if nn > 0
         cprintf('Red', '\nWARNING: Flat field contains %u zeros\n', nn)
     end
@@ -1634,7 +1635,8 @@ if ~par.read_flatcor && ~par.read_sino
     proj_std = zeros([1 num_proj_used],'single');
     num_zeros = zeros( 1, num_proj_used,'single');
     fprintf('\n allocated memory: %.2f GiB', Bytes( proj, 3 ) )
-    projs_to_use = zeros( 1, size( proj,3), 'logical' );    
+    projs_to_use = zeros( 1, size( proj,3), 'logical' );
+    dep = par.delete_empty_projections;
     parfor ( nn = 1:num_proj_used, poolsize_max_gpu )
         %im = proj(:,:,nn);
         % Read projection
@@ -1659,10 +1661,14 @@ if ~par.read_flatcor && ~par.read_sino
         im_float_binned = Binning( im_int(xx,:), raw_bin) / raw_bin^2;
         
         % Count zeros
-        num_zeros(nn) = sum( im_float_binned(:) < 1 );
+        num_zeros(nn) = nnz( im_float_binned(:) < 1 );
         
         % Reject image if any pixel is zero
-        projs_to_use(nn) = ~boolean( num_zeros(nn)  );
+        if dep
+            projs_to_use(nn) = ~boolean( num_zeros(nn)  );
+        else
+            projs_to_use(nn) = 1;
+        end
         
         % Assign image to stack
         %proj(:, :, nn) = im_float_binned + im; WTF???
@@ -1749,13 +1755,13 @@ if ~par.read_flatcor && ~par.read_sino
         axis tight
         xlabel('image no.')
         title('std')
-        
+
         drawnow
         CheckAndMakePath(fig_path)
         fig_filename = sprintf('%sfig%02u_%s.png',fig_path,his.Number,regexprep( his.Name,'\ |:', '_'));
         saveas(his, fig_filename);
     end
-    
+
     % Delete empty projections
     zz = ~projs_to_use;
     if sum( zz(:) )
@@ -1766,8 +1772,6 @@ if ~par.read_flatcor && ~par.read_sino
         offset_shift(~projs_to_use) = [];
         x0(~projs_to_use) = [];
     end
-    par.offset_shift_x0 = x0;
-    par.offset_shift_x1 = x1;
     if vert_shift ~= 0
         vert_shift(~projs_to_use) = [];
     end
@@ -1784,12 +1788,13 @@ if ~par.read_flatcor && ~par.read_sino
     if exist('scan_position_index', 'var' ) && ~isempty( scan_position_index )
         scan_position_index(~projs_to_use) = [];
     end
-    
+    par.offset_shift_x0 = x0;
+    par.offset_shift_x1 = x1;
     tomo.scan_position = scan_position;
-    
+
     raw_min1 = min( proj(:) );
     raw_max1 = max( proj(:) );
-    
+
     % Ring current normalization
     if par.ring_current_normalization && isempty( par.ref_path )
         proj_ind_from_filenames = proj_nums;
@@ -1797,7 +1802,7 @@ if ~par.read_flatcor && ~par.read_sino
         if isequal( proj_ind_from_filenames,  proj_ind_from_log )
             proj_rc = [cur.proj(par.proj_range).val];
             proj_ind = [cur.proj(par.proj_range).ind];
-            proj_rcm = mean( proj_rc(:) );
+            proj_rcm = mean( proj_rc(:) );            
             scale_factor = 100 ./ shiftdim( proj_rc(projs_to_use), -1 );
             fprintf('\n Ring current normalization' )
             %proj = fun_times( proj, scale_factor );
@@ -1837,21 +1842,21 @@ if ~par.read_flatcor && ~par.read_sino
     num_proj_used = num_proj_used - num_empty;    
     fprintf('\n crop left  min/max : %u %u', min( x0 ), max( x0 ) )
     fprintf('\n crop right min/max : %u %u', min( x1 ), max( x1 ) )
-    fprintf('\n image shape cropbin1 : %u', im_shape_cropbin1 )
-    PrintVerbose( num_empty, '\n discarded empty projections : %u, %.2f%%', num_empty, 100*num_empty/size(proj,3) )
-    if sum( num_zeros )
-        fprintf('\n projections with zeros :' )
-        % print #zeros if not all pixels are zero
-        for nn = 1:numel(num_zeros)
-            if num_zeros(nn) ~= 0
-                if isequal( num_zeros(nn), numel_im_roi_binned )
-                    fprintf(' %u', nn )
-                else
-                    fprintf(' %u:%u', nn, num_zeros(nn) )
-                end
-            end
-        end
-    end
+    fprintf('\n image shape cropbin1 : %u', im_shape_cropbin1 )    
+    PrintVerbose(num_empty*par.delete_empty_projections,'\n discarded empty projections : %u, %.2f%%', num_empty, 100*num_empty/size(proj,3) )
+    % if sum( num_zeros )
+    %     fprintf('\n projections with zeros :' )
+    %     % print #zeros if not all pixels are zero
+    %     for nn = 1:numel(num_zeros)
+    %         if num_zeros(nn) ~= 0
+    %             if isequal( num_zeros(nn), numel_im_roi_binned )
+    %                 fprintf(' %u', nn )
+    %             else
+    %                 fprintf(' %u:%u', nn, num_zeros(nn) )
+    %             end
+    %         end
+    %     end
+    % end
     fprintf('\n hot- / dark-pixel filter threshold : %f, %f', filt_pix_par.threshold_hot, filt_pix_par.threshold_dark )
     fprintf('\n global min/max of projs after filtering and binning:  %6g %6g', raw_min1, raw_max1)
     fprintf('\n global min/max of projs after dark-field correction and ring current normalization:  %6g %6g', raw_min2, raw_max2)
@@ -2184,7 +2189,8 @@ if phase_retrieval.apply
     if ~strcmp( phase_retrieval.method, 'dpc' )
         % Non-DPC phase retrieval
         if phase_retrieval.apply_before
-            [proj, write, tomo, tint_phase] = pp_phase_retrieval( proj, phase_retrieval, tomo, write, interactive_mode );
+            %[proj, write, tomo, tint_phase] = pp_phase_retrieval( proj, phase_retrieval, tomo, write, interactive_mode );
+            pp_phase_retrieval
         end
         
     else
@@ -3091,8 +3097,7 @@ if tomo.run
                 fprintf('\n GPU poolsize limit factor : %g', par.poolsize_gpu_limit_factor )
                 fprintf('\n GPU memory induced maximum poolsize : %u ', poolsize_max_astra )
                 
-                fprintf('\n Start (parallel) GPU reco: ' )
-                gpu_index = par.gpu_index;                
+                fprintf('\n Start (parallel) GPU reco: ' )                
                 write_reco = write.reco;
                 write_float =  write.float;
                 %reco_path = write.reco_path;
@@ -3103,6 +3108,7 @@ if tomo.run
                     case 'hdf_volume'
                         h5_filename = sprintf('%s%s.h5', write.reco_path, scan_name);
                 end
+                %gpu_index = par.gpu_index;
                 %num_gpu = numel( gpu_index );                
                 %poolsize_max_astra = min( [poolsize_max_astra, 3 *  num_gpu] );
                 %parfor (nn = 1:num_slices, poolsize_max_astra)

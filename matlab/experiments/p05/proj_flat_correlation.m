@@ -53,7 +53,7 @@ corr_num_flats = min( [size(flat,3), corr_num_flats]);
 switch method
     
     case {'', 'median'}
-        fprintf( 'No correlation.' )
+        fprintf( '\nNo correlation.' )
         corr = [];
         
     otherwise
@@ -415,7 +415,7 @@ switch method
         fprintf( '\nNO FLAT FIELD CORRECTION')
         
     case {'', 'median', 'mean'}
-        
+        t = tic;
         % Flat field correction without correlation
         fprintf( '\nFlat-field correction w/o correlation')
         
@@ -454,7 +454,7 @@ switch method
             proj(:,:,nn) = p;
             
         end
-        
+        fprintf( ' \n duration: %.1f s (%.2f min)', toc - t, ( toc - t ) / 60 )
     otherwise
         fprintf( '\nFlat-field correction using %u best match(es).', corr_num_flats)
         t = toc;
@@ -496,7 +496,6 @@ switch method
             
         end
         %toc_bytes.correction = tocBytes( gcp, startS );
-        
-        fprintf( ' Done in %.1f s (%.2f min)', toc - t, ( toc - t ) / 60 )
+        fprintf( ' \n duration: %.1f s (%.2f min)', toc - t, ( toc - t ) / 60 )
 end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

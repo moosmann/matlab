@@ -40,6 +40,7 @@ echo -e 'MATLABPATH:' $MATLABPATH
 echo -e 'GIT_COMMIT_ID:' $GIT_COMMIT_ID
 echo -e 'Starting MATLAB.\n'
 
-ulimit -u 128000
+#ulimit -u 128000
+ulimit -u 16000
 touch  $HOME/.matlab/startml
 matlab_$MATLAB_VERSION -nosoftwareopengl 

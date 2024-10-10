@@ -33,7 +33,8 @@ close all hidden % close all open windows
 dbstop if error
 
 if nargin < 1
-    scan_path = ... % pwd;
+    scan_path = pwd;
+    '/asap3/petra3/gpfs/p07/2024/data/11020243/processed/aistopode';
     '/asap3/petra3/gpfs/p07/2023/data/11017607/processed/bmc003_brainB_slice4_paraffin_5p6mm_8rings';       
     '/asap3/petra3/gpfs/p07/2023/data/11017607/processed/bmc003_brainB_slice4_paraffin_5p6mm_8rings_scan_rot_m0028';
     '/asap3/petra3/gpfs/p07/2024/data/11020289/processed/hereon03_msm';
@@ -78,7 +79,7 @@ end
 
 %%% SCAN %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %scan_path = '';pwd;
-raw_bin = 2; % projection binning factor: integer
+raw_bin = 4; % projection binning factor: integer
 proj_range = []; % projection range
 %read_sino_folder = sprintf( 'trans%02u', raw_bin);% string. default: '', picks first trans folder found
 read_sino_folder = sprintf( 'trans%02u_360', raw_bin);% string. default: '', picks first trans folder found
@@ -90,7 +91,7 @@ energy = []; % in eV!
 sample_detector_distance = []; % in m
 eff_pixel_size = []; % in m, read from reconlog.txt if []
 %%% RING FILTER
-ring_filter.apply = 1; % ring artifact filter (use only for scans without lateral sample movement)
+ring_filter.apply = 0; % ring artifact filter (use only for scans without lateral sample movement)
 ring_filter.method = 'jm'; 'wavelet-fft';
 ring_filter.waveletfft_dec_levels = 1:6; % decomposition levels for 'wavelet-fft'
 ring_filter.waveletfft_wname = 'db7';'db25';'db30'; % wavelet type, see 'FilterStripesCombinedWaveletFFT' or 'waveinfo'
@@ -115,7 +116,7 @@ tomo.run_interactive_mode = 1; % if tomo.run = 0, use to determine rot axis posi
 tomo.reco_mode = 'slice';%'3D'; % slice-wise or full 3D backprojection. 'slice': volume must be centered at origin & no support of rotation axis tilt, reco binning, save compressed
 tomo.slab_wise = 1;
 tomo.slices_per_slab = [];
-tomo.vol_size = [-1 1 -1 1 -0.5 0.5];%[-.5 0.5 -0.5 0.5 -0.5 0.5];%[-.2 0.2 -0.2 0.2 -0.5 0.5];% 6-component vector [xmin xmax ymin ymax zmin zmax], for excentric rot axis pos / extended FoV;. if empty, volume is centerd within tomo.vol_shape. unit voxel size is assumed. if smaller than 10 values are interpreted as relative size w.r.t. the detector size. Take care bout minus signs! Note that if empty vol_size is dependent on the rotation axis position.
+tomo.vol_size = [-1 1 -1 1 -0.5 0.5];%[-.5 0.5 -0.5 0.5 -0.5 0.5];% 6-component vector [xmin xmax ymin ymax zmin zmax], for excentric rot axis pos / extended FoV;. if empty, volume is centerd within tomo.vol_shape. unit voxel size is assumed. if smaller than 10 values are interpreted as relative size w.r.t. the detector size. Take care bout minus signs! Note that if empty vol_size is dependent on the rotation axis position.
 tomo.vol_shape = []; %[1 1 1] shape (# voxels) of reconstruction volume. used for excentric rot axis pos. if empty, inferred from 'tomo.vol_size'. in absolute numbers of voxels or in relative number w.r.t. the default volume which is given by the detector width and height.
 tomo.rot_angle_offset = 0; % global rotation of reconstructed volume
 tomo.rot_angle_full_range = rot_angle_full_range; % in rad, read from reconlog if []: full angle of rotation including additional increment, or array of angles. if empty full rotation angles is determined automatically to pi or 2 pi
@@ -169,7 +170,7 @@ write.uint8_binned = 0; % save binned 8bit unsigned integer tiff using 'wwrite.c
 write.reco_binning_factor = 2; % IF BINNED VOLUMES ARE SAVED: binning factor of reconstructed volume
 write.compression_method = 'outlier';'histo';'full'; 'std'; 'threshold'; % method to compression dynamic range into [0, 1]
 write.compression_parameter = [0.02 0.02]; % compression-method specific parameter
-write.outputformat = 'hdf_volume';'tif';'hdf_slice'; % string
+write.outputformat = 'tif';'hdf_volume';'hdf_slice'; % string
 %%% INTERACTION %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 par.visual_output = 0; % show images and plots during reconstruction
 interactive_mode.show_stack_imagej = 1; % use imagej instead of MATLAB to scroll through images during interactive mode
@@ -509,6 +510,9 @@ sino = read_sino_trafo( sino );
 if ~isempty( proj_range )
     sino = sino(proj_range, :);
 end
+min_trans = exp(-3);
+m = sino < min_trans;
+sino(m) = min_trans;
 %[s1, s2] = size( sino );
 %sino = FilterPixel_par(sino);
 proj = reshape( sino, [im_shape_cropbin1, 1, num_proj_used] );

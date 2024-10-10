@@ -53,8 +53,9 @@ if tomo.run || tomo.run_interactive_mode
     end
     
     % retrieve index at angles 0 and pi
+
     [~, ind1] = min( abs( angles ));
-    [~, ind2] = min( abs( angles - pi ));
+    [~, ind2] = min( abs( angles - pi));
         
     [im_shape_cropbin1, im_shape_binned2, ~] = size( proj );
     

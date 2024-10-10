@@ -54,17 +54,12 @@ if par.read_flatcor
         end
         fprintf('\n energy: %.1f keV', par.energy / 1e3 )
     end
-    if ~exist('angles','var') || isempty(angles)
-        d = dir([par.nexus_path filesep '*.h5']);
-        nexuslog_name = [d.folder filesep d.name];
-        s_rot.value = h5read( nexuslog_name, '/entry/scan/data/s_rot/value');
-        par.num_dark = h5read( nexuslog_name, '/entry/scan/n_dark');
-        [~, stimg_key, ~, ~] = pp_stimg_petra({nexuslog_name},par);
-        angles = s_rot.value( ~boolean( stimg_key.scan.value(par.num_dark+1:end) ) ) * pi / 180;
-    end
-    
+
     % File names
     data_struct = dir( [par.read_flatcor_path filesep '*.tif'] );
+    if isempty(data_struct)
+        data_struct = dir( [par.read_flatcor_path filesep '*.tiff'] );
+    end
     if isempty( data_struct )
         fprintf('\n No flat corrected projections found! Switch to standard pre-processing.')
         par.read_flatcor = 0;
@@ -86,6 +81,26 @@ if par.read_flatcor
     end
     flatcor_names = {data_struct.name};
     num_proj_found = numel(flatcor_names);
+
+
+    %%% Angles %%
+    if ~isempty(tomo.rot_angle_full_range)
+        if isscalar( tomo.rot_angle_full_range )
+            angles = tomo.rot_angle_full_range * (0:num_proj_found - 1) / num_proj_found;
+        else
+            angles = tomo.rot_angle_full_range;
+        end
+    end
+    if ~exist('angles','var') || isempty(angles)
+        d = dir([par.nexus_path filesep '*.h5']);
+        nexuslog_name = [d.folder filesep d.name];
+        s_rot.value = h5read( nexuslog_name, '/entry/scan/data/s_rot/value');
+        par.num_dark = h5read( nexuslog_name, '/entry/scan/n_dark');
+        [~, stimg_key, ~, ~] = pp_stimg_petra({nexuslog_name},par);
+        angles = s_rot.value( ~boolean( stimg_key.scan.value(par.num_dark+1:end) ) ) * pi / 180;
+    end
+
+
     if isempty(read_flatcor_range)
         read_flatcor_range = 1;
     end
