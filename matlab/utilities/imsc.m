@@ -1,8 +1,6 @@
 function imsc(varargin)
-% imagesc using gray colormap.
-%
-% Written by Julian Moosmann, 2015-03-16. Modified: 2016-12-01
+% imagesc using gray colormap and bilinear interpolation.
 
 %% Main %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-imagesc(varargin{:})
+imagesc(varargin{:},'Interpolation','bilinear')
 colormap(gray)

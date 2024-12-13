@@ -333,6 +333,12 @@ if tomo.run || tomo.run_interactive_mode
                     end
                     p0 = pwd;
                     cd(p)
+                    d = dir([p filesep '*.tif']);
+                    while numel(d) ~= size(vol,3)
+                        fprintf('\n WAITING FOR IMAGES TO BE APPEAR')
+                        pause(1)
+                        d = dir([p filesep '*.tif']);
+                    end
                     if show_stack_imagej_use_virtual
                         if Bytes(vol(:,:,1)) < 2^32 - 1
                             fprintf('\nLoading tif sequence as virtual stack in imagej')
@@ -350,7 +356,7 @@ if tomo.run || tomo.run_interactive_mode
                             unix('/asap3/petra3/gpfs/common/p05/jm/bin/fiji_open_h5_novirt &');
                         end
                     end
-                    pause(3)
+                    pause(2)
                     cd(p0)
                 else
                     nimplay(vol, 1, [], 'OFFSET: sequence of reconstructed slices using different rotation axis offsets')

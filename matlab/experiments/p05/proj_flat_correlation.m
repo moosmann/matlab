@@ -415,46 +415,46 @@ switch method
         fprintf( '\nNO FLAT FIELD CORRECTION')
         
     case {'', 'median', 'mean'}
-        t = tic;
-        % Flat field correction without correlation
-        fprintf( '\nFlat-field correction w/o correlation')
-        
-        switch method
-            case 'median'
-                flat_m = median( flat, 3);
-                fprintf(' using median flats')
-            case {'', 'mean'}
-                flat_m = mean( flat, 3);
-                fprintf(' using mean flats')
-        end
-        parfor nn = 1:num_proj_used
-        %    im = proj(:, :, nn);
-            %flat_median_shifted = circshift( flat_median, round( -x0(nn) / raw_bin ), 1 );
-            %proj(:, :, nn) = im ./ flat_median_shifted;
-            
-            % Binned shift (shift, not first pixel)
-            shift = ( x0(nn) - 1 ) / raw_bin;
-            shift_int = floor( shift );
-            shift_sub = shift - shift_int;
-            
-            % shift flat
-            if mod( shift_sub, 1 ) ~= 0
-                % crop flat at integer shift, then shift subpixel
-                xx = shift_int + (1:im_shape_cropbin1+1);
-                flat_median_shifted = imtranslate( flat_m(xx,:), [0 -shift_sub], 'linear' );
-            else
-                xx = shift_int + (1:im_shape_cropbin1);
-                flat_median_shifted = flat_m(xx,:);
-            end
-            
-            % flat field correction
-            p = proj(:, :, nn);
-            p = p ./ flat_median_shifted(1:im_shape_cropbin1,:) ;
-            % Reassign
-            proj(:,:,nn) = p;
-            
-        end
-        fprintf( ' \n duration: %.1f s (%.2f min)', toc - t, ( toc - t ) / 60 )
+        % t = tic;
+        % % Flat field correction without correlation
+        % fprintf( '\nFlat-field correction w/o correlation')
+        % 
+        % switch method
+        %     case 'median'
+        %         flat_m = median( flat, 3);
+        %         fprintf(' using median flats')
+        %     case {'', 'mean'}
+        %         flat_m = mean( flat, 3);
+        %         fprintf(' using mean flats')
+        % end
+        % parfor nn = 1:num_proj_used
+        % %    im = proj(:, :, nn);
+        %     %flat_median_shifted = circshift( flat_median, round( -x0(nn) / raw_bin ), 1 );
+        %     %proj(:, :, nn) = im ./ flat_median_shifted;
+        % 
+        %     % Binned shift (shift, not first pixel)
+        %     shift = ( x0(nn) - 1 ) / raw_bin;
+        %     shift_int = floor( shift );
+        %     shift_sub = shift - shift_int;
+        % 
+        %     % shift flat
+        %     if mod( shift_sub, 1 ) ~= 0
+        %         % crop flat at integer shift, then shift subpixel
+        %         xx = shift_int + (1:im_shape_cropbin1+1);
+        %         flat_median_shifted = imtranslate( flat_m(xx,:), [0 -shift_sub], 'linear' );
+        %     else
+        %         xx = shift_int + (1:im_shape_cropbin1);
+        %         flat_median_shifted = flat_m(xx,:);
+        %     end
+        % 
+        %     % flat field correction
+        %     p = proj(:, :, nn);
+        %     p = p ./ flat_median_shifted(1:im_shape_cropbin1,:) ;
+        %     % Reassign
+        %     proj(:,:,nn) = p;
+        % 
+        % end
+        % fprintf( ' \n duration: %.1f s (%.2f min)', toc - t, ( toc - t ) / 60 )
     otherwise
         fprintf( '\nFlat-field correction using %u best match(es).', corr_num_flats)
         t = toc;

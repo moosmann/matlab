@@ -33,7 +33,8 @@ close all hidden % close all open windows
 dbstop if error
 
 if nargin < 1
-    scan_path = pwd;
+    scan_path = ...
+    '/asap3/petra3/gpfs/p07/2024/data/11020190/processed/fsuj008_sbr_bone_lat_1';
     '/asap3/petra3/gpfs/p07/2024/data/11020243/processed/aistopode';
     '/asap3/petra3/gpfs/p07/2023/data/11017607/processed/bmc003_brainB_slice4_paraffin_5p6mm_8rings';       
     '/asap3/petra3/gpfs/p07/2023/data/11017607/processed/bmc003_brainB_slice4_paraffin_5p6mm_8rings_scan_rot_m0028';
@@ -79,10 +80,10 @@ end
 
 %%% SCAN %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %scan_path = '';pwd;
-raw_bin = 4; % projection binning factor: integer
+raw_bin = 2; % projection binning factor: integer
 proj_range = []; % projection range
 %read_sino_folder = sprintf( 'trans%02u', raw_bin);% string. default: '', picks first trans folder found
-read_sino_folder = sprintf( 'trans%02u_360', raw_bin);% string. default: '', picks first trans folder found
+read_sino_folder = sprintf( 'trans%02u_180', raw_bin);% string. default: '', picks first trans folder found
 %read_sino_folder = sprintf( 'test04', raw_bin);% string. default: '', picks first trans folder found
 %read_sino = 1; % read preprocessed sinograms. CHECK if negative log has to be taken!
 read_sino_trafo = @(x) (x);%rot90(x); % anonymous function applied to the image which is read e.g. @(x) rot90(x)
@@ -116,11 +117,11 @@ tomo.run_interactive_mode = 1; % if tomo.run = 0, use to determine rot axis posi
 tomo.reco_mode = 'slice';%'3D'; % slice-wise or full 3D backprojection. 'slice': volume must be centered at origin & no support of rotation axis tilt, reco binning, save compressed
 tomo.slab_wise = 1;
 tomo.slices_per_slab = [];
-tomo.vol_size = [-1 1 -1 1 -0.5 0.5];%[-.5 0.5 -0.5 0.5 -0.5 0.5];% 6-component vector [xmin xmax ymin ymax zmin zmax], for excentric rot axis pos / extended FoV;. if empty, volume is centerd within tomo.vol_shape. unit voxel size is assumed. if smaller than 10 values are interpreted as relative size w.r.t. the detector size. Take care bout minus signs! Note that if empty vol_size is dependent on the rotation axis position.
+tomo.vol_size = [-.5 0.5 -0.5 0.5 -0.5 0.5];% [-1.1 1.1 -1.1 1.1 -0.5 0.5];%[-.5 0.5 -0.5 0.5 -0.5 0.5];% 6-component vector [xmin xmax ymin ymax zmin zmax], for excentric rot axis pos / extended FoV;. if empty, volume is centerd within tomo.vol_shape. unit voxel size is assumed. if smaller than 10 values are interpreted as relative size w.r.t. the detector size. Take care bout minus signs! Note that if empty vol_size is dependent on the rotation axis position.
 tomo.vol_shape = []; %[1 1 1] shape (# voxels) of reconstruction volume. used for excentric rot axis pos. if empty, inferred from 'tomo.vol_size'. in absolute numbers of voxels or in relative number w.r.t. the default volume which is given by the detector width and height.
 tomo.rot_angle_offset = 0; % global rotation of reconstructed volume
 tomo.rot_angle_full_range = rot_angle_full_range; % in rad, read from reconlog if []: full angle of rotation including additional increment, or array of angles. if empty full rotation angles is determined automatically to pi or 2 pi
-tomo.rot_axis_offset = 9170.80 ;%[]; % rotation axis offset w.r.t to the image center. Assuming the rotation axis position to be centered in the FOV for standard scan, the offset should be close to zero.
+tomo.rot_axis_offset = []; % rotation axis offset w.r.t to the image center. Assuming the rotation axis position to be centered in the FOV for standard scan, the offset should be close to zero.
 tomo.rot_axis_position = []; % if empty use automatic computation. EITHER OFFSET OR POSITION MUST BE EMPTY. YOU MUST NOT USE BOTH!
 tomo.rot_axis_offset_shift = []; %[]; % absolute lateral movement in pixels during fly-shift-scan, overwrite lateral shift read out from hdf5 log
 tomo.rot_axis_tilt_camera = 0; % in rad. camera tilt w.r.t rotation axis.
@@ -161,8 +162,8 @@ write.flatcor = 0; % save preprocessed flat corrected projections
 write.sino = 0; % save sinograms (after preprocessing & before FBP filtering and phase retrieval)
 write.reco = 1; % save reconstructed slices (if tomo.run=1)
 write.float = 1; % single precision (32-bit float) tiff
-write.uint16 = 0; % save 16bit unsigned integer tiff using 'write.compression_method'
-write.uint8 = 0; % save binned 8bit unsigned integer tiff using 'write.compression_method'
+write.uint16 = 1; % save 16bit unsigned integer tiff using 'write.compression_method'
+write.uint8 = 1; % save binned 8bit unsigned integer tiff using 'write.compression_method'
 % Optionally save binned reconstructions, only works in '3D' reco_mode
 write.float_binned = 1; % save binned single precision (32-bit float) tiff
 write.uint16_binned = 0; % save binned 16bit unsigned integer tiff using 'write.compression_method'
@@ -332,6 +333,7 @@ mem_total_gpu = mem_avail_gpu;
 gpu_index = par.gpu_index;
 num_gpu = numel( par.gpu_index );
 
+mm = 1;
 parfor mm = 1:num_gpu
     nn = gpu_index(mm);        
     gpu = gpuDevice(nn);
@@ -561,6 +563,27 @@ par.verbose = 0;
 FilterPixel_par = @(sino,gpu_index) FilterPixel(sino,filt_pix_par,gpu_index);
 pp_filter_ring_artefacts_par = @(sino) pp_filter_ring_artefacts( ring_filter, sino, angles, par);
 ring_filter_apply = ring_filter.apply;
+
+
+
+    % 
+    % %% Filter strong/full absorption (combine with iterative reco methods)
+    % if par.strong_abs_thresh < 1
+    %     strong_abs_thresh = par.strong_abs_thresh;
+    %     t = toc;
+    %     fprintf('\n Filter flat-corrected values below %f', par.strong_abs_thresh)
+    %     parfor nn = 1:size( proj, 3 )
+    %         im = proj(:,:,nn);
+    %         m = im < strong_abs_thresh;
+    %         %im(m) = 0;
+    %         if sum(m(:)) > 0
+    %             im(m) = mean2(im(m));
+    %             proj(:,:,nn) = im;
+    %         end
+    %     end
+    %     fprintf('\n duration : %.1f s (%.2f min)', toc - t, ( toc - t ) / 60 )
+    % end
+
 if tomo.slab_wise
     fprintf( '\nStart slab-wise reconstruction')
     if isempty( tomo.slices_per_slab )
@@ -685,6 +708,10 @@ else
         if sum( sino(:) == 0) || sum( isnan( sino(:) ) ) || sum( isinf( sino(:) ) )
             fprintf( ' %u', nn )
         else
+            if filter_sino
+                gpu_index = mod(mm, num_gpu) + 1;
+                sino = FilterPixel_par(sino,gpu_index);
+            end
             sino = NegLog( sino, take_neg_log );
             sino = reshape( sino, [im_shape_cropbin1, 1, num_proj_used] );
             % Ring filter

@@ -36,22 +36,20 @@ dbstop if error
 % !!! QUICK SWITCH TO ALTERNATIVE SET OF PARAMETERS !!!
 % !!! OVERWRITES PARAMETERS BELOW QUICK SWITCH SECTION !!!
 % Just copy parameter and set quick switch to 1
-par.quick_switch = 0;
+par.quick_switch = 1;
 
 par.raw_bin = 2;
-% par.raw_roi = [];[0.4 0.6];
+par.raw_roi = [];
 % par.proj_range = 1;
-% write.to_scratch = 1; 
-% interactive_mode.rot_axis_pos = 1;
-% tomo.reco_mode = '3D';'slice';
-% par.read_filenames_from_disk = 0;
-% image_correlation.method = 'median'; 'median';'entropy';'none';'ssim';'ssim-g';'std';'cov';'corr';'diff1-l1';'diff1-l2';'diff2-l1';'diff2-l2';'cross-entropy-12';'cross-entropy-21';'cross-entropy-x';
+write.to_scratch = 0;
+tomo.reco_mode = '3D';'slice';
+image_correlation.method = 'median';
 % tomo.vol_size = [];[-1 1 -1 1 -0.5 0.5];
-% interactive_mode.rot_axis_tilt = 0; 
-% write.flatcor = 0;
-% phase_retrieval.apply = 0;
-% par.ring_current_normalization = 1;
-% par.energy = [];
+interactive_mode.rot_axis_pos = 1;
+write.flatcor = 0;
+phase_retrieval.apply = 0;
+phase_retrieval.apply_before = 1;
+interactive_mode.phase_retrieval = 1;
 
 % END OF QUICK SWITCH TO ALTERNATIVE SET OF PARAMETERS %%%%%%%%%%%%%%%%%%%%
 
@@ -80,7 +78,7 @@ pixel_filter_sino.filter_Inf = 1;
 pixel_filter_sino.filter_NaN = 1;
 pixel_filter_sino.verbose = 0;
 par.energy = []; % eV! if empty: read from log file (log file values can be ambiguous or even missing sometimes)
-par.sample_detector_distance = 0.15; % in m. if empty: read from log file
+par.sample_detector_distance = []; % in m. if empty: read from log file
 par.eff_pixel_size = []; % in m. if empty: read from log lfile. effective pixel size =  detector pixel size / magnification
 par.pixel_scaling = []; % to account for mismatch of eff_pixel_size with, ONLY APPLIED BEFORE TOMOGRAPHIC RECONSTRUCTION, HAS TO BE CHANGED!
 par.read_image_log = 0; % bool, default: 0. Read metadata from image log instead hdf5, if image log exists
@@ -103,9 +101,9 @@ par.proj_range = []; % range of projections to be used (from all found, if empty
 par.ref_range = [];% range of flat fields to be used (from all found), if empty or 1: all. if scalar: stride, if range: start:incr:end
 par.crop_proj = 0; % Crop images to account for random lateral shift
 par.virt_s_pos = 0; % Correct sample position in reconsructed volume if virtual sample position motors are used
-pixel_filter_threshold_dark = [0.01 0.005]; % Dark fields: threshold parameter for hot/dark pixel filter, for details see 'FilterPixel'
+pixel_filter_threshold_dark = [0.02 0.005]; % Dark fields: threshold parameter for hot/dark pixel filter, for details see 'FilterPixel'
 pixel_filter_threshold_flat = [0.02 0.005]; % Flat fields: threshold parameter for hot/dark pixel filter, for details see 'FilterPixel'
-pixel_filter_threshold_proj = [0.02 0.005]; % Raw projection: threshold parameter for hot/dark pixel filter, for details see 'FilterPixel'
+pixel_filter_threshold_proj = [0.02 0.02]; % Raw projection: threshold parameter for hot/dark pixel filter, for details see 'FilterPixel'
 pixel_filter_radius = [5 5]; % Increase only if blobs of zeros or other artefacts are expected. Can increase processing time heavily.
 par.ring_current_normalization = 1; % normalize flat fields and projections by ring current
 image_correlation.method = 'ssim-ml';'median'; 'median';'entropy';'none';'ssim';'ssim-g';'std';'cov';'corr';'diff1-l1';'diff1-l2';'diff2-l1';'diff2-l2';'cross-entropy-12';'cross-entropy-21';'cross-entropy-x';
@@ -138,7 +136,7 @@ ring_filter.waveletfft_dec_levels = 1:6; % decomposition levels for 'wavelet-fft
 ring_filter.waveletfft_wname = 'db7';'db25';'db30'; % wavelet type, see 'FilterStripesCombinedWaveletFFT' or 'waveinfo'
 ring_filter.waveletfft_sigma = 3; % integer scalar. suppression factor for 'wavelet-fft'
 ring_filter.jm_median_width = 11; % integer scalar or vector. median averaging filter to be applied to angular averaged sinogram, multiple widths are applied consecutively, eg [3 11 21 31 39];
-par.strong_abs_thresh = 1; % if 1: does nothing, if < 1: flat-corrected values below threshold are set to one. Try with algebratic reco techniques.
+par.strong_abs_thresh = 0; % if 1: does nothing, if < 1: flat-corrected values below threshold are set to one. Try with algebratic reco techniques.
 par.delete_empty_projections = 0; % bool. Delete projections that conain zeros
 par.norm_sino = 0; % not recommended, can introduce severe artifacts, but sometimes improves quality
 % Workaround correction for image distortions using a quadratic dilation/compression of the projections/sinogram
@@ -213,7 +211,7 @@ write.subfolder_flatcor = ''; % subfolder in 'flat_corrected'
 write.subfolder_phase_map = ''; % subfolder in 'phase_map'
 write.subfolder_sino = ''; % subfolder in 'sino'
 write.subfolder_reco = ''; % subfolder in 'reco'
-write.flatcor = 1; % save preprocessed flat corrected projections
+write.flatcor = 0; % save preprocessed flat corrected projections
 write.phase_map = 0; % save phase maps (if phase retrieval is not 0)
 write.sino = 0; % save sinograms (after preprocessing & before FBP filtering and phase retrieval)
 write.phase_sino = 0; % save sinograms of phase maps
@@ -257,8 +255,8 @@ par.gpu_index = []; % integer vector: indices of GPU devices to use, Matlab nota
 par.use_cluster = 0; % if available: on MAXWELL nodes disp/nova/wga/wgs cluster computation can be used. Recommended only for large data sets since parpool creation and data transfer implies a lot of overhead.
 par.use_gpu_in_parfor = 0; % boolean
 pixel_filter_sino.use_gpu = par.use_gpu_in_parfor;
-par.poolsize = 0.8; % scalar: number of workers used in a local parallel pool. if 0: use current config. if >= 1: absolute number. if 0 < poolsize < 1: relative amount of all cores to be used. if SLURM scheduling is available, a default number of workers is used.
-par.poolsize_gpu_limit_factor = 0.5; % scalar: elative amount of GPU memory used for preprocessing during parloop. High values speed up Proprocessing, but increases out-of-memory failure
+par.poolsize = 0.5; % scalar: number of workers used in a local parallel pool. if 0: use current config. if >= 1: absolute number. if 0 < poolsize < 1: relative amount of all cores to be used. if SLURM scheduling is available, a default number of workers is used.
+par.poolsize_gpu_limit_factor = 0.5; % scalar: relative amount of GPU memory used for preprocessing during parloop. High values speed up Proprocessing, but increases out-of-memory failure
 phase_retrieval.use_parpool = 1; % bool. Disable parpool when out-of-memory error occurs during phase retrieval.
 par.window_state = 'minimized';'normal';'maximized';
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -814,9 +812,9 @@ if ~par.read_flatcor && ~par.read_sino
     else
         energy_was_empty = 0;
     end
-    if isempty( par.sample_detector_distance )
-        par.sample_detector_distance = logpar.sample_detector_distance;
-    end
+    % if isempty( par.sample_detector_distance )
+    %     par.sample_detector_distance = logpar.sample_detector_distance;
+    % end
     if ~exist( nexuslog_name{1}, 'file')
         % Image shape and ROI
         %filename = sprintf('%s%s', scan_path, ref_names{1});
@@ -874,6 +872,9 @@ if ~par.read_flatcor && ~par.read_sino
         end
         if ~isempty(par.energy)
             par.energy = par.energy( end );
+        end
+        if isempty(par.sample_detector_distance)
+            par.sample_detector_distance = double( h5read( nexuslog_name{1}, '/entry/scan/setup/o_ccd_dist' ) );
         end
         if isempty( imlogcell )
             % Get image name, key, time stamp and P3 current from log
@@ -1053,7 +1054,10 @@ if ~par.read_flatcor && ~par.read_sino
         else
             par.crop_proj = 0;
         end % if numel( s_stage_x.value )
-        
+        if isempty( par.sample_detector_distance )
+            par.sample_detector_distance = logpar.sample_detector_distance;
+        end
+
         
         %% Vertical shift
         if ~isempty( s_stage_z_str ) && sum( strcmp( s_stage_z_str, {h5log_group.Groups.Name}))
@@ -1509,7 +1513,7 @@ if ~par.read_flatcor && ~par.read_sino
             end
         end
     end
-    
+
     % Save flat images
     num_flat12 = round( size(flat,3) / 2 ) ;
     write32bitTIFfromSingle( sprintf('%sflat_dark_subtracted_beamcurrent_corrected_binned_%06u.tif', im_path3, 1), rot90(flat(:,:,1)) )
@@ -1637,6 +1641,16 @@ if ~par.read_flatcor && ~par.read_sino
     fprintf('\n allocated memory: %.2f GiB', Bytes( proj, 3 ) )
     projs_to_use = zeros( 1, size( proj,3), 'logical' );
     dep = par.delete_empty_projections;
+    dofc = 0;
+    flat_m = 0;
+    switch image_correlation.method
+        case 'mean'
+            flat_m = mean(flat,3);
+            dofc = 1;
+        case 'median'
+            flat_m = median(flat,3);
+            dofc = 1;
+    end
     parfor ( nn = 1:num_proj_used, poolsize_max_gpu )
         %im = proj(:,:,nn);
         % Read projection
@@ -1669,11 +1683,34 @@ if ~par.read_flatcor && ~par.read_sino
         else
             projs_to_use(nn) = 1;
         end
-        
+
+        % % Binned shift (shift, not first pixel)
+        % shift = ( x0(nn) - 1 ) / raw_bin;
+        % shift_int = floor( shift );
+        % shift_sub = shift - shift_int;
+        % 
+        % % shift flat
+        % if mod( shift_sub, 1 ) ~= 0
+        %     % crop flat at integer shift, then shift subpixel
+        %     xx = shift_int + (1:im_shape_cropbin1+1);
+        %     flat_median_shifted = imtranslate( flat_m(xx,:), [0 -shift_sub], 'linear' );
+        % else
+        %     xx = shift_int + (1:im_shape_cropbin1);
+        %     flat_median_shifted = flat_m(xx,:);
+        % end
+        % 
+        % % flat field correction
+        % p = proj(:, :, nn);
+        % p = p ./ flat_median_shifted(1:im_shape_cropbin1,:) ;
+        % % Reassign
+        if dofc
+            im_float_binned = im_float_binned ./ flat_m;
+        end
+
         % Assign image to stack
         %proj(:, :, nn) = im_float_binned + im; WTF???
         proj(:, :, nn) = im_float_binned;
-        
+
         % Statistics
         proj_min(nn) = min2(im_float_binned);
         proj_max(nn) = max2(im_float_binned);
@@ -1904,6 +1941,7 @@ if ~par.read_flatcor && ~par.read_sino
     end
     
     %% Projection/flat field correlation and flat field correction %%%%%%%%
+
     [proj, ~, toc_bytes] = proj_flat_correlation( proj, flat, image_correlation, par, write, roi_proj, roi_flat, toc_bytes );
     %[proj, corr, toc_bytes] = proj_flat_correlation( proj, flat, image_correlation, par, write, roi_proj, roi_flat, toc_bytes );
     %%%% STOP HERE TO CHECK FLATFIELD CORRELATION MAPPING %%%%%%%%%%%%%%%%%
@@ -1920,13 +1958,15 @@ if ~par.read_flatcor && ~par.read_sino
     if par.strong_abs_thresh < 1
         strong_abs_thresh = par.strong_abs_thresh;
         t = toc;
-        fprintf('\n set flat-corrected values below %f to one, ', par.strong_abs_thresh)
+        fprintf('\n Filter flat-corrected values below %f', par.strong_abs_thresh)
         parfor nn = 1:size( proj, 3 )
             im = proj(:,:,nn);
             m = im < strong_abs_thresh;
-            im(m) = 0;
-            im(m) = mean2( im );
-            proj(:,:,nn) = im;
+            %im(m) = 0;
+            if sum(m(:)) > 0
+                im(m) = mean2(im(m));
+                proj(:,:,nn) = im;
+            end
         end
         fprintf('\n duration : %.1f s (%.2f min)', toc - t, ( toc - t ) / 60 )
     end

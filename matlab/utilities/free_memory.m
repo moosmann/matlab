@@ -3,8 +3,12 @@ function [free, available, total, cache] = free_memory()
 %
 % [free, available, total, cache] = free_memory()
 
-[~,w] = unix('free -b | grep Mem');
-stats = str2double(regexp(w, '[0-9]*', 'match'));
+stats = [];
+while isempty(stats)
+    [~,w] = unix('free -b | grep Mem');
+    stats = str2double(regexp(w, '[0-9]*', 'match'));
+    pause(0.5);
+end
 total = stats(1);
 free = stats(3);
 cache = stats(5);

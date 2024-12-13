@@ -1,5 +1,6 @@
 %% Read sinogram script %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 if par.read_sino
+    fprintf('\nRead sino:')
     t = toc;
     % Sino path
     if ~isempty( par.read_sino_folder )
@@ -47,7 +48,8 @@ if par.read_sino
     switch numel(read_sino_range)
         case 1
             if read_sino_range >= 0 && read_sino_range < 1
-                read_sino_range = floor( (num_sino_found - 1) * read_sino_range + 1 );
+                read_sino_range = floor( (num_sino_found - 1) * read_sino_range) + 1;
+                fprintf('\n sinogram slice: %u of %u', read_sino_range, num_sino_found)
             elseif read_sino_range >= 1 && read_sino_range < 10
                 read_sino_range = 1:read_sino_range:num_sino_found;
             end
@@ -58,6 +60,10 @@ if par.read_sino
             if read_sino_range(2) >= 0 && read_sino_range(2) < 1
                 read_sino_range(2) = floor( (num_sino_found - 1) * read_sino_range(2) + 1 );
             end
+            if read_sino_range(2) < 0 && mod(read_sino_range(2),1) == 0
+                read_sino_range(2) = num_sino_found + read_sino_range(2);
+            end
+            fprintf('\n sinogram rang: [%u %u] of %u', read_sino_range(1), read_sino_range(2), num_sino_found)
             read_sino_range = read_sino_range(1):read_sino_range(2);
     end
     sino_names_mat = sino_names_mat(read_sino_range,:);
@@ -214,6 +220,8 @@ if par.read_sino
     else
         poolsize_max_gpu = par.poolsize;
     end
+    strong_abs_thresh = par.strong_abs_thresh;
+    fprintf('\n strong absorption threshold: %g',strong_abs_thresh)
     if ndims(sino)==1
         filename = sprintf('%s%s', sino_path, sino_names_mat);
         sino = read_image(filename);
@@ -221,6 +229,10 @@ if par.read_sino
         sino = sino(x0:x1,:);
         if filter_sino
             sino = FilterPixel(sino,pixel_filter_sino);
+        end
+        if strong_abs_thresh < 1
+            m = sino < strong_abs_thresh;
+            sino(m) = mean2(sino(m));
         end
         proj(:, 1,:) = reshape( sino, [im_shape_cropbin1, 1, num_proj_read] );
     else
@@ -233,11 +245,15 @@ if par.read_sino
                 gpu_index = gpus(mod(nn, num_gpu) + 1);
                 sino = FilterPixel(sino,pixel_filter_sino,gpu_index);
             end
+            if strong_abs_thresh < 1
+                m = sino < strong_abs_thresh;
+                sino(m) = mean2(sino(m));
+            end
             proj(:, nn,:) = reshape( sino, [im_shape_cropbin1, 1, num_proj_read] );
         end
     end
     fprintf( '\n duration %.1f s (%.2f min)', toc - t, ( toc - t ) / 60 )
-    
+
     %% Plot data
     if par.visual_output
         t = toc;
