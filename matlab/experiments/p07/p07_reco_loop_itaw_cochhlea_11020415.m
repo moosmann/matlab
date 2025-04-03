@@ -260,7 +260,7 @@ par.gpu_index = []; % integer vector: indices of GPU devices to use, Matlab nota
 par.use_cluster = 0; % if available: on MAXWELL nodes disp/nova/wga/wgs cluster computation can be used. Recommended only for large data sets since parpool creation and data transfer implies a lot of overhead.
 par.use_gpu_in_parfor = 0; % boolean
 pixel_filter_sino.use_gpu = par.use_gpu_in_parfor;
-par.poolsize = 0.8; % scalar: number of workers used in a local parallel pool. if 0: use current config. if >= 1: absolute number. if 0 < poolsize < 1: relative amount of all cores to be used. if SLURM scheduling is available, a default number of workers is used.
+par.poolsize = 0.4; % scalar: number of workers used in a local parallel pool. if 0: use current config. if >= 1: absolute number. if 0 < poolsize < 1: relative amount of all cores to be used. if SLURM scheduling is available, a default number of workers is used.
 par.poolsize_gpu_limit_factor = 0.5; % scalar: elative amount of GPU memory used for preprocessing during parloop. High values speed up Proprocessing, but increases out-of-memory failure
 phase_retrieval.use_parpool = 1; % bool. Disable parpool when out-of-memory error occurs during phase retrieval.
 par.window_state = 'minimized';'normal';'maximized';
@@ -304,6 +304,7 @@ phase_retrieval.apply = 1;
 ADD
 phase_retrieval.apply = 0;
 
+%% itaw021_cet_503b_pb_25039
 par.scan_path = [proc_path 'itaw021_cet_503b_pb_25039'];
 tomo.rot_axis_offset = 0.1;
 ADD
@@ -312,8 +313,9 @@ phase_retrieval.apply = 1;
 ADD
 phase_retrieval.apply = 0;
 
-par.read_sino_range = [60 5199];
+%% itaw003_tu_8b_uh_cm
 par.scan_path = [proc_path 'itaw003_tu_8b_uh_cm'];
+par.read_sino_range = [60 5199];
 tomo.rot_axis_offset = 0.0;
 ADD
 
@@ -321,13 +323,150 @@ phase_retrieval.apply = 1;
 ADD
 phase_retrieval.apply = 0;
 
-interactive_mode.rot_axis_pos = 1;
-
-%% Not ready
+%% interactive_mode.rot_axis_pos = 1;
 par.scan_path = [proc_path 'itaw001_tu_3a_uh_cc'];
+par.read_sino_range = [171 3840];
+tomo.rot_axis_offset = 0.0;
+ADD
+
+phase_retrieval.apply = 1;
+ADD
+phase_retrieval.apply = 0;
+
+%% TO DO itaw006_cet_483a_fa
+%% Not reconstructable with noram script
+interactive_mode.rot_axis_pos = 1;
+par.scan_path = [proc_path 'itaw006_cet_483a_fa'];
+par.nexus_path = '/asap3/petra3/gpfs/p07/2024/data/11020415/raw/itaw006_cet_483a_kw2019018_fa_a_0';
+tomo.rot_axis_offset = 1.5;
+par.read_sino_range = [];
+tomo.reco_mode = 'slice';'3D';
+ADD
+
+phase_retrieval.apply = 1;
+phase_retrieval.use_parpool = 1;
+ADD
+phase_retrieval.apply = 0;
+
+%% itaw010_tu_1b_uh_cc
+interactive_mode.rot_axis_pos = 0;
+par.scan_path = [proc_path 'itaw010_tu_1b_uh_cc'];
+par.nexus_path = '/asap3/petra3/gpfs/p07/2024/data/11020415/raw/itaw010_tu_1b_uh_cc_a_0';
+tomo.rot_axis_offset = 2;
+par.read_sino_range = [];
+tomo.reco_mode = 'slice';'3D';
+ADD
+
+phase_retrieval.apply = 1;
+phase_retrieval.use_parpool = 1;
+ADD
+phase_retrieval.apply = 0;
+
+%% itaw002_cet_576b_pp_28256
+interactive_mode.rot_axis_pos = 0;
+par.scan_path = [proc_path 'itaw002_cet_576b_pp_28256'];
+par.nexus_path = '/asap3/petra3/gpfs/p07/2024/data/11020415/raw/itaw002_cet_576b_a';
+tomo.rot_axis_offset = -0.2;
+par.read_sino_range = [];
+tomo.reco_mode = 'slice';'3D';
+ADD
+
+phase_retrieval.apply = 1;
+phase_retrieval.use_parpool = 1;
+ADD
+phase_retrieval.apply = 0;
 
 
 
+%% itaw015_cet_575b_dd_28116
+interactive_mode.rot_axis_pos = 0;
+par.scan_path = [proc_path 'itaw015_cet_575b_dd_28116'];
+par.nexus_path = '/asap3/petra3/gpfs/p07/2024/data/11020415/raw/itaw015_cet_575b_dd_28116_a_0';
+tomo.rot_axis_offset = 1.45;
+par.read_sino_range = [];
+tomo.reco_mode = 'slice';'3D';
+ADD
+
+phase_retrieval.apply = 1;
+phase_retrieval.use_parpool = 1;
+ADD
+phase_retrieval.apply = 0;
+
+%% itaw018_cet_550b_cta_6a_fai000814_pb
+interactive_mode.rot_axis_pos = 0;
+par.scan_path = [proc_path 'itaw018_cet_550b_cta_6a_fai000814_pb'];
+par.nexus_path = '/asap3/petra3/gpfs/p07/2024/data/11020415/raw/itaw018_cet_550b_cta_6a_fai000814_pb_a_0';
+tomo.rot_axis_offset = 1.5;
+par.read_sino_range = [];
+tomo.reco_mode = 'slice';'3D';
+ADD
+
+phase_retrieval.apply = 1;
+phase_retrieval.use_parpool = 1;
+ADD
+phase_retrieval.apply = 0;
+
+%% itaw011_cet_550b_cta_6a_fai000814_pb
+%/asap3/petra3/gpfs/p07/2024/data/11020415/processed/itaw011_cet_550b_cta_6a_fai000814_pb
+interactive_mode.rot_axis_pos = 0;
+par.scan_path = [proc_path 'itaw011_cet_550b_cta_6a_fai000814_pb'];
+par.nexus_path = '/asap3/petra3/gpfs/p07/2024/data/11020415/raw/itaw011_cet_550b_cta_6a_fai000814_pb_a_0';
+tomo.rot_axis_offset = 3;
+par.read_sino_range = [];
+tomo.reco_mode = 'slice';'3D';
+ADD
+
+phase_retrieval.apply = 1;
+phase_retrieval.use_parpool = 1;
+ADD
+phase_retrieval.apply = 0;
+
+%% itaw014_pin_23b_pv_27167
+%/asap3/petra3/gpfs/p07/2024/data/11020415/processed/itaw014_pin_23b_pv_27167
+interactive_mode.rot_axis_pos = 0;
+par.scan_path = [proc_path 'itaw014_pin_23b_pv_27167'];
+par.nexus_path = '/asap3/petra3/gpfs/p07/2024/data/11020415/raw/itaw014_pin_23b_pv_27167_a_0';
+tomo.rot_axis_offset = 1.5;
+par.read_sino_range = [];
+tomo.reco_mode = 'slice';'3D';
+ADD
+
+phase_retrieval.apply = 1;
+phase_retrieval.use_parpool = 1;
+ADD
+phase_retrieval.apply = 0;
+
+%% itaw022_cet_430b_ut_1479_pp
+%/asap3/petra3/gpfs/p07/2024/data/11020415/processed/itaw022_cet_430b_ut_1479_pp
+interactive_mode.rot_axis_pos = 0;
+par.scan_path = [proc_path 'itaw022_cet_430b_ut_1479_pp'];
+par.nexus_path = '/asap3/petra3/gpfs/p07/2024/data/11020415/raw/itaw022_cet_430b_ut_1479_pp_a_0';
+tomo.rot_axis_offset = 1.5;
+par.read_sino_range = [];
+tomo.reco_mode = 'slice';'3D';
+ADD
+
+phase_retrieval.apply = 1;
+phase_retrieval.use_parpool = 1;
+ADD
+phase_retrieval.apply = 0;
+
+
+
+% %% itaw020_tu_6b_uh_cc
+% interactive_mode.rot_axis_pos = 1;
+% par.scan_path = [proc_path 'itaw020_tu_6b_uh_cc'];
+% %par.nexus_path = '/asap3/petra3/gpfs/p07/2024/data/11020415/raw/itaw006_cet_483a_kw2019018_fa_a_0';
+% par.nexus_path = [regexprep(par.scan_path,'processed','raw') '_a_a_0'];
+% tomo.rot_axis_offset = 1.25;
+% par.read_sino_range = [];
+% tomo.reco_mode = '3D';
+% ADD
+% 
+% phase_retrieval.apply = 1;
+% phase_retrieval.use_parpool = 1;
+% ADD
+% phase_retrieval.apply = 0;
 
 % 
 % tomo.rot_axis_search_auto = 1; % find extrema of metric within search range

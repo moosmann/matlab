@@ -104,7 +104,7 @@ end
 %% Detector geometry
 det_col_count = size( sino, 2);
 num_proj = size( sino, 1);
-if numel(angles) == 1
+if isscalar(angles)
     angles = angles * (0:num_proj-1) / num_proj;
 end
 if numel( pixel_size ) == 2

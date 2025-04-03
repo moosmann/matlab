@@ -110,10 +110,10 @@ end
 det_col_count = size( sino, 1);
 det_row_count = size( sino, 3);
 num_proj = size( sino, 2);
-if numel(angles) == 1
+if isscalar(angles)
     angles = angles * (0:num_proj-1) / num_proj;
 end
-if numel( pixel_size ) == 1
+if isscalar( pixel_size )
     pixel_size(2) = pixel_size;
 end    
 DetectorSpacingX = pixel_size(1);

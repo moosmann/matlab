@@ -3,8 +3,7 @@
 pp = gcp( 'nocreate' );
 
 if isempty( pp )
-    pp = parpool( 'local' );
-    %pp = parpool( 'threads' );
+    pp = parpool( 'Processes' );
 end
 num_workers = pp.NumWorkers;
 fprintf( '\n\nWRITE/READ TEST' )
@@ -14,7 +13,7 @@ end
 
 fprintf( '\n parpool workers %u', num_workers )
 
-out_path = '/beegfs/desy/user/moosmanj/test_io';
+out_path = '/data/hereon/wp/user/moosmanj/test_io';
 CheckAndMakePath( out_path );
 CheckAndMakePath( [ out_path '/hdf'] )
 CheckAndMakePath( [ out_path '/tif_multi'] )

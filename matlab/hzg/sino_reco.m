@@ -34,38 +34,7 @@ dbstop if error
 
 if nargin < 1
     scan_path = ...
-    '/asap3/petra3/gpfs/p07/2024/data/11020190/processed/fsuj008_sbr_bone_lat_1';
-    '/asap3/petra3/gpfs/p07/2024/data/11020243/processed/aistopode';
-    '/asap3/petra3/gpfs/p07/2023/data/11017607/processed/bmc003_brainB_slice4_paraffin_5p6mm_8rings';       
-    '/asap3/petra3/gpfs/p07/2023/data/11017607/processed/bmc003_brainB_slice4_paraffin_5p6mm_8rings_scan_rot_m0028';
-    '/asap3/petra3/gpfs/p07/2024/data/11020289/processed/hereon03_msm';
-    '/asap3/petra3/gpfs/p07/2023/data/11017607/processed/bmc003_brainB_slice4_paraffin_5p6mm_8rings';
-    '/asap3/petra3/gpfs/p07/2023/data/11017607/processed/bmc010_brainD_wholeEtOH_zM72p4_10rings';
-    '/asap3/petra3/gpfs/p07/2023/data/11017598/processed/tig002_81217_mousebrain_202309_DESY';
-    '/asap3/petra3/gpfs/p07/2023/data/11019133/processed/bmc009_81212_mousebrain_202311_DESY';
-    '/asap3/petra3/gpfs/p07/2023/data/11017206/processed/itaw009_cet452a_FF99_Bp';
-    '/asap3/petra3/gpfs/p07/2023/data/11017206/processed/itaw007_cet488b_F18096_Bp';
-    '/asap3/petra3/gpfs/p07/2023/data/11017206/processed/itaw013_cet518a_MB7_Mb';
-    '/asap3/petra3/gpfs/p07/2023/data/11017206/processed/itaw011_cet495b_M548_20_Ha';
-    '/asap3/petra3/gpfs/p07/2023/data/11017206/processed/itaw012_cet548a_OO01_Oo';
-    '/asap3/petra3/gpfs/p07/2023/data/11017206/processed/itaw006_cet547a_sd01_pp';
-    '/asap3/petra3/gpfs/p07/2023/data/11017206/processed/itaw010_cet433b_UT1611_Pp';
-    '/asap3/petra3/gpfs/p07/2023/data/11017607/processed/mosaic/bmc003_B4_paraffin/tests_hs01';
-    '/asap3/petra3/gpfs/p07/2023/data/11017206/processed/itaw006_cet547a_sd01_pp';
-    '/asap3/petra3/gpfs/p07/2023/data/11016192/processed/bmc015_B4_bobble_wt0p25_75px_b25_';
-    '/asap3/petra3/gpfs/p07/2023/data/11016192/processed/bmc006_B2_8rings_h2';
-    '/asap3/petra3/gpfs/p07/2023/data/11016192/processed/bmc015_B4_bobble_wt0p25_75px_b25_';
-    '/asap3/petra3/gpfs/p07/2023/data/11016192/processed/bmc003_B2_8rings';
-    '/asap3/petra3/gpfs/p07/2022/data/11015573/processed/hereon_bmc_brain_small_roi_scan_44keV';
-    '/asap3/petra3/gpfs/p07/2020/data/11010206/processed/mgbone05_19118_ti_8m';
-    '/asap3/petra3/gpfs/p05/2020/data/11008823/processed/nova004_pyrochroa_coccinea_a';
-    '/asap3/petra3/gpfs/p05/2020/data/11008823/processed/nova003_pentatomidae';
-    '/asap3/petra3/gpfs/p07/2019/data/11006991/processed/hzg_ind_01_cork_a/';
-    '/asap3/petra3/gpfs/p05/2020/data/11010107/processed/bmc05_v63l';
-    '/asap3/petra3/gpfs/p05/2020/data/11010107/processed/bmc07_v67r';
-    '/asap3/petra3/gpfs/p05/2019/data/11007580/processed/smf_09_be_3033';
-    '/asap3/petra3/gpfs/p07/2019/data/11007454/processed/bmc06_tooth1';
-    '/asap3/petra3/gpfs/p07/2022/data/11015567/processed/mbs020_sample1_mgti_a';
+        '/asap3/petra3/gpfs/p07/2024/data/11020415/processed/itaw023_cet_448a_f18096_bp';
 end
 if nargin < 2
     rot_angle_full_range = [];
@@ -115,7 +84,7 @@ phase_retrieval.padding = 1; % padding of intensities before phase retrieval, 0:
 tomo.run = 1; % run tomographic reconstruction
 tomo.run_interactive_mode = 1; % if tomo.run = 0, use to determine rot axis positions without processing the full tomogram;
 tomo.reco_mode = 'slice';%'3D'; % slice-wise or full 3D backprojection. 'slice': volume must be centered at origin & no support of rotation axis tilt, reco binning, save compressed
-tomo.slab_wise = 1;
+tomo.slab_wise = 0;
 tomo.slices_per_slab = [];
 tomo.vol_size = [-.5 0.5 -0.5 0.5 -0.5 0.5];% [-1.1 1.1 -1.1 1.1 -0.5 0.5];%[-.5 0.5 -0.5 0.5 -0.5 0.5];% 6-component vector [xmin xmax ymin ymax zmin zmax], for excentric rot axis pos / extended FoV;. if empty, volume is centerd within tomo.vol_shape. unit voxel size is assumed. if smaller than 10 values are interpreted as relative size w.r.t. the detector size. Take care bout minus signs! Note that if empty vol_size is dependent on the rotation axis position.
 tomo.vol_shape = []; %[1 1 1] shape (# voxels) of reconstruction volume. used for excentric rot axis pos. if empty, inferred from 'tomo.vol_size'. in absolute numbers of voxels or in relative number w.r.t. the default volume which is given by the detector width and height.
@@ -191,8 +160,8 @@ interactive_mode.phase_retrieval_default_search_range = []; % if empty: asks for
 tomo.astra_link_data = 1; % ASTRA data objects become references to Matlab arrays. Reduces memory issues.
 par.use_cluster = 0; % if available: on MAXWELL nodes disp/nova/wga/wgs cluster computation can be used. Recommended only for large data sets since parpool creation and data transfer implies a lot of overhead.
 par.poolsize = 0.5; % number of workers used in a local parallel pool. if 0: use current config. if >= 1: absolute number. if 0 < poolsize < 1: relative amount of all cores to be used. if SLURM scheduling is available, a default number of workers is used.
-par.poolsize_gpu_limit_factor = 0.5; % Relative amount of GPU memory used for preprocessing during parloop. High values speed up Proprocessing, but increases out-of-memory failure
-par.use_gpu_in_parfor = 1;
+par.poolsize_gpu_limit_factor = 0.4; % Relative amount of GPU memory used for preprocessing during parloop. High values speed up Proprocessing, but increases out-of-memory failure
+par.use_gpu_in_parfor = 0;
 par.gpu_index = []; % GPU Device index to use, Matlab notation: index starts from 1. default: [], use all
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%% END OF PARAMETERS / SETTINGS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

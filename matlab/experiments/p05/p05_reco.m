@@ -874,7 +874,7 @@ if ~par.read_flatcor && ~par.read_sino
             par.energy = par.energy( end );
         end
         if isempty(par.sample_detector_distance)
-            par.sample_detector_distance = double( h5read( nexuslog_name{1}, '/entry/scan/setup/o_ccd_dist' ) );
+            par.sample_detector_distance = double( h5read( nexuslog_name{1}, '/entry/scan/setup/o_ccd_dist' ) ) / 1000;
         end
         if isempty( imlogcell )
             % Get image name, key, time stamp and P3 current from log

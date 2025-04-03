@@ -12,7 +12,7 @@ export CUDNN_INCLUDE_PATH=/software/cuda/cuda-11.8/include
 export CUDA_PATH=/software/cuda/cuda-11.8
 
 # MATLAB
-export MATLAB_VERSION=R2024a 
+export MATLAB_VERSION=R2024b 
 export MATLAB_USER_PATH=$PWD
 export PATH=/opt/matlab/$MATLAB_VERSION/bin:$PATH
 
@@ -22,7 +22,7 @@ export ASTRA_SAMPLES_PATH=/asap3/petra3/gpfs/common/p05/astra/astra-toolbox/samp
 export MATLABPATH=$ASTRA_PATH/matlab/mex:$ASTRA_PATH/matlab/tools:$MATLABPATH
 export PATH=$ASTRA_PATH/bin:$PATH
 #export LD_PRELOAD=/usr/lib64/libstdc++.so.6
-export LD_PRELOAD=/opt/nvidia/nsight-systems/2024.4.2/host-linux-x64/libstdc++.so.6:$LD_PRELOAD
+#export LD_PRELOAD=/opt/nvidia/nsight-systems/2024.4.2/host-linux-x64/libstdc++.so.6:$LD_PRELOAD
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/opt/nvidia/nsight-systems/2024.4.2/host-linux-x64:/usr/lib64:/usr/lib64
 
 # Git
