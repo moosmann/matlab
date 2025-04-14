@@ -3,4 +3,5 @@
 # Description: Run imagej macro to open image sequence
 # Author: Julian Moosmann
 
-/asap3/petra3/gpfs/common/p05/jm/imagej/ImageJ/ImageJ --no-splash -Xss2m -- -macro /asap3/petra3/gpfs/common/p05/jm/imagej/macros/open_image_sequence_any_virt.ijm
+#/asap3/petra3/gpfs/common/p05/jm/imagej/ImageJ/ImageJ --no-splash -Xss2m -- -macro /asap3/petra3/gpfs/common/p05/jm/imagej/macros/open_image_sequence_any_virt.ijm
+java -jar $IMAGEJ/ij.jar -ijpath $IMAGEJ/plugins -macro $IMAGEJ_MACROS/open_image_sequence_any.ijm &

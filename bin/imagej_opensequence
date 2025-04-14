@@ -10,4 +10,3 @@
 #cd $IMAGEJ
 #$IMAGEJ/run -macro $IMAGEJ_MACROS/open_image_sequence.ijm &
 java -jar $IMAGEJ/ij.jar -ijpath $IMAGEJ/plugins -macro $IMAGEJ_MACROS/open_image_sequence.ijm &
-
