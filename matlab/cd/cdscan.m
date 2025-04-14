@@ -1,5 +1,5 @@
 function cdscan
 
-fid = fopen( sprintf( '%s/experiments/p05/path_to_latest_scan', userpath ), 'r');
+fid = fopen( sprintf( '%s/path_to_scan', userpath ), 'r');
 cd( fscanf( fid, '%s' ) )
 fclose( fid );

@@ -5,51 +5,52 @@
 startup_file =  mfilename('fullpath');
 userpath( fileparts( startup_file ) );
 % Search path
-addpath( genpath( [ userpath filesep 'matlab' ] ) );
+addpath( genpath( [ userpath filesep 'matlab'] ) );
 
 % Print info
 user = getenv('USER');
 hostname = getenv('HOSTNAME');
-fprintf( 'USER : %s', user );
-fprintf( '\nHOSTNAME : %s', hostname );
-fprintf( '\nstartup file : %s.m', startup_file )
-fprintf( '\nuserpath : %s', userpath );
-fprintf( '\nCUDA_PATH : %s', getenv( 'CUDA_PATH' ) );
+fprintf('USER : %s', user );
+fprintf('\nHOSTNAME : %s', hostname );
+fprintf('\nstartup file : %s.m', startup_file )
+fprintf('\nuserpath : %s', userpath );
+fprintf('\nCUDA_PATH : %s', getenv('CUDA_PATH') );
 
 %% ASTRA
-ASTRA_PATH = getenv( 'ASTRA_PATH' );
-astra_path = [ ASTRA_PATH '/matlab' ];
-fprintf( '\nASTRA_PATH : %s', ASTRA_PATH );
+ASTRA_PATH = getenv('ASTRA_PATH');
+astra_path = [ ASTRA_PATH '/matlab'];
+fprintf('\nASTRA_PATH : %s', ASTRA_PATH );
 addpath( genpath( astra_path ) );
-fprintf( '\nAdd ASTRA path : %s', astra_path );
-astra_samples_path = getenv( 'ASTRA_SAMPLES_PATH' );
-fprintf( '\nAdd ASTRA samples path : %s', astra_samples_path );
+fprintf('\nAdd ASTRA path : %s', astra_path );
+astra_samples_path = getenv('ASTRA_SAMPLES_PATH');
+fprintf('\nAdd ASTRA samples path : %s', astra_samples_path );
 addpath( genpath( astra_samples_path ) );
 
 %% MATLAB path
-fprintf( '\nMATLAB_PATH : %s', getenv( 'MATLAB_PATH' ) );
-fprintf( '\nMATLABPATH : %s', getenv( 'MATLABPATH' ) );
-fprintf( '\nMATLAB_USER_PATH : %s', getenv( 'MATLAB_USER_PATH' ) );
+fprintf('\nMATLAB_PATH : %s', getenv('MATLAB_PATH') );
+fprintf('\nMATLABPATH : %s', getenv('MATLABPATH') );
+fprintf('\nMATLAB_USER_PATH : %s', getenv('MATLAB_USER_PATH') );
 
 %% ImageJ
-%imagej_matlab = '/asap3/petra3/gpfs/common/p05/jm/imagej/Fiji.app/scripts';
+fprintf('\nIMAGEJ : %s', getenv('IMAGEJ') );
+fprintf('\nIMAGEJ_MACROS : %s', getenv('IMAGEJ_MACROS') );
 %addpath(genpath(imagej_matlab)); % Update for your ImageJ2 (or Fiji) installation as appropriate ImageJ;
 
 %% Git repository version
-%fprintf( '\nGit commit ID : %s', git_commit_id );
+%fprintf('\nGit commit ID : %s', git_commit_id );
 
 %% Default figure properties
 % Set default color map to grayscale instead of jet
-set(groot, 'DefaultFigureColormap', gray)
+set(groot,'DefaultFigureColormap', gray)
 %set(groot,'DefaultFigureGraphicsSmoothing','off')
-set( groot, 'DefaultFigureRenderer', 'painter')
+set( groot,'DefaultFigureRenderer','painter')
 
 %% Core info
-%[~, ulim] = unix( 'ulimit -u;' );
-fprintf( '\nulimit -u : ' )
-unix( 'ulimit -u;' );
+%[~, ulim] = unix('ulimit -u;');
+fprintf('\nulimit -u :')
+unix('ulimit -u;');
 fprintf( evalc('feature(''numcores'');') );
-%fprintf( '\n' )
+%fprintf('\n')
 
 %% Time to start
 d = dir('~/.matlab/startml');
@@ -59,4 +60,4 @@ t1 = datetime('now');
 dt = t1 - t0;
 fprintf('Startup time: %s',dt)
 
-fprintf( '\n' )
+fprintf('\n')

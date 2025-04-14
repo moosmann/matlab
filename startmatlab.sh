@@ -25,6 +25,10 @@ export PATH=$ASTRA_PATH/bin:$PATH
 #export LD_PRELOAD=/opt/nvidia/nsight-systems/2024.4.2/host-linux-x64/libstdc++.so.6:$LD_PRELOAD
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/opt/nvidia/nsight-systems/2024.4.2/host-linux-x64:/usr/lib64:/usr/lib64
 
+# ImageJ
+export IMAGEJ="$MATLAB_USER_PATH/ImageJ"
+export IMAGEJ_MACROS="$MATLAB_USER_PATH/imagej_macros"
+
 # Git
 export GIT_COMMIT_ID=$(git rev-parse HEAD)
 
@@ -37,10 +41,12 @@ echo -e 'ASTRA_PATH:' $ASTRA_PATH
 echo -e 'PYTHONPATH:' $PYTHONPATH
 echo -e 'MATLAB_PATH:' $MATLAB_PATH
 echo -e 'MATLABPATH:' $MATLABPATH
+echo -e 'MATLAB_USER_PATH:' $MATLAB_USER_PATH
+echo -e 'IMAGEJ:' $IMAGEJ
+echo -e 'IMAGEJ_MACROS:' $IMAGEJ_MACROS
 echo -e 'GIT_COMMIT_ID:' $GIT_COMMIT_ID
 echo -e 'Starting MATLAB.\n'
 
-#ulimit -u 128000
 ulimit -u 16000
 touch  $HOME/.matlab/startml
 matlab_$MATLAB_VERSION -nosoftwareopengl 

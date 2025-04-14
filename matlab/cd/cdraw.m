@@ -1,5 +1,5 @@
 function cdraw
 
-fid = fopen( sprintf( '~/path_to_raw'),'r');
+fid = fopen( sprintf( '%s/path_to_raw', userpath ), 'r');
 cd(fscanf( fid,'%s'))
 fclose( fid );

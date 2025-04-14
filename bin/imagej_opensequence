@@ -1,0 +1,13 @@
+#!/usr/bin/env zsh
+
+# Description: Run imagej macro to open image sequence
+# Author: Julian Moosmann
+
+#/asap3/petra3/gpfs/common/p05/jm/imagej/ImageJ/ImageJ --no-splash -Xss2m -- -macro /asap3/petra3/gpfs/common/p05/jm/imagej/macros/open_image_sequence.ijm &
+#~/bin/ImageJ --no-splash -Xss2m -- -macro ~/imagej_macros/open_image_sequence.ijm &
+#~/ImageJ/ImageJ -Xss2m -- -macro ~/imagej_macros/open_image_sequence.ijm &
+#~/ImageJ/ImageJ -macro ~/imagej_macros/open_image_sequence.ijm &
+#cd $IMAGEJ
+#$IMAGEJ/run -macro $IMAGEJ_MACROS/open_image_sequence.ijm &
+java -jar $IMAGEJ/ij.jar -ijpath $IMAGEJ/plugins -macro $IMAGEJ_MACROS/open_image_sequence.ijm &
+

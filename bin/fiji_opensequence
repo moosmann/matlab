@@ -1,0 +1,9 @@
+#!/usr/bin/env zsh
+
+# Description: Run imagej macro to open image sequence
+#
+# Author: Julian Moosmann
+
+#/asap3/petra3/gpfs/common/p05/jm/imagej/Fiji.app/ImageJ-linux64 --no-splash -Xss2m -- -macro /asap3/petra3/gpfs/common/p05/jm/imagej/macros/open_image_sequence_fiji.ijm &
+#~/Fiji.app/fiji-linux-x64 --no-splash -Xss2m -- -macro ~/imagej_macros/open_image_sequence_fiji.ijm &
+~/Fiji.app/fiji-linux-x64 -macro ~/imagej_macros/open_image_sequence_fiji.ijm &

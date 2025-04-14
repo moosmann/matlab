@@ -342,18 +342,22 @@ if tomo.run || tomo.run_interactive_mode
                     if show_stack_imagej_use_virtual
                         if Bytes(vol(:,:,1)) < 2^32 - 1
                             fprintf('\nLoading tif sequence as virtual stack in imagej')
-                            unix('/asap3/petra3/gpfs/common/p05/jm/bin/imagej_opensequence &');
+                            %unix('/asap3/petra3/gpfs/common/p05/jm/bin/imagej_opensequence &');
+                            unix('imagej_opensequence &');
                         else
                             fprintf('\nLoading h5 volume as virtual stack in fiji')
-                            unix('/asap3/petra3/gpfs/common/p05/jm/bin/fiji_open_h5 &');
+                            %unix('/asap3/petra3/gpfs/common/p05/jm/bin/fiji_open_h5 &');
+                            unix('fiji_open_h5 &');
                         end
                     else
                         if Bytes(vol(:,:,1)) < 2^32 - 1
                             fprintf('\nLoading all images in imagej (no virtual stack)')
-                            unix('/asap3/petra3/gpfs/common/p05/jm/bin/imagej_opensequence_novirt &');
+                            %unix('/asap3/petra3/gpfs/common/p05/jm/bin/imagej_opensequence_novirt &');
+                            unix('imagej_opensequence_novirt &');
                         else
                             fprintf('\nLoading h5 volume as virtual stack in fiji')
-                            unix('/asap3/petra3/gpfs/common/p05/jm/bin/fiji_open_h5_novirt &');
+                            %unix('/asap3/petra3/gpfs/common/p05/jm/bin/fiji_open_h5_novirt &');
+                            unix('fiji_open_h5_novirt &');
                         end
                     end
                     pause(2)
