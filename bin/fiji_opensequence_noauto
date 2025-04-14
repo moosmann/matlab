@@ -4,4 +4,5 @@
 #
 # Author: Julian Moosmann
 
-/asap3/petra3/gpfs/common/p05/jm/imagej/Fiji.app/ImageJ-linux64 --no-splash -Xss2m -- -macro /asap3/petra3/gpfs/common/p05/jm/imagej/macros/open_image_sequence_fiji_noauto.ijm &
+#/asap3/petra3/gpfs/common/p05/jm/imagej/Fiji.app/ImageJ-linux64 --no-splash -Xss2m -- -macro /asap3/petra3/gpfs/common/p05/jm/imagej/macros/open_image_sequence_fiji_noauto.ijm &
+~/Fiji.app/fiji-linux-x64 -macro ~/matlab/imagej_macros/open_image_sequence_fiji_noauto.ijm &

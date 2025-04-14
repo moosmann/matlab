@@ -5,13 +5,13 @@ cur = getDirectory("current")
 //print("");
 //print("cwd:" + cwd );
 //print("cur:" + cur );
-dir = cur;
+dir = cwd;
 
 t = lengthOf(dir) == 0;
 //print("t:" + t);
 
 if (t)  {
-   dir = cwd;
+   dir = cur;
 }
 
 //print("dir:" + dir );

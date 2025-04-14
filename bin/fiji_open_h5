@@ -3,5 +3,6 @@
 # Description: Run imagej macro to open image sequence
 # Author: Julian Moosmann
 
-/asap3/petra3/gpfs/common/p05/jm/imagej/Fiji.app/ImageJ-linux64 --no-splash -Xss2m -- -macro /asap3/petra3/gpfs/common/p05/jm/imagej/macros/open_h5.ijm &
+#/asap3/petra3/gpfs/common/p05/jm/imagej/Fiji.app/ImageJ-linux64 --no-splash -Xss2m -- -macro /asap3/petra3/gpfs/common/p05/jm/imagej/macros/open_h5.ijm &
 #/asap3/petra3/gpfs/common/p05/jm/imagej/Fiji.app/ImageJ-linux64 --no-splash -Xss2m -Xms10g -Xmx10g -Xincgc -XX:NewRatio=5 -XX:CMSTriggerRatio=50 -XX:+UseCompressedOops -- -macro /asap3/petra3/gpfs/common/p05/jm/imagej/macros/open_h5.ijm &
+~/Fiji.app/fiji-linux-x64 -macro ~/matlab/imagej_macros/open_h5.ijm &
