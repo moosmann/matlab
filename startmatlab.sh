@@ -13,7 +13,7 @@ export CUDA_PATH=/software/cuda/cuda-11.8
 
 # MATLAB
 export MATLAB_VERSION=R2024b 
-export MATLAB_USER_PATH=$PWD
+export MATLAB_USER_PATH="$(dirname "$0:A")"
 export PATH=/opt/matlab/$MATLAB_VERSION/bin:$PATH
 
 # ASTRA, maxwell installation requires CUDA 11.8 and MATLAB R2024
@@ -28,6 +28,7 @@ export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/opt/nvidia/nsight-systems/2024.4.2/host
 # ImageJ
 export IMAGEJ="$MATLAB_USER_PATH/ImageJ"
 export IMAGEJ_MACROS="$MATLAB_USER_PATH/imagej_macros"
+export PATH=$MATLAB_USER_PATH/bin:$PATH
 
 # Git
 export GIT_COMMIT_ID=$(git rev-parse HEAD)
