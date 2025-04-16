@@ -278,6 +278,7 @@ interactive_mode.rot_axis_pos = 1;
 tomo.rot_axis_search_range_from_interactive = 1;
 write.to_scratch = 1;
 
+par.proj_range = 4;
 par.raw_bin = 5; 
 par.raw_roi = [0.4 0.6];
 

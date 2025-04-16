@@ -2,8 +2,9 @@
 
 cwd = call("java.lang.System.getProperty", "user.dir");
 cur = getDirectory("current")
-//print("cwd:" + cwd );
-//print("cur:" + cur );
+print("");
+print("cwd:" + cwd );
+print("cur:" + cur );
 dir =cwd;
 
 t = lengthOf(dir) == 0;
