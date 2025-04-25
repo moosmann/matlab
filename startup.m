@@ -43,7 +43,7 @@ fprintf('\nIMAGEJ_MACROS : %s', getenv('IMAGEJ_MACROS') );
 % Set default color map to grayscale instead of jet
 set(groot,'DefaultFigureColormap', gray)
 %set(groot,'DefaultFigureGraphicsSmoothing','off')
-set( groot,'DefaultFigureRenderer','painter')
+%set( groot,'DefaultFigureRenderer','painter')
 
 %% Core info
 %[~, ulim] = unix('ulimit -u;');
@@ -59,5 +59,10 @@ t0 = datetime(d.date);
 t1 = datetime('now');
 dt = t1 - t0;
 fprintf('Startup time: %s',dt)
+
+fprintf('\n')
+
+fprintf('Rendererinfo:\n')
+disp(rendererinfo)
 
 fprintf('\n')

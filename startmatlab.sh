@@ -33,6 +33,9 @@ export PATH=$MATLAB_USER_PATH/bin:$PATH
 # Git
 export GIT_COMMIT_ID=$(git rev-parse HEAD)
 
+export LD_LIBRARY_PATH=/software/libglvnd/1.7.0/lib:$LD_LIBRARY_PATH
+
+
 echo -e 'Set environment variables:'
 echo -e 'TZ:' $TZ
 echo -e 'PATH:' $PATH
@@ -50,4 +53,6 @@ echo -e 'Starting MATLAB.\n'
 
 ulimit -u 16000
 touch  $HOME/.matlab/startml
-matlab_$MATLAB_VERSION -nosoftwareopengl 
+#matlab_$MATLAB_VERSION -nosoftwareopengl
+#matlab_$MATLAB_VERSION -softwareopengl
+matlab_$MATLAB_VERSION

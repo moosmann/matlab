@@ -343,7 +343,7 @@ if exist( 'interactive_mode', 'var' ) && isfield( interactive_mode, 'phase_retri
                 p0 = pwd;
                 cd(p)
                 fprintf('\nLoading imagej')
-                unix('/asap3/petra3/gpfs/common/p05/jm/bin/imagej_opensequence &');
+                system('imagej_opensequence');
                 cd(p0)
             else
                 nimplay( pha, 1, [], 'PHASE RETRIEVAL: sequence of reconstructed slices using different phase retrieval parameters')

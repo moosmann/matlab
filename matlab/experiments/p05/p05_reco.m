@@ -37,9 +37,9 @@ dbstop if error
 % !!! OVERWRITES PARAMETERS BELOW QUICK SWITCH SECTION !!!
 % Just copy parameter and set quick switch to 1
 par.quick_switch = 1;
-
+par.scan_path = pwd;%'/asap3/petra3/gpfs/p07/2025/data/11022778/raw/hereon01_kit_iam_fe_crack_a';
 par.raw_bin = 2;
-par.raw_roi = [];
+par.raw_roi = -4;
 % par.proj_range = 1;
 write.to_scratch = 0;
 tomo.reco_mode = '3D';'slice';
@@ -47,10 +47,12 @@ image_correlation.method = 'median';
 % tomo.vol_size = [];[-1 1 -1 1 -0.5 0.5];
 interactive_mode.rot_axis_pos = 1;
 write.flatcor = 0;
-phase_retrieval.apply = 0;
-phase_retrieval.apply_before = 1;
-interactive_mode.phase_retrieval = 1;
-
+phase_retrieval.apply = 1;
+phase_retrieval.apply_before = 0;
+phase_retrieval.reg_par = 0.5;
+interactive_mode.phase_retrieval = 0;
+par.ref_range = 1:100;
+write.subfolder_reco = '';
 % END OF QUICK SWITCH TO ALTERNATIVE SET OF PARAMETERS %%%%%%%%%%%%%%%%%%%%
 
 pp_parameter_switch % DO NOT DELETE OR EDIT THIS LINE %%%%%%%%%%%%%%%%%%%%%
@@ -211,7 +213,7 @@ write.subfolder_flatcor = ''; % subfolder in 'flat_corrected'
 write.subfolder_phase_map = ''; % subfolder in 'phase_map'
 write.subfolder_sino = ''; % subfolder in 'sino'
 write.subfolder_reco = ''; % subfolder in 'reco'
-write.flatcor = 0; % save preprocessed flat corrected projections
+write.flatcor = 1; % save preprocessed flat corrected projections
 write.phase_map = 0; % save phase maps (if phase retrieval is not 0)
 write.sino = 0; % save sinograms (after preprocessing & before FBP filtering and phase retrieval)
 write.phase_sino = 0; % save sinograms of phase maps
@@ -527,8 +529,8 @@ diary(fn_diary)
 diary on
 
 % Save raw path to file for shell short cut
-%filename = [userpath, filesep, 'path_to_raw'];
-filename = [getenv('HOME'), filesep, 'path_to_raw'];
+filename = [userpath, filesep, 'path_to_raw'];
+%filename = [getenv('HOME'), filesep, 'path_to_raw'];
 fid = fopen( filename , 'w' );
 fprintf( fid, '%s', par.raw_path );
 fclose( fid );
@@ -541,8 +543,8 @@ fprintf('\n scan_path:\n  %s', scan_path)
 fprintf('\n provided nexus path: %s', par.nexus_path)
 
 % Save scan path to file
-%filename = [userpath, filesep, 'path_to_scan'];
-filename = [getenv('HOME'), filesep, 'path_to_scan'];
+filename = [userpath, filesep, 'path_to_scan'];
+%filename = [getenv('HOME'), filesep, 'path_to_scan'];
 fid = fopen( filename , 'w' );
 fprintf( fid, '%s', scan_path );
 fclose( fid );
@@ -2967,7 +2969,7 @@ if tomo.run
                 t3 = toc;
                 CheckAndMakePath( write.reco_path )
                 imah = @(im) (adapthisteq(normat(im)));
-                
+
                 % Save ortho slices x
                 if ndims(vol) == 3
                     nn = round( size( vol, 1 ) / 2);
@@ -2975,19 +2977,25 @@ if tomo.run
                     CheckAndMakePath(im_path1reco)
                     filename = sprintf('%sreco_1Mid.tif', im_path1reco );
                     write32bitTIFfromSingle( filename, rot90(im,-1) );
-                    filename = sprintf('%sreco_1MidAdaptHisteq.tif', im_path1reco );
-                    write32bitTIFfromSingle( filename, rot90(imah(im),-1) );
-                    
+                    if ~anynan(im)
+                        im_imah = imah(im);
+                        filename = sprintf('%sreco_1MidAdaptHisteq.tif', im_path1reco );
+                        write32bitTIFfromSingle( filename, rot90(im_imah,-1) );
+                    end
+
                     % Save ortho slices y
                     CheckAndMakePath(im_path2reco)
                     nn = round( size( vol, 2 ) / 2);
                     im = squeeze( vol(:,nn,:) );
                     filename = sprintf('%sreco_2Mid.tif', im_path2reco );
                     write32bitTIFfromSingle( filename, rot90(im,-1) );
-                    filename = sprintf('%sreco_2MidAdaptHisteq.tif', im_path2reco );
-                    write32bitTIFfromSingle( filename, rot90(imah(im),-1) );
+                    if ~anynan(im)
+                        im_imah = imah(im);
+                        filename = sprintf('%sreco_2MidAdaptHisteq.tif', im_path2reco );
+                        write32bitTIFfromSingle( filename, rot90(im_imah,-1) );
+                    end
                 end
-                
+
                 % Save ortho slices z
                 CheckAndMakePath(im_path3reco)
                 nn = round( size( vol, 3 ) / 2);
@@ -3040,8 +3048,8 @@ if tomo.run
                     CheckAndMakePath( write.reco_path, 0 )
                     
                     % Save reco path to file
-                    %filename = [userpath, filesep, 'path_to_reco'];
-                    filename = [getenv('HOME'), filesep, 'path_to_reco'];
+                    filename = [userpath, filesep, 'path_to_reco'];
+                    %filename = [getenv('HOME'), filesep, 'path_to_reco'];
                     fid = fopen( filename , 'w' );
                     fprintf( fid, '%s', write.reco_path );
                     fclose( fid );
@@ -3117,8 +3125,8 @@ if tomo.run
                 if write.reco
                     CheckAndMakePath( write.reco_path, 0 )
                     % Save reco path to file
-                    %filename = [userpath, filesep, 'path_to_reco'];
-                    filename = [getenv('HOME'), filesep, 'path_to_reco'];
+                    filename = [userpath, filesep, 'path_to_reco'];
+                    %filename = [getenv('HOME'), filesep, 'path_to_reco'];
                     fid = fopen( filename , 'w' );
                     fprintf( fid, '%s', write.reco_path );
                     fclose( fid );

@@ -1,10 +1,11 @@
 // Open image sequence in current directory from shell
 
 cwd = call("java.lang.System.getProperty", "user.dir");
-dir = getDirectory("current")
+cur = getDirectory("current")
 print("");
 print("cwd:" + cwd );
-print("dir:" + dir );
+print("cur:" + cur );
+dir = cwd
 
 t = lengthOf(dir) == 0;
 //print("t:" + t);

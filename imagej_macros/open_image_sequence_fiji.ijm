@@ -5,16 +5,16 @@ cur = getDirectory("current")
 print("");
 print("cwd:" + cwd );
 print("cur:" + cur );
-dir = cwd;
+dir = cur;
 
 t = lengthOf(dir) == 0;
-//print("t:" + t);
+print("t:" + t);
 
 if (t)  {
-   dir = cur;
+   dir = cwd;
 }
 
-//print("dir:" + dir );
+print("dir:" + dir );
 args = "open=[" + dir + "] file=tif sort use";
 
 //print( "\n" );

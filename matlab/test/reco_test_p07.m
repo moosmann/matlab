@@ -278,9 +278,13 @@ interactive_mode.rot_axis_pos = 1;
 tomo.rot_axis_search_range_from_interactive = 1;
 write.to_scratch = 1;
 
-par.proj_range = 4;
+par.proj_range = 5;
+par.read_flatcor_range = 10; 
 par.raw_bin = 5; 
 par.raw_roi = [0.4 0.6];
+
+image_correlation.method = 'median';
+
 
 par.scan_path = [raw_path 'itaw001_tu_3a_b']; ADD
 
