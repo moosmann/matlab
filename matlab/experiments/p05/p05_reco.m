@@ -41,11 +41,8 @@ par.quick_switch = 1;
 par.scan_path = pwd;%'/asap3/petra3/gpfs/p07/2025/data/11022778/raw/hereon01_kit_iam_fe_crack_a';
 par.raw_bin = 2;
 par.raw_roi = [];
-% par.proj_range = 1;
-write.to_scratch = 0;
 tomo.reco_mode = '3D';'slice';
-image_correlation.method = 'median';
-% tomo.vol_size = [];[-1 1 -1 1 -0.5 0.5];
+image_correlation.method = 'median';'ssim-ml';
 write.flatcor = 0;
 phase_retrieval.apply = 0;
 phase_retrieval.apply_before = 0;
@@ -53,11 +50,7 @@ phase_retrieval.reg_par = 0.5;
 interactive_mode.phase_retrieval = 0;
 %par.ref_range = 1:100;
 write.subfolder_reco = '';
-pixel_filter_sino.medfilt_neighboorhood = [3 3];
-par.read_filenames_from_disk = 0;
-%tomo.rot_angle_full_range = 2 * pi;
-interactive_mode.lamino = 0; % find laminography tilt instead camera tilt
-interactive_mode.rot_axis_tilt = 0; % reconstruct slices with different offset AND tilts of the rotation axis
+pixel_filter_sino.medfilt_neighboorhood = [7 7];
 par.ring_current_normalization = 1;
 interactive_mode.rot_axis_pos = 1;
 
@@ -488,6 +481,8 @@ else
 end
 cur = [];
 astra_clear % if reco was aborted, ASTRA memory was not cleared
+s_in_pos_mm = [];
+s_in_pos = [];
 
 % Utility functions
 imsc1 = @(im) imsc( rot90( im ) );
@@ -1063,31 +1058,31 @@ if ~par.read_flatcor && ~par.read_sino
                     fprintf(' (from left to right w.r.t. to the sample)' )
                 end
                 
-                % Plot offset shift%
-                if par.visual_output %&& std( scan_position ) ~= 0
-                    f = figure('Name', 'rotation axis offset shift', 'WindowState', window_state );
-                    
-                    yyaxis left
-                    plot( offset_shift_mm , '.')
-                    title( sprintf('rotation axis offset shift. effective pixel size binned: %.2f micron, scan dir: %u', par.eff_pixel_size_binned * 1e6, scan_dir ) )
-                    
-                    axis tight
-                    xlabel('projection number' )
-                    ylabel('absolute lateral shift (s stage x) / mm' )
-                    
-                    yyaxis right
-                    plot( scan_position, '.' )
-                    ylabel('relative scan position / pixel' )
-                    ymin = min( scan_position ) - dx / 2 / raw_bin;
-                    ymax = max( scan_position ) + dx / 2 / raw_bin;
-                    ylim( [ymin ymax] )
-                    
-                    legend( { 's stage x', 'relative scan position' })
-                    drawnow
-                    CheckAndMakePath( fig_path )
-                    fig_filename = sprintf('%sfig%02u_%s.png', fig_path, f.Number, regexprep( f.Name, '\ |:', '_') );
-                    saveas(f, fig_filename);
-                end
+                % % Plot offset shift%
+                % if par.visual_output %&& std( scan_position ) ~= 0
+                %     f = figure('Name', 'rotation axis offset shift', 'WindowState', window_state );
+                % 
+                %     yyaxis left
+                %     plot( offset_shift_mm , '.')
+                %     title( sprintf('rotation axis offset shift. effective pixel size binned: %.2f micron, scan dir: %u', par.eff_pixel_size_binned * 1e6, scan_dir ) )
+                % 
+                %     axis tight
+                %     xlabel('projection number' )
+                %     ylabel('absolute lateral shift (s stage x) / mm' )
+                % 
+                %     yyaxis right
+                %     plot( scan_position, '.' )
+                %     ylabel('relative scan position / pixel' )
+                %     ymin = min( scan_position ) - dx / 2 / raw_bin;
+                %     ymax = max( scan_position ) + dx / 2 / raw_bin;
+                %     ylim( [ymin ymax] )
+                % 
+                %     legend( { 's stage x', 'relative scan position' })
+                %     drawnow
+                %     CheckAndMakePath( fig_path )
+                %     fig_filename = sprintf('%sfig%02u_%s.png', fig_path, f.Number, regexprep( f.Name, '\ |:', '_') );
+                %     saveas(f, fig_filename);
+                % end
             end % if std( offset_shift_mm )
         else
             par.crop_proj = 0;
@@ -1159,7 +1154,7 @@ if ~par.read_flatcor && ~par.read_sino
             if isequal( X, Xq )
                 stimg_name.current = V;
             else
-                stimg_name.current = (interp1( X, V, Xq, 'next', extrap_val) + interp1( X, V, Xq + exposure_time, 'previous', extrap_val) ) / 2;
+                stimg_name.current = (interp1( X, V, Xq, 'next', extrap_val) + interp1( X, V, Xq + double(exposure_time), 'previous', extrap_val) ) / 2;
             end
             cur_ref_val = stimg_name.current( stimg_key.scan.value == 1 );
             cur_ref_name = stimg_name.scan.value( stimg_key.scan.value == 1 );
