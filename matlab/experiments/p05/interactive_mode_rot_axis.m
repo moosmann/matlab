@@ -480,10 +480,11 @@ if tomo.run || tomo.run_interactive_mode
                                 cd(p)
                                 fprintf('\nLoading imagej')
                                 if show_stack_imagej_use_virtual
-                                    unix('/asap3/petra3/gpfs/common/p05/jm/bin/imagej_opensequence &');
-                                    
+                                    %unix('/asap3/petra3/gpfs/common/p05/jm/bin/imagej_opensequence &');
+                                    unix('imagej_opensequence');
                                 else
-                                    unix('/asap3/petra3/gpfs/common/p05/jm/bin/imagej_opensequence_novirt &');
+                                   % unix('/asap3/petra3/gpfs/common/p05/jm/bin/imagej_opensequence_novirt &');
+                                    unix('/bin/imagej_opensequence_novirt');
                                 end
                                 pause(3)
                                 cd(p0)

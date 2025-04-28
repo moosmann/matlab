@@ -37,22 +37,30 @@ dbstop if error
 % !!! OVERWRITES PARAMETERS BELOW QUICK SWITCH SECTION !!!
 % Just copy parameter and set quick switch to 1
 par.quick_switch = 1;
+
 par.scan_path = pwd;%'/asap3/petra3/gpfs/p07/2025/data/11022778/raw/hereon01_kit_iam_fe_crack_a';
 par.raw_bin = 2;
-par.raw_roi = -4;
+par.raw_roi = [];
 % par.proj_range = 1;
 write.to_scratch = 0;
 tomo.reco_mode = '3D';'slice';
 image_correlation.method = 'median';
 % tomo.vol_size = [];[-1 1 -1 1 -0.5 0.5];
-interactive_mode.rot_axis_pos = 1;
 write.flatcor = 0;
-phase_retrieval.apply = 1;
+phase_retrieval.apply = 0;
 phase_retrieval.apply_before = 0;
 phase_retrieval.reg_par = 0.5;
 interactive_mode.phase_retrieval = 0;
-par.ref_range = 1:100;
+%par.ref_range = 1:100;
 write.subfolder_reco = '';
+pixel_filter_sino.medfilt_neighboorhood = [3 3];
+par.read_filenames_from_disk = 0;
+%tomo.rot_angle_full_range = 2 * pi;
+interactive_mode.lamino = 0; % find laminography tilt instead camera tilt
+interactive_mode.rot_axis_tilt = 0; % reconstruct slices with different offset AND tilts of the rotation axis
+par.ring_current_normalization = 1;
+interactive_mode.rot_axis_pos = 1;
+
 % END OF QUICK SWITCH TO ALTERNATIVE SET OF PARAMETERS %%%%%%%%%%%%%%%%%%%%
 
 pp_parameter_switch % DO NOT DELETE OR EDIT THIS LINE %%%%%%%%%%%%%%%%%%%%%
@@ -107,7 +115,7 @@ pixel_filter_threshold_dark = [0.02 0.005]; % Dark fields: threshold parameter f
 pixel_filter_threshold_flat = [0.02 0.005]; % Flat fields: threshold parameter for hot/dark pixel filter, for details see 'FilterPixel'
 pixel_filter_threshold_proj = [0.02 0.02]; % Raw projection: threshold parameter for hot/dark pixel filter, for details see 'FilterPixel'
 pixel_filter_radius = [5 5]; % Increase only if blobs of zeros or other artefacts are expected. Can increase processing time heavily.
-par.ring_current_normalization = 1; % normalize flat fields and projections by ring current
+par.ring_current_normalization = 0; % normalize flat fields and projections by ring current
 image_correlation.method = 'ssim-ml';'median'; 'median';'entropy';'none';'ssim';'ssim-g';'std';'cov';'corr';'diff1-l1';'diff1-l2';'diff2-l1';'diff2-l2';'cross-entropy-12';'cross-entropy-21';'cross-entropy-x';
 % Correlation of projections and flat fields. Essential for DCM data. Typically improves reconstruction quality of DMM data, too.
 % Available methods ('ssim-ml'/'entropy' usually work best):
@@ -138,7 +146,7 @@ ring_filter.waveletfft_dec_levels = 1:6; % decomposition levels for 'wavelet-fft
 ring_filter.waveletfft_wname = 'db7';'db25';'db30'; % wavelet type, see 'FilterStripesCombinedWaveletFFT' or 'waveinfo'
 ring_filter.waveletfft_sigma = 3; % integer scalar. suppression factor for 'wavelet-fft'
 ring_filter.jm_median_width = 11; % integer scalar or vector. median averaging filter to be applied to angular averaged sinogram, multiple widths are applied consecutively, eg [3 11 21 31 39];
-par.strong_abs_thresh = 0; % if 1: does nothing, if < 1: flat-corrected values below threshold are set to one. Try with algebratic reco techniques.
+par.strong_abs_thresh = 1; % if 1: does nothing, if < 1: flat-corrected values below threshold are set to one. Try with algebratic reco techniques.
 par.delete_empty_projections = 0; % bool. Delete projections that conain zeros
 par.norm_sino = 0; % not recommended, can introduce severe artifacts, but sometimes improves quality
 % Workaround correction for image distortions using a quadratic dilation/compression of the projections/sinogram
@@ -472,7 +480,13 @@ end
 phase_bin = phase_retrieval.post_binning_factor;
 window_state = par.window_state;
 outputformat = write.outputformat;
-
+exposure_time = [];
+if isempty( par.energy )
+    energy_was_empty = 1;
+else
+    energy_was_empty = 0;
+end
+cur = [];
 astra_clear % if reco was aborted, ASTRA memory was not cleared
 
 % Utility functions
@@ -784,60 +798,60 @@ if ~par.read_flatcor && ~par.read_sino
     fprintf('\n projection range used : first:stride:last =  %g:%g:%g', par.proj_range(1), par.proj_range(2) - par.proj_range(1), par.proj_range(end))
     
     %% Scan Log %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    scanlog_name = sprintf('%s%sscan.log', scan_path, scan_name );
-    if ~exist( scanlog_name, 'file' )
-        % back up for older log file name schemes
-        str = dir( sprintf('%s*scan.log', scan_path) );
-        scanlog_name = sprintf('%s/%s', str.folder, str.name);
-    end
-    [logpar, cur, cam] = p05_log( scanlog_name );
-    if isempty( par.eff_pixel_size )
-        par.eff_pixel_size = logpar.eff_pixel_size;
-    end    
-    par.eff_pixel_size_binned = raw_bin * par.eff_pixel_size;
-    exposure_time = logpar.exposure_time;
-    if isfield( logpar, 's_in_pos' )
-        s_in_pos_mm = logpar.s_in_pos;
-    else
-        s_in_pos_mm = [];
-        s_in_pos = [];
-    end
-    if isfield( logpar, 'pos_s_pos_x' ) && isfield( logpar, 'pos_s_pos_y' )
-        pos_s_pos_x_mm = logpar.pos_s_pos_x;
-        pos_s_pos_y_mm = logpar.pos_s_pos_y;
-    end
-    if isempty( par.energy )
-        energy_was_empty = 1;
-        if isfield( logpar, 'energy')
-            par.energy = logpar.energy;
-        end
-    else
-        energy_was_empty = 0;
-    end
-    % if isempty( par.sample_detector_distance )
-    %     par.sample_detector_distance = logpar.sample_detector_distance;
+    % scanlog_name = sprintf('%s%sscan.log', scan_path, scan_name );
+    % if ~exist( scanlog_name, 'file' )
+    %     % back up for older log file name schemes
+    %     str = dir( sprintf('%s*scan.log', scan_path) );
+    %     scanlog_name = sprintf('%s/%s', str.folder, str.name);
     % end
-    if ~exist( nexuslog_name{1}, 'file')
-        % Image shape and ROI
-        %filename = sprintf('%s%s', scan_path, ref_names{1});
-        filename = ref_full_path{1};
-        if ~par.raw_data
-            %[im_raw, par.tif_info] = read_image( filename, '', [], [], [], '', par.im_trafo );
-            [im_raw, par.tif_info] = read_image(filename,par,1);
-            par.im_shape_raw = size(im_raw);
-        else
-            switch lower( cam )
-                case 'ehd'
-                    par.im_shape_raw = [3056 3056];
-                    par.dtype = 'uint16';
-                case 'kit'
-                    par.im_shape_raw = [5120 3840];
-                    par.dtype = 'uint16';
-            end
-            par.eff_pixel_size_binned = raw_bin * par.eff_pixel_size;
-            im_raw = read_raw( filename, par.im_shape_raw, par.dtype );
-        end
-    end
+    % [logpar, cur, cam] = p05_log( scanlog_name );
+    % if isempty( par.eff_pixel_size )
+    %     par.eff_pixel_size = logpar.eff_pixel_size;
+    % end    
+    % par.eff_pixel_size_binned = raw_bin * par.eff_pixel_size;
+    % exposure_time = logpar.exposure_time;
+    % if isfield( logpar, 's_in_pos' )
+    %     s_in_pos_mm = logpar.s_in_pos;
+    % else
+    %     s_in_pos_mm = [];
+    %     s_in_pos = [];
+    % end
+    % if isfield( logpar, 'pos_s_pos_x' ) && isfield( logpar, 'pos_s_pos_y' )
+    %     pos_s_pos_x_mm = logpar.pos_s_pos_x;
+    %     pos_s_pos_y_mm = logpar.pos_s_pos_y;
+    % end
+    % if isempty( par.energy )
+    %     energy_was_empty = 1;
+    %     if isfield( logpar, 'energy')
+    %         par.energy = logpar.energy;
+    %     end
+    % else
+    %     energy_was_empty = 0;
+    % end
+    % % if isempty( par.sample_detector_distance )
+    % %     par.sample_detector_distance = logpar.sample_detector_distance;
+    % % end
+    % if ~exist( nexuslog_name{1}, 'file')
+    %     % Image shape and ROI
+    %     %filename = sprintf('%s%s', scan_path, ref_names{1});
+    %     filename = ref_full_path{1};
+    %     if ~par.raw_data
+    %         %[im_raw, par.tif_info] = read_image( filename, '', [], [], [], '', par.im_trafo );
+    %         [im_raw, par.tif_info] = read_image(filename,par,1);
+    %         par.im_shape_raw = size(im_raw);
+    %     else
+    %         switch lower( cam )
+    %             case 'ehd'
+    %                 par.im_shape_raw = [3056 3056];
+    %                 par.dtype = 'uint16';
+    %             case 'kit'
+    %                 par.im_shape_raw = [5120 3840];
+    %                 par.dtype = 'uint16';
+    %         end
+    %         par.eff_pixel_size_binned = raw_bin * par.eff_pixel_size;
+    %         im_raw = read_raw( filename, par.im_shape_raw, par.dtype );
+    %     end
+    % end
     if exist( nexuslog_name{1}, 'file')
         % HDF5 log
         %h5log_info = h5info( nexuslog_name{1} );
@@ -866,6 +880,13 @@ if ~par.read_flatcor && ~par.read_sino
         [im_raw, par.tif_info] = read_image( filename, par, 1 );
         par.im_shape_raw = size( im_raw );
         nexus_setup = h5info(nexuslog_name{1}, '/entry/scan/setup/' );
+        exposure_time = h5read( nexuslog_name{1}, '/entry/hardware/camera/exptime' );
+        magnification = h5read( nexuslog_name{1}, '/entry/hardware/camera/magnification' );
+        pixelsize = h5read( nexuslog_name{1}, '/entry/hardware/camera/pixelsize' );
+        if isempty( par.eff_pixel_size )
+            par.eff_pixel_size = pixelsize/magnification;
+            par.eff_pixel_size_binned = raw_bin * par.eff_pixel_size;
+        end
         if sum(strcmpi('pos_p05_energy',{ nexus_setup.Datasets.Name })) && energy_was_empty
             par.energy = double( h5read( nexuslog_name{1}, '/entry/scan/setup/pos_p05_energy' ) );
         end
@@ -878,6 +899,7 @@ if ~par.read_flatcor && ~par.read_sino
         if isempty(par.sample_detector_distance)
             par.sample_detector_distance = double( h5read( nexuslog_name{1}, '/entry/scan/setup/o_ccd_dist' ) ) / 1000;
         end
+       n_dark = h5read( nexuslog_name{1}, '/entry/scan/n_dark' );
         if isempty( imlogcell )
             % Get image name, key, time stamp and P3 current from log
             %[stimg_name, stimg_key, petra, petra_scan] = pp_stimg_petra(nexuslog_name,par);
@@ -895,7 +917,8 @@ if ~par.read_flatcor && ~par.read_sino
                     if numel(s_stage_x.value) == numel(stimg_key.value)
                         ind = stimg_key.value == 0;
                     else
-                        ind = ~boolean( stimg_key.scan.value(logpar.n_dark+1:end) );
+                        %ind = ~boolean( stimg_key.scan.value(logpar.n_dark+1:end) );
+                        ind = ~boolean( stimg_key.scan.value(n_dark+1:end) );
                     end
                     offset_shift_mm = s_stage_x.value( ind );
                 else
@@ -943,6 +966,19 @@ if ~par.read_flatcor && ~par.read_sino
         if numel( offset_shift_mm ) && abs( std( offset_shift_mm) ) * 1000 > 1
             % Shift or static position
             if std( offset_shift_mm ) > 10 * eps
+
+                %% To be fixed and removed below in hdf else
+                % if isfield( logpar, 's_in_pos' )
+                %     s_in_pos_mm = logpar.s_in_pos;
+                % else
+                %     s_in_pos_mm = [];
+                %     s_in_pos = [];
+                % end
+                % if isfield( logpar, 'pos_s_pos_x' ) && isfield( logpar, 'pos_s_pos_y' )
+                %     pos_s_pos_x_mm = logpar.pos_s_pos_x;
+                %     pos_s_pos_y_mm = logpar.pos_s_pos_y;
+                % end
+
                 offset_shift_mm = offset_shift_mm(par.proj_range);
                 offset_shift = 1e-3 / par.eff_pixel_size * offset_shift_mm;
                 s_in_pos = 1e-3 / par.eff_pixel_size * s_in_pos_mm;
@@ -1189,10 +1225,62 @@ if ~par.read_flatcor && ~par.read_sino
                 end
             end
         end
-        
+
         %t0 = min( [cur_proj_time; cur_ref_time] );
     else % if ~exist( nexuslog_name, 'file')
-        
+        scanlog_name = sprintf('%s%sscan.log', scan_path, scan_name );
+        if ~exist( scanlog_name, 'file' )
+            % back up for older log file name schemes
+            str = dir( sprintf('%s*scan.log', scan_path) );
+            scanlog_name = sprintf('%s/%s', str.folder, str.name);
+        end
+        [logpar, cur, cam] = p05_log( scanlog_name );
+        if isempty( par.eff_pixel_size )
+            par.eff_pixel_size = logpar.eff_pixel_size;
+            par.eff_pixel_size_binned = raw_bin * par.eff_pixel_size;
+        end
+        if isempty(exposure_time)
+            exposure_time = logpar.exposure_time;
+        end
+        if isfield( logpar, 's_in_pos' )
+            s_in_pos_mm = logpar.s_in_pos;
+        else
+            s_in_pos_mm = [];
+            s_in_pos = [];
+        end
+        if isfield( logpar, 'pos_s_pos_x' ) && isfield( logpar, 'pos_s_pos_y' )
+            pos_s_pos_x_mm = logpar.pos_s_pos_x;
+            pos_s_pos_y_mm = logpar.pos_s_pos_y;
+        end
+        if isempty( par.energy )
+            if isfield( logpar, 'energy')
+                par.energy = logpar.energy;
+            end
+        end
+        % if isempty( par.sample_detector_distance )
+        %     par.sample_detector_distance = logpar.sample_detector_distance;
+        % end
+        if ~exist( nexuslog_name{1}, 'file')
+            % Image shape and ROI
+            %filename = sprintf('%s%s', scan_path, ref_names{1});
+            filename = ref_full_path{1};
+            if ~par.raw_data
+                %[im_raw, par.tif_info] = read_image( filename, '', [], [], [], '', par.im_trafo );
+                [im_raw, par.tif_info] = read_image(filename,par,1);
+                par.im_shape_raw = size(im_raw);
+            else
+                switch lower( cam )
+                    case 'ehd'
+                        par.im_shape_raw = [3056 3056];
+                        par.dtype = 'uint16';
+                    case 'kit'
+                        par.im_shape_raw = [5120 3840];
+                        par.dtype = 'uint16';
+                end
+                par.eff_pixel_size_binned = raw_bin * par.eff_pixel_size;
+                im_raw = read_raw( filename, par.im_shape_raw, par.dtype );
+            end
+        end
         if par.crop_proj
             if ~isempty( tomo.rot_axis_offset_shift )
                 offset_shift = tomo.rot_axis_offset_shift;
@@ -1994,7 +2082,8 @@ if ~par.read_flatcor && ~par.read_sino
                     angles = angles(par.proj_range);
                 end
             elseif exist( nexuslog_name{1}, 'file')
-                angles = s_rot.value( ~boolean( stimg_key.scan.value(logpar.n_dark+1:end) ) ) * pi / 180;
+                %angles = s_rot.value( ~boolean( stimg_key.scan.value(logpar.n_dark+1:end) ) ) * pi / 180;
+                angles = s_rot.value( ~boolean( stimg_key.scan.value(n_dark+1:end) ) ) * pi / 180;
                 fprintf('\n angles_logged / pi: %f %f %f ... %f %f %f %f %f ', angles([1 2 3 end-4:end])/pi )
                 angles = angles(par.proj_range);
             else
@@ -3272,7 +3361,7 @@ if tomo.run
             fprintf(fid, 's_in_pos_mm : %f', s_in_pos_mm);
         end
         if ~par.read_sino && ~par.read_flatcor
-            fprintf(fid, 'camera : %s\n', cam);
+            %fprintf(fid, 'camera : %s\n', cam);
             fprintf(fid, 'exposure_time : %f\n', exposure_time);
             fprintf(fid, 'num_dark_found : %u\n', num_dark);
             fprintf(fid, 'num_ref_found : %u\n', num_ref_found);

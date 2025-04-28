@@ -2,9 +2,9 @@
 
 cwd = call("java.lang.System.getProperty", "user.dir");
 dir = getDirectory("current")
-print("");
-print("cwd:" + cwd );
-print("dir:" + dir );
+//print("");
+//print("cwd:" + cwd );
+//print("dir:" + dir );
 
 t = lengthOf(dir) == 0;
 //print("t:" + t);
