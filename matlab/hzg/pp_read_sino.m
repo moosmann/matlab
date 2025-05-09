@@ -268,7 +268,7 @@ if par.read_sino
         subplot(1,2,2)
         nn = round( size( proj, 2) / 2);
         sino = squeeze( proj(:,nn,:) );
-        sino = FilterOutlier( sino );
+        %sino = FilterOutlier( sino );
         imsc1( sino )
         title(sprintf('sinogram: proj(:,%u,:)', nn))
         colorbar

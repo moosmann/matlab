@@ -481,6 +481,7 @@ if tomo.run || tomo.run_interactive_mode
                                 fprintf('\nLoading imagej')
                                 if show_stack_imagej_use_virtual
                                     %unix('/asap3/petra3/gpfs/common/p05/jm/bin/imagej_opensequence &');
+                                    system('imagej_opensequence');
 f                                else
                                    % unix('/asap3/petra3/gpfs/common/p05/jm/bin/imagej_opensequence_novirt &');
                                     system('imagej_opensequence_novirt');

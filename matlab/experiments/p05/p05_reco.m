@@ -39,20 +39,53 @@ dbstop if error
 par.quick_switch = 1;
 
 par.scan_path = pwd;%'/asap3/petra3/gpfs/p07/2025/data/11022778/raw/hereon01_kit_iam_fe_crack_a';
-par.raw_bin = 2;
-par.raw_roi = [];
+par.raw_bin = 3;
+par.raw_roi = -3;
+par.proj_range = [];%[1:2000,4001:6000];
 tomo.reco_mode = '3D';'slice';
 image_correlation.method = 'median';'ssim-ml';
 write.flatcor = 0;
 phase_retrieval.apply = 0;
 phase_retrieval.apply_before = 0;
-phase_retrieval.reg_par = 0.5;
+phase_retrieval.reg_par = 1;
 interactive_mode.phase_retrieval = 0;
 %par.ref_range = 1:100;
 write.subfolder_reco = '';
-pixel_filter_sino.medfilt_neighboorhood = [7 7];
+pixel_filter_sino.medfilt_neighboorhood = [5 5];
 par.ring_current_normalization = 1;
-interactive_mode.rot_axis_pos = 1;
+interactive_mode.rot_axis_pos = 0;
+interactive_mode.rot_axis_tilt = 0;
+%par.pixel_scaling = 1.000 + 0.003;
+
+interactive_mode.slice_number = 0.65; % default slice number. if in [0,1): relative, if in (1, N]: absolute
+
+tomo.rot_axis_search_auto = 1; % find extrema of metric within search range
+% search reach for automatic determination of the rotation axis offset, overwrite interactive result if not empty
+%tomo.rot_axis_search_range = 0.5 + (-4:0.25:4); % at 2x 
+tomo.rot_axis_search_range= 0.5 + (-2:0.25:2); % at 3x 
+tomo.rot_axis_search_metric = 'neg'; % string: 'neg','entropy','iso-grad','laplacian','entropy-ML','abs'. Metric to find rotation axis offset
+tomo.rot_axis_search_extrema = 'max'; % string: 'min'/'max'. chose min or maximum position
+tomo.rot_axis_search_fit = 0; % bool: fit calculated metrics and find extrema, otherwise use extrema from search range
+tomo.rot_axis_offset_metric_roi = []; % 4-vector: ROI for metric calculation. roi = [y0, x0, y1-y0, x1-x0]. (x,y)=(0,0)=upper left
+tomo.rot_axis_search_slice = []; % scalar: slice used to find rot axis. if empty: uses slice from interactive mode, if that is empty uses central slice.
+tomo.rot_axis_search_range_from_interactive = 0; % boolean: use search range from interactive mode
+
+% par.read_sino = 1;
+% par.raw_bin = 1;
+% par.scan_path = '/home/moosmanj/beamtimeid/processed/scan';
+% par.read_filenames_from_disk = 1; % only for stepscans with tiff subfolders
+% par.sample_detector_distance = 1;
+% par.energy =  1;
+% par.eff_pixel_size = 3;
+% par.eff_pixel_size_binned = 6;
+% tomo.rot_angle_full_range = pi;
+% par.filter_sino = 0;
+% tomo.take_neg_log = 0;
+% ring_filter.apply = 0;
+
+
+%write.path = '/home/moosmanj/scan/reco/';
+
 
 % END OF QUICK SWITCH TO ALTERNATIVE SET OF PARAMETERS %%%%%%%%%%%%%%%%%%%%
 
@@ -239,7 +272,7 @@ write.compression_parameter = [0.02 0.02]; % compression-method specific paramet
 write.uint8_segmented = 0; % experimental: threshold segmentaion for histograms with 2 distinct peaks: __/\_/\__
 write.outputformat = 'tif';'hdf_volume'; % string. Not yet implemented for all reco modes
 %%% INTERACTION %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-par.visual_output = 1; % show images and plots during reconstruction
+par.visual_output = 0; % show images and plots during reconstruction
 interactive_mode.rot_axis_pos = 1; % reconstruct slices with dif+ferent rotation axis offsets
 interactive_mode.rot_axis_pos_default_search_range = []; % if empty: asks for search range when entering interactive mode
 interactive_mode.rot_axis_tilt = 0; % reconstruct slices with different offset AND tilts of the rotation axis
@@ -877,7 +910,7 @@ if ~par.read_flatcor && ~par.read_sino
         nexus_setup = h5info(nexuslog_name{1}, '/entry/scan/setup/' );
         exposure_time = h5read( nexuslog_name{1}, '/entry/hardware/camera/exptime' );
         magnification = h5read( nexuslog_name{1}, '/entry/hardware/camera/magnification' );
-        pixelsize = h5read( nexuslog_name{1}, '/entry/hardware/camera/pixelsize' );
+        pixelsize = h5read( nexuslog_name{1}, '/entry/hardware/camera/pixelsize' ) / 1000;
         if isempty( par.eff_pixel_size )
             par.eff_pixel_size = pixelsize/magnification;
             par.eff_pixel_size_binned = raw_bin * par.eff_pixel_size;
@@ -1058,31 +1091,31 @@ if ~par.read_flatcor && ~par.read_sino
                     fprintf(' (from left to right w.r.t. to the sample)' )
                 end
                 
-                % % Plot offset shift%
-                % if par.visual_output %&& std( scan_position ) ~= 0
-                %     f = figure('Name', 'rotation axis offset shift', 'WindowState', window_state );
-                % 
-                %     yyaxis left
-                %     plot( offset_shift_mm , '.')
-                %     title( sprintf('rotation axis offset shift. effective pixel size binned: %.2f micron, scan dir: %u', par.eff_pixel_size_binned * 1e6, scan_dir ) )
-                % 
-                %     axis tight
-                %     xlabel('projection number' )
-                %     ylabel('absolute lateral shift (s stage x) / mm' )
-                % 
-                %     yyaxis right
-                %     plot( scan_position, '.' )
-                %     ylabel('relative scan position / pixel' )
-                %     ymin = min( scan_position ) - dx / 2 / raw_bin;
-                %     ymax = max( scan_position ) + dx / 2 / raw_bin;
-                %     ylim( [ymin ymax] )
-                % 
-                %     legend( { 's stage x', 'relative scan position' })
-                %     drawnow
-                %     CheckAndMakePath( fig_path )
-                %     fig_filename = sprintf('%sfig%02u_%s.png', fig_path, f.Number, regexprep( f.Name, '\ |:', '_') );
-                %     saveas(f, fig_filename);
-                % end
+                % Plot offset shift%
+                if par.visual_output %&& std( scan_position ) ~= 0
+                    f = figure('Name', 'rotation axis offset shift', 'WindowState', window_state );
+
+                    yyaxis left
+                    plot( offset_shift_mm , '.')
+                    title( sprintf('rotation axis offset shift. effective pixel size binned: %.2f micron, scan dir: %u', par.eff_pixel_size_binned * 1e6, scan_dir ) )
+
+                    axis tight
+                    xlabel('projection number' )
+                    ylabel('absolute lateral shift (s stage x) / mm' )
+
+                    yyaxis right
+                    plot( scan_position, '.' )
+                    ylabel('relative scan position / pixel' )
+                    ymin = min( scan_position ) - dx / 2 / raw_bin;
+                    ymax = max( scan_position ) + dx / 2 / raw_bin;
+                    ylim( [ymin ymax] )
+
+                    legend( { 's stage x', 'relative scan position' })
+                    drawnow
+                    CheckAndMakePath( fig_path )
+                    fig_filename = sprintf('%sfig%02u_%s.png', fig_path, f.Number, regexprep( f.Name, '\ |:', '_') );
+                    saveas(f, fig_filename);
+                end
             end % if std( offset_shift_mm )
         else
             par.crop_proj = 0;

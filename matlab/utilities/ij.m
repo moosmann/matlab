@@ -1,1 +1,1 @@
-unix('~/.imagej/ij')
+system('imagej')

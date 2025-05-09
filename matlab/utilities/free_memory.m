@@ -5,7 +5,7 @@ function [free, available, total, cache] = free_memory()
 
 stats = [];
 while isempty(stats)
-    [~,w] = unix('free -b | grep Mem');
+    [~,w] = system('free -b | grep Mem');
     stats = str2double(regexp(w, '[0-9]*', 'match'));
     pause(0.5);
 end

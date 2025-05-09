@@ -65,4 +65,6 @@ fprintf('\n')
 fprintf('Rendererinfo:\n')
 disp(rendererinfo)
 
+gpuDevice(gpuDeviceCount);
+
 fprintf('\n')
