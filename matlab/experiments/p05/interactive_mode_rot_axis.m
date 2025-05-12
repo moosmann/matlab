@@ -472,17 +472,19 @@ if tomo.run || tomo.run_interactive_mode
                             if show_stack_imagej && Bytes(vol(:,:,1)) < 2^32 - 1
                                 p = [write.interactive_path 'rot_axis_tilt' filesep datestr(now, 'yyyymmddTHHMMSS') filesep];
                                 mkdir(p)
+                                fprintf('\nSaving tif image sequences:\n %s', p)
                                 parfor nn = 1:size( vol, 3 )
                                     filename = sprintf('%srot_axis_pos_%06u.tif', p, nn );
                                     write32bitTIF(filename, vol(:,:,nn) );
                                 end
+
                                 p0 = pwd;
                                 cd(p)
                                 fprintf('\nLoading imagej')
                                 if show_stack_imagej_use_virtual
                                     %unix('/asap3/petra3/gpfs/common/p05/jm/bin/imagej_opensequence &');
                                     system('imagej_opensequence');
-f                                else
+                                else
                                    % unix('/asap3/petra3/gpfs/common/p05/jm/bin/imagej_opensequence_novirt &');
                                     system('imagej_opensequence_novirt');
                                 end

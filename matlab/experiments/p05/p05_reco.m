@@ -53,7 +53,7 @@ interactive_mode.phase_retrieval = 0;
 write.subfolder_reco = '';
 pixel_filter_sino.medfilt_neighboorhood = [5 5];
 par.ring_current_normalization = 1;
-interactive_mode.rot_axis_pos = 0;
+interactive_mode.rot_axis_pos = 1;
 interactive_mode.rot_axis_tilt = 0;
 %par.pixel_scaling = 1.000 + 0.003;
 
@@ -62,8 +62,8 @@ interactive_mode.slice_number = 0.65; % default slice number. if in [0,1): relat
 tomo.rot_axis_search_auto = 1; % find extrema of metric within search range
 % search reach for automatic determination of the rotation axis offset, overwrite interactive result if not empty
 %tomo.rot_axis_search_range = 0.5 + (-4:0.25:4); % at 2x 
-tomo.rot_axis_search_range= 0.5 + (-2:0.25:2); % at 3x 
-tomo.rot_axis_search_metric = 'neg'; % string: 'neg','entropy','iso-grad','laplacian','entropy-ML','abs'. Metric to find rotation axis offset
+tomo.rot_axis_search_range= -10.5 + (-2:0.2:2); % at 3x 
+tomo.rot_axis_search_metric = 'entropy'; % string: 'neg','entropy','iso-grad','laplacian','entropy-ML','abs'. Metric to find rotation axis offset
 tomo.rot_axis_search_extrema = 'max'; % string: 'min'/'max'. chose min or maximum position
 tomo.rot_axis_search_fit = 0; % bool: fit calculated metrics and find extrema, otherwise use extrema from search range
 tomo.rot_axis_offset_metric_roi = []; % 4-vector: ROI for metric calculation. roi = [y0, x0, y1-y0, x1-x0]. (x,y)=(0,0)=upper left
@@ -924,10 +924,13 @@ if ~par.read_flatcor && ~par.read_sino
         if ~isempty(par.energy)
             par.energy = par.energy( end );
         end
-        if isempty(par.sample_detector_distance)
+        if isempty(par.sample_detector_distance) && sum(strcmpi('o_ccd_dist',{ nexus_setup.Datasets.Name }))
             par.sample_detector_distance = double( h5read( nexuslog_name{1}, '/entry/scan/setup/o_ccd_dist' ) ) / 1000;
         end
-       n_dark = h5read( nexuslog_name{1}, '/entry/scan/n_dark' );
+        if isempty(par.sample_detector_distance) && sum(strcmpi('pos_o_ccd_dist',{ nexus_setup.Datasets.Name }))
+            par.sample_detector_distance = double( h5read( nexuslog_name{1}, '/entry/scan/setup/pos_o_ccd_dist' ) ) / 1000;
+        end
+        n_dark = h5read( nexuslog_name{1}, '/entry/scan/n_dark' );
         if isempty( imlogcell )
             % Get image name, key, time stamp and P3 current from log
             %[stimg_name, stimg_key, petra, petra_scan] = pp_stimg_petra(nexuslog_name,par);
