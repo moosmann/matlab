@@ -111,7 +111,7 @@ pixel_filter_threshold_dark = [0.02 0.005]; % Dark fields: threshold parameter f
 pixel_filter_threshold_flat = [0.05 0.05]; % Flat fields: threshold parameter for hot/dark pixel filter, for details see 'FilterPixel'
 pixel_filter_threshold_proj = [0.05 0.05]; % Raw projection: threshold parameter for hot/dark pixel filter, for details see 'FilterPixel'
 pixel_filter_radius = [11 11]; % Increase only if blobs of zeros or other artefacts are expected. Can increase processing time heavily.
-par.ring_current_normalization = 0; % normalize flat fields and projections by ring current
+par.ring_current_normalization = 1; % normalize flat fields and projections by ring current
 image_correlation.method = 'ssim-ml';'median'; 'median';'entropy';'none';'ssim';'ssim-g';'std';'cov';'corr';'diff1-l1';'diff1-l2';'diff2-l1';'diff2-l2';'cross-entropy-12';'cross-entropy-21';'cross-entropy-x';
 % Correlation of projections and flat fields. Essential for DCM data. Typically improves reconstruction quality of DMM data, too.
 % Available methods ('ssim-ml'/'entropy' usually work best):
@@ -283,11 +283,13 @@ par.scan_path = [raw_path 'hereon02_kit_iam_fe_crack_a']; ADD
 par.scan_path = [raw_path 'hereon03_kit_iam_fe_crack_a']; ADD
 
 par.scan_path = [raw_path 'hereon03_kit_iam_fe_crack_b']; ADD
-par.strong_abs_thresh = 0.05;
+par.strong_abs_thresh = 0.001;
 write.flatcor = 1; 
-tomo.take_neg_log = 0; 
+tomo.take_neg_log = 1; 
 ring_filter.apply = 0;
-
+pixel_filter_radius = [11 11]; % Increase only if blobs of zeros or other artefacts are expected. Can increase processing time heavily.
+par.raw_bin = 4;
+par.raw_roi = -4;
 
 
 par.scan_path = [raw_path 'hereon03_kit_iam_fe_crack_c']; ADD

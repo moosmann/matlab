@@ -261,15 +261,14 @@ SET_DEFAULT
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 raw_path = '/asap3/petra3/gpfs/p05/2024/data/11018827/raw/';
 
-par.raw_bin = 4;
-par.ring_current_normalization = 0; % normalize flat fields and projections by ring current
+par.raw_bin = 3;
+par.proj_range = 1;
+par.ring_current_normalization = 1;
 image_correlation.method = 'median'; 
 interactive_mode.rot_axis_pos = 1;
-interactive_mode.rot_axis_pos_default_search_range = []; % if empty: asks for search range when entering interactive mode
-interactive_mode.rot_axis_tilt = 1; % reconstruct slices with different offset AND tilts of the rotation axis
+interactive_mode.rot_axis_pos_default_search_range = []; 
+interactive_mode.rot_axis_tilt = 1; 
 interactive_mode.lamino = 0;
-write.reco = 1;
-
 
 par.scan_path = [raw_path '0000_CuS_FeS_fly_d80_m05_e35000']; ADD
 
@@ -307,7 +306,12 @@ par.scan_path = [raw_path '0017_L2N_10_prin']; ADD
 
 par.scan_path = [raw_path '0018_L5N_11_prin']; ADD
 
+tomo.rot_axis_tilt_camera = 0.0035;
+tomo.rot_axis_offset = 3 * 830/ par.raw_bin; %at 0.5
 par.scan_path = [raw_path '0019_cell1_CuFeS2_ocv']; ADD
+
+par.scan_path = '/data/hereon/wp/user/moosmanj/p05/2024/data/11018827/raw/0020_cell2_CuS_FeS_ocv';
+ADD
 
 par.scan_path = [raw_path '0020_cell2_CuS_FeS_ocv']; ADD
 
@@ -335,10 +339,21 @@ par.scan_path = [raw_path '0031_Cell8_FeS2_0p6_1stdis0p8V']; ADD
 
 par.scan_path = [raw_path '0032_Cell9_FeS2_0p1_1stdis0p8V']; ADD
 
+
+tomo.rot_axis_tilt_camera = 0.013;
+tomo.rot_axis_offset = 4 * 650.3 / par.raw_bin; %at 0.65
+tomo.rot_axis_offset = 4 * 649.75 / par.raw_bin; %at 0.5
 par.scan_path = [raw_path '0033_Cell1_CUFeS2_1stdis0p5V']; ADD
 
+tomo.rot_axis_tilt_camera = 0.0125;
+interactive_mode.lamino = 0;
+tomo.rot_axis_offset = 4 * 649.7 / par.raw_bin; %at 0.5
+tomo.rot_axis_offset = 4 * 650.65 / par.raw_bin; %at 0.7
+tomo.rot_axis_offset = 3 * 866.7/ par.raw_bin; %at 0.5
+tomo.rot_axis_offset = 3 * 867.65/ par.raw_bin; %at 0.7
 par.scan_path = [raw_path '0034_Cell2_CuS_FeS_1stdis0p5V']; ADD
 
+tomo.rot_axis_offset = 3 * 866.9/ par.raw_bin; %at 0.5
 par.scan_path = [raw_path '0035_Cell5_CuFeS2_50thch2p38V_0p5Nm']; ADD
 
 par.scan_path = [raw_path '0036_LClPre5N_7_1']; ADD
