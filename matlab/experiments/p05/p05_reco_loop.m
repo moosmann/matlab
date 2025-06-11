@@ -88,7 +88,7 @@ if ~isempty( SUBSETS ) && RUN_RECO == 1
         [~, name] = fileparts( external_parameter.par.scan_path );
         fprintf('\nRECONSTRUCTION OF DATA SET NUMBER %u : %s\n', num, name )
         
-        p05_reco( external_parameter )
+        p05_reco(external_parameter)
     end
     fprintf( '\nRECONSTRUCTION LOOP FINISHED')
 end
