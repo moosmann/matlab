@@ -108,16 +108,16 @@ if poolsize > 1
         
         % delete current pool and open new one
         if pflag
-            fprintf('\n')
+            %fprintf('\n')
             poolobj.delete;
             poolobj = parpool( poolsize);
         end
+        fprintf('\n')
     end
-    
     cd( cpath );
 end
 
 if poolsize > 1
-    fprintf( '\nParpool opened on %s using %u of %u workers', poolobj.Cluster.Profile, poolobj.NumWorkers, poolobj.Cluster.NumWorkers )
+    fprintf( 'Parpool opened on %s using %u of %u workers', poolobj.Cluster.Profile, poolobj.NumWorkers, poolobj.Cluster.NumWorkers )
     fprintf( ' in %.1f s (%.2f min)', toc - t, ( toc - t ) / 60 )
 end

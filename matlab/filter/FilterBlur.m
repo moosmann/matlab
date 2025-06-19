@@ -1,4 +1,4 @@
-function array = FilterBlur( array, median_neighborhood, disk_radius)
+function array = FilterBlur( array, neighborhood, disk_radius)
 % Blur image.
 %
 % array : 1-, 2-, or 3D.
@@ -9,7 +9,7 @@ function array = FilterBlur( array, median_neighborhood, disk_radius)
 
 %% Defaults %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 if nargin < 2
-    median_neighborhood = 3;
+    neighborhood = 3;
 end
 if nargin < 3
     disk_radius = 10;
@@ -18,12 +18,12 @@ end
 %% MAIN %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % Median
-if sum( median_neighborhood ) > 0
+if sum( neighborhood ) > 0
     
     dim = ndims( array );
-    if dim ~= numel( median_neighborhood )
+    if dim ~= numel( neighborhood )
         for nn = dim:-1:1
-            neighborhood(nn) = median_neighborhood(1);
+            neighborhood(nn) = neighborhood(1);
         end
     end
     

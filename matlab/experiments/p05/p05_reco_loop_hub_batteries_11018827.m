@@ -310,11 +310,12 @@ tomo.rot_axis_tilt_camera = 0.0035;
 tomo.rot_axis_offset = 3 * 830/ par.raw_bin; %at 0.5
 par.scan_path = [raw_path '0019_cell1_CuFeS2_ocv']; ADD
 
-par.scan_path = '/data/hereon/wp/user/moosmanj/p05/2024/data/11018827/raw/0020_cell2_CuS_FeS_ocv';
-ADD
-
+tomo.rot_axis_tilt_camera = 0.004;
+tomo.rot_axis_offset = 3 * 830.4/ par.raw_bin; %at 0.5
 par.scan_path = [raw_path '0020_cell2_CuS_FeS_ocv']; ADD
 
+tomo.rot_axis_tilt_camera = 0.004;
+tomo.rot_axis_offset = 3 * 829.7/ par.raw_bin; %at 0.5
 par.scan_path = [raw_path '0021_cell2_CuS_FeS_ocv']; ADD
 
 par.scan_path = [raw_path '0022_cell8_FeS2_0p6_1stdis_0p8V']; ADD

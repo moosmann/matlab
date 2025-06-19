@@ -509,11 +509,6 @@ if tomo.run || tomo.run_interactive_mode
                             if pos_larger_imsize
                                 fprintf('\nWARNING: rot axis pos larger than image dimension')
                             else
-
-
-
-
-
                                 cprintf( 'RED', '\n\nCross check tilt by correlation of projections 0 and pi rad: ' )
                                 fprintf( 'Registration of projection' )
                                 tomo.rot_axis_position = im_shape_cropbin1 / 2 + tomo.rot_axis_offset;
@@ -523,7 +518,7 @@ if tomo.run || tomo.run_interactive_mode
                                 if offset > 0
                                     rpos = s1/2 + offset;
                                     d = s1 - rpos;
-                                    pos = s1 - 2*d;
+                                    pos = round(s1 - 2*d);
                                     im1c = proj(pos:end,y,ind1);
                                     im2c = flipud(proj(pos:end,y,ind2));
                                 else

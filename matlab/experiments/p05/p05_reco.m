@@ -1431,7 +1431,7 @@ if ~par.read_flatcor && ~par.read_sino
     % read_image_par = read_image(filename,'',par.raw_roi,par.tif_info,par.im_shape_raw,par.dtype,par.im_trafo);
     %ref_names_mat = NameCellToMat(ref_names(par.ref_range));
     read_image_par = @(filename) read_image(filename,par);
-    % par loop refs 
+    % par loop refs
     parfor (nn = 1:num_ref_used,poolsize_max_gpu)
         % Read
         filename = ref_full_path{nn};
@@ -1528,10 +1528,10 @@ if ~par.read_flatcor && ~par.read_sino
                 drawnow
             end
         else
-            cprintf('Red','\nWARNING: Flat fields not normalized by ring current. Names read from directory and log-file are inconsistent.\n')
+            cprintf('Red','\n Flat fields not normalized by ring current. Names read from directory and log-file are inconsistent.')
         end
     else
-        cprintf('Red','\nWARNING: Flat fields not normalized by ring current.\n')
+        cprintf('Red','\n Flat fields not normalized by ring current.')
     end
     flat_min2 = min(flat(:));
     flat_max2 = max(flat(:));
@@ -1886,10 +1886,10 @@ if ~par.read_flatcor && ~par.read_sino
                 saveas(hrc,fig_filename);
             end
         else
-            cprintf('Red','\n WARNING: Projections not normalized by ring current. Names read from directory and log-file are inconsistent.\n')
+            cprintf('Red','\n WARNING: Projections not normalized by ring current. Names read from directory and log-file are inconsistent.')
         end
     else
-        cprintf('Red','\n WARNING: Projections not normalized by ring current.\n')
+        cprintf('Red','\n Projections not normalized by ring current.')
     end
     raw_min2 = min(proj(:));
     raw_max2 = max(proj(:));
@@ -2184,9 +2184,9 @@ if ~par.read_flatcor && ~par.read_sino
     if write.flatcor
         t = toc;
         fprintf('\nSave flat-corrected projections.')
-        CheckAndMakePath(flatcor_path_stitched,write.deleteFiles,write.beamtimeID)
+        CheckAndMakePath(flatcor_path,write.deleteFiles,write.beamtimeID)
         parfor nn = 1:size(proj,3)
-            filename = sprintf('%sproj_%s_%06u.tif',flatcor_path_stitched,scan_name,nn);
+            filename = sprintf('%sproj_%s_%06u.tif',flatcor_path,scan_name,nn);
             write32bitTIFfromSingle(filename,rot90(proj(:,:,nn)));
         end
         fprintf('\n duration : %.1f (%.2f min)',toc-t,(toc-t)/60)
@@ -2253,7 +2253,7 @@ tomo.angles = angles;
 tomo = find_rot_axis_offset_auto(tomo,proj,par,write,interactive_mode);
 %% Distortion correction
 if par.distortion_correction_distance ~= 0  && ~isempty(par.distortion_correction_outer_offset)
-    fprintf('\nLens correction')
+    fprintf('\nQuadratic distortion correction')
     t = toc;
     dist_offset = par.distortion_correction_distance;
     outer_offset = par.distortion_correction_outer_offset;
@@ -2262,7 +2262,7 @@ if par.distortion_correction_distance ~= 0  && ~isempty(par.distortion_correctio
     fprintf('\n distance: %.1f pixels',dist_offset)
     fprintf('\n rotation axis offset: %.1f pixels',tomo.rot_axis_offset)
     fprintf('\n outer rotation axis offset: %.1f pixels',outer_offset)
-    fprintf('\n rotation axis offset idfference: %.1f pixels',offset_diff)
+    fprintf('\n rotation axis offset difference: %.1f pixels',offset_diff)
     x = (1:size(proj,1)) - tomo.rot_axis_position;
     fprintf('\n orgiginal grid: x(rot axis pos) = %.1f',x(round(tomo.rot_axis_position)))
     % excentric rot axis left/right
@@ -2316,6 +2316,7 @@ if par.stitch_projections
     num_scan_pos = max(scan_position_index);
     % LATERAL SCANNING %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     if ~isscalar(offset_shift) && num_scan_pos > 1
+        error('Not yet implemented')
         m = angles == min(angles); % indices at same angle
         num_pos = sum(m);
         num_proj_sti = numel(angles) / num_pos;
@@ -2335,7 +2336,6 @@ if par.stitch_projections
         fprintf('\n image positions / pixel :')
         fprintf(' %f',im_pos_pix(m))
         pos_pix = im_pos_pix(m);
-
         pos_dist = pos_pix(2:end) - pos_pix(1:end-1);
         fprintf('\n distance between positions / pixel : ')
         fprintf(' %f ',pos_dist)
@@ -2350,7 +2350,6 @@ if par.stitch_projections
         proj_sti = zeros([im_shape_sti1,im_shape_binned2,num_proj_sti],'single');
         fprintf('\n projections stitched shape: %u %u %u',size(proj_sti))
         fprintf('\n projections sitchted memory allocated : %.2f GiB',Bytes(proj_sti,3))
-
         method = 'linear';
         ind = 1:size(proj,3);
         for nn = 1:num_proj_sti
@@ -2399,7 +2398,6 @@ if par.stitch_projections
                 plot(vec_norm)
                 axis tight
                 title('overlap positions')
-
             end
         end
         toc
@@ -2411,7 +2409,6 @@ if par.stitch_projections
         %angles = angles(1:num_proj_sti);
         tomo.angles = angles;
         clear proj_sti
-        %error('Not yet implemented')
     else
         % OFF-CENTERED ROTATION AXIS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         fprintf('\n stiching at rotation axis without interpolation.')
@@ -2433,128 +2430,127 @@ if par.stitch_projections
         fprintf('%12f',angles(num_proj_sti + (1:3))/pi*180)
         fprintf('\n  ')
         fprintf('%12u',num_proj_sti +(1:3))
-        switch tomo.rot_axis_offset >= 0
-            case 1
-                % index range of projections to be stitched
-                xl = 1:round(tomo.rot_axis_position);
-                xr = 1:xl(end)-1;
-                im_shape_sti1 = numel(xl) + numel(xr);
-                % Preallocation
-                proj_sti = zeros(im_shape_sti1,size(proj,2),num_proj_sti,'single');
-                for nn = 1:num_proj_sti
-                    nn2 = mod(num_proj_sti + nn,size(proj,3)) + 1;
-                    im = zeros(im_shape_sti1,size(proj,2));
-                    % overlap region
-                    overlap = round(2 * tomo.rot_axis_position) - im_shape_cropbin1 : im_shape_cropbin1;
-                    % overlap ramp
-                    x = (0:1/(numel(overlap)-1):1);
-                    % 1D weight
-                    w = ones(im_shape_cropbin1,1);
-                    % aligment weights to adjust gray values near overlap region
-                    if par.stitch_align_overlap > 0
-                        lo = min([floor(numel(overlap)/2),par.stitch_align_overlap]);
-                        xm = round(numel(overlap)/2);
-                        ml = mean2(proj(overlap(xm) + (-lo:0),:,nn));
-                        mr = mean2(proj(overlap(xm) + (-lo:0),:,nn2));
-                        mlr = (ml + mr) / 2;
-                    else
-                        ml = 1;
-                        mr = 1;
-                        mlr = 1;
-                    end
-                    switch lower(par.stitch_method)
-                        case 'step'
-                            im = cat(1,mlr / ml * proj(xl,:,nn),mlr / mr * flipud(proj(xr,:,nn2)));
-                            if nn == 1 || nn == num_proj_sti
-                                iml = mlr / ml * proj(:,:,nn);
-                                imr = flipud(mlr / mr * proj(:,:,nn2));
-                            end
-                        case 'linear'
-                            w(overlap) = 1 - x;
-                            % weighted projections
-                            iml = bsxfun(@times,mlr / ml * proj(:,:,nn),w);
-                            imr = flipud(bsxfun(@times,mlr / mr * proj(:,:,nn2),w));
-                            % stitched projection
-                            im(1:im_shape_cropbin1,:) = iml;
-                            im(end - im_shape_cropbin1 + 1:end,:) = im(end - im_shape_cropbin1 + 1:end,:) + imr;
-                        case 'sine'
-                            w1 = w;
-                            w2 = w;
-                            w1(overlap) = cos(pi/2*x).^2;
-                            w2(1:numel(overlap)) = sin(pi/2*x).^2;
-                            % weighted projections
-                            iml = bsxfun(@times,mlr / ml * proj(:,:,nn),w1);
-                            imr = bsxfun(@times,mlr / mr * flipud(proj(:,:,nn2)),w2);
-                            % stitched projection
-                            im(1:im_shape_cropbin1,:) = iml;
-                            im(end - im_shape_cropbin1 + 1:end,:) = im(end - im_shape_cropbin1 + 1:end,:) + imr;
-                    end
-                    proj_sti(:,:,nn) = im;
-                    if nn == 1 || nn == num_proj_sti
-                        if par.visual_output
-                            %%
-                            f = figure('Name',sprintf('Stitching projection %u',nn),'WindowState',window_state);
-                            % proj left
-                            subplot(2,2,1)
-                            imsc1(iml)
-                            title(sprintf('projection left %u,%f*pi rad',n,angles(nn)/pi))
-                            axis equal tight
-                            xticks([]),yticks([])
-                            % proj right
-                            subplot(2,2,2)
-                            imsc1(imr);
-                            title(sprintf('projection right %u,%f*pi rad',n,angles(nn)/pi))
-                            axis equal tight
-                            xticks([]),yticks([])
-                            % proj stitched
-                            subplot(2,2,3:4)
-                            imsc1(im);
-                            title(sprintf('projection stitched %u,%f*pi rad',n,angles(nn)/pi))
-                            axis equal tight
-                            xticks([]),yticks([])
-                            drawnow
-                            %%
-                            fig_filename = sprintf('%sfig%02u_%s.png',fig_path,f.Number,regexprep(f.Name,'\ |:','_'));
-                            saveas(f,fig_filename);
+        % rot axis pos right of center
+        if tomo.rot_axis_offset >= 0
+            % index range of projections to be stitched
+            xl = 1:round(tomo.rot_axis_position);
+            xr = 1:xl(end)-1;
+            im_shape_sti1 = numel(xl) + numel(xr);
+            % Preallocation
+            proj_sti = zeros(im_shape_sti1,size(proj,2),num_proj_sti,'single');
+            for nn = 1:num_proj_sti
+                nn2 = mod(num_proj_sti + nn,size(proj,3)) + 1;
+                im = zeros(im_shape_sti1,size(proj,2));
+                % overlap region
+                overlap = round(2 * tomo.rot_axis_position) - im_shape_cropbin1 : im_shape_cropbin1;
+                % overlap ramp
+                x = (0:1/(numel(overlap)-1):1);
+                % 1D weight
+                w = ones(im_shape_cropbin1,1);
+                % aligment weights to adjust gray values near overlap region
+                if par.stitch_align_overlap > 0
+                    lo = min([floor(numel(overlap)/2),par.stitch_align_overlap]);
+                    xm = round(numel(overlap)/2);
+                    ml = mean2(proj(overlap(xm) + (-lo:0),:,nn));
+                    mr = mean2(proj(overlap(xm) + (-lo:0),:,nn2));
+                    mlr = (ml + mr) / 2;
+                else
+                    ml = 1;
+                    mr = 1;
+                    mlr = 1;
+                end
+                switch lower(par.stitch_method)
+                    case 'step'
+                        im = cat(1,mlr / ml * proj(xl,:,nn),mlr / mr * flipud(proj(xr,:,nn2)));
+                        if nn == 1 || nn == num_proj_sti
+                            iml = mlr / ml * proj(:,:,nn);
+                            imr = flipud(mlr / mr * proj(:,:,nn2));
                         end
+                    case 'linear'
+                        w(overlap) = 1 - x;
+                        % weighted projections
+                        iml = bsxfun(@times,mlr / ml * proj(:,:,nn),w);
+                        imr = flipud(bsxfun(@times,mlr / mr * proj(:,:,nn2),w));
+                        % stitched projection
+                        im(1:im_shape_cropbin1,:) = iml;
+                        im(end - im_shape_cropbin1 + 1:end,:) = im(end - im_shape_cropbin1 + 1:end,:) + imr;
+                    case 'sine'
+                        w1 = w;
+                        w2 = w;
+                        w1(overlap) = cos(pi/2*x).^2;
+                        w2(1:numel(overlap)) = sin(pi/2*x).^2;
+                        % weighted projections
+                        iml = bsxfun(@times,mlr / ml * proj(:,:,nn),w1);
+                        imr = bsxfun(@times,mlr / mr * flipud(proj(:,:,nn2)),w2);
+                        % stitched projection
+                        im(1:im_shape_cropbin1,:) = iml;
+                        im(end - im_shape_cropbin1 + 1:end,:) = im(end - im_shape_cropbin1 + 1:end,:) + imr;
+                end
+                proj_sti(:,:,nn) = im;
+                if nn == 1 || nn == num_proj_sti
+                    if par.visual_output
+                        %%
+                        f = figure('Name',sprintf('Stitching projection %u',nn),'WindowState',window_state);
+                        % proj left
+                        subplot(2,2,1)
+                        imsc1(iml)
+                        title(sprintf('projection left %u,%f*pi rad',n,angles(nn)/pi))
+                        axis equal tight
+                        xticks([]),yticks([])
+                        % proj right
+                        subplot(2,2,2)
+                        imsc1(imr);
+                        title(sprintf('projection right %u,%f*pi rad',n,angles(nn)/pi))
+                        axis equal tight
+                        xticks([]),yticks([])
+                        % proj stitched
+                        subplot(2,2,3:4)
+                        imsc1(im);
+                        title(sprintf('projection stitched %u,%f*pi rad',n,angles(nn)/pi))
+                        axis equal tight
+                        xticks([]),yticks([])
+                        drawnow
+                        %%
+                        fig_filename = sprintf('%sfig%02u_%s.png',fig_path,f.Number,regexprep(f.Name,'\ |:','_'));
+                        saveas(f,fig_filename);
                     end
                 end
-            case 0
-                % index range of projections to be stitched
-                xr = round(tomo.rot_axis_position):im_shape_cropbin1;
-                xl = xr(1)+1:im_shape_cropbin1;
-                im_shape_sti1 = numel(xl) + numel(xr);
-                % Preallocation
-                proj_sti = zeros(im_shape_sti1,size(proj,2),num_proj_sti,'single');
-                for nn = 1:num_proj_sti
-                    nn2 = mod(num_proj_sti + nn,size(proj,3)) + 1;
-                    im = zeros(im_shape_sti1,size(proj,2));
-                    % overlap region
-                    overlap = 1:round(2 * tomo.rot_axis_position);
-                    % overlap ramp
-                    x = (0:1/(numel(overlap)-1):1);
-                    switch lower(par.stitch_method)
-                        case 'step'
-                            im = cat(1,flipud(proj(xl,:,nn2),proj(xr,:,nn)));
-                        case {'linear','sine'}
+            end
+        else                % index range of projections to be stitched
+            xr = round(tomo.rot_axis_position):im_shape_cropbin1;
+            xl = xr(1)+1:im_shape_cropbin1;
+            im_shape_sti1 = numel(xl) + numel(xr);
+            % Preallocation
+            proj_sti = zeros(im_shape_sti1,size(proj,2),num_proj_sti,'single');
+            for nn = 1:num_proj_sti
+                nn2 = mod(num_proj_sti + nn,size(proj,3)) + 1;
+                im = zeros(im_shape_sti1,size(proj,2));
+                % overlap region
+                overlap = 1:round(2 * tomo.rot_axis_position);
+                % overlap ramp
+                x = (0:1/(numel(overlap)-1):1);
+                switch lower(par.stitch_method)
+                    case 'step'
+                        im = cat(1,flipud(proj(xl,:,nn2),proj(xr,:,nn)));
+                    case {'linear','sine'}
 
-                            % 1D weight
-                            w = ones(im_shape_cropbin1,1);
-                            switch lower(par.stitch_method)
-                                case 'linear'
-                                    w(overlap) =  x;
-                                case 'sine'
-                                    w(overlap) = 0.5 - 0.5 * cos(pi*x);
-                            end
-                            % weighted projections
-                            imr = bsxfun(@times,proj(:,:,nn),w);
-                            iml = flipud(bsxfun(@times,proj(:,:,nn2),w));
-                            % stitched projection
-                            im(1:im_shape_cropbin1,:) = iml;
-                            im(end - im_shape_cropbin1 + 1:end,:) = im(end - im_shape_cropbin1 + 1:end,:) + imr;
-                    end
-                    proj_sti(:,:,nn) = im;
+                        % 1D weight
+                        w = ones(im_shape_cropbin1,1);
+                        switch lower(par.stitch_method)
+                            case 'linear'
+                                w(overlap) =  x;
+                            case 'sine'
+                                w(overlap) = 0.5 - 0.5 * cos(pi*x);
+                        end
+                        % weighted projections
+                        imr = bsxfun(@times,proj(:,:,nn),w);
+                        iml = flipud(bsxfun(@times,proj(:,:,nn2),w));
+                        % stitched projection
+                        im(1:im_shape_cropbin1,:) = iml;
+                        im(end - im_shape_cropbin1 + 1:end,:) = im(end - im_shape_cropbin1 + 1:end,:) + imr;
                 end
+                proj_sti(:,:,nn) = im;
+            end
         end
         proj = proj_sti;
         clear proj_sti;
@@ -2597,10 +2593,10 @@ if par.stitch_projections
     %% Write corrected projections
     if write.flatcor_stitched
         t = toc;
-        fprintf('\nSave flat-corrected projections.')
-        CheckAndMakePath(flatcor_path,write.deleteFiles,write.beamtimeID)
+        fprintf('\nSave stitched flat-corrected projections.')
+        CheckAndMakePath(flatcor_path_stitched,write.deleteFiles,write.beamtimeID)
         parfor nn = 1:size(proj,3)
-            filename = sprintf('%sproj_%s_%06u.tif',flatcor_path,scan_name,nn);
+            filename = sprintf('%sproj_%s_%06u.tif',flatcor_path_stitched,scan_name,nn);
             write32bitTIFfromSingle(filename,rot90(proj(:,:,nn)));
         end
         fprintf('\n duration : %.1f (%.2f min)',toc-t,(toc-t)/60)
@@ -3000,7 +2996,6 @@ if tomo.run
             fprintf('\n estimated GPU memory per reco : %g MiB',gpu_mem_requ_per_reco / 1024^2)
             fprintf('\n GPU poolsize limit factor : %g',par.poolsize_gpu_limit_factor)
             fprintf('\n GPU memory induced maximum poolsize : %u ',poolsize_max_astra)
-
             fprintf('\n Start (parallel) GPU reco: ')
             write_reco = write.reco;
             write_float =  write.float;
@@ -3054,7 +3049,7 @@ if tomo.run
                         h5write(h5_filename,'/volume',vol,start,count)
                 end
             end % parfor
-    fprintf(' \n tomo reco duration : %.1f s (%.2f min)',toc - ttomo,(toc - ttomo) / 60)
+            fprintf(' \n tomo reco duration : %.1f s (%.2f min)',toc - ttomo,(toc - ttomo) / 60)
     end
     %% Plot data transfer from/to workers
     if par.visual_output && exist('toc_bytes','var')
@@ -3111,13 +3106,14 @@ if tomo.run
         fprintf(fid,'MATLAB version : %s\n',version);
         fprintf(fid,'Git commit ID : %s\n',git_commit_id);
         fprintf(fid,'platform : %s\n',computer);
-
         fprintf(fid,'par.eff_pixel_size : %g micron\n',par.eff_pixel_size * 1e6);
         fprintf(fid,'par.eff_pixel_size_binned : %g micron\n',par.eff_pixel_size_binned * 1e6);
         fprintf(fid,'par.energy : %g eV\n',par.energy);
         fprintf(fid,'par.sample_detector_distance : %f m\n',par.sample_detector_distance);
         if exist('s_in_pos','var')
             fprintf(fid,'s_in_pos : %f',s_in_pos);
+        end
+        if exist('s_in_pos_mm','var')
             fprintf(fid,'s_in_pos_mm : %f',s_in_pos_mm);
         end
         if ~par.read_sino && ~par.read_flatcor
@@ -3264,15 +3260,12 @@ if tomo.run
     weblink1_url = 'https://www.nature.com/articles/nprot.2014.033';
     weblink1_name = sprintf('Moosmann et al,Nat Protoc 9,294 (2014): %s',weblink1_url);
     weblink1 = sprintf('<a href = "%s">%s</a>\n',weblink1_url,weblink1_name);
-
     weblink2_url = 'https://doi.org/10.5281/zenodo.5118737';
     weblink2_name = sprintf('github: %s',weblink2_url);
     weblink2 = sprintf('<a href = "%s">%s</a>\n',weblink2_url,weblink2_name);
-
     weblink3_url = 'https://www.astra-toolbox.com';
     weblink3_name = sprintf('ASTRA toolbox: %s',weblink3_url);
     weblink3 = sprintf('<a href = "%s">%s</a>\n',weblink3_url,weblink3_name);
-
     fprintf('\nCitations for data reconstruction:\n');
     fprintf(weblink1);
     fprintf(weblink2);
@@ -3289,5 +3282,4 @@ if tomo.run
     if ~strcmp(getenv('USER'),'moosmanj')
         clear vol proj;
     end
-
 end
