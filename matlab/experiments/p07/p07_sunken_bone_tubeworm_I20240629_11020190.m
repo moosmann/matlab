@@ -217,7 +217,7 @@ write.subfolder_flatcor = ''; % subfolder in 'flat_corrected'
 write.subfolder_phase_map = ''; % subfolder in 'phase_map'
 write.subfolder_sino = ''; % subfolder in 'sino'
 write.subfolder_reco = ''; % subfolder in 'reco'
-write.flatcor = 1; % save preprocessed flat corrected projections
+write.flatcor = 0; % save preprocessed flat corrected projections
 write.phase_map = 0; % save phase maps (if phase retrieval is not 0)
 write.sino = 0; % save sinograms (after preprocessing & before FBP filtering and phase retrieval)
 write.phase_sino = 0; % save sinograms of phase maps
@@ -261,7 +261,7 @@ par.gpu_index = []; % integer vector: indices of GPU devices to use, Matlab nota
 par.use_cluster = 0; % if available: on MAXWELL nodes disp/nova/wga/wgs cluster computation can be used. Recommended only for large data sets since parpool creation and data transfer implies a lot of overhead.
 par.use_gpu_in_parfor = 0; % boolean
 pixel_filter_sino.use_gpu = par.use_gpu_in_parfor;
-par.poolsize = 0.8; % scalar: number of workers used in a local parallel pool. if 0: use current config. if >= 1: absolute number. if 0 < poolsize < 1: relative amount of all cores to be used. if SLURM scheduling is available, a default number of workers is used.
+par.poolsize = 0.5; % scalar: number of workers used in a local parallel pool. if 0: use current config. if >= 1: absolute number. if 0 < poolsize < 1: relative amount of all cores to be used. if SLURM scheduling is available, a default number of workers is used.
 par.poolsize_gpu_limit_factor = 0.5; % scalar: elative amount of GPU memory used for preprocessing during parloop. High values speed up Proprocessing, but increases out-of-memory failure
 phase_retrieval.use_parpool = 1; % bool. Disable parpool when out-of-memory error occurs during phase retrieval.
 par.window_state = 'minimized';'normal';'maximized';
@@ -273,6 +273,7 @@ SET_DEFAULT
 %% PARAMETER / DATA SETS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+scan_path = '/asap3/petra3/gpfs/p07/2024/data/11020190/raw/';
 proc_path = '/asap3/petra3/gpfs/p07/2024/data/11020190/processed/';
 
 ring_filter.apply = 1;
@@ -314,7 +315,6 @@ pixel_filter_sino.filter_NaN = 1;
 pixel_filter_sino.verbose = 0;
 pixel_filter_sino.use_gpu = par.use_gpu_in_parfor;
 ring_filter.apply = 1;
-interactive_mode.rot_axis_pos = 1;
 phase_retrieval.apply = 0;
 ADD
 
@@ -327,10 +327,95 @@ phase_retrieval.apply = 1;
 par.scan_path = [proc_path  'fsuj008_sbr_bone_lat_1'];
 par.nexus_path = [regexprep(par.scan_path,'processed','raw') '__a_0'];
 par.read_sino_folder = 'trans02_180';
-write.uint16 = 1;
-write.uint8 = 1; 
+write.uint16 = 0;
+write.uint8 = 0; 
 ADD
-par.scan_path
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+interactive_mode.rot_axis_pos = 0;
+
+par.read_sino = 0; 
+par.distortion_correction_distance = 0;
+par.distortion_correction_exponent = 2;
+par.raw_bin = 2;
+par.proj_range = 1;
+phase_retrieval.apply = 0;
+par.stitch_projections = 1;
+par.stitch_method =  'step';
+
+interactive_mode.rot_axis_tilt = 0; 
+interactive_mode.lamino = 0;
+
+par.scan_path = [scan_path 'fsuj004_sbr_bone_mid__a'];
+write.subfolder_reco = '';
+
+%% Check distcor
+% tomo.rot_axis_offset = 2 * 1179.000 / par.raw_bin;
+% par.distortion_correction_distance = 1740;
+% par.distortion_correction_outer_offset = 1181.500;
+% write.subfolder_reco = 'distCor_plus0';
+% ADD
+% 
+% par.distortion_correction_outer_offset = 1181.500 + 2;
+% write.subfolder_reco = 'distCor_plus2';
+% ADD
+% 
+% par.distortion_correction_outer_offset = 1181.500 + 4;
+% write.subfolder_reco = 'distCor_plus4';
+% ADD
+% 
+% par.distortion_correction_outer_offset = 1181.500 + 6;
+% write.subfolder_reco = 'distCor_plus6';
+% ADD
+% 
+% par.distortion_correction_outer_offset = 1181.500 + 8;
+% write.subfolder_reco = 'distCor_plus8';
+% ADD
+
+%% Check vertshift
+% No global improvement can be seen
+
+% write.subfolder_reco = 'vertShift_0';
+% ADD
+% N = 10000;
+% tomo.vert_shift = 1 * (0:N-1)/(N-1);
+% write.subfolder_reco = 'vertShift_1pos';
+% ADD
+% tomo.vert_shift = 2 * (0:N-1)/(N-1);
+% write.subfolder_reco = 'vertShift_2pos';
+% ADD
+% tomo.vert_shift = -1 * (0:N-1)/(N-1);
+% write.subfolder_reco = 'vertShift_1neg';
+% ADD
+% tomo.vert_shift = -2 * (0:N-1)/(N-1);
+% write.subfolder_reco = 'vertShift_2neg';
+% ADD
+%% Stack
+write.subfolder_reco = '';
+par.distortion_correction_distance = 1740;
+par.distortion_correction_outer_offset = 1181.500;
+par.distortion_correction_outer_offset = 1184.500 ;
+tomo.rot_axis_offset = 2 * 1179.000 / par.raw_bin;
+par.scan_path = [scan_path 'fsuj004_sbr_bone_mid__a'];
+ADD
+interactive_mode.rot_axis_pos = 1;
+
+par.scan_path = [scan_path 'fsuj004_sbr_bone_mid__b'];
+tomo.rot_axis_offset = 2 * 1179.0 / par.raw_bin;
+ADD
+
+par.scan_path = [scan_path 'fsuj004_sbr_bone_mid__c'];
+tomo.rot_axis_offset = 2 * 1179.1 / par.raw_bin;
+ADD
+
+par.scan_path = [scan_path 'fsuj004_sbr_bone_mid__d'];
+tomo.rot_axis_offset = 2 * 1179.25 / par.raw_bin;
+ADD
+
+par.scan_path = [scan_path 'fsuj004_sbr_bone_mid__e'];
+tomo.rot_axis_offset = 2 * 1179.25 / par.raw_bin;
+ADD
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

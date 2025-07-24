@@ -40,6 +40,7 @@ function [fourier_filter, parameter_string] = PhaseFilter(method, filter_size, e
 %
 % energy_distance_pixelsize : 1x3-vector. Default: [20e3 0.945 .75e-6].
 %   Energy in eV, Distance in m, Pixelsize in m.
+%   if imaginary interpreted as Fresnel number.
 %
 % regularization_parameter : scalar,  default: 2.5. Phase retrieval is
 %   regularized according: 
@@ -103,12 +104,18 @@ switch ~isempty(strInd)
 %% Standard phase retrieval %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     case 0
 %% Parameter
-Energy    = energy_distance_pixelsize(1);
-Distance  = energy_distance_pixelsize(2);
-Pixelsize = energy_distance_pixelsize(3);
+if isreal(energy_distance_pixelsize)
+    Energy    = energy_distance_pixelsize(1);
+    Distance  = energy_distance_pixelsize(2);
+    Pixelsize = energy_distance_pixelsize(3);
+    lambda    = 6.62606896e-34*299792458/(Energy/1000*1.60217733e-16);
+    ArgPrefac = pi*lambda*Distance/Pixelsize^2;
+
+else
+    ArgPrefac = pi / abs(energy_distance_pixelsize);
+end
+
 % wave length
-lambda    = 6.62606896e-34*299792458/(Energy/1000*1.60217733e-16);
-ArgPrefac = pi*lambda*Distance/Pixelsize^2;
 
 %% Fourier coordinates
 % 1D
@@ -122,9 +129,13 @@ sinArg = ArgPrefac*(xi2.^2 + eta2.^2);
 %% Filter 
 switch lower(method)
     case 'tie'
-        %fourier_filter = 1/2./(sinArg + 10^-regularization_parameter);        
-        fourier_filter = 1/2*sign(sinArg)./(abs(sinArg)+10^-regularization_parameter);                
-        parameter_string = sprintf('tie_regPar%3.2f',regularization_parameter);
+        %fourier_filter = 1/2./(sinArg + 10^-regularization_parameter);
+        fourier_filter = 1/2*sign(sinArg)./(abs(sinArg)+10^-regularization_parameter);
+        if regularization_parameter < 0
+            parameter_string = sprintf('tie_regPar_m%05.2f',abs(regularization_parameter));
+        else
+            parameter_string = sprintf('tie_regPar_p%05.2f',regularization_parameter);
+        end
     case 'ctf'
         sinxiquad   = sin(sinArg);
         fourier_filter = 1/2*sign(sinxiquad)./(abs(sinxiquad)+10^-regularization_parameter);        

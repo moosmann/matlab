@@ -56,17 +56,15 @@ end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% DEFAULT PARAMETERS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-p = '/beegfs/desy/user/moosmanj/spider_hair/flat_field_corr';
 
 %%% SCAN %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-par.scan_path = p;
+
 par.ref_path = {}; % cell of strings. Additonal data sets to be included for the correlation of projections and reference images
 par.nexus_path = ''; % string, absolute path to h5 file
 par.read_flatcor = 1; % read preprocessed flatfield-corrected projections. CHECK if negative log has to be taken!
-par.read_flatcor_path = p; % absolute path containing flat-field corrected projections
-par.read_flatcor_range = 4; % scalar or vector. range of flatcorrected projections to be read
+par.read_flatcor_range = 1; % scalar or vector. range of flatcorrected projections to be read
 par.read_flatcor_bin = 1; % Binning of flat-corrected projections
-par.read_flatcor_trafo = @(im) FilterPixel(Binning(im(100:end-100,100:end-100),4)); %fliplr( im ); % anonymous function applied to the image which is read e.g. @(x) rot90(x)
+par.read_flatcor_trafo = @(im) im;
 par.read_sino = 0; % read preprocessed sinograms. CHECK if negative log has to be taken!
 par.read_sino_folder = ''; % subfolder to scan path
 par.read_sino_trafo = @(x) (x);%rot90(x); % anonymous function applied to the image which is read e.g. @(x) rot90(x)
@@ -80,9 +78,6 @@ pixel_filter_sino.filter_dead_pixel = 1;
 pixel_filter_sino.filter_Inf = 1;
 pixel_filter_sino.filter_NaN = 1;
 pixel_filter_sino.verbose = 0;
-par.energy = 11000; % eV! if empty: read from log file (log file values can be ambiguous or even missing sometimes)
-par.sample_detector_distance = 0.0789; % in m. if empty: read from log file
-par.eff_pixel_size = 26e-9; % in m. if empty: read from log lfile. effective pixel size =  detector pixel size / magnification
 par.pixel_scaling = []; % to account for mismatch of eff_pixel_size with, ONLY APPLIED BEFORE TOMOGRAPHIC RECONSTRUCTION, HAS TO BE CHANGED!
 par.read_image_log = 0; % bool, default: 0. Read metadata from image log instead hdf5, if image log exists
 par.read_filenames_from_disk = 0; % only for stepscans with tiff subfolders
@@ -203,7 +198,6 @@ tomo.rot_axis_offset_metric_roi = []; % 4-vector: [. ROI for metric calculation.
 tomo.rot_axis_search_slice = []; % scalar: slice used to find rot axis. if empty: uses slice from interactive mode, if that is empty uses central slice.
 tomo.rot_axis_search_range_from_interactive = 0; % boolean: use search range from interactive mode
 %%% OUTPUT %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-write.path = '/beegfs/desy/user/moosmanj/spider_hair/reco_jm'; %'/gpfs/petra3/scratch/moosmanj'; % string. absolute path were output data will be stored. !!overwrites the write.to_scratch flag. if empty uses the beamtime directory and either 'processed' or 'scratch_cc'
 write.to_scratch = 0; % write to 'scratch_cc' instead of 'processed'
 write.deleteFiles = 0; % delete files already existing in output folders. Useful if number or names of files differ when reprocessing.
 write.beamtimeID = ''; % string (regexp),typically beamtime ID, mandatory if 'write.deleteFiles' is true (safety check)
@@ -268,6 +262,31 @@ SET_DEFAULT
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% PARAMETER / DATA SETS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+p = '/data/hereon/wp/user/moosmanj/spider_hair/flat_field_corr';
+tomo.rot_axis_offset = -16.75;
+
+p = '/data/hereon/wp/group/phase/spider_hair/tomo';
+tomo.rot_axis_offset = -5.5;
+
+
+par.read_flatcor_path = p; % absolute path containing flat-field corrected projections
+pout = '/data/hereon/wp/group/phase/spider_hair/reco_jm';
+par.scan_path = pout;
+write.parfolder = '';
+%'/data/hereon/wp/user/moosmanj/spider_hair/reco_jm';
+write.phase_map = 1;
+tomo.rot_axis_offset = -16.75;
+phase_retrieval.apply = 1;
+phase_retrieval.apply_before = 1;
+phase_retrieval.reg_par = 2.0;
+interactive_mode.phase_retrieval = 0;
+interactive_mode.rot_axis_pos = 0;
+ring_filter.apply = 0;
+par.energy = 11000; 
+par.sample_detector_distance = 0.0789; 
+par.eff_pixel_size = 4 * 26e-9; 
+
 
 ADD
 

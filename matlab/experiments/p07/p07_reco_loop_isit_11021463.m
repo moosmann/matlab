@@ -319,7 +319,7 @@ par.scan_path = [raw_path 'isit005_3_2_a']; ADD
 
 % sample probably moved
 tomo.rot_axis_offset = 5 * 553.0 / par.raw_bin;
-l
+
 tomo.rot_axis_offset = 5 * 553.5 / par.raw_bin;
 par.scan_path = [raw_path 'isit006_4_2_a']; ADD
 

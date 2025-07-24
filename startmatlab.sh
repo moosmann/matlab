@@ -51,7 +51,8 @@ echo -e 'IMAGEJ_MACROS:' $IMAGEJ_MACROS
 echo -e 'GIT_COMMIT_ID:' $GIT_COMMIT_ID
 echo -e 'Starting MATLAB.\n'
 
-ulimit -u 16000
+ulimit -u 23741
+limit maxproc 23741
 touch  $HOME/.matlab/startml
 #matlab_$MATLAB_VERSION -nosoftwareopengl
 #matlab_$MATLAB_VERSION -softwareopengl

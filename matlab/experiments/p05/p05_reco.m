@@ -262,7 +262,7 @@ write.uint16 = 0; % save 16bit unsigned integer tiff using 'write.compression_me
 write.uint8 = 0; % save binned 8bit unsigned integer tiff using 'write.compression_method'
 % Optionally save binned reconstructions,only works in '3D' reco_mode
 write.float_binned = 0; % save binned single precision (32-bit float) tiff
-write.uint16_binned = 0; % save binned 16bit unsigned integer tiff using 'write.compression_method'
+write.uint16_binned = 0; % save binned 16bit unsigned integer tiff using 'write.comression_method'
 write.uint8_binned = 0; % save binned 8bit unsigned integer tiff using 'wwrite.compression_method'
 write.reco_binning_factor = 2; % IF BINNED VOLUMES ARE SAVED: binning factor of reconstructed volume
 write.compression_method = 'outlier';'histo';'full'; 'std'; 'threshold'; % method to compress dynamic range into [0,1]
@@ -1372,20 +1372,20 @@ if ~par.read_flatcor && ~par.read_sino
     end
     % Median/Mean dark
     dark_median = squeeze(median(dark(:,:,darks_to_use),3));
-    dark_mean = squeeze(mean(dark(:,:,darks_to_use),3));
+    %dark_mean = squeeze(mean(dark(:,:,darks_to_use),3));
     dark_med_min = min(dark(:));
     dark_med_max = max(dark(:));
     dark = dark_median;
     % Binned dark
     dark_median_binned = 1 / raw_bin^2 * Binning(dark_median,raw_bin);
-    dark_mean_binned = 1 / raw_bin^2 * Binning(dark_mean,raw_bin);
+    %dark_mean_binned = 1 / raw_bin^2 * Binning(dark_mean,raw_bin);
     fprintf('\n duration : %.1f s',toc-t)
     fprintf('\n min/max of all darks : %g %g',darks_min,darks_max);
     fprintf('\n min/max of median dark : %g %g',dark_med_min,dark_med_max);
     % Save dark
     CheckAndMakePath(im_path3)
     write32bitTIFfromSingle(sprintf('%sdark_median_binned.tif',im_path3),rot90(dark_median_binned))
-    write32bitTIFfromSingle(sprintf('%sdark_mean_binned.tif',im_path3),rot90(dark_mean_binned))
+    %write32bitTIFfromSingle(sprintf('%sdark_mean_binned.tif',im_path3),rot90(dark_mean_binned))
     % Fig: raw + dark field
     if par.visual_output
         h1 = figure('Name','data and flat-and-dark-field correction','WindowState',window_state);
@@ -1918,11 +1918,6 @@ if ~par.read_flatcor && ~par.read_sino
     % Save projections
     CheckAndMakePath(im_path1)
     CheckAndMakePath(im_path2)
-    write32bitTIFfromSingle(sprintf('%sproj_dark_subtracted_beamcurrent_corrected_binned_%06u.tif',im_path3,1),rot90(proj(:,:,1)))
-    write32bitTIFfromSingle(sprintf('%sproj_dark_subtracted_beamcurrent_corrected_binned_%06u.tif',im_path3,size(proj,3)),rot90(proj(:,:,end)));
-    write32bitTIFfromSingle(sprintf('%sproj_dark_subtracted_beamcurrent_corrected_binned_mean1.tif',im_path1),squeeze(mean(proj,1)));
-    write32bitTIFfromSingle(sprintf('%sproj_dark_subtracted_beamcurrent_corrected_binned_mean2.tif',im_path2),squeeze(mean(proj,2)));
-    write32bitTIFfromSingle(sprintf('%sproj_dark_subtracted_beamcurrent_corrected_binned_mean3.tif',im_path3),rot90(squeeze(mean(proj,3))));
     %% Figure: image correlation roiference
     if par.visual_output && ~strcmp(image_correlation.method,'none')
         if exist('h_corr_roi','var') && isvalid(h_corr_roi)
@@ -1962,9 +1957,11 @@ if ~par.read_flatcor && ~par.read_sino
     proj_min0 = min(proj(:));
     proj_max0 = max(proj(:));
     fprintf('\n global min/max after flat-field corrected:  %6g %6g',proj_min0,proj_max0);
-    write32bitTIFfromSingle(sprintf('%sproj_flatcorrected_binned_mean3.tif',im_path3),rot90(squeeze(mean(proj,3))));
-    write32bitTIFfromSingle(sprintf('%sproj_flatcorrected_binned_mean2.tif',im_path2),squeeze(mean(proj,2)));
-    write32bitTIFfromSingle(sprintf('%sproj_flatcorrected_binned_mean1.tif',im_path1),squeeze(mean(proj,1)));
+    write32bitTIFfromSingle(sprintf('%sproj_flatcorrected_first_%06u.tif',im_path3,1),rot90(proj(:,:,1)))
+    write32bitTIFfromSingle(sprintf('%sproj_flatcorrected_last_%06u.tif',im_path3,size(proj,3)),rot90(proj(:,:,end)));
+    write32bitTIFfromSingle(sprintf('%sproj_flatcorrected_mean1.tif',im_path1),squeeze(mean(proj,1)));
+    write32bitTIFfromSingle(sprintf('%sproj_flatcorrected_mean2.tif',im_path2),squeeze(mean(proj,2)));
+    write32bitTIFfromSingle(sprintf('%sproj_flatcorrected_mean3.tif',im_path3),rot90(squeeze(mean(proj,3))));
     %% Filter strong/full absorption (combine with iterative reco methods)
     if par.strong_abs_thresh < 1
         strong_abs_thresh = par.strong_abs_thresh;
@@ -2025,6 +2022,10 @@ if ~par.read_flatcor && ~par.read_sino
     angles321 = a(end-4:end);
     fprintf('\n angles / pi: %f %f %f ... %f %f %f %f %f ',angles123/pi,angles321/pi)
     fprintf('\n angles: %f * (%.1f %.1f %.1f ... %.1f %.1f %.1f %.1f %.1f)',da,angles123/da,angles321/da)
+    if a(end) - a(1) > 1.1*pi
+        [~,ind12] = min(abs(angles - pi));
+        write32bitTIFfromSingle(sprintf('%sproj_flatcorrected_middle_%06u.tif',im_path3,ind12),fliplr(rot90(proj(:,:,ind12))))
+    end
     % Figure: Angles
     if par.visual_output
         name = 'Angles';
@@ -2266,6 +2267,7 @@ if par.distortion_correction_distance ~= 0  && ~isempty(par.distortion_correctio
     x = (1:size(proj,1)) - tomo.rot_axis_position;
     fprintf('\n orgiginal grid: x(rot axis pos) = %.1f',x(round(tomo.rot_axis_position)))
     % excentric rot axis left/right
+    rao = tomo.rot_axis_offset;
     if tomo.rot_axis_offset > 0
         xq = x - 2 * offset_diff * abs(x / dist_offset).^exponent;
         fprintf('\n query grid:    xq(rot axis pos) = %.1f',xq(round(tomo.rot_axis_position)))
@@ -2273,6 +2275,8 @@ if par.distortion_correction_distance ~= 0  && ~isempty(par.distortion_correctio
         fprintf('\n query grid:    xq(rot axis pos - dist offset) = %.1f',xq(round(tomo.rot_axis_position - dist_offset)))
         % Only correct from the rot axis pos to farther image edge
         xq(x>0) = x(x>0);
+        % extrapolation
+        o = double(ceil((x(1) - xq(1))));% max(x-xq);
     else
         xq = x + 2 * offset_diff * abs(x / dist_offset).^exponent;
         fprintf('\n query grid:    xq(rot axis pos) = %.1f',xq(round(tomo.rot_axis_position)))
@@ -2280,6 +2284,7 @@ if par.distortion_correction_distance ~= 0  && ~isempty(par.distortion_correctio
         fprintf('\n query grid:    xq(rot axis pos + dist offset) = %.1f',xq(round(tomo.rot_axis_position + dist_offset)))
         % Only correct from the rot axis pos to farther image edge
         xq(x<0) = x(x<0);
+        o = double(ceil((xq(end) - x(end))));% max(x-xq);
     end
     if par.visual_output
         f = figure('Name','distortion correction','WindowState',window_state);
@@ -2293,7 +2298,22 @@ if par.distortion_correction_distance ~= 0  && ~isempty(par.distortion_correctio
     end
     parfor nn = 1:size(proj,3)
         im = proj(:,:,nn);
-        imc = interp1(x,im,xq,'linear',1);
+        % imc = interp1(x,im,xq,'linear',1);
+        if o > 0
+            if rao > 0
+                % extend support vector
+                xo = [(x(1) + (-o:-1)),x];
+                %pad image for extended vector
+                imo = padarray(im,[o 0],'symmetric','pre');
+            else
+                %% TO BE TESTED
+                xo = [x,(x(end) + (1:o))];
+                imo = padarray(im,[o 0],'symmetric','post');
+            end
+            imc = interp1(xo,imo,xq,'linear');
+        else
+            imc = interp1(x,im,xq,'linear');
+        end
         proj(:,:,nn) = imc;
     end
     if par.visual_output

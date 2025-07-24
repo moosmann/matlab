@@ -598,6 +598,7 @@ if write.phase_map
     t = toc;
     fprintf( '\nSave phase maps:')
     phase_map_path = [write.phase_map_path, phase_appendix, filesep];
+    fprintf('\n %s',phase_map_path)
     CheckAndMakePath( phase_map_path );
     % Save phase maps
     parfor nn = 1:size( proj, 3)

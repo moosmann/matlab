@@ -280,7 +280,7 @@ par.scan_path = [raw_path 'csic001_T94L0_1_m2m1_z1350mm_103keV_fast']; ADD
 
 % OK KIT
 par.scan_path = [raw_path 'csic002_T94L0_1_m3_z1350mm_103keV_roi']; ADD
-
+write.to_scratch = 1;
 % reco OK, but proj at 0/2pi differ
 par.scan_path = [raw_path 'csic003_T94L0_1_m2_m3_a0']; ADD
 par.scan_path = [raw_path 'csic003_T94L0_1_m2_m3_a1']; ADD
@@ -314,7 +314,7 @@ par.scan_path = [raw_path 'csic010_T94L0_m3_distal_fly']; ADD
 
 % strong movement
 tomo.reco_mode = '3D';'slice';
-interactive_mode.rot_axis_tilt = 1;
+interactive_mode.rot_axis_tilt = 0;
 tomo.run = 1; % run tomographic reconstruction
 
 par.scan_path = [raw_path 'csic011_T94L0_1_m3_distal_al']; ADD
@@ -339,6 +339,13 @@ par.scan_path = [raw_path 'csic014_T94L0_1_m3_distal_ar']; ADD
 % very noisy, so noisy potential movement cannot be seen
 par.scan_path = [raw_path 'csic014_T94L0_1_m3_distal_br']; ADD
 par.scan_path = [raw_path 'csic014_T94L0_1_m3_distal_cr']; ADD
+
+phase_retrieval.apply = 1;
+interactive_mode.phase_retrieval = 1;
+phase_retrieval.reg_par = 1.0;
+
+
+ADD
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
