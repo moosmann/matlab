@@ -1,70 +1,71 @@
-%% Paths
 % TODO: adapt for cases where there is another matlab folder already in use
 
-% User path
+%% User search path
 startup_file =  mfilename('fullpath');
 userpath( fileparts( startup_file ) );
-% Search path
 addpath( genpath( [ userpath filesep 'matlab'] ) );
 
-% Print info
-user = getenv('USER');
-hostname = getenv('HOSTNAME');
-fprintf('USER : %s', user );
-fprintf('\nHOSTNAME : %s', hostname );
-fprintf('\nstartup file : %s.m', startup_file )
-fprintf('\nuserpath : %s', userpath );
-fprintf('\nCUDA_PATH : %s', getenv('CUDA_PATH') );
-
-%% ASTRA
+%% ASTRA search path
 ASTRA_PATH = getenv('ASTRA_PATH');
 astra_path = [ ASTRA_PATH '/matlab'];
-fprintf('\nASTRA_PATH : %s', ASTRA_PATH );
 addpath( genpath( astra_path ) );
-fprintf('\nAdd ASTRA path : %s', astra_path );
 astra_samples_path = getenv('ASTRA_SAMPLES_PATH');
-fprintf('\nAdd ASTRA samples path : %s', astra_samples_path );
 addpath( genpath( astra_samples_path ) );
 
-%% MATLAB path
-fprintf('\nMATLAB_PATH : %s', getenv('MATLAB_PATH') );
-fprintf('\nMATLABPATH : %s', getenv('MATLABPATH') );
-fprintf('\nMATLAB_USER_PATH : %s', getenv('MATLAB_USER_PATH') );
+if isempty(getCurrentTask())
 
-%% ImageJ
-fprintf('\nIMAGEJ : %s', getenv('IMAGEJ') );
-fprintf('\nIMAGEJ_MACROS : %s', getenv('IMAGEJ_MACROS') );
-%addpath(genpath(imagej_matlab)); % Update for your ImageJ2 (or Fiji) installation as appropriate ImageJ;
+    %% User info
+    user = getenv('USER');
+    hostname = getenv('HOSTNAME');
+    fprintf('USER : %s', user );
+    fprintf('\nHOSTNAME : %s', hostname );
+    fprintf('\nstartup file : %s.m', startup_file )
+    fprintf('\nuserpath : %s', userpath );
+    fprintf('\nCUDA_PATH : %s', getenv('CUDA_PATH') );
 
-%% Git repository version
-%fprintf('\nGit commit ID : %s', git_commit_id );
+    %% ASTRA info
+    fprintf('\nASTRA_PATH : %s', ASTRA_PATH );
+    fprintf('\nAdd ASTRA path : %s', astra_path );
+    fprintf('\nAdd ASTRA samples path : %s', astra_samples_path );
 
-%% Default figure properties
-% Set default color map to grayscale instead of jet
-set(groot,'DefaultFigureColormap', gray)
-%set(groot,'DefaultFigureGraphicsSmoothing','off')
-%set( groot,'DefaultFigureRenderer','painter')
+    %% MATLAB path
+    fprintf('\nMATLAB_PATH : %s', getenv('MATLAB_PATH') );
+    fprintf('\nMATLABPATH : %s', getenv('MATLABPATH') );
+    fprintf('\nMATLAB_USER_PATH : %s', getenv('MATLAB_USER_PATH') );
 
-%% Core info
-%[~, ulim] = unix('ulimit -u;');
-fprintf('\nulimit -u :')
-unix('ulimit -u;');
-fprintf( evalc('feature(''numcores'');') );
-%fprintf('\n')
+    %% ImageJ
+    fprintf('\nIMAGEJ : %s', getenv('IMAGEJ') );
+    fprintf('\nIMAGEJ_MACROS : %s', getenv('IMAGEJ_MACROS') );
+    %addpath(genpath(imagej_matlab)); % Update for your ImageJ2 (or Fiji) installation as appropriate ImageJ;
 
-%% Time to start
-d = dir('~/.matlab/startml');
-%t0 = second(datetime(d.datenum,'ConvertFrom','datenum'));
-t0 = datetime(d.date);
-t1 = datetime('now');
-dt = t1 - t0;
-fprintf('Startup time: %s',dt)
+    %% Default figure properties
+    % Set default color map to grayscale instead of jet
+    %set(groot,'DefaultFigureColormap', gray)
+    %set(groot,'DefaultFigureColormap', stern_special)
+    %set(groot,'DefaultFigureGraphicsSmoothing','off')
+    %set( groot,'DefaultFigureRenderer','painter')
 
-fprintf('\n')
+    %% Number of cores
+    %[~, ulim] = unix('ulimit -u;');
+    fprintf('\nulimit -u :')
+    unix('ulimit -u;');
+    fprintf( evalc('feature(''numcores'');') );
+    %fprintf('\n')
 
-fprintf('Rendererinfo:\n')
-disp(rendererinfo)
+    % %% Render info
+    % fprintf('Rendererinfo:\n')
+    % disp(rendererinfo)
 
-gpuDevice(gpuDeviceCount);
+        %% Git repository version
+    %fprintf('\nGit commit ID : %s', git_commit_id );
 
-fprintf('\n')
+    %% Time to start
+    d = dir('~/.matlab/startml');
+    t0 = datetime(d.date);
+    t1 = datetime('now');
+    dt = t1 - t0;
+    fprintf('Startup time: %s',dt)
+
+    fprintf('\n')
+end
+

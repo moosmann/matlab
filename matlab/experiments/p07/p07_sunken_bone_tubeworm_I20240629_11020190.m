@@ -60,7 +60,6 @@ end
 % Define parameter here. Otherwise parameters are taken from the current
 % version of 'p05_reco' if not set in the section below.
 
-
 %%% SCAN %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 par.scan_path = pwd; % string/pwd. pwd: change to directory of the scan to be reconstructed, string: absolute scan path, last_folder_modified('folder')
 par.ref_path = {}; % cell of strings. Additonal data sets to be included for the correlation of projections and reference images
@@ -84,7 +83,7 @@ pixel_filter_sino.filter_Inf = 1;
 pixel_filter_sino.filter_NaN = 1;
 pixel_filter_sino.verbose = 0;
 par.energy = []; % eV! if empty: read from log file (log file values can be ambiguous or even missing sometimes)
-par.sample_detector_distance = 0.15; % in m. if empty: read from log file
+par.sample_detectostr_distance = 0.15; % in m. if empty: read from log file
 par.eff_pixel_size = []; % in m. if empty: read from log lfile. effective pixel size =  detector pixel size / magnification
 par.pixel_scaling = []; % to account for mismatch of eff_pixel_size with, ONLY APPLIED BEFORE TOMOGRAPHIC RECONSTRUCTION, HAS TO BE CHANGED!
 par.read_image_log = 0; % bool, default: 0. Read metadata from image log instead hdf5, if image log exists
@@ -259,9 +258,9 @@ interactive_mode.show_stack_imagej_use_virtual = 0; % use virtual stack for fast
 tomo.astra_link_data = 1; % boolean: ASTRA data objects become references to Matlab arrays. Reduces memory issues.
 par.gpu_index = []; % integer vector: indices of GPU devices to use, Matlab notation: index starts from 1. default: [], uses all
 par.use_cluster = 0; % if available: on MAXWELL nodes disp/nova/wga/wgs cluster computation can be used. Recommended only for large data sets since parpool creation and data transfer implies a lot of overhead.
-par.use_gpu_in_parfor = 0; % boolean
+par.use_gpu_in_parfor = 1; % boolean
 pixel_filter_sino.use_gpu = par.use_gpu_in_parfor;
-par.poolsize = 0.5; % scalar: number of workers used in a local parallel pool. if 0: use current config. if >= 1: absolute number. if 0 < poolsize < 1: relative amount of all cores to be used. if SLURM scheduling is available, a default number of workers is used.
+par.poolsize = 50; % scalar: number of workers used in a local parallel pool. if 0: use current config. if >= 1: absolute number. if 0 < poolsize < 1: relative amount of all cores to be used. if SLURM scheduling is available, a default number of workers is used.
 par.poolsize_gpu_limit_factor = 0.5; % scalar: elative amount of GPU memory used for preprocessing during parloop. High values speed up Proprocessing, but increases out-of-memory failure
 phase_retrieval.use_parpool = 1; % bool. Disable parpool when out-of-memory error occurs during phase retrieval.
 par.window_state = 'minimized';'normal';'maximized';
@@ -273,7 +272,7 @@ SET_DEFAULT
 %% PARAMETER / DATA SETS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-scan_path = '/asap3/petra3/gpfs/p07/2024/data/11020190/raw/';
+raw_path = '/asap3/petra3/gpfs/p07/2024/data/11020190/raw/';
 proc_path = '/asap3/petra3/gpfs/p07/2024/data/11020190/processed/';
 
 ring_filter.apply = 1;
@@ -289,6 +288,19 @@ write.parfolder = '';
 write.outputformat = 'tif';
 par.verbose = 1;
 
+par.scan_path = [raw_path  'fsuj003_sbr_bone_mid_fast_z900'];
+write.to_scratch = 1;
+par.use_gpu_in_parfor = 0;
+par.raw_bin = 4;
+interactive_mode.rot_axis_pos = 0; 
+tomo.rot_axis_offset = 2 * 1182.000 / par.raw_bin;
+ADD
+
+par.scan_path = [raw_path  'fsuj002_sbr_bone_mid_fast_z600'];
+tomo.rot_axis_offset = 2 * 1182.000 / par.raw_bin;
+ADD
+
+write.to_scratch = 0;
 par.distortion_correction_distance = 2389;
 par.distortion_correction_distance = 1656;
 par.distortion_correction_distance = 0;
@@ -331,7 +343,6 @@ write.uint16 = 0;
 write.uint8 = 0; 
 ADD
 
-
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 interactive_mode.rot_axis_pos = 0;
 
@@ -347,7 +358,7 @@ par.stitch_method =  'step';
 interactive_mode.rot_axis_tilt = 0; 
 interactive_mode.lamino = 0;
 
-par.scan_path = [scan_path 'fsuj004_sbr_bone_mid__a'];
+par.scan_path = [raw_path 'fsuj004_sbr_bone_mid__a'];
 write.subfolder_reco = '';
 
 %% Check distcor
@@ -397,24 +408,123 @@ par.distortion_correction_distance = 1740;
 par.distortion_correction_outer_offset = 1181.500;
 par.distortion_correction_outer_offset = 1184.500 ;
 tomo.rot_axis_offset = 2 * 1179.000 / par.raw_bin;
-par.scan_path = [scan_path 'fsuj004_sbr_bone_mid__a'];
+par.scan_path = [raw_path 'fsuj004_sbr_bone_mid__a'];
 ADD
 interactive_mode.rot_axis_pos = 1;
 
-par.scan_path = [scan_path 'fsuj004_sbr_bone_mid__b'];
+par.scan_path = [raw_path 'fsuj004_sbr_bone_mid__b'];
 tomo.rot_axis_offset = 2 * 1179.0 / par.raw_bin;
 ADD
 
-par.scan_path = [scan_path 'fsuj004_sbr_bone_mid__c'];
+par.scan_path = [raw_path 'fsuj004_sbr_bone_mid__c'];
 tomo.rot_axis_offset = 2 * 1179.1 / par.raw_bin;
 ADD
 
-par.scan_path = [scan_path 'fsuj004_sbr_bone_mid__d'];
+par.scan_path = [raw_path 'fsuj004_sbr_bone_mid__d'];
 tomo.rot_axis_offset = 2 * 1179.25 / par.raw_bin;
 ADD
 
-par.scan_path = [scan_path 'fsuj004_sbr_bone_mid__e'];
-tomo.rot_axis_offset = 2 * 1179.25 / par.raw_bin;
+par.scan_path = [raw_path 'fsuj004_sbr_bone_mid__e'];
+tomo.rot_axis_offset = 2 * 1179.65 / par.raw_bin;
+ADD
+
+
+%% fsuj005_sbr_bone_mid
+% looks fine
+
+%% fsuj006_sbr_bone_mid
+par.distortion_correction_distance = 0;
+interactive_mode.phase_retrieval = 0;
+interactive_mode.rot_axis_pos = 0;
+
+
+par.scan_path = [proc_path  'fsuj006_sbr_bone_mid'];
+par.nexus_path = [regexprep(par.scan_path,'processed','raw') '__a'];
+par.read_sino = 1; 
+par.read_sino_folder = 'trans02_180';
+par.read_sino_trafo = @(x) (x);
+par.sino_roi = []; 
+par.read_sino_range = [];
+par.filter_sino = 1;
+par.stitch_projections = 0;
+pixel_filter_sino.threshold_hot = 0;0.0005;
+pixel_filter_sino.threshold_dark = 0;0.00005;
+pixel_filter_sino.medfilt_neighboorhood = [3 3];
+pixel_filter_sino.filter_dead_pixel = 1;
+pixel_filter_sino.filter_Inf = 1;
+pixel_filter_sino.filter_NaN = 1;
+pixel_filter_sino.verbose = 0;
+pixel_filter_sino.use_gpu = par.use_gpu_in_parfor;
+ring_filter.apply = 1;
+phase_retrieval.apply = 0;
+write.subfolder_reco = ''; 
+tomo.rot_axis_offset = 2 * 0 / par.raw_bin;
+tomo.vol_size = [-0.7 0.7 -0.7 0.7 -0.5 0.5];
+ADD
+
+%% fsuj009_sco_whale_2
+par.read_sino = 0; 
+par.scan_path = [raw_path 'fsuj009_sco_whale_2__a_0'];
+tomo.vol_size = [-0.5 0.5 -0.5 0.5 -0.5 0.5];
+interactive_mode.rot_axis_pos = 1;
+tomo.rot_axis_offset = 2 * -1179 / par.raw_bin;
+ADD
+
+par.scan_path = [raw_path 'fsuj009_sco_whale_2__a_1'];
+tomo.rot_axis_offset = 2 * 1179.5 / par.raw_bin;
+ADD
+
+par.scan_path = [raw_path 'fsuj009_sco_whale_2__e_0'];
+tomo.rot_axis_offset = 2 * -1179.5 / par.raw_bin;
+ADD
+
+par.scan_path = [raw_path 'fsuj009_sco_whale_2__e_1'];
+tomo.rot_axis_offset = 2 * 1180.0 / par.raw_bin;
+ADD
+
+
+par.scan_path = [raw_path 'fsuj009_sco_whale_2__j_0'];
+tomo.rot_axis_offset = 2 * -1179.0 / par.raw_bin;
+ADD
+
+par.scan_path = [raw_path 'fsuj009_sco_whale_2__j_1'];
+tomo.rot_axis_offset = 2 * 1778.5 / par.raw_bin;
+ADD
+
+
+par.scan_path = [raw_path 'fsuj009_sco_whale_2__o_0'];
+tomo.rot_axis_offset = 2 * -1182.5 / par.raw_bin;
+ADD
+
+par.scan_path = [raw_path 'fsuj009_sco_whale_2__o_1'];
+tomo.rot_axis_offset = 2 * 1178.0 / par.raw_bin;
+ADD
+
+par.scan_path = [raw_path 'fsuj009_sco_whale_2__u_0'];
+tomo.rot_axis_offset = 2 * -1180.0 / par.raw_bin;
+ADD
+
+par.scan_path = [raw_path 'fsuj009_sco_whale_2__u_1'];
+tomo.rot_axis_offset = 2 * 1178.0  / par.raw_bin;
+interactive_mode.rot_axis_pos = 0;
+ADD
+
+interactive_mode.rot_axis_pos = 1;
+%% fsuj011_sco_whale_3
+par.scan_path = [raw_path 'fsuj011_sco_whale_3__e_0']; % almost no sample
+tomo.rot_axis_offset = 2 * [] / par.raw_bin;
+ADD
+
+par.scan_path = [raw_path 'fsuj011_sco_whale_3__a_0']; % no sample
+tomo.rot_axis_offset = 2 * [] / par.raw_bin;
+ADD
+
+par.scan_path = [raw_path 'fsuj011_sco_whale_3__h_0']; % almost no sample
+tomo.rot_axis_offset = 2 * -1181.0 / par.raw_bin;
+ADD
+
+par.scan_path = [raw_path 'fsuj011_sco_whale_3__h_1']; % almost no sample
+tomo.rot_axis_offset = 2 * -1181.0 / par.raw_bin;
 ADD
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

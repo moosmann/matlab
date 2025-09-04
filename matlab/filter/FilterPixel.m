@@ -38,7 +38,7 @@ function [im_int, threshold_hot, threshold_dark] = FilterPixel( im_int, par, gpu
 %
 % [im, thresholds, percentages] = FilterPixelGPU( im, par )
 
-warning( 'off', 'parallel:gpu:device:DeviceDeprecated' )
+%warning( 'off', 'parallel:gpu:device:DeviceDeprecated' )
 
 %% Default arguments %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 if nargin < 2
@@ -186,7 +186,6 @@ if use_gpu
 else
     im_int = im(mfnh1+1:end-mfnh1,mfnh2+1:end-mfnh2) ;
 end
-clear im im_med mask
 
 %% Print info
 if verbose
@@ -227,3 +226,15 @@ if verbose
     fprintf( '\n Elapsed time : %g s', t  )
     fprintf( '\n' )
 end
+
+clear im im_med mask R
+if exist('R_sorted','var')
+    clear R_sorted
+end
+if exist('im_mean2','var')
+    clear im_mean2
+end
+if use_gpu
+    clear num_dead num_hot num_NaN num_dark num_pix
+end
+

@@ -38,7 +38,7 @@ end
 t = toc;
 cluster_poolsize = 250; % max 256
 
-if strcmp(par_env,'local') && ~verLessThan('matlab','9.13.0')
+if strcmp(par_env,'local')
     par_env = 'Processes';
 end
 

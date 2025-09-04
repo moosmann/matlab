@@ -48,7 +48,9 @@ end
 fprintf('\n')
 
 %% Phase map
-n = 31;
+n = 33;
+rp = 1.4;
+
 name = sprintf('phase_tie_regpar%3.1f',rps(n));
 name = regexprep(name,'\.','p');
 fn = sprintf('%s/%s.tif',pout,name);

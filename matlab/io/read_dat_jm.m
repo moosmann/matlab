@@ -72,10 +72,10 @@ end
 switch type
     case 'F'
         cl = 'single'; %(float32)
-        byt = 2;
+        byt = 4;
     case 'D'
         cl = 'double';
-        byt = 4;
+        byt = 8;
     case 'U'
         cl = 'uint16';
         byt = 2;
@@ -83,7 +83,11 @@ switch type
         cl = 'uint32';
         byt = 4;
     case 'I'
-        byt = 'int16';
+        cl = 'int16';
+        byt = 2;
+    case 'B'
+        cl = 'uint8';
+        byt = 1;
     otherwise
         error(['Data type not supported:' type]);
 end

@@ -36,7 +36,7 @@ export GIT_COMMIT_ID=$(git rev-parse HEAD)
 export LD_LIBRARY_PATH=/software/libglvnd/1.7.0/lib:$LD_LIBRARY_PATH
 
 
-echo -e 'Set environment variables:'
+echo -e 'Setting environment variables:'
 echo -e 'TZ:' $TZ
 echo -e 'PATH:' $PATH
 echo -e 'LD_LIBRARY_PATH:' $LD_LIBRARY_PATH

@@ -451,7 +451,14 @@ phase_retrieval.use_parpool = 1;
 ADD
 phase_retrieval.apply = 0;
 
+%%
 
+par.scan_path = [proc_path 'itaw009_427a_ut_1569_pp'];
+par.nexus_path = '/asap3/petra3/gpfs/p07/2024/data/11020415/raw/itaw009_427a_ut_1569_pp_a_0';
+/asap3/petra3/gpfs/p07/2024/data/11020415/scratch_cc/kulvait_swapaxes/trans02_180_swp
+
+
+%%
 
 % %% itaw020_tu_6b_uh_cc
 % interactive_mode.rot_axis_pos = 1;

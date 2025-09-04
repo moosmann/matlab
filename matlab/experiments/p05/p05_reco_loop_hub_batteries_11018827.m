@@ -306,6 +306,9 @@ par.scan_path = [raw_path '0017_L2N_10_prin']; ADD
 
 par.scan_path = [raw_path '0018_L5N_11_prin']; ADD
 
+interactive_mode.rot_axis_pos = 1; 
+
+
 tomo.rot_axis_tilt_camera = 0.0035;
 tomo.rot_axis_offset = 3 * 830/ par.raw_bin; %at 0.5
 par.scan_path = [raw_path '0019_cell1_CuFeS2_ocv']; ADD
@@ -318,6 +321,8 @@ tomo.rot_axis_tilt_camera = 0.004;
 tomo.rot_axis_offset = 3 * 829.7/ par.raw_bin; %at 0.5
 par.scan_path = [raw_path '0021_cell2_CuS_FeS_ocv']; ADD
 
+tomo.rot_axis_offset = 3 * 830.3/ par.raw_bin; %at 0.5 center
+tomo.rot_axis_offset = 3 * 831.2/ par.raw_bin; %at 0.5 boundary
 par.scan_path = [raw_path '0022_cell8_FeS2_0p6_1stdis_0p8V']; ADD
 
 par.scan_path = [raw_path '0023_cell9_FeS2_0p1_OCV']; ADD

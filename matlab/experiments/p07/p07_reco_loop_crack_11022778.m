@@ -282,12 +282,13 @@ par.scan_path = [raw_path 'hereon02_kit_iam_fe_crack_a']; ADD
 
 par.scan_path = [raw_path 'hereon03_kit_iam_fe_crack_a']; ADD
 
+tomo.rot_axis_offset = 2.2 * 2 / par.raw_bin ;
 par.scan_path = [raw_path 'hereon03_kit_iam_fe_crack_b']; ADD
 par.strong_abs_thresh = 0.001;
 write.flatcor = 1; 
 tomo.take_neg_log = 1; 
 ring_filter.apply = 0;
-pixel_filter_radius = [11 11]; % Increase only if blobs of zeros or other artefacts are expected. Can increase processing time heavily.
+pixel_filter_radius = [11 11];
 par.raw_bin = 4;
 par.raw_roi = -4;
 
@@ -310,7 +311,6 @@ par.scan_path = [raw_path 'hereon04_kit_iam_fe_crack_g']; ADD
 
 par.scan_path = [raw_path 'hereon04_kit_iam_fe_crack_h']; ADD
 
-par.scan_path = [raw_path 'hereon_p07_2025_04']; ADD
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

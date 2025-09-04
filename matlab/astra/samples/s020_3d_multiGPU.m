@@ -22,7 +22,7 @@ y = 3460;
 z = 1100;
 vol_geom = astra_create_vol_geom(x, y, z);
 
-angles = linspace2(0, pi, 10001);
+angles = linspace2(0, pi, 1001);
 proj_geom = astra_create_proj_geom('parallel3d', 1.0, 1.0, 3460, 1100, angles);
 
 % Create a simple hollow cube phantom
