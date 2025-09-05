@@ -3140,7 +3140,7 @@ if tomo.run
         fprintf(fid,'MATLAB version : %s\n',version);
         fprintf(fid,'git commit ID : %s\n',git_commit_id);
         fprintf(fid,'platform : %s\n',computer);
-        fprintf(fid,'gpu : %s',gpuDevice().Name);
+        fprintf(fid,'GPUs : %s',gpuDevice().Name);
         fprintf(fid,'\n\nParamters\n');
         fprintf(fid,formattedDisplayText(par));
         fprintf(fid,'\nImage correlation\n');
