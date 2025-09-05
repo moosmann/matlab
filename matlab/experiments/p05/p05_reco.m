@@ -38,59 +38,17 @@ dbstop if error
 % Just copy parameter and set quick switch to 1
 par.quick_switch = 1;
 
-par.scan_path = pwd;%'/asap3/petra3/gpfs/p07/2025/data/11022778/raw/hereon01_kit_iam_fe_crack_a';
-par.raw_bin = 5;
-par.raw_roi = [0.45 .55];
-par.proj_range = 4;%[1:2000,4001:6000];
+par.scan_path = '/asap3/petra3/gpfs/p05/2025/data/11022558/raw/mar_060_SYAC1904';
+par.raw_bin = 4;
+par.raw_roi = [0.2 .8];
+par.proj_range = 2;
 tomo.reco_mode = '3D';'slice';
 image_correlation.method = 'median';'ssim-ml';
 write.flatcor = 0;
 phase_retrieval.apply = 0;
-phase_retrieval.apply_before = 0;
-phase_retrieval.reg_par = 1;
-interactive_mode.phase_retrieval = 0;
-%par.ref_range = 1:100;
-write.subfolder_reco = '';
-pixel_filter_sino.medfilt_neighboorhood = [5 5];
-par.ring_current_normalization = 0;
 interactive_mode.rot_axis_pos = 1;
-interactive_mode.rot_axis_tilt = 0;
-% par.read_filenames_from_disk = 1; % only for stepscans with tiff subfolders
-% par.eff_pixel_size = 1;
-% par.eff_pixel_size_binned = 2;
-% par.sample_detector_distance = 1;
-% par.energy =  1;
-% tomo.rot_angle_full_range = pi;
-%par.angles = (0:5001)/5001*pi;
-tomo.vol_shape = []; %[1 1 1]
-interactive_mode.slice_number = 0.5; % default slice number. if in [0,1): relative,if in (1,N]: absolute
-tomo.vol_size = [-1 1 -1 1 -0.5 0.5];% 6-component vector [xmin xmax ymin ymax zmin zmax] for excentric rot axis pos or extended FoV;. if empty,volume is centerd within tomo.vol_shape. unit voxel size is assumed. if smaller than 10 values are interpreted as relative size w.r.t. the detector size. Take care bout minus signs! Note that if empty vol_size is dependent on the rotation axis position.
-
-tomo.rot_axis_search_auto = 0; % find extrema of metric within search range
-% search reach for automatic determination of the rotation axis offset,overwrite interactive result if not empty
-%tomo.rot_axis_search_range = 0.5 + (-4:0.25:4); % at 2x
-tomo.rot_axis_search_range= 0.0 + (-2:0.2:2); % at 3x
-tomo.rot_axis_search_metric = 'entropy'; % string: 'neg','entropy','iso-grad','laplacian','entropy-ML','abs'. Metric to find rotation axis offset
-tomo.rot_axis_search_extrema = 'max'; % string: 'min'/'max'. chose min or maximum position
-tomo.rot_axis_search_fit = 0; % bool: fit calculated metrics and find extrema,otherwise use extrema from search range
-tomo.rot_axis_offset_metric_roi = []; % 4-vector: ROI for metric calculation. roi = [y0,x0,y1-y0,x1-x0]. (x,y)=(0,0)=upper left
-tomo.rot_axis_search_slice = []; % scalar: slice used to find rot axis. if empty: uses slice from interactive mode,if that is empty uses central slice.
-tomo.rot_axis_search_range_from_interactive = 0; % boolean: use search range from interactive mode
-par.visual_output = 1; % show images and plots during reconstruction
-% par.read_sino = 1;
-% par.raw_bin = 1;
-% par.scan_path = '/home/moosmanj/beamtimeid/processed/scan';
-% par.read_filenames_from_disk = 1; % only for stepscans with tiff subfolders
-% par.sample_detector_distance = 1;
-% par.energy =  1;
-% par.eff_pixel_size = 3;
-% par.eff_pixel_size_binned = 6;
-% tomo.rot_angle_full_range = pi;
-% par.filter_sino = 0;
-% tomo.take_neg_log = 0;
-% ring_filter.apply = 0;
-% write.path = '/home/moosmanj/scan/reco/';
-
+write.to_scratch = 1; 
+write.parfolder = 'test'; 
 % END OF QUICK SWITCH TO ALTERNATIVE SET OF PARAMETERS %%%%%%%%%%%%%%%%%%%%
 
 pp_parameter_switch % DO NOT DELETE OR EDIT THIS LINE %%%%%%%%%%%%%%%%%%%%%
@@ -276,7 +234,7 @@ write.compression_parameter = [0.02 0.02]; % compression-method specific paramet
 write.uint8_segmented = 0; % experimental: threshold segmentaion for histograms with 2 distinct peaks: __/\_/\__
 write.outputformat = 'tif';'hdf_volume'; % string. Not yet implemented for all reco modes
 %%% INTERACTION %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-par.visual_output = 0; % show images and plots during reconstruction
+par.visual_output = 1; % show images and plots during reconstruction
 interactive_mode.rot_axis_pos = 1; % reconstruct slices with dif+ferent rotation axis offsets
 interactive_mode.rot_axis_pos_default_search_range = []; % if empty: asks for search range when entering interactive mode
 interactive_mode.rot_axis_tilt = 0; % reconstruct slices with different offset AND tilts of the rotation axis
@@ -367,6 +325,7 @@ imlogcell = [];
 scan_position_index = [];
 par.raw_data = 0;
 par.verbose = verbose;
+par.s_in_pos_mm = 0;
 
 % Parameter checks
 if ~phase_retrieval.apply
