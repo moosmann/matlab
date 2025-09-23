@@ -24,6 +24,7 @@ function [s, vol] = stitch_volumes( scan_path, scan_subfolder, reco_subfolder, s
 % vol : stitched volume array
 %
 % Written by J. Moosmann
+dbstop if error
 
 %% ARGUMENTS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 tic
@@ -170,10 +171,14 @@ for nn = 1:num_scans
         if sum( [t{:}] )
             cc = textscan( c{ll}, '%*s : %u %u');
             %im_shape_raw = [ cc{1} cc{2} ];
+            if  isempty(cc{1})
+                cc = textscan( c{ll}, '%*s [%u %u]');
+            end
             im_shape_raw = [cc{:}];
             break
         end
     end
+    im_shape_raw = double(im_shape_raw);
     s(nn).im_shape_raw = im_shape_raw;
     
     % Binning factor
@@ -182,12 +187,18 @@ for nn = 1:num_scans
         t = regexp( c{ll}, {'raw_bin', 'raw_binning_factor', 'raw_binning'} );
         %if t
         if sum( [t{:}] )
-            cc = textscan( c{ll}, '%*s : %u %u');
-            %bin = [ cc{1} cc{2} ];
-            bin = [cc{:}];
-            break
+            cc = textscan( c{ll}, '%*s : %u');            
+            bin = cc{:};
+            if isempty(bin)
+                cc = textscan( c{ll}, '%*s %u');
+                bin = cc{:};
+            end
+            if ~isempty(bin)
+                break
+            end
         end
     end
+    bin = double(bin);
     s(nn).bin = bin;
     
     % ROI
@@ -196,6 +207,14 @@ for nn = 1:num_scans
         if t
             cc = textscan( c{ll}, '%*s : %u %u');
             raw_roi = [ cc{1} cc{2} ];
+            if isempty(cc)
+                cc = textscan(c{ll},'%*s %u %u');
+            end
+            if isempty(cc)
+                cc = textscan(c{ll},'%*s %s');
+                isequal(cc{1}{1},'[]');
+                raw_roi = [];
+            end
             break
         end
     end
@@ -220,6 +239,14 @@ for nn = 1:num_scans
     % Scan log
     scan_log = [regexprep( full_path, 'processed', 'raw' ) filesep name 'scan.log'];
     if ~exist( scan_log, 'file' )
+        d = dir([regexprep( full_path, 'processed', 'raw' ) '*'] );
+        if ~isempty(d)
+            p = [d(1).folder filesep d(1).name];
+            d = dir([p filesep '*scan.log']);
+            scan_log = [d.folder filesep d.name];
+        end
+    end
+    if ~exist( scan_log, 'file' )
         fprintf( '\nScan log not found!\n' )
         break
     end
@@ -228,8 +255,9 @@ for nn = 1:num_scans
     cell_of_lines = cell_of_lines{1};
     fclose( fid );
     s(nn).scan_log = scan_log;
-    
+
     % s_stage_z
+    s_stage_z = [];
     for ll = 1:numel( cell_of_lines )
         t = regexp( cell_of_lines{ll}, 's_stage_z' );
         if t
@@ -237,6 +265,11 @@ for nn = 1:num_scans
             s_stage_z = str2double( cc{1}{2} ) * 1000;
             break
         end
+    end
+    if isempty(s_stage_z)
+        d = dir([p filesep '*nexus.h5']);
+        h5_log = [d.folder filesep d.name];
+        s_stage_z = 1000*h5read(h5_log,'/entry/scan/setup/s_stage_z');
     end
     s(nn).s_stage_z = s_stage_z;
     % Print parameters
@@ -282,6 +315,26 @@ end
 fprintf( '\nSample movement direction: %s', dirstr );
 s(1).top2bottom = top2bottom;
 s(1).stitch_order = stitch_order;
+
+
+%% Normalize overlap
+fprintf( '\nNormalizing volumes');
+normalize_overlap = 20;
+if normalize_overlap
+    z = normalize_overlap;
+    if top2bottom
+        for nn = 1:num_scans -1
+           m1 = mean3(s(nn).vol(:,:,1:z));
+           m2 = mean3(s(nn+1).vol(:,:,end-z:end));
+           for mm = 1:nn
+               s(mm).vol = (m1 + m2) / (2 * m1) * s(mm).vol;
+           end
+           s(nn+1).vol = (m1 + m2) / (2 * m2) * s(nn+1).vol;
+        end
+    end
+end
+
+
 %% Absolute positions %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 fprintf( '\nAbsolute positions: ' )
 for nn = 1:num_scans
@@ -732,11 +785,11 @@ for nn = 1:num_scans - 1
         yzstitch = rot90( cat( 2, imy1, imy2 ), -1 );
     end
     subplot(1,2,1)
-    imsc( xzstitch )
+    imsc( FilterHisto(xzstitch ))
     axis equal tight
     title( 'xz plane' )
     subplot(1,2,2)
-    imsc( yzstitch )
+    imsc( FilterHisto(yzstitch ))
     axis equal tight
     title( 'yz plane' )
     drawnow
@@ -763,6 +816,7 @@ for nn = 1:num_scans
     s(nn).zstitch_range = z1:z2;
     fprintf( '\n %2u. vol: %5u, %5u (of %5u)', nn, z1, z2, s(nn).size(3) )
 end
+
 %% Save stitched volume
 CheckAndMakePath(stitched_volume_path)
 % if ~iscell( scan_path2 )

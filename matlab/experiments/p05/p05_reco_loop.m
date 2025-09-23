@@ -25,15 +25,24 @@ end
 %% Main %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 fprintf( '\nDATA SETS:')
 for nn = 1:numel( PARAMETER_CELL)
-    [~, name] = fileparts( PARAMETER_CELL{nn}.par.scan_path );
-    fprintf('\n%3u : %s', nn, name )
+    if ~iscell(PARAMETER_CELL{nn}.par.scan_path)
+        [~, name] = fileparts( PARAMETER_CELL{nn}.par.scan_path );
+        fprintf('\n%3u : %s', nn, name )
+    else
+        c = PARAMETER_CELL{nn}.par.scan_path;
+        fprintf('\n%3u :', nn )
+        for mm = 1:numel(c)
+            [~, name] = fileparts(c{mm});
+            fprintf(' %s',name )
+        end
+    end
 end
-
 if ~isempty(SUBSETS)
     fprintf( '\n\nTO BE RECONSTRUCTED:')
     for nn = 1:numel( SUBSETS )
         num = SUBSETS(nn);
         external_parameter = PARAMETER_CELL{num};
+        c = external_parameter.par.scan_path;
         [~, name] = fileparts( external_parameter.par.scan_path );
         if ~isempty(PRINT_PARAMETERS)
             if nn == 1
@@ -73,7 +82,15 @@ if ~isempty(SUBSETS)
                 end
             end
         else
-            fprintf('\n%3u : %s', num, name )
+            if ~iscell(name)
+                fprintf('\n%3u : %s', num, name )
+            else
+                fprintf('\n%3u :',num)
+                for mm = 1:numel(c)
+                    [~, name] = fileparts(c{mm});
+                    fprintf(' %s',name )
+                end
+            end
         end
     end
 end
@@ -83,11 +100,20 @@ if ~isempty( SUBSETS ) && RUN_RECO == 1
     fprintf( '\n\nSTART LOOPING \n')
     for nn = 1:numel( SUBSETS )
         num = SUBSETS(nn);
-        
         external_parameter = PARAMETER_CELL{num};
+        c = external_parameter.par.scan_path;
         [~, name] = fileparts( external_parameter.par.scan_path );
-        fprintf('\nRECONSTRUCTION OF DATA SET NUMBER %u : %s\n', num, name )
-        
+        if ~iscell(name)
+            fprintf('\nRECONSTRUCTION OF DATA SET NUMBER %u : %s\n', num, name )
+        else
+            fprintf('\nRECONSTRUCTION OF DATA SET NUMBER %u :', num )
+            for mm = 1:numel(c)
+                [~, name] = fileparts(c{mm});
+                fprintf(' %s',name )
+            end
+            fprintf('\n')
+        end
+
         p05_reco(external_parameter)
     end
     fprintf( '\nRECONSTRUCTION LOOP FINISHED')

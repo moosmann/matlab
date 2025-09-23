@@ -1,12 +1,64 @@
-function [proj_names, ref_names, ref_full_path, dark_names, par] =  pp_get_filenames( par )
+function [proj_names,proj_full_path, ref_names,ref_full_path, dark_names,dark_full_path, par] =  pp_get_filenames( par )
 % Get filenames from disk
 
 scan_path = par.scan_path;
 ref_path = par.ref_path;
+% proj_names = [];
+% dark_names = [];
+% ref_names = [];
+if ~iscell(scan_path)
+    h5log = dir( sprintf('%s*_nexus.h5', scan_path) );
+    h5log = [h5log.folder filesep h5log.name];
+    % images
+    stimg_name.value = unique( h5read( h5log, '/entry/scan/data/image_file/value') );
+    stimg_name.time = h5read( h5log,'/entry/scan/data/image_file/time');
+    stimg_key.value = h5read( h5log,'/entry/scan/data/image_key/value');
+    stimg_key.time = double( h5read( h5log,'/entry/scan/data/image_key/time') );
+
+    % File names
+    proj_names = stimg_name.value(stimg_key.value==0)';
+    ref_names = stimg_name.value(stimg_key.value==1)';
+    dark_names = stimg_name.value(stimg_key.value == 2 )';
+
+    ref_full_path = cellfun( @(a) [scan_path filesep a], ref_names, 'UniformOutput', 0 );
+else
+    dark_names = {};
+    dark_full_path = {};
+    ref_names = {};
+    ref_full_path = {};
+    proj_names = {};
+    proj_full_path = {};
+    for n = 1:numel(scan_path)
+
+        h5log = dir( sprintf('%s*_nexus.h5', scan_path{n}) );
+        h5log = [h5log.folder filesep h5log.name];
+        % images
+        stimg_name.value = unique( h5read( h5log, '/entry/scan/data/image_file/value') );
+        stimg_name.time = h5read( h5log,'/entry/scan/data/image_file/time');
+        stimg_key.value = h5read( h5log,'/entry/scan/data/image_key/value');
+        stimg_key.time = double( h5read( h5log,'/entry/scan/data/image_key/time') );
+
+        % File names
+        dark_names_n = stimg_name.value(stimg_key.value == 2)';
+        dark_names = cat(2,dark_names,dark_names_n);
+        dark_full_path = cat(2,dark_full_path,cellfun( @(a) [scan_path{n} filesep a], dark_names_n, 'UniformOutput',0));
+        
+        ref_names_n = stimg_name.value(stimg_key.value==1)';
+        ref_names = cat(2,ref_names,ref_names_n);
+        ref_full_path = cat(2,ref_full_path,cellfun( @(a) [scan_path{n} filesep a], ref_names_n, 'UniformOutput',0));
+        
+        proj_names_n = stimg_name.value(stimg_key.value==0)';
+        proj_names = cat(2,proj_names,proj_names_n);
+        proj_full_path = cat(2,proj_full_path,cellfun( @(a) [scan_path{n} filesep a], proj_names_n, 'UniformOutput',0));
+
+    end
+end
 
 % Projection file names
-proj_names = FilenameCell( [scan_path, '*.img'] );
-par.raw_data = 0;
+if isempty(proj_names)
+    proj_names = FilenameCell( [scan_path, '*.img'] );
+    par.raw_data = 0;
+end
 if isempty( proj_names )
     proj_names =  FilenameCell( [scan_path, '*img*.tif'] );
     par.raw_data = 0;
@@ -31,7 +83,9 @@ if isempty( proj_names )
     par.raw_data = 1;
 end
 % Ref file names
-[ref_names, ref_full_path] = get_ref_names( scan_path );
+if isempty(ref_names)
+    [ref_names, ref_full_path] = get_ref_names( scan_path );
+end
 if isempty(ref_names)
     fn = dir( [par.scan_path filesep 'tiff00*/*ref.tif']);
     for nn = numel( fn ):-1:1
@@ -42,7 +96,9 @@ if isempty(ref_names)
 end
 
 % Dark file names
-dark_names = FilenameCell( [scan_path, '*.dar'] );
+if isempty(dark_names)
+    dark_names = FilenameCell( [scan_path, '*.dar'] );
+end
 if isempty( dark_names )
     dark_names = FilenameCell( [scan_path, '*dar.tif'] );
 end
@@ -123,27 +179,6 @@ if ~isempty( ref_path )
         ref_full_path = cat( 2, ref_full_path, rfp );
     end
 
-end
-
-%% Hack due to rewriting of tomoscan_flikit
-if isempty( ref_names )
-    h5log = dir( sprintf('%s*_nexus.h5', scan_path) );
-    h5log = [h5log.folder filesep h5log.name];
-    % images
-    stimg_name.value = unique( h5read( h5log, '/entry/scan/data/image_file/value') );
-    stimg_name.time = h5read( h5log,'/entry/scan/data/image_file/time');
-    stimg_key.value = h5read( h5log,'/entry/scan/data/image_key/value');
-    stimg_key.time = double( h5read( h5log,'/entry/scan/data/image_key/time') );
-
-    % File names
-    proj_names = stimg_name.value(stimg_key.value==0)';
-    ref_names = stimg_name.value(stimg_key.value==1)';
-    dark_names = stimg_name.value(stimg_key.value == 2 )';
-
-    ref_full_path = cellfun( @(a) [scan_path filesep a], ref_names, 'UniformOutput', 0 );
-
-    %% name check for petra iii current is now useless
-    cprintf( 'Red', '\nWarning: HACK. USELESS CROSS CHECK OF FILENAMES AND LOGFILE' )
 end
 
 function [ref_names, ref_full_path] = get_ref_names( scan_path )

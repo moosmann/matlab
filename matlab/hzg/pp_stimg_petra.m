@@ -14,11 +14,18 @@ petra_scan = [];
 % Loop over nexus log files
 for n = 1:numel( nexuslog_name )
     % Images name and key
-    stimg_name_value = cat( 1, stimg_name_value, unique( h5read( nexuslog_name{n}, '/entry/scan/data/image_file/value') ) );
-    stimg_name_time = cat( 1, stimg_name_time, h5read( nexuslog_name{n},'/entry/scan/data/image_file/time') );
-    stimg_key_value = cat( 1, stimg_key_value, h5read( nexuslog_name{n},'/entry/scan/data/image_key/value') );
-    stimg_key_time = cat( 1, stimg_key_time, h5read( nexuslog_name{n},'/entry/scan/data/image_key/time') );
-    
+    stimg_name_value_n = unique( h5read( nexuslog_name{n}, '/entry/scan/data/image_file/value') );
+    stimg_name_value = cat( 1, stimg_name_value, stimg_name_value_n);
+
+    stimg_name_time_n = h5read( nexuslog_name{n},'/entry/scan/data/image_file/time');
+    stimg_name_time = cat( 1,stimg_name_time, stimg_name_time_n);
+
+    stimg_key_value_n = h5read( nexuslog_name{n},'/entry/scan/data/image_key/value');
+    stimg_key_value = cat( 1,stimg_key_value,stimg_key_value_n);
+
+    stimg_key_time_n = h5read( nexuslog_name{n},'/entry/scan/data/image_key/time');
+    stimg_key_time = cat( 1,stimg_key_time, stimg_key_time_n);
+
     % PETRA ring current
     if par.ring_current_normalization == 1
         [pt, index] = unique( h5read( nexuslog_name{n},'/entry/hardware/beam_current/current/time') );
@@ -33,16 +40,17 @@ for n = 1:numel( nexuslog_name )
         petra_time = cat( 1, petra_time, pt );
         petra_current = cat( 1, petra_current, pc );
     end
-    if n == 1
-        stimg_name.scan.time = stimg_name_time;
-        stimg_name.scan.value = stimg_name_value;
-        stimg_key.scan.time = stimg_key_time;
-        stimg_key.scan.value = stimg_key_value;
-        if par.ring_current_normalization == 1
-            petra_scan.time = pt;
-            petra_scan.current = pc;
-        end
+    %if isscalar(nexuslog_name)
+    stimg_name.scan(n).value = stimg_name_value_n;
+    stimg_name.scan(n).time = stimg_name_time_n;
+    stimg_key.scan(n).value = stimg_key_value_n;
+    stimg_key.scan(n).time = stimg_key_time_n;
+
+    if par.ring_current_normalization == 1
+        petra_scan.time = pt;
+        petra_scan.current = pc;
     end
+    %end
 end
 
 stimg_name.time = stimg_name_time;

@@ -38,17 +38,19 @@ dbstop if error
 % Just copy parameter and set quick switch to 1
 par.quick_switch = 1;
 
-par.scan_path = '/asap3/petra3/gpfs/p05/2025/data/11022558/raw/mar_060_SYAC1904';
-par.raw_bin = 4;
-par.raw_roi = [0.2 .8];
-par.proj_range = 2;
+par.scan_path = pwd;
+par.raw_bin = 2;
+par.raw_roi = -4;[0.4 0.6];
+par.proj_range = 1;
 tomo.reco_mode = '3D';'slice';
 image_correlation.method = 'median';'ssim-ml';
 write.flatcor = 0;
 phase_retrieval.apply = 0;
 interactive_mode.rot_axis_pos = 1;
-write.to_scratch = 1; 
-write.parfolder = 'test'; 
+write.to_scratch = 1;
+write.parfolder = '';
+par.eff_pixel_size = [];
+par.crop_proj = 0;
 % END OF QUICK SWITCH TO ALTERNATIVE SET OF PARAMETERS %%%%%%%%%%%%%%%%%%%%
 
 pp_parameter_switch % DO NOT DELETE OR EDIT THIS LINE %%%%%%%%%%%%%%%%%%%%%
@@ -253,7 +255,7 @@ par.gpu_index = []; % integer vector: indices of GPU devices to use,Matlab notat
 par.use_cluster = 0; % if available: on MAXWELL nodes disp/nova/wga/wgs cluster computation can be used. Recommended only for large data sets since parpool creation and data transfer implies a lot of overhead.
 par.use_gpu_in_parfor = 0; % boolean
 pixel_filter_sino.use_gpu = par.use_gpu_in_parfor;
-par.poolsize = 0.5; % scalar: number of workers used in a local parallel pool. if 0: use current config. if >= 1: absolute number. if 0 < poolsize < 1: relative amount of all cores to be used. if SLURM scheduling is available,a default number of workers is used.
+par.poolsize = 50; % scalar: number of workers used in a local parallel pool. if 0: use current config. if >= 1: absolute number. if 0 < poolsize < 1: relative amount of all cores to be used. if SLURM scheduling is available,a default number of workers is used.
 par.poolsize_gpu_limit_factor = 0.5; % scalar: relative amount of GPU memory used for preprocessing during parloop. High values speed up Proprocessing,but increases out-of-memory failure
 phase_retrieval.use_parpool = 1; % bool. Disable parpool when out-of-memory error occurs during phase retrieval.
 par.window_state = 'minimized';'normal';'maximized';
@@ -451,6 +453,9 @@ else
     raw_bin = par.read_flatcor_bin;
     par.raw_bin = raw_bin;
     if ~isempty(par.eff_pixel_size)
+        if ~isempty(par.pixel_scaling)
+            par.eff_pixel_size = par.pixel_scaling * par.eff_pixel_size;
+        end
         par.eff_pixel_size_binned = raw_bin * par.eff_pixel_size;
     end
 end
@@ -482,12 +487,31 @@ if par.read_flatcor
     cprintf('Red','\nReading flat corrected projections!\n')
 end
 % Scan path
-while par.scan_path(end) == filesep
-    par.scan_path(end) = [];
+if ~iscell(par.scan_path)
+    while par.scan_path(end) == filesep
+        par.scan_path(end) = [];
+    end
+    [par.raw_path,scan_name] = fileparts(par.scan_path);
+    par.scan_path = [par.scan_path,filesep];
+    scan_path = par.scan_path;
+else
+    a = par.scan_path{1};
+    b = par.scan_path{2};
+    while ~strcmp(a,b)
+        a(end) = [];
+        b(end) = [];
+    end
+    while a(end) == '_'
+        a(end) = [];
+    end
+    [par.raw_path,scan_name] = fileparts(a);
+    scan_path = [a,filesep];
+    for n = 1:numel(par.scan_path)
+        if par.scan_path{n}(end) ~= filesep
+            par.scan_path{n} = [par.scan_path{n},filesep];
+        end
+    end
 end
-[par.raw_path,scan_name] = fileparts(par.scan_path);
-par.scan_path = [par.scan_path,filesep];
-scan_path = par.scan_path;
 [beamtime_path,raw_folder] = fileparts(par.raw_path);
 [~,beamtime_id] = fileparts(beamtime_path);
 if ~strcmp(raw_folder,'raw') && ~par.read_sino && ~par.read_flatcor
@@ -713,10 +737,10 @@ if ~par.read_flatcor && ~par.read_sino
             angles = angles(par.proj_range);
         else
             % note that if par.ref_path is not empty,it will may be changed
-            t = tic;
-            fprintf('\n Read file names from disk:')
-            [proj_names,ref_names,ref_full_path,dark_names,par] =  pp_get_filenames(par);
-            fprintf(' %.1f s',toc - t)
+            %t = tic;
+            %fprintf('\n Read file names from disk:')
+            [proj_names,proj_full_path, ref_names,ref_full_path, dark_names,dark_full_path, par] =  pp_get_filenames(par);
+            %fprintf(' %.1f s',toc - t)
         end
         % hdf5 log
         nexuslog_name = pp_get_nexuslog_names(par);
@@ -725,6 +749,7 @@ if ~par.read_flatcor && ~par.read_sino
         for nn = numel(fn):-1:1
             [~,pf] = fileparts(fn(nn).folder);
             dark_names{nn} = [pf filesep fn(nn).name];
+            dark_full_path{nn} = [fn(nn).folder filesep fn(nn).name];
         end
         fn = dir([par.scan_path filesep 'tiff00*/*ref.tif']);
         for nn = numel(fn):-1:1
@@ -736,6 +761,7 @@ if ~par.read_flatcor && ~par.read_sino
         for nn = numel(fn):-1:1
             [~,pf] = fileparts(fn(nn).folder);
             proj_names{nn} = [pf filesep fn(nn).name];
+            proj_full_path{nn} = [fn(nn).folder filesep fn(nn).name];
         end
         nexuslog_name = {''};
     end
@@ -854,8 +880,13 @@ if ~par.read_flatcor && ~par.read_sino
         exposure_time = h5read(nexuslog_name{1},'/entry/hardware/camera/exptime');
         magnification = h5read(nexuslog_name{1},'/entry/hardware/camera/magnification');
         pixelsize = h5read(nexuslog_name{1},'/entry/hardware/camera/pixelsize') / 1000;
+        s_stage_z_setup = h5read(nexuslog_name{1},'/entry/scan/setup/s_stage_z');
+        s_stage_x_setup = h5read(nexuslog_name{1},'/entry/scan/setup/s_stage_x');
         if isempty(par.eff_pixel_size)
             par.eff_pixel_size = pixelsize/magnification;
+            if ~isempty(par.pixel_scaling)
+                par.eff_pixel_size = par.pixel_scaling * par.eff_pixel_size;
+            end
             par.eff_pixel_size_binned = raw_bin * par.eff_pixel_size;
         end
         if sum(strcmpi('pos_p05_energy',{ nexus_setup.Datasets.Name })) && energy_was_empty
@@ -885,14 +916,21 @@ if ~par.read_flatcor && ~par.read_sino
             h5log_group = h5info(nexuslog_name{1},'/entry/scan/data/');
             if sum(strcmp('/entry/scan/data/s_stage_x',{h5log_group.Groups.Name}))
                 % Read out lateral rotation axis shift form log file
-                s_stage_x.time = double(h5read(nexuslog_name{1},'/entry/scan/data/s_stage_x/time'));
-                s_stage_x.value = h5read(nexuslog_name{1},'/entry/scan/data/s_stage_x/value');
+                s_stage_x.time = [];
+                s_stage_x.value = [];
+                for n = 1:numel(nexuslog_name)
+                    s_stage_x.time = cat(1,s_stage_x.time,double(h5read(nexuslog_name{n},'/entry/scan/data/s_stage_x/time')));
+                    s_stage_x.value = cat(1,s_stage_x.value,h5read(nexuslog_name{n},'/entry/scan/data/s_stage_x/value'));
+                end
                 if ~isempty(s_stage_x.value)
                     if numel(s_stage_x.value) == numel(stimg_key.value)
                         ind = stimg_key.value == 0;
                     else
                         %ind = ~boolean(stimg_key.scan.value(logpar.n_dark+1:end));
-                        ind = ~boolean(stimg_key.scan.value(n_dark+1:end));
+                        ind = boolean([]);
+                        for n = 1:numel(stimg_key.scan)
+                            ind = cat(1,ind,~boolean(stimg_key.scan(n).value(n_dark+1:end)));
+                        end
                     end
                     offset_shift_mm = s_stage_x.value(ind);
                 else
@@ -937,10 +975,12 @@ if ~par.read_flatcor && ~par.read_sino
         end
 
         %% Lateral shift
+        if numel(offset_shift_mm) > 1
+            offset_shift_mm = offset_shift_mm(par.proj_range);
+        end
         if numel(offset_shift_mm) && abs(std(offset_shift_mm)) * 1000 > 1
-            % Shift or static position
+            % Shift or static position            
             if std(offset_shift_mm) > 10 * eps
-                offset_shift_mm = offset_shift_mm(par.proj_range);
                 offset_shift = 1e-3 / par.eff_pixel_size * offset_shift_mm;
                 par.s_in_pos = 1e-3 / par.eff_pixel_size * par.s_in_pos_mm;
                 offset_shift_min = min(offset_shift(:)) ;
@@ -953,8 +993,9 @@ if ~par.read_flatcor && ~par.read_sino
                 % Tranform to integer pixel-wise shifts
                 tmp = offset_shift;
                 offset_shift = round(offset_shift);
-                if std(offset_shift - tmp) > 1e-2
-                    cprintf('Red','\nOffset shift not on integer pixel scale.\n')
+                os_std = std(offset_shift - tmp);
+                if os_std > 1e-2
+                    cprintf('Red','\nOffset shift not on integer pixel scale: %f (%f %f)',os_std,offset_shift([1,2])-tmp([1,2]))
                 end
                 % Lateral scanning
                 % position index extracted by jump in offset_shift
@@ -980,7 +1021,6 @@ if ~par.read_flatcor && ~par.read_sino
                 end
                 offset_shift = offset_shift - scan_position;
                 % Scale position because of binning for tomo reco
-                %scan_position = scan_position + mean(scan_position);
                 scan_position = scan_position - mean(scan_position);
                 scan_position = 1 / raw_bin * scan_position;
                 if tomo.flip_scan_position
@@ -1053,8 +1093,12 @@ if ~par.read_flatcor && ~par.read_sino
         %% Vertical shift
         if ~isempty(s_stage_z_str) && sum(strcmp(s_stage_z_str,{h5log_group.Groups.Name}))
             % Read out vertical shift form HDF5 log file
-            s_stage_z.time = double(h5read(nexuslog_name{1},[s_stage_z_str '/time']));
-            s_stage_z.value = h5read(nexuslog_name{1},[s_stage_z_str '/value']);
+            s_stage_z.time = [];
+            s_stage_z.value = [];
+            for n = 1:numel(nexuslog_name)
+                s_stage_z.time = cat(1,s_stage_z.time,double(h5read(nexuslog_name{n},[s_stage_z_str '/time'])));
+                s_stage_z.value = cat(1,s_stage_z.value,h5read(nexuslog_name{n},[s_stage_z_str '/value']));
+            end
 
             % Static or shift?
             if numel(s_stage_z.value) % is not empty
@@ -1071,6 +1115,7 @@ if ~par.read_flatcor && ~par.read_sino
                     otherwise
                         vert_shift_micron = s_stage_z.value(1:par.num_proj_found);
                 end
+                vert_shift_micron = vert_shift_micron(par.proj_range);
                 if abs(std(SubtractMean(vert_shift_micron))) > 1e-3
                     vert_shift_micron = vert_shift_micron(par.proj_range);
                     % Check
@@ -1186,6 +1231,9 @@ if ~par.read_flatcor && ~par.read_sino
         [logpar,cur,cam] = p05_log(scanlog_name);
         if isempty(par.eff_pixel_size)
             par.eff_pixel_size = logpar.eff_pixel_size;
+            if ~isempty(par.pixel_scaling)
+                par.eff_pixel_size = par.pixel_scaling * par.eff_pixel_size;
+            end
             par.eff_pixel_size_binned = raw_bin * par.eff_pixel_size;
         end
         if isempty(exposure_time)
@@ -1237,8 +1285,9 @@ if ~par.read_flatcor && ~par.read_sino
                 % Tranform to integer pixel-wise shifts
                 tmp = offset_shift;
                 offset_shift = round(offset_shift);
-                if std(offset_shift - tmp) > 1e-2
-                    cprintf('Red','\nOffset shift not on integer pixel scale.\n')
+                os_std = std(offset_shift - tmp);
+                if os_std > 1e-2
+                    cprintf('Red',sprintf('\nOffset shift not on integer pixel scale: %f\n',os_std))
                 end
             end
         end
@@ -1305,7 +1354,8 @@ if ~par.read_flatcor && ~par.read_sino
     % par loop dark
     parfor (nn = 1:par.num_dark,poolsize_max_gpu)
         % Read image
-        filename = sprintf('%s%s',scan_path,dark_names{nn});
+        %filename = sprintf('%s%s',scan_path,dark_names{nn});
+        filename = dark_full_path{nn};
         im_int = read_image_par(filename);
         % Remove large outliers,hack for KIT camera chip artefacts. Assume
         % Gaussian distribution and set all value above mean + 4 * std
@@ -1561,7 +1611,7 @@ if ~par.read_flatcor && ~par.read_sino
     %% Projections %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     t = toc;
     fprintf('\nProcessing %u projections.',par.num_proj_used)
-    img_names_mat = NameCellToMat(proj_names(par.proj_range));
+    %img_names_mat = NameCellToMat(proj_names(par.proj_range));
     filt_pix_par.threshold_hot = pixel_filter_threshold_proj(1);
     filt_pix_par.threshold_dark = pixel_filter_threshold_proj(2);
     % Display first raw image
@@ -1571,10 +1621,8 @@ if ~par.read_flatcor && ~par.read_sino
         else
             h1 = figure('Name','data and flat-and-dark-field correction','WindowState',window_state);
         end
-        filename = sprintf('%s%s',scan_path,img_names_mat(1,:));
-        %im_int = read_image(filename,'',par.raw_roi,par.tif_info,par.im_shape_raw,par.dtype,par.im_trafo);
+        filename = proj_full_path{1};
         im_int = read_image(filename,par);
-        %im_int = FilterPixel(im_int,pixel_filter_threshold_proj,0,pixel_filter_radius);
         im_int = FilterPixel(im_int,filt_pix_par);
         raw1 = Binning(im_int,raw_bin) / raw_bin^2;
         subplot(2,3,3)
@@ -1587,22 +1635,18 @@ if ~par.read_flatcor && ~par.read_sino
     % Get absolut filter thresholds from percentage-wise pixel filtering
     % of 1st,middle,and last projection to speed up processing
     if filt_pix_par.threshold_hot  < 1 || filt_pix_par.threshold_dark < 0.5
-
-        filename = sprintf('%s%s',scan_path,img_names_mat(par.num_proj_used,:));
-        %im_int = read_image(filename,'',par.raw_roi,par.tif_info,par.im_shape_raw,par.dtype,par.im_trafo);
+        %filename = sprintf('%s%s',scan_path,img_names_mat(par.num_proj_used,:));
+        filename = proj_full_path{par.num_proj_used};
         im_int = read_image(filename,par);
         [~,ht(3),dt(3)] = FilterPixel(im_int,filt_pix_par);
-
-        filename = sprintf('%s%s',scan_path,img_names_mat(1,:));
-        %im_int = read_image(filename,'',par.raw_roi,par.tif_info,par.im_shape_raw,par.dtype,par.im_trafo);
+        %filename = sprintf('%s%s',scan_path,img_names_mat(1,:));
+        filename = proj_full_path{1};
         im_int = read_image(filename,par);
         [~,ht(2),dt(2)] = FilterPixel(im_int,filt_pix_par);
-
-        filename = sprintf('%s%s',scan_path,img_names_mat(round(par.num_proj_used/2),:));
-        %im_int = read_image(filename,'',par.raw_roi,par.tif_info,par.im_shape_raw,par.dtype,par.im_trafo);
+        %filename = sprintf('%s%s',scan_path,img_names_mat(round(par.num_proj_used/2),:));
+        filename = proj_full_path{round(par.num_proj_used/2)};
         im_int = read_image(filename,par);
         [~,ht(1),dt(1)] = FilterPixel(im_int,filt_pix_par);
-
         filt_pix_par.threshold_hot  = median(ht);
         filt_pix_par.threshold_dark = median(dt);
     end
@@ -1646,7 +1690,8 @@ if ~par.read_flatcor && ~par.read_sino
     parfor (nn = 1:par.num_proj_used,poolsize_max_gpu)
         %im = proj(:,:,nn);
         % Read projection
-        filename = sprintf('%s%s',scan_path,img_names_mat(nn,:));
+        %filename = sprintf('%s%s',scan_path,img_names_mat(nn,:));
+        filename = proj_full_path{nn};
         %im_int = read_image(filename,'',par.raw_roi,par.tif_info,par.im_shape_raw,par.dtype,par.im_trafo);
         im_int = read_image_par(filename);
         % Filter pixel
@@ -1960,7 +2005,10 @@ if ~par.read_flatcor && ~par.read_sino
                 end
             elseif exist(nexuslog_name{1},'file')
                 %angles = s_rot.value(~boolean(stimg_key.scan.value(logpar.n_dark+1:end))) * pi / 180;
-                angles = s_rot.value(~boolean(stimg_key.scan.value(n_dark+1:end))) * pi / 180;
+                angles = [];
+                for n = 1:numel(stimg_key.scan)
+                    angles = cat(1,angles,s_rot.value(~boolean(stimg_key.scan(n).value(n_dark+1:end))) * pi / 180);
+                end
                 fprintf('\n angles_logged / pi: %f %f %f ... %f %f %f %f %f ',angles([1 2 3 end-4:end])/pi)
                 angles = angles(par.proj_range);
             else
@@ -2170,15 +2218,15 @@ if phase_retrieval.apply
         pp_phase_retrieval
     end
 end
-%% Scaling of pixel size if MTF is wrong. Important for lateral shift and helical scans
-if ~isempty(par.pixel_scaling)
-    par.eff_pixel_size = par.pixel_scaling * par.eff_pixel_size;
-    par.eff_pixel_size_binned = par.pixel_scaling * par.eff_pixel_size_binned;
-    offset_shift = offset_shift / par.pixel_scaling;
-    scan_position = scan_position / par.pixel_scaling;
-    tomo.scan_position = scan_position;
-    fprintf('\n pixel scaling : %f ',par.pixel_scaling)
-end
+% %% Scaling of pixel size if MTF is wrong. Important for lateral shift and helical scans
+% if ~isempty(par.pixel_scaling)
+%     par.eff_pixel_size = par.pixel_scaling * par.eff_pixel_size;
+%     par.eff_pixel_size_binned = par.pixel_scaling * par.eff_pixel_size_binned;
+%     offset_shift = offset_shift / par.pixel_scaling;
+%     scan_position = scan_position / par.pixel_scaling;
+%     tomo.scan_position = scan_position;
+%     fprintf('\n pixel scaling : %f ',par.pixel_scaling)
+% end
 %% TOMOGRAPHY: interactive mode to find rotation axis offset and tilt %%%%%
 if ~par.crop_proj
     if ~isempty(tomo.rot_axis_offset_shift) && ~isscalar(tomo.rot_axis_offset_shift)
@@ -2232,7 +2280,7 @@ if par.distortion_correction_distance ~= 0  && ~isempty(par.distortion_correctio
     if tomo.rot_axis_offset > 0
         xq = x - 2 * offset_diff * abs(x / dist_offset).^exponent;
         fprintf('\n query grid:    xq(rot axis pos) = %.1f',xq(round(tomo.rot_axis_position)))
-        fprintf('\n orgiginal grid: x(rot axis pos - dist offset) = %.1f',x(round(tomo.rot_axis_position - dist_offset)))
+        fprintf('\n original grid: x(rot axis pos - dist offset) = %.1f',x(round(tomo.rot_axis_position - dist_offset)))
         fprintf('\n query grid:    xq(rot axis pos - dist offset) = %.1f',xq(round(tomo.rot_axis_position - dist_offset)))
         % Only correct from the rot axis pos to farther image edge
         xq(x>0) = x(x>0);
@@ -2296,8 +2344,8 @@ if par.stitch_projections
     fprintf('\nStitch projections:')
     num_scan_pos = max(scan_position_index);
     % LATERAL SCANNING %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    if ~isscalar(offset_shift) && num_scan_pos > 1
-        error('Not yet implemented')
+    if ~isscalar(offset_shift) && (num_scan_pos > 1)
+        %error('Not yet implemented')
         m = angles == min(angles); % indices at same angle
         num_pos = sum(m);
         num_proj_sti = numel(angles) / num_pos;
@@ -2324,14 +2372,13 @@ if par.stitch_projections
             error('Unequal distance between scan positions')
         end
         % stiched image: size and preallocation
-        im_shape_sti1 = floor(max(im_pos_pix) + im_shape_cropbin1);
+        im_shape_sti1 = floor(max(im_pos_pix) + im_shape_cropbin1-1);
         im_sti = zeros([im_shape_sti1,im_shape_binned2],'single');
         fprintf('\n image shape unstitched : %u %u',size(proj,1),size(proj,2))
         fprintf('\n image shape stitched : %u %u',size(im_sti))
         proj_sti = zeros([im_shape_sti1,im_shape_binned2,num_proj_sti],'single');
         fprintf('\n projections stitched shape: %u %u %u',size(proj_sti))
         fprintf('\n projections sitchted memory allocated : %.2f GiB',Bytes(proj_sti,3))
-        method = 'linear';
         ind = 1:size(proj,3);
         for nn = 1:num_proj_sti
             % indices at same angle and different positions
@@ -2339,56 +2386,122 @@ if par.stitch_projections
             ang_ind = ind(m);
             % stitched image
             im_sti = zeros([im_shape_sti1,im_shape_binned2],'single');
-            % normalization vector
-            vec_norm = zeros([im_shape_sti1,1],'single');
-            for pp = 1:num_pos
-                % absolute position relative to first pixel
-                x0 =  pos_pix(pp);
-                x1 = pos_pix(pp) + im_shape_cropbin1 - 1;
-                xq = ceil(x0):floor(x1);
-                x = x0:1:x1;
-                % normalization vector
-                vec_norm(xq) = vec_norm(xq) + 1;
-                % unstitched proj
-                v = proj(:,:,ang_ind(pp));
-                if nn == 1
-                    fprintf('\n pos %u : xq = [%u %u]',pp,xq([1 end]))
-                end
-                if mod(x0,1) == 0
-                    vq = v;
-                else
-                    vq = interp1(x,v,xq,method);
-                end
-                im_sti(xq,:) = im_sti(xq,:) + vq;
+
+            switch lower(par.stitch_method)
+                case 'step'
+                    ow = par.stitch_align_overlap;
+                    for pp = 1:num_pos
+                        % absolute position relative to first pixel
+                        x0 = pos_pix(pp);
+                        x1 = pos_pix(pp) + im_shape_cropbin1 - 1;
+                        x = x0:1:x1;
+                        if pp < num_pos
+                            x0_next = pos_pix(pp+1);
+                            x1_next = pos_pix(pp+1) + im_shape_cropbin1 - 1;
+                            if nn == 1
+                                fprintf('\n lat pos: %u',pp)
+                                fprintf('\n %8s: %6g','x0',x0)
+                                fprintf('\n %8s: %6g','x1',x1)
+                                fprintf('\n %8s: %6g','x0_next',x0_next)
+                                fprintf('\n %8s: %6g','x1_next',x1_next)
+                            end
+                            if x0 < x0_next
+                                % overlap = x1:x0_next;
+                                % no = numel(overlap);
+                                error('Not yet implemented')
+                            else
+                                overlap = x0:x1_next;
+                                no2 = floor(numel(overlap)/2);
+                                x0_o2 = overlap(no2);
+                                if pp == 1
+                                    x1_o2 = x1;
+                                end
+                                if nn == 1
+                                    fprintf('\n %8s: %6g','x0_o2',x0_o2)
+                                    fprintf('\n %8s: %6g','x1_o2',x1_o2)
+                                end
+                                xq = ceil(x0_o2):floor(x1_o2);
+                                % calculate now, but used in next loop
+                                x1_o2 = x0_o2 - 1;
+                            end
+                        else
+                            x0_o2 = 1;
+                            xq = ceil(x0_o2):floor(x1_o2);
+                        end
+                        % unstitched proj
+                        v = proj(:,:,ang_ind(pp));
+                        if nn == 1
+                            fprintf('\n pos %u : xq = [%u %u]',pp,xq([1 end]))
+                        end
+                        vq = interp1(x,v,xq,'linear','extrap');
+                        if x0 < x0_next
+                            error('Not yet implemented')
+                        else
+
+                            if pp > 1
+                                m1 = mean2(vq(end-ow:end,:));
+                                im_sti = im_sti / m2 * (m1 + m2) / 2;
+                                vq = vq / m1 * (m1 + m2) / 2;
+                                m2 = mean2(vq(1:ow,:));
+                            else
+                                m2 = mean2(vq(1:ow,:));
+                            end
+                        end
+                        im_sti(xq,:) = vq;
+                    end
+
+                case 'linear'
+                    % normalization vector
+                    vec_norm = zeros([im_shape_sti1,1],'single');
+                    for pp = 1:num_pos
+                        % absolute position relative to first pixel
+                        x0 =  pos_pix(pp);
+                        x1 = pos_pix(pp) + im_shape_cropbin1 - 1;
+                        xq = ceil(x0):floor(x1);
+                        x = x0:1:x1;
+                        % normalization vector
+                        vec_norm(xq) = vec_norm(xq) + 1;
+                        % unstitched proj
+                        v = proj(:,:,ang_ind(pp));
+                        if nn == 1
+                            fprintf('\n pos %u : xq = [%u %u]',pp,xq([1 end]))
+                        end
+                        if mod(x0,1) == 0
+                            vq = v;
+                        else
+                            vq = interp1(x,v,xq,'linear','extrap');
+                        end
+                        im_sti(xq,:) = im_sti(xq,:) + vq;
+                    end
+                    im_sti = im_sti ./ vec_norm;
             end
-            %             m = vec_norm > 1;
-            %             fprintf('\n vec norm : ')
-            %             fprintf(' %u',ind(m))
-            %             fprintf(' %u',vec_norm(m))
-            im_sti = im_sti ./ vec_norm;
             proj_sti(:,:,nn) = im_sti;
             % Show stitched projections
             if nn == 1 && par.visual_output
                 figure('Name','First projection stitched','WindowState',window_state);
-                subplot(5,1,1:4)
-                imsc1(im_sti)
-                axis equal tight
-                str = ['sitched projections:' sprintf(' %u',ang_ind)];
-                title(str)
-                subplot(5,1,5)
-                plot(vec_norm)
-                axis tight
-                title('overlap positions')
+                switch lower(par.stitch_method)
+                    case 'linear'
+                        subplot(5,1,1:4)
+                        imsc1(im_sti)
+                        axis equal tight
+                        str = ['stitched projections:' sprintf(' %u',ang_ind)];
+                        title(str)
+                        subplot(5,1,5)
+                        plot(vec_norm)
+                        axis tight
+                        title('overlap positions')
+                    case 'step'
+                        imsc1(im_sti)
+                        axis equal tight
+                        str = ['stitched projections:' sprintf(' %u',ang_ind)];
+                        title(str)
+                end
             end
         end
-        toc
-        %proj = proj_sti;
-        %clear proj_sti;
         angles = angles_sti;
-        %proj0 = proj;
         proj = proj_sti;
-        %angles = angles(1:num_proj_sti);
         tomo.angles = angles;
+        tomo.scan_position = [];
         clear proj_sti
     else
         % OFF-CENTERED ROTATION AXIS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -2499,7 +2612,8 @@ if par.stitch_projections
                     end
                 end
             end
-        else                % index range of projections to be stitched
+        else                
+            % index range of projections to be stitched
             xr = round(tomo.rot_axis_position):im_shape_cropbin1;
             xl = xr(1)+1:im_shape_cropbin1;
             im_shape_sti1 = numel(xl) + numel(xr);
@@ -2516,7 +2630,6 @@ if par.stitch_projections
                     case 'step'
                         im = cat(1,flipud(proj(xl,:,nn2),proj(xr,:,nn)));
                     case {'linear','sine'}
-
                         % 1D weight
                         w = ones(im_shape_cropbin1,1);
                         switch lower(par.stitch_method)
@@ -2541,6 +2654,10 @@ if par.stitch_projections
         %proj = proj_sti;
         angles = angles(1:num_proj_sti);
         tomo.angles = angles;
+        tomo.rot_axis_offset_before_stitching = tomo.rot_axis_offset;
+        tomo.rot_axis_offset = 0;
+        tomo.rot_axis_position_before_stitching = tomo.rot_axis_position;
+        tomo.rot_axis_position = size(proj,1) / 2;
     end
     fprintf('\n duration : %.1f (%.2f min)',toc-t,(toc-t)/60)
     fprintf('\n shape of stitched projections : %u %u %u',size(proj))
@@ -2670,13 +2787,14 @@ if tomo.run
         tomo.reco_mode = 'slice';
         fprintf('\nSwitch to slice-wise reco (tomo.reco_mode = ''%s'') due to limited memory (avail : %.1f GiB,vol : %.1f GiB) .',tomo.reco_mode,mem_avail_cpu / 1024^3,vol_mem / 1024^3)
     end
-    if par.stitch_projections
-        tomo.rot_axis_offset_before_stitching = tomo.rot_axis_offset;
-        tomo.rot_axis_offset = 0;
-        tomo.rot_axis_position_before_stitching = tomo.rot_axis_position;
-        tomo.rot_axis_position = size(proj,1) / 2;
-        rot_axis_offset_reco = 0;
-    elseif par.crop_at_rot_axis
+    % if par.stitch_projections
+    %     tomo.rot_axis_offset_before_stitching = tomo.rot_axis_offset;
+    %     tomo.rot_axis_offset = 0;
+    %     tomo.rot_axis_position_before_stitching = tomo.rot_axis_position;
+    %     tomo.rot_axis_position = size(proj,1) / 2;
+    %     rot_axis_offset_reco = 0;
+    %elseif par.crop_at_rot_axis
+    if par.crop_at_rot_axis
         rot_axis_offset_reco = tomo.rot_axis_position - size(proj,1) / 2;
     else
         rot_axis_offset_reco = tomo.rot_axis_offset;
@@ -2729,7 +2847,6 @@ if tomo.run
                 fprintf('\n mode: slice')
                 fprintf('\n slice number:\n')
                 nn_count = 0;
-                %for nn = size(proj,3):-1:1
                 for nn = size(proj,2):-1:1
                     if mod(nn-1,100) == 0 || nn == size(proj,3) || nn == 1
                         nn_count = nn_count + 1;
@@ -2738,7 +2855,6 @@ if tomo.run
                             fprintf('\n')
                         end
                     end
-                    %im = proj(:,:,nn);
                     im = proj(:,nn,:);
                     im = NegLog(im,take_neg_log);
                     im = padarray(im,padding * [proj_shape1 0 0],padding_method,'post');
@@ -2747,7 +2863,6 @@ if tomo.run
                     im = ifft(im,[],1,'symmetric');
                     im = real(im);
                     im = im(1:proj_shape1,:,:);
-                    %proj(:,:,nn) = im;
                     proj(:,nn,:) = im;
                 end
         end
@@ -2770,6 +2885,7 @@ if tomo.run
             fprintf('\n volume memory allocated for ''3D'' mode: %.2f GiB',Bytes(vol,3))
             fprintf('\nBackproject:')
             t2 = toc;
+            clearGPUs;
             vol = astra_parallel3D(tomo,permute(proj,[1 3 2]));
             fprintf('\n duration : %.2f min.',(toc - t2) / 60)
             stat.vol_min = min(vol(:));
@@ -2898,7 +3014,6 @@ if tomo.run
             if write.reco
                 reco_bin = write.reco_binning_factor; % alias for readablity
                 CheckAndMakePath(write.reco_path,0)
-
                 % Save reco path to file
                 filename = [userpath,filesep,'path_to_reco'];
                 %filename = [getenv('HOME'),filesep,'path_to_reco'];
@@ -3011,6 +3126,7 @@ if tomo.run
                 end
                 % Backproject
                 gpu_ind = nn;
+                clearGPUs;
                 vol = rot90(astra_parallel2D(tomo,permute(proj(:,nn,:),[3 1 2]),gpu_ind,rotation_axis_offset),-1);
                 stat.vol_min = min(stat.vol_min,min(vol(:)));
                 stat.vol_max = max(stat.vol_max,max(vol(:)));
@@ -3069,7 +3185,6 @@ if tomo.run
     %% Write reco log file %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     CheckAndMakePath(write.reco_path)
     save(sprintf('%sangles.mat',write.reco_path),'angles');
-    %save(sprintf('%s/angles.mat',fileparts(flatcor_path)),'angles');
     save(sprintf('%soffset_shift.mat',write.reco_path),'offset_shift');
     if write.reco
         logfile_path = write.reco_path;
@@ -3094,8 +3209,11 @@ if tomo.run
         fprintf(fid,'eff_pixel_size_binned : %g micron\n',par.eff_pixel_size_binned * 1e6);
         fprintf(fid,'energy : %g eV\n',par.energy);
         fprintf(fid,'sample_detector_distance : %f m\n',par.sample_detector_distance);
+        fprintf(fid,'s_stage_z : %f \n',s_stage_z_setup);
+        fprintf(fid,'s_stage_x : %f \n',s_stage_x_setup);
         fprintf(fid,'full_reconstruction_time : %.1f s\n',toc);
         fprintf(fid,'date_of_reconstruction : %s\n',datetime);
+        fprintf(fid,'user : %s\n',getenv('USER'));
         fprintf(fid,'MATLAB version : %s\n',version);
         fprintf(fid,'git commit ID : %s\n',git_commit_id);
         fprintf(fid,'platform : %s\n',computer);

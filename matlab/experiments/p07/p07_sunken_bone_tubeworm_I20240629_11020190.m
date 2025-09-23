@@ -110,7 +110,7 @@ pixel_filter_threshold_dark = [0.01 0.005]; % Dark fields: threshold parameter f
 pixel_filter_threshold_flat = [0.02 0.005]; % Flat fields: threshold parameter for hot/dark pixel filter, for details see 'FilterPixel'
 pixel_filter_threshold_proj = [0.02 0.005]; % Raw projection: threshold parameter for hot/dark pixel filter, for details see 'FilterPixel'
 pixel_filter_radius = [5 5]; % Increase only if blobs of zeros or other artefacts are expected. Can increase processing time heavily.
-par.ring_current_normalization = 1; % normalize flat fields and projections by ring current
+par.ring_current_normalization = 0; % normalize flat fields and projections by ring current
 image_correlation.method = 'ssim-ml';'median'; 'median';'entropy';'none';'ssim';'ssim-g';'std';'cov';'corr';'diff1-l1';'diff1-l2';'diff2-l1';'diff2-l2';'cross-entropy-12';'cross-entropy-21';'cross-entropy-x';
 % Correlation of projections and flat fields. Essential for DCM data. Typically improves reconstruction quality of DMM data, too.
 % Available methods ('ssim-ml'/'entropy' usually work best):
@@ -260,7 +260,7 @@ par.gpu_index = []; % integer vector: indices of GPU devices to use, Matlab nota
 par.use_cluster = 0; % if available: on MAXWELL nodes disp/nova/wga/wgs cluster computation can be used. Recommended only for large data sets since parpool creation and data transfer implies a lot of overhead.
 par.use_gpu_in_parfor = 1; % boolean
 pixel_filter_sino.use_gpu = par.use_gpu_in_parfor;
-par.poolsize = 50; % scalar: number of workers used in a local parallel pool. if 0: use current config. if >= 1: absolute number. if 0 < poolsize < 1: relative amount of all cores to be used. if SLURM scheduling is available, a default number of workers is used.
+par.poolsize = 40; % scalar: number of workers used in a local parallel pool. if 0: use current config. if >= 1: absolute number. if 0 < poolsize < 1: relative amount of all cores to be used. if SLURM scheduling is available, a default number of workers is used.
 par.poolsize_gpu_limit_factor = 0.5; % scalar: elative amount of GPU memory used for preprocessing during parloop. High values speed up Proprocessing, but increases out-of-memory failure
 phase_retrieval.use_parpool = 1; % bool. Disable parpool when out-of-memory error occurs during phase retrieval.
 par.window_state = 'minimized';'normal';'maximized';
@@ -276,7 +276,7 @@ raw_path = '/asap3/petra3/gpfs/p07/2024/data/11020190/raw/';
 proc_path = '/asap3/petra3/gpfs/p07/2024/data/11020190/processed/';
 
 ring_filter.apply = 1;
-par.raw_bin = 2;
+par.raw_bin = 3;
 proj_range = 1;
 tomo.vol_size = [];%[-1 1 -1 1 -0.5 0.5];
 phase_retrieval.apply = 0;
@@ -291,7 +291,7 @@ par.verbose = 1;
 par.scan_path = [raw_path  'fsuj003_sbr_bone_mid_fast_z900'];
 write.to_scratch = 1;
 par.use_gpu_in_parfor = 0;
-par.raw_bin = 4;
+par.raw_bin = 2;
 interactive_mode.rot_axis_pos = 0; 
 tomo.rot_axis_offset = 2 * 1182.000 / par.raw_bin;
 ADD
@@ -437,7 +437,6 @@ par.distortion_correction_distance = 0;
 interactive_mode.phase_retrieval = 0;
 interactive_mode.rot_axis_pos = 0;
 
-
 par.scan_path = [proc_path  'fsuj006_sbr_bone_mid'];
 par.nexus_path = [regexprep(par.scan_path,'processed','raw') '__a'];
 par.read_sino = 1; 
@@ -464,68 +463,146 @@ ADD
 
 %% fsuj009_sco_whale_2
 par.read_sino = 0; 
-par.scan_path = [raw_path 'fsuj009_sco_whale_2__a_0'];
-tomo.vol_size = [-0.5 0.5 -0.5 0.5 -0.5 0.5];
-interactive_mode.rot_axis_pos = 1;
-tomo.rot_axis_offset = 2 * -1179 / par.raw_bin;
-ADD
-
-par.scan_path = [raw_path 'fsuj009_sco_whale_2__a_1'];
-tomo.rot_axis_offset = 2 * 1179.5 / par.raw_bin;
-ADD
-
-par.scan_path = [raw_path 'fsuj009_sco_whale_2__e_0'];
-tomo.rot_axis_offset = 2 * -1179.5 / par.raw_bin;
-ADD
-
-par.scan_path = [raw_path 'fsuj009_sco_whale_2__e_1'];
-tomo.rot_axis_offset = 2 * 1180.0 / par.raw_bin;
-ADD
-
-
-par.scan_path = [raw_path 'fsuj009_sco_whale_2__j_0'];
-tomo.rot_axis_offset = 2 * -1179.0 / par.raw_bin;
-ADD
-
-par.scan_path = [raw_path 'fsuj009_sco_whale_2__j_1'];
-tomo.rot_axis_offset = 2 * 1778.5 / par.raw_bin;
-ADD
-
-
-par.scan_path = [raw_path 'fsuj009_sco_whale_2__o_0'];
-tomo.rot_axis_offset = 2 * -1182.5 / par.raw_bin;
-ADD
-
-par.scan_path = [raw_path 'fsuj009_sco_whale_2__o_1'];
-tomo.rot_axis_offset = 2 * 1178.0 / par.raw_bin;
-ADD
-
-par.scan_path = [raw_path 'fsuj009_sco_whale_2__u_0'];
-tomo.rot_axis_offset = 2 * -1180.0 / par.raw_bin;
-ADD
-
-par.scan_path = [raw_path 'fsuj009_sco_whale_2__u_1'];
-tomo.rot_axis_offset = 2 * 1178.0  / par.raw_bin;
 interactive_mode.rot_axis_pos = 0;
+par.pixel_scaling = 1.002;
+%write.subfolder_reco = regexprep(sprintf('scaling_%06.4f',par.pixel_scaling),'\.','p');
+par.raw_bin = 5;
+tomo.vol_size = [];
+par.stitch_projections = 1;
+par.stitch_method = 'step';'linear';
+
+tomo.rot_axis_search_auto = 1;
+tomo.rot_axis_search_range = 0.5 + (-1.5:0.1:1.5);
+tomo.rot_axis_search_metric = 'iso-grad';
+tomo.rot_axis_search_extrema = 'min';
+tomo.rot_axis_search_fit = 0;
+%tomo.rot_axis_offset_metric_roi = [];
+%tomo.rot_axis_search_slice = [];
+%tomo.rot_axis_search_range_from_interactive = 0;
+
+par.scan_path = {[raw_path 'fsuj009_sco_whale_2__a_0'],[raw_path 'fsuj009_sco_whale_2__a_1']};
+tomo.rot_axis_offset = 4 * 0.7 / par.raw_bin;
+%tomo.rot_axis_offset = 2 * 1179.5 / par.raw_bin;
+%tomo.rot_axis_offset = 2 * -1179 / par.raw_bin;
 ADD
 
-interactive_mode.rot_axis_pos = 1;
+par.scan_path = {[raw_path 'fsuj009_sco_whale_2__b_0'],[raw_path 'fsuj009_sco_whale_2__b_1']};
+tomo.rot_axis_offset = 4 * 0.6 / par.raw_bin;
+ADD
+
+par.scan_path = {[raw_path 'fsuj009_sco_whale_2__c_0'],[raw_path 'fsuj009_sco_whale_2__c_1']};
+tomo.rot_axis_offset = 4 * 0.4 / par.raw_bin;
+ADD
+
+par.scan_path = {[raw_path 'fsuj009_sco_whale_2__d_0'],[raw_path 'fsuj009_sco_whale_2__d_1']};
+ADD
+
+par.scan_path = {[raw_path 'fsuj009_sco_whale_2__e_0'],[raw_path 'fsuj009_sco_whale_2__e_1']};
+%tomo.rot_axis_offset = 2 * -1179.5 / par.raw_bin;
+%tomo.rot_axis_offset = 2 * 1180.0 / par.raw_bin;
+ADD
+
+par.scan_path = {[raw_path 'fsuj009_sco_whale_2__f_0'],[raw_path 'fsuj009_sco_whale_2__f_1']};
+ADD
+
+par.scan_path = {[raw_path 'fsuj009_sco_whale_2__g_0'],[raw_path 'fsuj009_sco_whale_2__g_1']};
+ADD
+
+par.scan_path = {[raw_path 'fsuj009_sco_whale_2__h_0'],[raw_path 'fsuj009_sco_whale_2__h_1']};
+ADD
+
+par.scan_path = {[raw_path 'fsuj009_sco_whale_2__i_0'],[raw_path 'fsuj009_sco_whale_2__i_1']};
+ADD
+
+par.scan_path = {[raw_path 'fsuj009_sco_whale_2__j_0'],[raw_path 'fsuj009_sco_whale_2__j_1']};
+%tomo.rot_axis_offset = 2 * -1179.0 / par.raw_bin;
+%tomo.rot_axis_offset = 2 * 1778.5 / par.raw_bin;
+ADD
+
+par.scan_path = {[raw_path 'fsuj009_sco_whale_2__k_0'],[raw_path 'fsuj009_sco_whale_2__k_1']};
+ADD
+
+par.scan_path = {[raw_path 'fsuj009_sco_whale_2__l_0'],[raw_path 'fsuj009_sco_whale_2__l_1']};
+ADD
+
+par.scan_path = {[raw_path 'fsuj009_sco_whale_2__m_0'],[raw_path 'fsuj009_sco_whale_2__m_1']};
+ADD
+
+par.scan_path = {[raw_path 'fsuj009_sco_whale_2__n_0'],[raw_path 'fsuj009_sco_whale_2__n_1']};
+ADD
+
+par.scan_path = {[raw_path 'fsuj009_sco_whale_2__o_0'],[raw_path 'fsuj009_sco_whale_2__o_1']};
+%tomo.rot_axis_offset = 2 * -1182.5 / par.raw_bin;
+%tomo.rot_axis_offset = 2 * 1178.0 / par.raw_bin;
+ADD
+
+par.scan_path = {[raw_path 'fsuj009_sco_whale_2__p_0'],[raw_path 'fsuj009_sco_whale_2__p_1']};
+ADD
+
+par.scan_path = {[raw_path 'fsuj009_sco_whale_2__q_0'],[raw_path 'fsuj009_sco_whale_2__q_1']};
+ADD
+
+par.scan_path = {[raw_path 'fsuj009_sco_whale_2__r_0'],[raw_path 'fsuj009_sco_whale_2__r_1']};
+ADD
+
+par.scan_path = {[raw_path 'fsuj009_sco_whale_2__s_0'],[raw_path 'fsuj009_sco_whale_2__s_1']};
+ADD
+
+par.scan_path = {[raw_path 'fsuj009_sco_whale_2__t_0'],[raw_path 'fsuj009_sco_whale_2__t_1']};
+ADD
+
+par.scan_path = {[raw_path 'fsuj009_sco_whale_2__u_0'],[raw_path 'fsuj009_sco_whale_2__u_1']};
+%tomo.rot_axis_offset = 2 * -1180.0 / par.raw_bin;
+%tomo.rot_axis_offset = 2 * 1178.0  / par.raw_bin;
+ADD
+
+write.to_scratch = 1;
+ADD
+
 %% fsuj011_sco_whale_3
-par.scan_path = [raw_path 'fsuj011_sco_whale_3__e_0']; % almost no sample
-tomo.rot_axis_offset = 2 * [] / par.raw_bin;
+interactive_mode.rot_axis_pos = 1;
+% par.scan_path = [raw_path 'fsuj011_sco_whale_3__a_0']; % no sample
+% tomo.rot_axis_offset = 2 * [] / par.raw_bin;
+% ADD
+% 
+% par.scan_path = [raw_path 'fsuj011_sco_whale_3__c_0']; % almost no sample
+% tomo.rot_axis_offset = 2 * [] / par.raw_bin;
+% ADD
+% 
+% par.scan_path = [raw_path 'fsuj011_sco_whale_3__e_0']; % almost no sample
+% tomo.rot_axis_offset = 2 * [] / par.raw_bin;
+% ADD
+% 
+% 
+% par.scan_path = [raw_path 'fsuj011_sco_whale_3__h_0']; % almost no sample
+% tomo.rot_axis_offset = 2 * -1181.0 / par.raw_bin;
+% ADD
+% 
+% par.scan_path = [raw_path 'fsuj011_sco_whale_3__h_1']; % almost no sample
+% tomo.rot_axis_offset = 2 * -1181.0 / par.raw_bin;
+% ADD
+% 
+par.scan_path = {[raw_path 'fsuj011_sco_whale_3__a_0'], [raw_path 'fsuj011_sco_whale_3__a_1']} ;
 ADD
 
-par.scan_path = [raw_path 'fsuj011_sco_whale_3__a_0']; % no sample
-tomo.rot_axis_offset = 2 * [] / par.raw_bin;
-ADD
 
-par.scan_path = [raw_path 'fsuj011_sco_whale_3__h_0']; % almost no sample
-tomo.rot_axis_offset = 2 * -1181.0 / par.raw_bin;
-ADD
 
-par.scan_path = [raw_path 'fsuj011_sco_whale_3__h_1']; % almost no sample
-tomo.rot_axis_offset = 2 * -1181.0 / par.raw_bin;
-ADD
+
+% fsuj011_sco_whale_3__b_0
+% fsuj011_sco_whale_3__b_1
+% fsuj011_sco_whale_3__c_0
+% fsuj011_sco_whale_3__c_1
+% fsuj011_sco_whale_3__d_0
+% fsuj011_sco_whale_3__d_1
+% fsuj011_sco_whale_3__e_0
+% fsuj011_sco_whale_3__e_1
+% fsuj011_sco_whale_3__f_0
+% fsuj011_sco_whale_3__f_1
+% fsuj011_sco_whale_3__g_0
+% fsuj011_sco_whale_3__g_1
+% fsuj011_sco_whale_3__h_0
+% fsuj011_sco_whale_3__h_1
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

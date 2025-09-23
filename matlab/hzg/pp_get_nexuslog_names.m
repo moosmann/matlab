@@ -2,7 +2,14 @@ function nexuslog_name = pp_get_nexuslog_names( par )
 % Helper function returning a cell of all paths to the nexus log files
 
 % Scan log
-nexuslog_name = {get_nexuslog_name( par.scan_path )};
+if ~iscell(par.scan_path)
+    nexuslog_name = {get_nexuslog_name( par.scan_path )};
+else
+    nexuslog_name = {};
+    for n = 1:numel(par.scan_path)
+        nexuslog_name = cat(1,nexuslog_name,{get_nexuslog_name( par.scan_path{n})});
+    end
+end
 
 % Addtional ref log
 if ~isempty( par.ref_path )
@@ -17,7 +24,7 @@ end
 function nexuslog_name = get_nexuslog_name( logpath )
 
 nexuslog_name = dir( sprintf('%s*_nexus.h5', logpath ) );
-if numel( nexuslog_name ) == 1
+if isscalar( nexuslog_name )
     nexuslog_name = [nexuslog_name.folder filesep nexuslog_name.name];
 end
 
