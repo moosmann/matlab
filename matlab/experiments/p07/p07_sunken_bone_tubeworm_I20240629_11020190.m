@@ -462,6 +462,7 @@ tomo.vol_size = [-0.7 0.7 -0.7 0.7 -0.5 0.5];
 ADD
 
 %% fsuj009_sco_whale_2
+par.nexus_path = '';
 par.read_sino = 0; 
 interactive_mode.rot_axis_pos = 0;
 par.pixel_scaling = 1.002;
@@ -469,7 +470,7 @@ par.pixel_scaling = 1.002;
 par.raw_bin = 5;
 tomo.vol_size = [];
 par.stitch_projections = 1;
-par.stitch_method = 'step';'linear';
+par.stitch_method = 'linear';'step';
 
 tomo.rot_axis_search_auto = 1;
 tomo.rot_axis_search_range = 0.5 + (-1.5:0.1:1.5);
@@ -556,52 +557,83 @@ par.scan_path = {[raw_path 'fsuj009_sco_whale_2__u_0'],[raw_path 'fsuj009_sco_wh
 %tomo.rot_axis_offset = 2 * 1178.0  / par.raw_bin;
 ADD
 
-write.to_scratch = 1;
-ADD
 
 %% fsuj011_sco_whale_3
-interactive_mode.rot_axis_pos = 1;
-% par.scan_path = [raw_path 'fsuj011_sco_whale_3__a_0']; % no sample
-% tomo.rot_axis_offset = 2 * [] / par.raw_bin;
-% ADD
-% 
-% par.scan_path = [raw_path 'fsuj011_sco_whale_3__c_0']; % almost no sample
-% tomo.rot_axis_offset = 2 * [] / par.raw_bin;
-% ADD
-% 
-% par.scan_path = [raw_path 'fsuj011_sco_whale_3__e_0']; % almost no sample
-% tomo.rot_axis_offset = 2 * [] / par.raw_bin;
-% ADD
-% 
-% 
-% par.scan_path = [raw_path 'fsuj011_sco_whale_3__h_0']; % almost no sample
-% tomo.rot_axis_offset = 2 * -1181.0 / par.raw_bin;
-% ADD
-% 
-% par.scan_path = [raw_path 'fsuj011_sco_whale_3__h_1']; % almost no sample
-% tomo.rot_axis_offset = 2 * -1181.0 / par.raw_bin;
-% ADD
-% 
+tomo.rot_axis_search_auto = 0;
+par.stitch_method = 'linear';'step';
+par.nexus_path = '';
+par.pixel_scaling = 1.002;
+par.raw_bin = 4;
+interactive_mode.rot_axis_pos = 0;
+
 par.scan_path = {[raw_path 'fsuj011_sco_whale_3__a_0'], [raw_path 'fsuj011_sco_whale_3__a_1']} ;
+tomo.rot_axis_offset = 5 * 0.4 / par.raw_bin;
+ADD
+par.scan_path = {[raw_path 'fsuj011_sco_whale_3__b_0'], [raw_path 'fsuj011_sco_whale_3__b_1']} ;
+tomo.rot_axis_offset = 4 * 0.5 / par.raw_bin;
 ADD
 
+par.scan_path = {[raw_path 'fsuj011_sco_whale_3__c_0'], [raw_path 'fsuj011_sco_whale_3__c_1']} ;
+tomo.rot_axis_offset = 4 * 0.5 / par.raw_bin;
+ADD
+
+par.scan_path = {[raw_path 'fsuj011_sco_whale_3__d_0'], [raw_path 'fsuj011_sco_whale_3__d_1']} ;
+tomo.rot_axis_offset = 4 * 0.5 / par.raw_bin;
+ADD
+
+par.scan_path = {[raw_path 'fsuj011_sco_whale_3__e_0'], [raw_path 'fsuj011_sco_whale_3__e_1']} ;
+tomo.rot_axis_offset = 4 * 0.5 / par.raw_bin;
+ADD
+
+par.scan_path = {[raw_path 'fsuj011_sco_whale_3__f_0'], [raw_path 'fsuj011_sco_whale_3__f_1']} ;
+ADD
+
+par.scan_path = {[raw_path 'fsuj011_sco_whale_3__g_0'], [raw_path 'fsuj011_sco_whale_3__g_1']} ;
+ADD
+
+par.scan_path = {[raw_path 'fsuj011_sco_whale_3__h_0'], [raw_path 'fsuj011_sco_whale_3__h_1']} ;
+ADD
+
+par.scan_path = {[raw_path 'fsuj011_sco_whale_3__e_0'], [raw_path 'fsuj011_sco_whale_3__e_1']} ;
+tomo.rot_axis_offset = 4 * 0.5 / par.raw_bin;
+par.stitch_method = 'linear';
+write.parfolder = 'linear';
+write.flatcor_stitched = 1;
+ADD
+
+par.stitch_method = 'step';
+write.parfolder = 'step';
+write.flatcor_stitched = 1;
+ADD
+
+write.parfolder = '';
+write.flatcor_stitched = 0;
+
+%% fsuj013_sco_whale_5
+tomo.rot_axis_search_auto = 0;
+par.stitch_method = 'linear';
+par.nexus_path = '';
+par.pixel_scaling = 1.002;
+par.raw_bin = 4;
+interactive_mode.rot_axis_pos = 0;
+
+tomo.rot_axis_search_auto = 1;
+tomo.rot_axis_search_range = 1.3 + (-1.5:0.1:1.5);
+tomo.rot_axis_search_metric = 'iso-grad';
+tomo.rot_axis_search_extrema = 'min';
+tomo.rot_axis_search_fit = 0;
+
+par.scan_path = {[raw_path 'fsuj013_sco_whale_5__a_0'], [raw_path 'fsuj013_sco_whale_5__a_1']} ;
+tomo.rot_axis_offset = 4 * 1.3 / par.raw_bin;
+ADD
+
+tomo.rot_axis_offset = 4 * [] / par.raw_bin;
+for s = string(('b':'w').').'
+    par.scan_path = {sprintf('%sfsuj013_sco_whale_5__%s_0',raw_path,s),sprintf('%sfsuj013_sco_whale_5__%s_1',raw_path,s)};
+    ADD
+end
 
 
-
-% fsuj011_sco_whale_3__b_0
-% fsuj011_sco_whale_3__b_1
-% fsuj011_sco_whale_3__c_0
-% fsuj011_sco_whale_3__c_1
-% fsuj011_sco_whale_3__d_0
-% fsuj011_sco_whale_3__d_1
-% fsuj011_sco_whale_3__e_0
-% fsuj011_sco_whale_3__e_1
-% fsuj011_sco_whale_3__f_0
-% fsuj011_sco_whale_3__f_1
-% fsuj011_sco_whale_3__g_0
-% fsuj011_sco_whale_3__g_1
-% fsuj011_sco_whale_3__h_0
-% fsuj011_sco_whale_3__h_1
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

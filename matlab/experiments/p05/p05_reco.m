@@ -210,7 +210,7 @@ write.subfolder_flatcor = ''; % subfolder in 'flat_corrected'
 write.subfolder_phase_map = ''; % subfolder in 'phase_map'
 write.subfolder_sino = ''; % subfolder in 'sino'
 write.subfolder_reco = ''; % subfolder in 'reco'
-write.flatcor = 1; % save preprocessed flat corrected projections
+write.flatcor = 0; % save preprocessed flat corrected projections
 write.flatcor_stitched = 0; % save stitched flat corrected projections (when stitchting)
 write.phase_map = 0; % save phase maps (if phase retrieval is not 0)
 write.sino = 0; % save sinograms (after preprocessing & before FBP filtering and phase retrieval)
@@ -575,9 +575,9 @@ fig_path = write.fig_path;
 % Image path
 write.im_path = [write.path,filesep,'images',filesep];
 im_path = write.im_path;
-im_path1 = [write.im_path '/images1/'];
-im_path2 = [write.im_path '/images2/'];
-im_path3 = [write.im_path '/images3/'];
+im_path1 = [write.im_path 'images1/'];
+im_path2 = [write.im_path 'images2/'];
+im_path3 = [write.im_path 'images3/'];
 if phase_retrieval.apply
     im_path1reco = [write.im_path 'reco_phase1/'];
     im_path2reco = [write.im_path 'reco_phase2/'];
@@ -880,8 +880,18 @@ if ~par.read_flatcor && ~par.read_sino
         exposure_time = h5read(nexuslog_name{1},'/entry/hardware/camera/exptime');
         magnification = h5read(nexuslog_name{1},'/entry/hardware/camera/magnification');
         pixelsize = h5read(nexuslog_name{1},'/entry/hardware/camera/pixelsize') / 1000;
-        s_stage_z_setup = h5read(nexuslog_name{1},'/entry/scan/setup/s_stage_z');
-        s_stage_x_setup = h5read(nexuslog_name{1},'/entry/scan/setup/s_stage_x');
+        if sum(strcmpi('pos_s_stage_z',{ nexus_setup.Datasets.Name }))
+            s_stage_z_setup = h5read(nexuslog_name{1},'/entry/scan/setup/pos_s_stage_z');
+        end
+        if sum(strcmpi('s_stage_z',{ nexus_setup.Datasets.Name }))
+            s_stage_z_setup = h5read(nexuslog_name{1},'/entry/scan/setup/s_stage_z');
+        end
+        if sum(strcmpi('s_stage_x',{ nexus_setup.Datasets.Name }))
+            s_stage_x_setup = h5read(nexuslog_name{1},'/entry/scan/setup/s_stage_x');
+        end
+        if sum(strcmpi('pos_s_stage_x',{ nexus_setup.Datasets.Name }))
+            s_stage_x_setup = h5read(nexuslog_name{1},'/entry/scan/setup/pos_s_stage_x');
+        end
         if isempty(par.eff_pixel_size)
             par.eff_pixel_size = pixelsize/magnification;
             if ~isempty(par.pixel_scaling)
@@ -2342,6 +2352,7 @@ end
 if par.stitch_projections
     t = toc;
     fprintf('\nStitch projections:')
+    fprintf('\n method: %s',par.stitch_method)
     num_scan_pos = max(scan_position_index);
     % LATERAL SCANNING %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     if ~isscalar(offset_shift) && (num_scan_pos > 1)
@@ -2437,14 +2448,14 @@ if par.stitch_projections
                         if x0 < x0_next
                             error('Not yet implemented')
                         else
-
+                            r2 = ceil(0.2 * size(vq,2));
                             if pp > 1
-                                m1 = mean2(vq(end-ow:end,:));
+                                m1 = mean2(vq(end-ow:end,r2:end-r2));
                                 im_sti = im_sti / m2 * (m1 + m2) / 2;
                                 vq = vq / m1 * (m1 + m2) / 2;
-                                m2 = mean2(vq(1:ow,:));
+                                m2 = mean2(vq(1:ow,r2:end-r2));
                             else
-                                m2 = mean2(vq(1:ow,:));
+                                m2 = mean2(vq(1:ow,r2:end-r2));
                             end
                         end
                         im_sti(xq,:) = vq;
@@ -2477,24 +2488,29 @@ if par.stitch_projections
             end
             proj_sti(:,:,nn) = im_sti;
             % Show stitched projections
-            if nn == 1 && par.visual_output
-                figure('Name','First projection stitched','WindowState',window_state);
-                switch lower(par.stitch_method)
-                    case 'linear'
-                        subplot(5,1,1:4)
-                        imsc1(im_sti)
-                        axis equal tight
-                        str = ['stitched projections:' sprintf(' %u',ang_ind)];
-                        title(str)
-                        subplot(5,1,5)
-                        plot(vec_norm)
-                        axis tight
-                        title('overlap positions')
-                    case 'step'
-                        imsc1(im_sti)
-                        axis equal tight
-                        str = ['stitched projections:' sprintf(' %u',ang_ind)];
-                        title(str)
+            if nn == 1 || nn == num_proj_sti
+                p = sprintf('%sstitched/',im_path3);
+                CheckAndMakePath(p)
+                write32bitTIFfromSingle(sprintf('%sproj_flatcorrected_stitched_%06u.tif',p,nn),rot90(im_sti))
+                if par.visual_output
+                    figure('Name','First projection stitched','WindowState',window_state);
+                    switch lower(par.stitch_method)
+                        case 'linear'
+                            subplot(5,1,1:4)
+                            imsc1(im_sti)
+                            axis equal tight
+                            str = ['stitched projections:' sprintf(' %u',ang_ind)];
+                            title(str)
+                            subplot(5,1,5)
+                            plot(vec_norm)
+                            axis tight
+                            title('overlap positions')
+                        case 'step'
+                            imsc1(im_sti)
+                            axis equal tight
+                            str = ['stitched projections:' sprintf(' %u',ang_ind)];
+                            title(str)
+                    end
                 end
             end
         end
@@ -2584,6 +2600,9 @@ if par.stitch_projections
                 end
                 proj_sti(:,:,nn) = im;
                 if nn == 1 || nn == num_proj_sti
+                    p = sprintf('%sstitched/',im_path3);
+                    CheckAndMakePath(p)
+                    write32bitTIFfromSingle(sprintf('%sproj_flatcorrected_stitched_%06u.tif',p,nn),rot90(im))
                     if par.visual_output
                         %%
                         f = figure('Name',sprintf('Stitching projection %u',nn),'WindowState',window_state);

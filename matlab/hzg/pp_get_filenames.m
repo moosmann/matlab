@@ -3,9 +3,6 @@ function [proj_names,proj_full_path, ref_names,ref_full_path, dark_names,dark_fu
 
 scan_path = par.scan_path;
 ref_path = par.ref_path;
-% proj_names = [];
-% dark_names = [];
-% ref_names = [];
 if ~iscell(scan_path)
     h5log = dir( sprintf('%s*_nexus.h5', scan_path) );
     h5log = [h5log.folder filesep h5log.name];
@@ -20,7 +17,9 @@ if ~iscell(scan_path)
     ref_names = stimg_name.value(stimg_key.value==1)';
     dark_names = stimg_name.value(stimg_key.value == 2 )';
 
+    dark_full_path = cellfun( @(a) [scan_path filesep a], dark_names, 'UniformOutput', 0 );
     ref_full_path = cellfun( @(a) [scan_path filesep a], ref_names, 'UniformOutput', 0 );
+    proj_full_path = cellfun( @(a) [scan_path filesep a], proj_names, 'UniformOutput', 0 );
 else
     dark_names = {};
     dark_full_path = {};
@@ -50,7 +49,6 @@ else
         proj_names_n = stimg_name.value(stimg_key.value==0)';
         proj_names = cat(2,proj_names,proj_names_n);
         proj_full_path = cat(2,proj_full_path,cellfun( @(a) [scan_path{n} filesep a], proj_names_n, 'UniformOutput',0));
-
     end
 end
 

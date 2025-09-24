@@ -48,12 +48,37 @@ if ~isempty(SUBSETS)
             if nn == 1
                 fprintf( '\n' )
             end
-            if iscell(PRINT_PARAMETERS)
-                fprintf('%3u : %s\n', num, name )
-                for mm = 1:numel( PRINT_PARAMETERS )
-                    fn = PRINT_PARAMETERS{mm};
-                    fprintf( '        %s = ', fn)
-                    %out = external_parameter.(fn);
+            if iscell(name)
+                kke = numel(name);
+            else
+                kke = 1;
+            end
+            for kk = 1:kke
+                if iscell(name)
+                    name_kk = name{kk};
+                else
+                    name_kk = name;
+                end
+                if iscell(PRINT_PARAMETERS)
+                    
+                    fprintf('%3u : %s\n', num, name_kk )
+                    for mm = 1:numel( PRINT_PARAMETERS )
+                        fn = PRINT_PARAMETERS{mm};
+                        fprintf( '        %s = ', fn)
+                        out = eval(sprintf( 'external_parameter.%s', fn));
+                        if isempty( out )
+                            fprintf( '\n' )
+                        else
+                            if isstruct( out )
+                                fprintf( '\n' )
+                            end
+                            fprintf('%s\n',num2str(out))
+                        end
+                    end
+                else
+                    fprintf('%3u : %s', num, name_kk )
+                    fprintf( ', %s = ', PRINT_PARAMETERS)
+                    fn = PRINT_PARAMETERS;
                     out = eval(sprintf( 'external_parameter.%s', fn));
                     if isempty( out )
                         fprintf( '\n' )
@@ -61,24 +86,8 @@ if ~isempty(SUBSETS)
                         if isstruct( out )
                             fprintf( '\n' )
                         end
-                        %disp( out )
-                        fprintf('%s\n',num2str(out))
+                        fprintf('%s',num2str(out))
                     end
-                end
-            else
-                fprintf('%3u : %s', num, name )
-                fprintf( ', %s = ', PRINT_PARAMETERS)
-                %out = external_parameter.(PRINT_PARAMETERS);
-                fn = PRINT_PARAMETERS;
-                out = eval(sprintf( 'external_parameter.%s', fn));
-                if isempty( out )
-                    fprintf( '\n' )
-                else
-                    if isstruct( out )
-                        fprintf( '\n' )
-                    end
-                    %disp( out )
-                    fprintf('%s',num2str(out))
                 end
             end
         else
