@@ -258,7 +258,7 @@ pixel_filter_sino.use_gpu = par.use_gpu_in_parfor;
 par.poolsize = 50; % scalar: number of workers used in a local parallel pool. if 0: use current config. if >= 1: absolute number. if 0 < poolsize < 1: relative amount of all cores to be used. if SLURM scheduling is available,a default number of workers is used.
 par.poolsize_gpu_limit_factor = 0.5; % scalar: relative amount of GPU memory used for preprocessing during parloop. High values speed up Proprocessing,but increases out-of-memory failure
 phase_retrieval.use_parpool = 1; % bool. Disable parpool when out-of-memory error occurs during phase retrieval.
-par.window_state = 'minimized';'normal';'maximized';
+par.window_state = 'maximized';'minimized';'normal';
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%% END OF PARAMETERS / SETTINGS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -280,15 +280,12 @@ if nargin == 1 %exist('external_parameter','var')
     field_name_cell = fieldnames(external_parameter);
     for nn = 1:numel(field_name_cell)
         field_name = field_name_cell{nn};
-        %var_val = getfield(external_parameter,var_name);
-        %assignin('caller',var_name,var_val)
-        field_value = external_parameter.(field_name); %#ok<NASGU>
+        field_value = external_parameter.(field_name);
         eval(sprintf('%s = field_value;',field_name));
     end
     %clear external_parameter field_name_cell field_name field_value
     par.quick_switch = 0;
-    par.visual_output = 1;
-    % interactive_mode.rot_axis_pos = 0;
+    %par.visual_output = 1;
 end
 
 %%% QUICK SWITCH PARAMETERS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -323,6 +320,8 @@ offset_shift = 0;
 scan_position = [];
 logpar = [];
 s_stage_z_str =  '';
+s_stage_z_setup = [];
+s_stage_x_setup = [];
 imlogcell = [];
 scan_position_index = [];
 par.raw_data = 0;

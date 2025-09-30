@@ -303,21 +303,22 @@ ADD
 write.to_scratch = 0;
 par.distortion_correction_distance = 2389;
 par.distortion_correction_distance = 1656;
-par.distortion_correction_distance = 0;
+%par.distortion_correction_distance = 0;
 par.distortion_correction_outer_offset = 1182.500;
 par.distortion_correction_outer_offset = 1181.95;
 par.distortion_correction_exponent = 2; % scalar, 
 tomo.rot_axis_offset = 1179.200;
 write.subfolder_reco = 'distcor'; % subfolder in 'reco'
-%write.subfolder_reco = ''; 
+
 
 par.scan_path = [proc_path  'fsuj004_sbr_bone_mid'];
 par.nexus_path = [regexprep(par.scan_path,'processed','raw') '__a'];
 par.read_sino = 1; 
 par.read_sino_folder = 'trans02_360';
 par.read_sino_trafo = @(x) (x);
-par.sino_roi = []; % horizontal ROI when reading sinograms, vertical ROI not yet implemented
-par.filter_sino = 1; % bool. Pixel filtering of sinogram.
+par.sino_roi = [];
+par.filter_sino = 1;
+par.stitch_method =  'step';
 pixel_filter_sino.threshold_hot = 0;0.0005;
 pixel_filter_sino.threshold_dark = 0;0.00005;
 pixel_filter_sino.medfilt_neighboorhood = [3 3];
@@ -328,14 +329,24 @@ pixel_filter_sino.verbose = 0;
 pixel_filter_sino.use_gpu = par.use_gpu_in_parfor;
 ring_filter.apply = 1;
 phase_retrieval.apply = 0;
+write.subfolder_reco = ''; 
+ADD
+
+% par.distortion_correction_distance = 0;
+% write.subfolder_reco = 'scaled_1p002'; 
+% par.pixel_scaling = 1.002;
+% ADD
+par.stitch_projections = 1;
+write.parfolder = 'stitch_proj';
 ADD
 
 phase_retrieval.apply = 1;
 phase_retrieval.reg_par = 1.0;
 interactive_mode.phase_retrieval = 1;
 ADD
-phase_retrieval.apply = 1;
+phase_retrieval.apply = 0;
 
+%%
 par.scan_path = [proc_path  'fsuj008_sbr_bone_lat_1'];
 par.nexus_path = [regexprep(par.scan_path,'processed','raw') '__a_0'];
 par.read_sino_folder = 'trans02_180';
@@ -384,24 +395,6 @@ write.subfolder_reco = '';
 % write.subfolder_reco = 'distCor_plus8';
 % ADD
 
-%% Check vertshift
-% No global improvement can be seen
-
-% write.subfolder_reco = 'vertShift_0';
-% ADD
-% N = 10000;
-% tomo.vert_shift = 1 * (0:N-1)/(N-1);
-% write.subfolder_reco = 'vertShift_1pos';
-% ADD
-% tomo.vert_shift = 2 * (0:N-1)/(N-1);
-% write.subfolder_reco = 'vertShift_2pos';
-% ADD
-% tomo.vert_shift = -1 * (0:N-1)/(N-1);
-% write.subfolder_reco = 'vertShift_1neg';
-% ADD
-% tomo.vert_shift = -2 * (0:N-1)/(N-1);
-% write.subfolder_reco = 'vertShift_2neg';
-% ADD
 %% Stack
 write.subfolder_reco = '';
 par.distortion_correction_distance = 1740;
@@ -461,12 +454,40 @@ tomo.rot_axis_offset = 2 * 0 / par.raw_bin;
 tomo.vol_size = [-0.7 0.7 -0.7 0.7 -0.5 0.5];
 ADD
 
+%% fsuj007_sbr_bone_mid_2
+par.distortion_correction_distance = 0;
+interactive_mode.phase_retrieval = 0;
+interactive_mode.rot_axis_pos = 1;
+
+par.scan_path = [proc_path  'fsuj007_sbr_bone_mid_2'];
+par.nexus_path = [regexprep(par.scan_path,'processed','raw') '__a'];
+par.read_sino = 1; 
+par.read_sino_folder = 'trans02_180';
+par.read_sino_trafo = @(x) (x);
+par.sino_roi = []; 
+par.read_sino_range = [];
+par.filter_sino = 1;
+par.stitch_projections = 0;
+pixel_filter_sino.threshold_hot = 0;0.0005;
+pixel_filter_sino.threshold_dark = 0;0.00005;
+pixel_filter_sino.medfilt_neighboorhood = [3 3];
+pixel_filter_sino.filter_dead_pixel = 1;
+pixel_filter_sino.filter_Inf = 1;
+pixel_filter_sino.filter_NaN = 1;
+pixel_filter_sino.verbose = 0;
+pixel_filter_sino.use_gpu = par.use_gpu_in_parfor;
+ring_filter.apply = 1;
+phase_retrieval.apply = 0;
+write.subfolder_reco = ''; 
+tomo.rot_axis_offset = 2 * [] / par.raw_bin;
+tomo.vol_size = [];% [-0.7 0.7 -0.7 0.7 -0.5 0.5];
+ADD
+
 %% fsuj009_sco_whale_2
 par.nexus_path = '';
 par.read_sino = 0; 
 interactive_mode.rot_axis_pos = 0;
 par.pixel_scaling = 1.002;
-%write.subfolder_reco = regexprep(sprintf('scaling_%06.4f',par.pixel_scaling),'\.','p');
 par.raw_bin = 5;
 tomo.vol_size = [];
 par.stitch_projections = 1;
@@ -477,14 +498,9 @@ tomo.rot_axis_search_range = 0.5 + (-1.5:0.1:1.5);
 tomo.rot_axis_search_metric = 'iso-grad';
 tomo.rot_axis_search_extrema = 'min';
 tomo.rot_axis_search_fit = 0;
-%tomo.rot_axis_offset_metric_roi = [];
-%tomo.rot_axis_search_slice = [];
-%tomo.rot_axis_search_range_from_interactive = 0;
 
 par.scan_path = {[raw_path 'fsuj009_sco_whale_2__a_0'],[raw_path 'fsuj009_sco_whale_2__a_1']};
 tomo.rot_axis_offset = 4 * 0.7 / par.raw_bin;
-%tomo.rot_axis_offset = 2 * 1179.5 / par.raw_bin;
-%tomo.rot_axis_offset = 2 * -1179 / par.raw_bin;
 ADD
 
 par.scan_path = {[raw_path 'fsuj009_sco_whale_2__b_0'],[raw_path 'fsuj009_sco_whale_2__b_1']};
@@ -499,8 +515,6 @@ par.scan_path = {[raw_path 'fsuj009_sco_whale_2__d_0'],[raw_path 'fsuj009_sco_wh
 ADD
 
 par.scan_path = {[raw_path 'fsuj009_sco_whale_2__e_0'],[raw_path 'fsuj009_sco_whale_2__e_1']};
-%tomo.rot_axis_offset = 2 * -1179.5 / par.raw_bin;
-%tomo.rot_axis_offset = 2 * 1180.0 / par.raw_bin;
 ADD
 
 par.scan_path = {[raw_path 'fsuj009_sco_whale_2__f_0'],[raw_path 'fsuj009_sco_whale_2__f_1']};
@@ -516,8 +530,7 @@ par.scan_path = {[raw_path 'fsuj009_sco_whale_2__i_0'],[raw_path 'fsuj009_sco_wh
 ADD
 
 par.scan_path = {[raw_path 'fsuj009_sco_whale_2__j_0'],[raw_path 'fsuj009_sco_whale_2__j_1']};
-%tomo.rot_axis_offset = 2 * -1179.0 / par.raw_bin;
-%tomo.rot_axis_offset = 2 * 1778.5 / par.raw_bin;
+
 ADD
 
 par.scan_path = {[raw_path 'fsuj009_sco_whale_2__k_0'],[raw_path 'fsuj009_sco_whale_2__k_1']};
@@ -533,8 +546,6 @@ par.scan_path = {[raw_path 'fsuj009_sco_whale_2__n_0'],[raw_path 'fsuj009_sco_wh
 ADD
 
 par.scan_path = {[raw_path 'fsuj009_sco_whale_2__o_0'],[raw_path 'fsuj009_sco_whale_2__o_1']};
-%tomo.rot_axis_offset = 2 * -1182.5 / par.raw_bin;
-%tomo.rot_axis_offset = 2 * 1178.0 / par.raw_bin;
 ADD
 
 par.scan_path = {[raw_path 'fsuj009_sco_whale_2__p_0'],[raw_path 'fsuj009_sco_whale_2__p_1']};
@@ -553,8 +564,6 @@ par.scan_path = {[raw_path 'fsuj009_sco_whale_2__t_0'],[raw_path 'fsuj009_sco_wh
 ADD
 
 par.scan_path = {[raw_path 'fsuj009_sco_whale_2__u_0'],[raw_path 'fsuj009_sco_whale_2__u_1']};
-%tomo.rot_axis_offset = 2 * -1180.0 / par.raw_bin;
-%tomo.rot_axis_offset = 2 * 1178.0  / par.raw_bin;
 ADD
 
 
@@ -628,8 +637,12 @@ tomo.rot_axis_offset = 4 * 1.3 / par.raw_bin;
 ADD
 
 tomo.rot_axis_offset = 4 * [] / par.raw_bin;
-for s = string(('b':'w').').'
+abc = string(('k':'w').').';
+tomo.rot_axis_search_range = 0.0 + (-1.5:0.1:1.5);
+for n = 1:numel(abc)
+    s = abc{n};
     par.scan_path = {sprintf('%sfsuj013_sco_whale_5__%s_0',raw_path,s),sprintf('%sfsuj013_sco_whale_5__%s_1',raw_path,s)};
+    tomo.rot_axis_search_range =0 + (-1.5:0.1:1.5);
     ADD
 end
 
