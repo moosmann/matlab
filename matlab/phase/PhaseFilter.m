@@ -22,6 +22,9 @@ function [fourier_filter, parameter_string] = PhaseFilter(method, filter_size, e
 %   'tie' : Linearized transport of intensity equation. Amounts to the
 %     inversion of the Laplacian, also referred to as Paganin
 %     or Bronnikov phase retrieval.
+%   'ict' : Intensity contrast transfer assuming weak phase and weak
+%   attenaution variations, but not a weak absolute attenuation. 
+%       https://doi.org/10.1364/OL.530330
 %   'ctf' : Inversion of the contrast transfer function for the pure phase
 %     case. Amounts to the inversion of the CTF sinusoidal prefactor.
 %   'ctfhalfsine': Same as 'ctf' up to the first half period of the sine.
@@ -44,12 +47,14 @@ function [fourier_filter, parameter_string] = PhaseFilter(method, filter_size, e
 %
 % regularization_parameter : scalar,  default: 2.5. Phase retrieval is
 %   regularized according: 
-%        1/func(x) -> 1/(func(x)+10^(-regularization_parameter)), 
+%        1/func(x) -> 1/(func(x)+10^(-regularization_parameter)),
+%      'ict': 
 %   for details of the placeholder function 'func' see code below. The
 %   regularization parameter is the negative of the decadic logartihm of
 %   the constant which is added to the denominator in order to regularize
 %   the singularity at zero frequency. Typical values are between 1.5 and
 %   3.5 depending on energy, residual absorption, etc.
+%   Relation to the refractive index is 10^r = delta / beta
 %
 % binary_filter_threshold : scalar in [0 1], default: 0.1. Parameter for
 %   quasiparticle % phase retrieval defining the width of the rings which
@@ -115,8 +120,6 @@ else
     ArgPrefac = pi / abs(energy_distance_pixelsize);
 end
 
-% wave length
-
 %% Fourier coordinates
 % 1D
 xi  = FrequencyVector(filter_size(2),precision,1);
@@ -129,13 +132,16 @@ sinArg = ArgPrefac*(xi2.^2 + eta2.^2);
 %% Filter 
 switch lower(method)
     case 'tie'
-        %fourier_filter = 1/2./(sinArg + 10^-regularization_parameter);
         fourier_filter = 1/2*sign(sinArg)./(abs(sinArg)+10^-regularization_parameter);
         if regularization_parameter < 0
             parameter_string = sprintf('tie_regPar_m%05.2f',abs(regularization_parameter));
         else
             parameter_string = sprintf('tie_regPar_p%05.2f',regularization_parameter);
         end
+    case 'ict'
+        sinxiquad   = cos(sinArg) + 10^regularization_parameter * sin(sinArg);
+        fourier_filter = 1/2*sign(sinxiquad)./(abs(sinxiquad)+10^-regularization_parameter);        
+        parameter_string = sprintf('ict_regPar%3.2f',regularization_parameter);
     case 'ctf'
         sinxiquad   = sin(sinArg);
         fourier_filter = 1/2*sign(sinxiquad)./(abs(sinxiquad)+10^-regularization_parameter);        

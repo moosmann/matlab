@@ -39,13 +39,15 @@ dbstop if error
 par.quick_switch = 1;
 
 par.scan_path = pwd;
-par.raw_bin = 2;
-par.raw_roi = -4;[0.4 0.6];
-par.proj_range = 1;
+par.raw_bin = 4;
+par.raw_roi = [0.3 0.7];
+par.proj_range = 2;
+par.ref_range = 10;
 tomo.reco_mode = '3D';'slice';
 image_correlation.method = 'median';'ssim-ml';
 write.flatcor = 0;
 phase_retrieval.apply = 0;
+phase_retrieval.method = 'ict';
 interactive_mode.rot_axis_pos = 1;
 write.to_scratch = 1;
 write.parfolder = '';
@@ -777,6 +779,9 @@ if ~par.read_flatcor && ~par.read_sino
     if isscalar(par.proj_range)
         par.proj_range = 1:par.proj_range:par.num_proj_found;
     end
+    %% TODO: fix for multi scan reco
+    proj_full_path = proj_full_path(par.proj_range);
+    ref_full_path = ref_full_path(par.ref_range);
     %dark_nums = CellString2Vec(dark_names);
     proj_nums = CellString2Vec(proj_names(par.proj_range));
     par.num_ref_used = numel(par.ref_range);
