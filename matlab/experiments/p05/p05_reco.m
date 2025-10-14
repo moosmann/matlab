@@ -39,20 +39,21 @@ dbstop if error
 par.quick_switch = 1;
 
 par.scan_path = pwd;
-par.raw_bin = 4;
-par.raw_roi = [0.3 0.7];
-par.proj_range = 2;
-par.ref_range = 10;
+par.raw_bin = 2;
+par.raw_roi = [0.1 0.9 0.1 0.9];
+par.proj_range = 1;
+par.ref_range = 1;
 tomo.reco_mode = '3D';'slice';
 image_correlation.method = 'median';'ssim-ml';
 write.flatcor = 0;
 phase_retrieval.apply = 0;
-phase_retrieval.method = 'ict';
-interactive_mode.rot_axis_pos = 1;
+phase_retrieval.method = 'tie';
+interactive_mode.rot_axis_pos = 0;
 write.to_scratch = 1;
 write.parfolder = '';
 par.eff_pixel_size = [];
 par.crop_proj = 0;
+tomo.rot_axis_offset = 1;
 % END OF QUICK SWITCH TO ALTERNATIVE SET OF PARAMETERS %%%%%%%%%%%%%%%%%%%%
 
 pp_parameter_switch % DO NOT DELETE OR EDIT THIS LINE %%%%%%%%%%%%%%%%%%%%%

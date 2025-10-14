@@ -44,8 +44,8 @@ if nargin < 1
     %scan_path = {'/asap3/petra3/gpfs/p07/2024/data/11020251/processed/swerim005_sa03_sura_k32_a','/asap3/petra3/gpfs/p07/2024/data/11020251/processed/swerim006_sa03_sura_k32_b'};
     %scan_path = {'/asap3/petra3/gpfs/p07/2024/data/11020251/processed/swerim007_sa04_sura_b32_a','/asap3/petra3/gpfs/p07/2024/data/11020251/processed/swerim008_sa04_sura_b32_b'};
     %scan_path = {'/asap3/petra3/gpfs/p07/2024/data/11020251/processed/swerim010_sa07_voestalpine_s2_a','/asap3/petra3/gpfs/p07/2024/data/11020251/processed/swerim011_sa07_voestalpine_s2_b'};
-   %scan_path = {'/asap3/petra3/gpfs/p07/2024/data/11020251/processed/swerim012_sa08_voestalpine_s3_a','/asap3/petra3/gpfs/p07/2024/data/11020251/processed/swerim013_sa08_voestalpine_s3_b'};
-    scan_path = {'/asap3/petra3/gpfs/p07/2024/data/11020251/processed/swerim017_sa12_voestalpine_s7_a','/asap3/petra3/gpfs/p07/2024/data/11020251/processed/swerim018_sa12_voestalpine_s7_b'};
+    %scan_path = {'/asap3/petra3/gpfs/p07/2024/data/11020251/processed/swerim012_sa08_voestalpine_s3_a','/asap3/petra3/gpfs/p07/2024/data/11020251/processed/swerim013_sa08_voestalpine_s3_b'};
+    %scan_path = {'/asap3/petra3/gpfs/p07/2024/data/11020251/processed/swerim017_sa12_voestalpine_s7_a','/asap3/petra3/gpfs/p07/2024/data/11020251/processed/swerim018_sa12_voestalpine_s7_b'};
 end
 if nargin < 2
     %scan_subfolder = 'reco_phase/tie_regPar1p00';
@@ -56,12 +56,12 @@ if nargin < 3
     reco_subfolder = 'float_rawBin2';
 end
 if nargin < 4
-    %stitched_volume_path = '';
+    stitched_volume_path = '';
     %stitched_volume_path = '/asap3/petra3/gpfs/p07/2024/data/11020251/processed/swerim_sa03_sura_k32';
     %stitched_volume_path = '/asap3/petra3/gpfs/p07/2024/data/11020251/processed/swerim_sa04_sura_b32_a';
     %stitched_volume_path = '/asap3/petra3/gpfs/p07/2024/data/11020251/processed/swerim_sa07_voestalpine_s2';
     %stitched_volume_path = '/asap3/petra3/gpfs/p07/2024/data/11020251/processed/swerim_sa08_voestalpine_s3';
-    stitched_volume_path = '/asap3/petra3/gpfs/p07/2024/data/11020251/processed/swerim_sa12_voestalpine_s7';
+    %stitched_volume_path = '/asap3/petra3/gpfs/p07/2024/data/11020251/processed/swerim_sa12_voestalpine_s7';
 end
 if nargin < 5
     scan_mask = [];
@@ -267,6 +267,8 @@ for nn = 1:num_scans
         end
     end
     if isempty(s_stage_z)
+        d = dir([regexprep( full_path, 'processed', 'raw' ) '*'] );
+        p = [d(1).folder filesep d(1).name];
         d = dir([p filesep '*nexus.h5']);
         h5_log = [d.folder filesep d.name];
         s_stage_z = 1000*h5read(h5_log,'/entry/scan/setup/s_stage_z');
