@@ -235,8 +235,9 @@ for nn = 1:num_scans
     end
     s(nn).effective_pixel_size = effective_pixel_size;
     s(nn).effective_pixel_size_binned = effective_pixel_size * double( bin );
-    
+
     % Scan log
+    s_stage_z = [];
     scan_log = [regexprep( full_path, 'processed', 'raw' ) filesep name 'scan.log'];
     if ~exist( scan_log, 'file' )
         d = dir([regexprep( full_path, 'processed', 'raw' ) '*'] );
@@ -248,22 +249,24 @@ for nn = 1:num_scans
     end
     if ~exist( scan_log, 'file' )
         fprintf( '\nScan log not found!\n' )
-        break
-    end
-    fid = fopen( scan_log );
-    cell_of_lines = textscan( fid, '%s', 'Delimiter', {'\n', '\r'} );
-    cell_of_lines = cell_of_lines{1};
-    fclose( fid );
-    s(nn).scan_log = scan_log;
-
-    % s_stage_z
-    s_stage_z = [];
-    for ll = 1:numel( cell_of_lines )
-        t = regexp( cell_of_lines{ll}, 's_stage_z' );
-        if t
-            cc = textscan( cell_of_lines{ll}, '%s', 'Delimiter', {'=',',',' '}, 'CollectOutput', 1, 'MultipleDelimsAsOne', 1);
-            s_stage_z = str2double( cc{1}{2} ) * 1000;
-            break
+        %break
+    else
+        %end
+    
+        fid = fopen( scan_log );
+        cell_of_lines = textscan( fid, '%s', 'Delimiter', {'\n', '\r'} );
+        cell_of_lines = cell_of_lines{1};
+        fclose( fid );
+        s(nn).scan_log = scan_log;
+        % s_stage_z
+        s_stage_z = [];
+        for ll = 1:numel( cell_of_lines )
+            t = regexp( cell_of_lines{ll}, 's_stage_z' );
+            if t
+                cc = textscan( cell_of_lines{ll}, '%s', 'Delimiter', {'=',',',' '}, 'CollectOutput', 1, 'MultipleDelimsAsOne', 1);
+                s_stage_z = str2double( cc{1}{2} ) * 1000;
+                break
+            end
         end
     end
     if isempty(s_stage_z)

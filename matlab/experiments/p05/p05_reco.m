@@ -40,7 +40,7 @@ par.quick_switch = 1;
 
 par.scan_path = pwd;
 par.raw_bin = 2;
-par.raw_roi = [0.1 0.9 0.1 0.9];
+par.raw_roi = [];[0.2 0.8];
 par.proj_range = 1;
 par.ref_range = 1;
 tomo.reco_mode = '3D';'slice';
@@ -48,7 +48,7 @@ image_correlation.method = 'median';'ssim-ml';
 write.flatcor = 0;
 phase_retrieval.apply = 0;
 phase_retrieval.method = 'tie';
-interactive_mode.rot_axis_pos = 0;
+interactive_mode.rot_axis_pos = 1;
 write.to_scratch = 1;
 write.parfolder = '';
 par.eff_pixel_size = [];
@@ -261,7 +261,7 @@ pixel_filter_sino.use_gpu = par.use_gpu_in_parfor;
 par.poolsize = 50; % scalar: number of workers used in a local parallel pool. if 0: use current config. if >= 1: absolute number. if 0 < poolsize < 1: relative amount of all cores to be used. if SLURM scheduling is available,a default number of workers is used.
 par.poolsize_gpu_limit_factor = 0.5; % scalar: relative amount of GPU memory used for preprocessing during parloop. High values speed up Proprocessing,but increases out-of-memory failure
 phase_retrieval.use_parpool = 1; % bool. Disable parpool when out-of-memory error occurs during phase retrieval.
-par.window_state = 'maximized';'minimized';'normal';
+par.window_state = 'minimized';'normal';'maximized';
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%% END OF PARAMETERS / SETTINGS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -1120,10 +1120,10 @@ if ~par.read_flatcor && ~par.read_sino
                 switch numel(s_stage_z.value)
                     case par.num_proj_found
                         vert_shift_micron = s_stage_z.value;
-                    case par.num_proj_found + par.num_dark + par.num_proj_found
+                    case par.num_proj_found + par.num_dark + par.num_ref_found
                         m = stimg_key.scan.value == 0 ;
                         vert_shift_micron = s_stage_z.value(m);
-                    case par.num_proj_found + par.num_proj_found
+                    case par.num_proj_found + par.num_ref_found
                         %m = stimg_key.value(logpar.n_dark + 1:end) == 0 ;
                         %m = stimg_key.value(par.num_proj_found + 1:end) == 0 ;
                         vert_shift_micron = s_stage_z.value(round(par.num_proj_found/2) + (1:par.num_proj_found));
@@ -1132,7 +1132,7 @@ if ~par.read_flatcor && ~par.read_sino
                 end
                 vert_shift_micron = vert_shift_micron(par.proj_range);
                 if abs(std(SubtractMean(vert_shift_micron))) > 1e-3
-                    vert_shift_micron = vert_shift_micron(par.proj_range);
+                    %vert_shift_micron = vert_shift_micron(par.proj_range);
                     % Check
                     vert_shift = vert_shift_micron * 1e-3 / par.eff_pixel_size_binned;
                     vert_shift = SubtractMean(vert_shift);
@@ -2022,7 +2022,16 @@ if ~par.read_flatcor && ~par.read_sino
                 %angles = s_rot.value(~boolean(stimg_key.scan.value(logpar.n_dark+1:end))) * pi / 180;
                 angles = [];
                 for n = 1:numel(stimg_key.scan)
-                    angles = cat(1,angles,s_rot.value(~boolean(stimg_key.scan(n).value(n_dark+1:end))) * pi / 180);
+                    switch numel(stimg_key.scan(n).value)
+                        case par.num_proj_found
+                           m = 1:par.num_proj_found;
+                        case par.num_proj_found + par.num_ref_found
+                           m =  ~boolean(stimg_key.scan(n).value(n_dark+1:end));
+                        case par.num_proj_found + par.num_dark + par.num_ref_found
+                           m = stimg_key.scan(n).value == 0 ;
+                    end
+                    angles_n = s_rot.value(m);
+                    angles = pi / 180 * cat(1,angles,angles_n);
                 end
                 fprintf('\n angles_logged / pi: %f %f %f ... %f %f %f %f %f ',angles([1 2 3 end-4:end])/pi)
                 angles = angles(par.proj_range);

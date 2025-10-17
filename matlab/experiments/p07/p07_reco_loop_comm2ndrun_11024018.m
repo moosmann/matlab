@@ -201,7 +201,7 @@ tomo.rot_axis_search_auto = 0; % find extrema of metric within search range
 tomo.rot_axis_search_range = []; % search reach for automatic determination of the rotation axis offset,overwrite interactive result if not empty
 tomo.rot_axis_search_metric = 'iso-grad'; % string: 'neg','entropy','iso-grad','laplacian','entropy-ML','abs'. Metric to find rotation axis offset
 tomo.rot_axis_search_extrema = 'max'; % string: 'min'/'max'. chose min or maximum position
-tomo.rot_axis_search_fit = 1; % bool: fit calculated metrics and find extrema,otherwise use extrema from search range
+tomo.rot_axis_search_fit = 0; % bool: fit calculated metrics and find extrema,otherwise use extrema from search range
 tomo.rot_axis_offset_metric_roi = []; % 4-vector: [. ROI for metric calculation. roi = [y0,x0,y1-y0,x1-x0]. (x,y)=(0,0)=upper left
 tomo.rot_axis_search_slice = []; % scalar: slice used to find rot axis. if empty: uses slice from interactive mode,if that is empty uses central slice.
 tomo.rot_axis_search_range_from_interactive = 0; % boolean: use search range from interactive mode
@@ -294,8 +294,12 @@ par.scan_path = [raw_path '00007_hereon_zn_no06_a']; ADD
 
 par.scan_path = [raw_path '00008_hereon_zn_no07_a']; ADD
 
-par.scan_path = [raw_path '00009_desy_mgsio_no04_a']; ADD
 
+
+par.raw_roi = [0 1 0.1 0.9];
+image_correlation.method = 'median';
+write.subfolder_reco = 'flatcor_median';
+par.scan_path = [raw_path '00009_desy_mgsio_no04_a']; ADD
 par.scan_path = [raw_path '00010_desy_mgsio_no01_a']; ADD
 par.scan_path = [raw_path '00011_desy_mgsio_no02_a']; ADD
 par.scan_path = [raw_path '00012_desy_mgsio_no03_a']; ADD
@@ -305,10 +309,22 @@ par.scan_path = [raw_path '00013_hereon_empty_a']; ADD
 %% lfs steel
 par.ring_current_normalization = 0;
 par.raw_roi = [0 1 0.1 0.9];
+tomo.vol_size = [-1 1 -1 1 -0.5 0.5];
+tomo.rot_axis_search_auto = 1; 
+tomo.rot_axis_search_range = 511.25 + (-2.5:0.25:2.5); 
+tomo.rot_axis_search_metric = 'neg';
+tomo.rot_axis_search_extrema = 'max'; 
+interactive_mode.rot_axis_pos = 0; 
+tomo.rot_axis_search_fit = 0; % bool: fit calculated metrics and find extrema,otherwise use extrema from search range
+image_correlation.method = 'median';
+
+tomo.vol_size = [-0.85 0.85 -0.85 0.85 -0.5 0.5];
 par.scan_path = [raw_path '00014_lfs_steel_56_3_a']; ADD
 par.scan_path = [raw_path '00015_lfs_steel_56_3_b']; ADD
 par.scan_path = [raw_path '00016_lfs_steel_56_3_c']; ADD
 
+par.raw_roi = [0 1 0.04 0.96];
+tomo.vol_size = [-1 1 -1 1 -0.5 0.5];
 par.scan_path = [raw_path '00017_lfs_steel_56_1_a']; ADD
 par.scan_path = [raw_path '00018_lfs_steel_56_1_b']; ADD
 par.scan_path = [raw_path '00019_lfs_steel_56_1_c']; ADD
@@ -324,7 +340,7 @@ par.scan_path = [raw_path '00025_lfs_steel_56_4_c']; ADD
 par.scan_path = [raw_path '00026_lfs_steel_56_5_a']; ADD
 par.scan_path = [raw_path '00027_lfs_steel_56_5_b']; ADD
 par.scan_path = [raw_path '00028_lfs_steel_56_5_c']; ADD
-
+tomo.rot_axis_search_auto = 0; 
 
 %% batt samsung
 par.scan_path = [raw_path '00029_batt_samsung_a']; ADD
@@ -453,6 +469,24 @@ par.sino_roi = [];
 par.filter_sino = 1;
 par.stitch_projections = 0;
 tomo.rot_axis_offset = 2.2;
+ADD
+
+%% batterie Samsung
+interactive_mode.rot_axis_pos = 1; 
+par.raw_bin = 4;
+tomo.vol_size = [-1 1 -1 1 -0.5 0.5];
+proc_path = '/asap3/petra3/gpfs/p07/2025/data/11024018/processed/';
+par.scan_path = [proc_path  'batt_samsung'];
+par.nexus_path = '/asap3/petra3/gpfs/p07/2025/data/11024018/raw/00029_batt_samsung_a';
+%par.nexus_path = [regexprep(par.scan_path,'processed','raw') '__a'];
+par.read_sino = 1; 
+par.read_sino_folder = 'trans04_360';
+par.read_sino_trafo = @(x) (x);
+par.sino_roi = [];
+par.filter_sino = 1;
+par.stitch_projections = 1;
+par.stitch_method =  'step';
+tomo.rot_axis_offset = 933;
 ADD
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
