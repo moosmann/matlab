@@ -36,24 +36,8 @@ dbstop if error
 % !!! QUICK SWITCH TO ALTERNATIVE SET OF PARAMETERS !!!
 % !!! OVERWRITES PARAMETERS BELOW QUICK SWITCH SECTION !!!
 % Just copy parameter and set quick switch to 1
-par.quick_switch = 1;
+par.quick_switch = 0;
 
-par.scan_path = pwd;
-par.raw_bin = 2;
-par.raw_roi = [];[0.2 0.8];
-par.proj_range = 1;
-par.ref_range = 1;
-tomo.reco_mode = '3D';'slice';
-image_correlation.method = 'median';'ssim-ml';
-write.flatcor = 0;
-phase_retrieval.apply = 0;
-phase_retrieval.method = 'tie';
-interactive_mode.rot_axis_pos = 1;
-write.to_scratch = 1;
-write.parfolder = '';
-par.eff_pixel_size = [];
-par.crop_proj = 0;
-tomo.rot_axis_offset = 1;
 % END OF QUICK SWITCH TO ALTERNATIVE SET OF PARAMETERS %%%%%%%%%%%%%%%%%%%%
 
 pp_parameter_switch % DO NOT DELETE OR EDIT THIS LINE %%%%%%%%%%%%%%%%%%%%%
@@ -110,7 +94,7 @@ pixel_filter_threshold_flat = [0.02 0.005]; % Flat fields: threshold parameter f
 pixel_filter_threshold_proj = [0.02 0.02]; % Raw projection: threshold parameter for hot/dark pixel filter,for details see 'FilterPixel'
 pixel_filter_radius = [5 5]; % Increase only if blobs of zeros or other artefacts are expected. Can increase processing time heavily.
 par.ring_current_normalization = 0; % normalize flat fields and projections by ring current
-image_correlation.method = 'ssim-ml';'median'; 'median';'entropy';'none';'ssim';'ssim-g';'std';'cov';'corr';'diff1-l1';'diff1-l2';'diff2-l1';'diff2-l2';'cross-entropy-12';'cross-entropy-21';'cross-entropy-x';
+image_correlation.method = 'median';'ssim-ml';'entropy';'none';'ssim';'ssim-g';'std';'cov';'corr';'diff1-l1';'diff1-l2';'diff2-l1';'diff2-l2';'cross-entropy-12';'cross-entropy-21';'cross-entropy-x';
 % Correlation of projections and flat fields. Essential for DCM data. Typically improves reconstruction quality of DMM data,too.
 % Available methods ('ssim-ml'/'entropy' usually work best):
 % 'none' : no correlation
@@ -1325,8 +1309,13 @@ if ~par.read_flatcor && ~par.read_sino
     fprintf('\n effective pixel size unbinned : %.2f micron', par.eff_pixel_size * 1e6)
     fprintf('\n effective pixel size binned: %.2f micron', par.eff_pixel_size_binned * 1e6)
     par.fresnel_number = par.eff_pixel_size_binned^2 / (par.wave_length * par.sample_detector_distance);
-    fprintf('\n fresnel number =  pixelsize^2 / lambda / z: %.2f', par.fresnel_number)
+    fprintf('\n Fresnel number =  pixelsize^2 / lambda / z: %.2f', par.fresnel_number)
     par.exposure_time = exposure_time;
+    pf = 2 * pi /par.fresnel_number;
+    zercro = pf/pi/4;
+    fprintf('\n Fresnel prefactor = 2*pi*lambda*z/pixelsize_m^2 = %06.3f',pf)
+    fprintf('\n maximum argument of the sine at [|xi| |eta|] = [1/2 1/2]: %5.3f',pf/4)
+    fprintf('\n zero crossings - 1 (without the central one at xi = eta = 0): %5.3f',zercro);
     fprintf('\n exposure time : %g ms',exposure_time);
     fprintf('\n exposure time projections : %g s',exposure_time * par.num_proj_found / 1000);
     fprintf('\n exposure time flats fields : %g s',exposure_time * par.num_ref_found / 1000);
@@ -1799,7 +1788,6 @@ if ~par.read_flatcor && ~par.read_sino
         fig_filename = sprintf('%sfig%02u_%s.png',fig_path,his.Number,regexprep(his.Name,'\ |:','_'));
         saveas(his,fig_filename);
     end
-
     % Plot image statistics
     if par.visual_output && ~isempty(cur)
         name = 'image statistics: flat fields and projections';
@@ -2022,13 +2010,13 @@ if ~par.read_flatcor && ~par.read_sino
                 %angles = s_rot.value(~boolean(stimg_key.scan.value(logpar.n_dark+1:end))) * pi / 180;
                 angles = [];
                 for n = 1:numel(stimg_key.scan)
-                    switch numel(stimg_key.scan(n).value)
+                    switch numel(s_rot.value)
                         case par.num_proj_found
-                           m = 1:par.num_proj_found;
+                            m = 1:par.num_proj_found;
                         case par.num_proj_found + par.num_ref_found
-                           m =  ~boolean(stimg_key.scan(n).value(n_dark+1:end));
+                            m =  ~boolean(stimg_key.scan(n).value(n_dark+1:end));
                         case par.num_proj_found + par.num_dark + par.num_ref_found
-                           m = stimg_key.scan(n).value == 0 ;
+                            m = stimg_key.scan(n).value == 0 ;
                     end
                     angles_n = s_rot.value(m);
                     angles = pi / 180 * cat(1,angles,angles_n);
@@ -2115,7 +2103,25 @@ if ~par.read_flatcor && ~par.read_sino
         CheckAndMakePath(fig_path)
         fig_filename = sprintf('%sfig%02u_%s.png',fig_path,h1.Number,regexprep(h1.Name,'\ |:','_'));
         saveas(h1,fig_filename);
+
+        h = figure('Name','Fourier transformed projection','WindowState',window_state);
+        imf = padarray( im, size(proj(:,:,1)), 'symmetric', 'post');
+        imf = SubtractMean(imf);
+        imf = fft2(imf);
+        imf = fftshift(imf);
+        imf = log(10^(-0)+abs(imf));
+        imsc1(imf)
+        xticks([])
+        yticks([])
+        title(sprintf('Fourier transformed projection'))
+        colorbar
+        axis equal tight
+        CheckAndMakePath(fig_path)
+        fig_filename = sprintf('%sfig%02u_%s.png',fig_path,h.Number,regexprep(h.Name,'\ |:','_'));
+        saveas(h,fig_filename);
     end
+
+
     %% Sinogramm
     nn = round(size(proj,2) / 2);
     clear sino_mid
@@ -2564,6 +2570,9 @@ if par.stitch_projections
             im_shape_sti1 = numel(xl) + numel(xr);
             % Preallocation
             proj_sti = zeros(im_shape_sti1,size(proj,2),num_proj_sti,'single');
+            y0 = ceil(0.2 * im_shape_binned2);
+            y1 = ceil(0.8 * im_shape_binned2);
+            y = y0:y1;
             for nn = 1:num_proj_sti
                 nn2 = mod(num_proj_sti + nn,size(proj,3)) + 1;
                 im = zeros(im_shape_sti1,size(proj,2));
@@ -2577,8 +2586,8 @@ if par.stitch_projections
                 if par.stitch_align_overlap > 0
                     lo = min([floor(numel(overlap)/2),par.stitch_align_overlap]);
                     xm = round(numel(overlap)/2);
-                    ml = mean2(proj(overlap(xm) + (-lo:0),:,nn));
-                    mr = mean2(proj(overlap(xm) + (-lo:0),:,nn2));
+                    ml = mean2(proj(overlap(xm) + (-lo:0),y,nn));
+                    mr = mean2(proj(overlap(xm) + (-lo:0),y,nn2));
                     mlr = (ml + mr) / 2;
                 else
                     ml = 1;
@@ -2588,7 +2597,7 @@ if par.stitch_projections
                 switch lower(par.stitch_method)
                     case 'step'
                         im = cat(1,mlr / ml * proj(xl,:,nn),mlr / mr * flipud(proj(xr,:,nn2)));
-                        if nn == 1 || nn == num_proj_sti
+                        if nn == 1 || nn == round(num_proj_sti/2) || nn == num_proj_sti
                             iml = mlr / ml * proj(:,:,nn);
                             imr = flipud(mlr / mr * proj(:,:,nn2));
                         end
@@ -2612,8 +2621,15 @@ if par.stitch_projections
                         im(1:im_shape_cropbin1,:) = iml;
                         im(end - im_shape_cropbin1 + 1:end,:) = im(end - im_shape_cropbin1 + 1:end,:) + imr;
                 end
+                % if tomo.filter_rotaxis
+                % r = 3;
+                % xr = tomo.rot_axis_position + (-2*r:2*r);
+                % imroi = im(xr,:);
+                %     imf = im(
+                %     im(x,:) = imf;
+                % end
                 proj_sti(:,:,nn) = im;
-                if nn == 1 || nn == num_proj_sti
+                if nn == 1 || nn == round(num_proj_sti/2) || nn == num_proj_sti
                     p = sprintf('%sstitched/',im_path3);
                     CheckAndMakePath(p)
                     write32bitTIFfromSingle(sprintf('%sproj_flatcorrected_stitched_%06u.tif',p,nn),rot90(im))
@@ -2645,7 +2661,7 @@ if par.stitch_projections
                     end
                 end
             end
-        else                
+        else
             % index range of projections to be stitched
             xr = round(tomo.rot_axis_position):im_shape_cropbin1;
             xl = xr(1)+1:im_shape_cropbin1;
@@ -2653,6 +2669,9 @@ if par.stitch_projections
             % Preallocation
             proj_sti = zeros(im_shape_sti1,size(proj,2),num_proj_sti,'single');
             for nn = 1:num_proj_sti
+                if nn == 2188
+                    keyboard
+                end
                 nn2 = mod(num_proj_sti + nn,size(proj,3)) + 1;
                 im = zeros(im_shape_sti1,size(proj,2));
                 % overlap region

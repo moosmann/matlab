@@ -298,13 +298,27 @@ par.scan_path = [raw_path '00008_hereon_zn_no07_a']; ADD
 
 par.raw_roi = [0 1 0.1 0.9];
 image_correlation.method = 'median';
-write.subfolder_reco = 'flatcor_median';
+write.subfolder_reco = '';'flatcor_median';
+ring_filter.apply =0; 
 par.scan_path = [raw_path '00009_desy_mgsio_no04_a']; ADD
+write.subfolder_reco = 'noringfilt';
+ADD
+
+% 
+% pixel_filter_threshold_dark = [0.00 0.000];
+% pixel_filter_threshold_flat = [0.00 0.000];
+% pixel_filter_threshold_proj = [0.00 0.0]; 
+% write.subfolder_reco = 'noringfitl_nopixelfilt';
+% ADD
+
+ring_filter.apply = 1; 
 par.scan_path = [raw_path '00010_desy_mgsio_no01_a']; ADD
 par.scan_path = [raw_path '00011_desy_mgsio_no02_a']; ADD
 par.scan_path = [raw_path '00012_desy_mgsio_no03_a']; ADD
 
 par.scan_path = [raw_path '00013_hereon_empty_a']; ADD
+
+
 
 %% lfs steel
 par.ring_current_normalization = 0;
@@ -323,23 +337,30 @@ par.scan_path = [raw_path '00014_lfs_steel_56_3_a']; ADD
 par.scan_path = [raw_path '00015_lfs_steel_56_3_b']; ADD
 par.scan_path = [raw_path '00016_lfs_steel_56_3_c']; ADD
 
+% p = '/asap3/petra3/gpfs/p07/2025/data/11024018/processed/';
+% stitch_volumes({[p '00014_lfs_steel_56_3_a'],[p '00015_lfs_steel_56_3_b'],[p '00016_lfs_steel_56_3_c']},'reco','float_rawBin2',[p 'lfs_steel_56_3'])
+
 par.raw_roi = [0 1 0.04 0.96];
 tomo.vol_size = [-1 1 -1 1 -0.5 0.5];
 par.scan_path = [raw_path '00017_lfs_steel_56_1_a']; ADD
 par.scan_path = [raw_path '00018_lfs_steel_56_1_b']; ADD
 par.scan_path = [raw_path '00019_lfs_steel_56_1_c']; ADD
+% stitch_volumes({[p '00017_lfs_steel_56_1_a'],[p '00018_lfs_steel_56_1_b'],[p '00018_lfs_steel_56_1_b']},'reco','float_rawBin2',[p 'lfs_steel_56_1'])
 
 par.scan_path = [raw_path '00020_lfs_steel_56_2_a']; ADD
 par.scan_path = [raw_path '00021_lfs_steel_56_2_b']; ADD
 par.scan_path = [raw_path '00022_lfs_steel_56_2_c']; ADD
+% stitch_volumes({[p '00020_lfs_steel_56_2_a'],[p '00021_lfs_steel_56_2_b'],[p '00022_lfs_steel_56_2_c']},'reco','float_rawBin2',[p 'lfs_steel_56_2'])
 
 par.scan_path = [raw_path '00023_lfs_steel_56_4_a']; ADD
 par.scan_path = [raw_path '00024_lfs_steel_56_4_b']; ADD
 par.scan_path = [raw_path '00025_lfs_steel_56_4_c']; ADD
+% stitch_volumes({[p '00023_lfs_steel_56_4_a'],[p '00024_lfs_steel_56_4_b'],[p '00025_lfs_steel_56_4_c']},'reco','float_rawBin2',[p 'lfs_steel_56_4'])
 
 par.scan_path = [raw_path '00026_lfs_steel_56_5_a']; ADD
 par.scan_path = [raw_path '00027_lfs_steel_56_5_b']; ADD
 par.scan_path = [raw_path '00028_lfs_steel_56_5_c']; ADD
+% stitch_volumes({[p '00026_lfs_steel_56_5_a'],[p '00027_lfs_steel_56_5_b'],[p '00028_lfs_steel_56_5_c']},'reco','float_rawBin2',[p 'lfs_steel_56_5'])
 tomo.rot_axis_search_auto = 0; 
 
 %% batt samsung
@@ -471,8 +492,20 @@ par.stitch_projections = 0;
 tomo.rot_axis_offset = 2.2;
 ADD
 
-%% batterie Samsung
-interactive_mode.rot_axis_pos = 1; 
+interactive_mode.phase_retrieval = 0;
+phase_retrieval.apply = 1;
+phase_retrieval.method = 'tie'; 
+phase_retrieval.reg_par = 1.0; 
+ADD
+
+phase_retrieval.reg_par = 2.0; 
+ADD
+phase_retrieval.apply = 0;
+
+%% batterie Samsung DONE
+interactive_mode.rot_axis_pos = 0; 
+tomo.rot_axis_search_auto = 0; 
+
 par.raw_bin = 4;
 tomo.vol_size = [-1 1 -1 1 -0.5 0.5];
 proc_path = '/asap3/petra3/gpfs/p07/2025/data/11024018/processed/';
@@ -486,8 +519,91 @@ par.sino_roi = [];
 par.filter_sino = 1;
 par.stitch_projections = 1;
 par.stitch_method =  'step';
-tomo.rot_axis_offset = 933;
+tomo.rot_axis_offset = 934;
 ADD
+
+%% hereon ras 
+interactive_mode.rot_axis_pos = 1; 
+tomo.rot_axis_search_auto = 0; 
+
+par.raw_bin = 6;
+tomo.vol_size = [-1 1 -1 1 -0.5 0.5];
+proc_path = '/asap3/petra3/gpfs/p07/2025/data/11024018/processed/';
+par.scan_path = [proc_path  'hereon_ras_sa1'];
+par.nexus_path = '/asap3/petra3/gpfs/p07/2025/data/11024018/raw/00044_hereon_ras_sa1_a';
+%par.nexus_path = [regexprep(par.scan_path,'processed','raw') '__a'];
+par.read_sino = 1; 
+par.read_sino_folder = 'trans06_360';
+par.read_sino_trafo = @(x) (x);
+par.sino_roi = [];
+par.filter_sino = 1;
+par.stitch_projections = 1;
+par.stitch_method =  'step';
+tomo.rot_axis_offset = 960.6;
+ADD
+
+%% isf_al
+interactive_mode.rot_axis_pos = 1; 
+tomo.rot_axis_search_auto = 0; 
+
+par.raw_bin = 2;
+tomo.vol_size = [];[-1 1 -1 1 -0.5 0.5];
+proc_path = '/asap3/petra3/gpfs/p07/2025/data/11024018/processed/';
+par.scan_path = [proc_path  'isf_al'];
+par.nexus_path = '/asap3/petra3/gpfs/p07/2025/data/11024018/raw/00053_isf_al_a';
+%par.nexus_path = [regexprep(par.scan_path,'processed','raw') '__a'];
+par.read_sino = 1; 
+par.read_sino_folder = 'trans02_360';
+par.read_sino_trafo = @(x) (x);
+par.sino_roi = [];
+par.filter_sino = 1;
+par.stitch_projections = 0;
+par.stitch_method =  'step';
+tomo.rot_axis_offset = 2.2;
+ADD
+
+
+%% batt molicel
+interactive_mode.rot_axis_pos = 0; 
+tomo.rot_axis_search_auto = 0; 
+
+par.raw_bin = 4;
+tomo.vol_size = [-1 1 -1 1 -0.5 0.5];
+proc_path = '/asap3/petra3/gpfs/p07/2025/data/11024018/processed/';
+par.scan_path = [proc_path  'batt_molicel_fly'];
+par.nexus_path = '/asap3/petra3/gpfs/p07/2025/data/11024018/raw/00036_batt_molicel_fly_b';
+%par.nexus_path = [regexprep(par.scan_path,'processed','raw') '__a'];
+par.read_sino = 1; 
+par.read_sino_folder = 'trans04_360';
+par.read_sino_trafo = @(x) (x);
+par.sino_roi = [];
+par.filter_sino = 1;
+par.stitch_projections = 1;
+par.stitch_align_overlap = 0;
+par.stitch_method =  'step';
+tomo.rot_axis_offset = 942.9;
+write.flatcor_stitched = 1; 
+ADD
+
+
+write.flatcor_stitched = 0; 
+tomo.reco_mode = 'slice';
+tomo.iterations = 50; % for iterateive algorithms: 'sirt','cgls','sart','em'
+
+tomo.algorithm =  'cgls';
+write.subfolder_reco = sprintf('%s_%04u',tomo.algorithm,tomo.iterations);
+ADD
+
+tomo.algorithm =  'sirt';'sart';'em';'fbp-astra'; 
+write.subfolder_reco = sprintf('%s_%04u',tomo.algorithm,tomo.iterations);
+ADD
+
+par.read_sino = 0; 
+par.raw_roi = [0.4 0.6 0.1 0.9];
+write.to_scratch = 1;
+par.scan_path = [raw_path '00009_desy_mgsio_no04_a']; ADD
+ADD
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 p05_reco_loop( SUBSETS, RUN_RECO, PRINT_PARAMETERS)

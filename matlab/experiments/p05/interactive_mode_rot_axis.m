@@ -222,6 +222,20 @@ if tomo.run || tomo.run_interactive_mode
                 fprintf( ' new rotation axis offset : %.2f (before: %.2f)', offset, itomo.rot_axis_offset)
                 itomo.rot_axis_offset = offset;
 
+                if tomo.rot_axis_search_auto
+                    fprintf('\n Automatic offset search is turned on and will overwrite the current value')
+                    inp = '';
+                    while isempty( inp )
+                        inp = input( '\nDo you want to turn off the automatic search? (''y''/1,''n''/0) ');
+                    end
+                    switch lower( inp )
+                        case {'y', 'yes', 1}
+                            tomo.rot_axis_search_auto = 0;
+                        case {'n', 'no', 0}
+                            tomo.rot_axis_search_auto = 1;
+                    end
+                end
+
                 % Loop over tilt again?
                 if ~isempty( tilt )
                     inp = '';
