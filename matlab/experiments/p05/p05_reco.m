@@ -80,7 +80,7 @@ par.filter_proj = @(x) (x);
 % STITCHING/CROPPING only for scans without lateral movment. Legacy support
 par.crop_at_rot_axis = 0; % for recos of scans with excentric rotation axis but WITHOUT projection stitching
 par.stitch_projections = 0; % for 2 pi cans: stitch projection at rotation axis position. Recommended with phase retrieval to reduce artefacts. Standard absorption contrast data should work well without stitching. Subpixel stitching not supported (non-integer rotation axis position is rounded,less/no binning before reconstruction can be used to improve precision).
-par.stitch_align_overlap = 25; % pos. integer,number of pixels,if 0 do nothing,align mean values of vertical aread left/right to the rot axis within given pixel range
+par.stitch_align_overlap = 0; %25; % pos. integer,number of pixels,if 0 do nothing,align mean values of vertical aread left/right to the rot axis within given pixel range. Can reduce, but also enhance artefacts significantly.
 par.stitch_method = 'step';'linear';'sine'; %  ! CHECK correlation area !
 % 'step' : no interpolation,use step function
 % 'linear' : linear interpolation of overlap region

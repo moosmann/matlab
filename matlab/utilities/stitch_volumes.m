@@ -29,39 +29,23 @@ dbstop if error
 %% ARGUMENTS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 tic
 if nargin < 1
-    %'/asap3/petra3/gpfs/p07/2023/data/11017206/processed/itaw012_cet548a_OO01_Oo_d_1/reco/float_rawBin2'
-   % scan_path = '/asap3/petra3/gpfs/p07/2023/data/11017206/processed/itaw012_cet548a_OO01_Oo';
-    %scan_path = '/asap3/petra3/gpfs/p07/2024/data/11018402/processed/gst0017_40bar_sh1_full';
-    %scan_path = '/asap3/petra3/gpfs/p07/2024/data/11018402/processed/gst0021_V_sh1_full';
-    %scan_path = '/asap3/petra3/gpfs/p07/2024/data/11018402/processed/gst0020_9bar_sh1_full';
-    %scan_path = '/asap3/petra3/gpfs/p07/2024/data/11018402/processed/gst00*_9bar_sh1_full';
-    %scan_path = '/asap3/petra3/gpfs/p05/2022/data/11015593/processed/roe_111_bee';
-    %scan_path = '/asap3/petra3/gpfs/p05/2017/data/11003950/processed/syn22_77L_Mg5Gd_8w';% top 2 bottom
-    %scan_path = '/asap3/petra3/gpfs/p05/2018/data/11004263/processed/syn004_96R_Mg5Gd_8w'; % bottom 2 top
-    %scan_path = '/asap3/petra3/gpfs/p05/2018/data/11004263/processed/syn018_35L_PEEK_8w'; %
-    %scan_path = '/asap3/petra3/gpfs/p05/2021/data/11009652/processed/zfmk_024_Tenebrio_'; % top 2 bottom
-    %scan_path = '/asap3/petra3/gpfs/p05/2022/data/11012631/processed/lib_02_tadpole_';
-    %scan_path = {'/asap3/petra3/gpfs/p07/2024/data/11020251/processed/swerim005_sa03_sura_k32_a','/asap3/petra3/gpfs/p07/2024/data/11020251/processed/swerim006_sa03_sura_k32_b'};
-    %scan_path = {'/asap3/petra3/gpfs/p07/2024/data/11020251/processed/swerim007_sa04_sura_b32_a','/asap3/petra3/gpfs/p07/2024/data/11020251/processed/swerim008_sa04_sura_b32_b'};
-    %scan_path = {'/asap3/petra3/gpfs/p07/2024/data/11020251/processed/swerim010_sa07_voestalpine_s2_a','/asap3/petra3/gpfs/p07/2024/data/11020251/processed/swerim011_sa07_voestalpine_s2_b'};
-    %scan_path = {'/asap3/petra3/gpfs/p07/2024/data/11020251/processed/swerim012_sa08_voestalpine_s3_a','/asap3/petra3/gpfs/p07/2024/data/11020251/processed/swerim013_sa08_voestalpine_s3_b'};
-    %scan_path = {'/asap3/petra3/gpfs/p07/2024/data/11020251/processed/swerim017_sa12_voestalpine_s7_a','/asap3/petra3/gpfs/p07/2024/data/11020251/processed/swerim018_sa12_voestalpine_s7_b'};
+    scan_path  = ...
+        {'/asap3/petra3/gpfs/p07/2025/data/11022007/processed/00015_cdma_lnkn1_a',...
+        '/asap3/petra3/gpfs/p07/2025/data/11022007/processed/00016_cdma_lnkn1_b',...
+        '/asap3/petra3/gpfs/p07/2025/data/11022007/processed/00017_cdma_lnkn1_c'};
+   % scan_path =
+   % '/asap3/petra3/gpfs/p07/2023/data/11017206/processed/itaw012_cet548a_OO01_Oo';
 end
 if nargin < 2
     %scan_subfolder = 'reco_phase/tie_regPar1p00';
     scan_subfolder = 'reco';
-    %scan_subfolder = 'reco_phase/tie_regPar0p30';
 end
 if nargin < 3
-    reco_subfolder = 'float_rawBin2';
+    reco_subfolder = 'reco2/float_rawBin2';
 end
 if nargin < 4
-    stitched_volume_path = '';
-    %stitched_volume_path = '/asap3/petra3/gpfs/p07/2024/data/11020251/processed/swerim_sa03_sura_k32';
-    %stitched_volume_path = '/asap3/petra3/gpfs/p07/2024/data/11020251/processed/swerim_sa04_sura_b32_a';
-    %stitched_volume_path = '/asap3/petra3/gpfs/p07/2024/data/11020251/processed/swerim_sa07_voestalpine_s2';
-    %stitched_volume_path = '/asap3/petra3/gpfs/p07/2024/data/11020251/processed/swerim_sa08_voestalpine_s3';
-    %stitched_volume_path = '/asap3/petra3/gpfs/p07/2024/data/11020251/processed/swerim_sa12_voestalpine_s7';
+    stitched_volume_path = ...
+    '/asap3/petra3/gpfs/p07/2025/data/11022007/processed/00015_cdma_lnkn1';
 end
 if nargin < 5
     scan_mask = [];
@@ -77,7 +61,9 @@ if nargin < 7
 end
 % stitch level factor for old noisecut procedure
 stitch_level_fac = 1.5;
+normalize_overlap = 0;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 % Output path
 if isempty(stitched_volume_path)
     % Remove trailing underscores
@@ -106,6 +92,7 @@ CheckAndMakePath( stitched_volume_path )
 fprintf('\noutpath: %s' , stitched_volume_path)
 fprintf('\nstitched name: %s' , stitched_name)
 ca;
+OpenParpool(0.5,0,stitched_volume_path,0,40);
 %% Read parameters and data %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 fprintf('\nRead parameters and volumes')
 if ~iscell( scan_path )
@@ -324,7 +311,6 @@ s(1).stitch_order = stitch_order;
 
 %% Normalize overlap
 fprintf( '\nNormalizing volumes');
-normalize_overlap = 20;
 if normalize_overlap
     z = normalize_overlap;
     if top2bottom
@@ -338,7 +324,6 @@ if normalize_overlap
         end
     end
 end
-
 
 %% Absolute positions %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 fprintf( '\nAbsolute positions: ' )
