@@ -30,9 +30,7 @@ dbstop if error
 tic
 if nargin < 1
     scan_path  = ...
-        {'/asap3/petra3/gpfs/p07/2025/data/11022007/processed/00015_cdma_lnkn1_a',...
-        '/asap3/petra3/gpfs/p07/2025/data/11022007/processed/00016_cdma_lnkn1_b',...
-        '/asap3/petra3/gpfs/p07/2025/data/11022007/processed/00017_cdma_lnkn1_c'};
+        {'/asap3/petra3/gpfs/p07/2025/data/11022007/processed/00036_cdma_1886.37_a','/asap3/petra3/gpfs/p07/2025/data/11022007/processed/00036_cdma_1886.37_b'};
    % scan_path =
    % '/asap3/petra3/gpfs/p07/2023/data/11017206/processed/itaw012_cet548a_OO01_Oo';
 end
@@ -41,11 +39,11 @@ if nargin < 2
     scan_subfolder = 'reco';
 end
 if nargin < 3
-    reco_subfolder = 'reco2/float_rawBin2';
+    reco_subfolder = 'float_rawBin2';
 end
 if nargin < 4
     stitched_volume_path = ...
-    '/asap3/petra3/gpfs/p07/2025/data/11022007/processed/00015_cdma_lnkn1';
+    '/asap3/petra3/gpfs/p07/2025/data/11022007/scratch_cc/test';
 end
 if nargin < 5
     scan_mask = [];
@@ -59,6 +57,10 @@ end
 if nargin < 7
     testing = 0;
 end
+if nargin < 8
+    name = {'00036_cdma_1886.37_a','00037_cdma_1886.37_b'};
+end
+
 % stitch level factor for old noisecut procedure
 stitch_level_fac = 1.5;
 normalize_overlap = 0;
@@ -109,8 +111,13 @@ if ~iscell( scan_path )
 else
     for nn = numel( scan_path ):-1:1
         scan_struct(nn).full_path = scan_path{nn};
-        [folder, name] = fileparts( scan_path{nn});
-        scan_struct(nn).name = name;
+        if isempty(name)
+            [folder, name] = fileparts( scan_path{nn});
+            scan_struct(nn).name = name;
+        else
+            [folder] = fileparts( scan_path{nn});
+            scan_struct(nn).name = name{nn};
+        end
         scan_struct(nn).folder = folder;
     end
 end
