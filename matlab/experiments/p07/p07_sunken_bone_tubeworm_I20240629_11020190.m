@@ -241,7 +241,7 @@ write.compression_parameter = [0.02 0.02]; % compression-method specific paramet
 write.uint8_segmented = 0; % experimental: threshold segmentaion for histograms with 2 distinct peaks: __/\_/\__
 write.outputformat = 'tif';'hdf_volume'; % string. Not yet implemented for all reco modes
 %%% INTERACTION %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-par.visual_output = 0; % show images and plots during reconstruction
+par.visual_output = 1; % show images and plots during reconstruction
 interactive_mode.rot_axis_pos = 1; % reconstruct slices with dif+ferent rotation axis offsets
 interactive_mode.rot_axis_pos_default_search_range = []; % if empty: asks for search range when entering interactive mode
 interactive_mode.rot_axis_tilt = 0; % reconstruct slices with different offset AND tilts of the rotation axis
@@ -569,7 +569,7 @@ ADD
 
 %% fsuj011_sco_whale_3
 tomo.rot_axis_search_auto = 0;
-par.stitch_method = 'linear';'step';
+par.stitch_method = 'step';
 par.nexus_path = '';
 par.pixel_scaling = 1.002;
 par.raw_bin = 4;
@@ -616,6 +616,36 @@ write.flatcor_stitched = 1;
 ADD
 
 write.parfolder = '';
+write.flatcor_stitched = 0;
+
+%% fsuj012
+par.raw_roi = [0 1 60 5060];
+tomo.vol_size = [-1 1 -1 1 -0.5 0.5];
+tomo.rot_axis_search_auto = 0;
+par.stitch_method = 'step';
+par.nexus_path = '';
+par.pixel_scaling = 1.002;
+par.raw_bin = 4;
+interactive_mode.rot_axis_pos = 1;
+
+scan = 'fsuj012_sco_whale_1__a_';
+par.scan_path = {[raw_path scan '0'], [raw_path scan '1']} ;
+tomo.rot_axis_offset = 4 * [] / par.raw_bin;
+ADD
+
+scan = 'fsuj012_sco_whale_1__e_';
+par.scan_path = {[raw_path scan '0'], [raw_path scan '1']} ;
+tomo.rot_axis_offset = 4 * [] / par.raw_bin;
+ADD
+
+scan = 'fsuj012_sco_whale_1__i_';
+write.flatcor_stitched = 1;
+par.stitch_align_overlap = 0; 
+par.scan_path = {[raw_path scan '0'], [raw_path scan '1']} ;
+tomo.rot_axis_offset = 4 * -0.3 / par.raw_bin;
+ADD
+
+write.flatcor_stitched = 1;
 write.flatcor_stitched = 0;
 
 %% fsuj013_sco_whale_5

@@ -17,6 +17,8 @@ function [s, vol] = stitch_volumes( scan_path, scan_subfolder, reco_subfolder, s
 %   matches the SNR of the two volumes within the overlap region.
 % testing: bool. default 0. if 1 data is neihter read or written. Used for
 %   testing if scripts runs at all.
+% name: cell of scan names when scan_path includes dots which breaks
+%   scan_name extraction. default '': not used.
 %
 % RETRURNS
 % s : struct containing individual arrays and full information for

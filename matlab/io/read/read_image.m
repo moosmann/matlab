@@ -119,6 +119,10 @@ switch lower( im_format )
                         x0 = max( (raw_roi(1)+1), 1 );
                         x1 = min( (raw_roi(2)+1), tif_info.Height);
                     end
+                    if numel(raw_roi) ==4
+                        y0 = max(raw_roi(3),1);
+                        y1 = min(raw_roi(4),tif_info.Width);
+                    end
                 else
                     %% MOD: 2020-09-03 Ximea sCMOS
                     x0 = 1;
