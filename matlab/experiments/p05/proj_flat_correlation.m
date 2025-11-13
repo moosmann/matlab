@@ -392,7 +392,7 @@ switch method
 end % switch method
 
 %% Plot correlation %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-if par.visual_output && exist( 'corr_mat', 'var' )
+if par.visual_output && exist( 'corr_mat', 'var' ) &&  ~sum(strcmp(image_correlation.method,{'none','mean','median'}))
     h = figure( 'Name', 'Correlation of projections and flat-fields');
     mid = round( num_proj_used / 2 );
     f = @(mat,pp) mat(pp,:)';

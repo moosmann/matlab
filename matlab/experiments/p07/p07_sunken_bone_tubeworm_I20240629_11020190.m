@@ -111,7 +111,7 @@ pixel_filter_threshold_flat = [0.02 0.005]; % Flat fields: threshold parameter f
 pixel_filter_threshold_proj = [0.02 0.005]; % Raw projection: threshold parameter for hot/dark pixel filter, for details see 'FilterPixel'
 pixel_filter_radius = [5 5]; % Increase only if blobs of zeros or other artefacts are expected. Can increase processing time heavily.
 par.ring_current_normalization = 0; % normalize flat fields and projections by ring current
-image_correlation.method = 'ssim-ml';'median'; 'median';'entropy';'none';'ssim';'ssim-g';'std';'cov';'corr';'diff1-l1';'diff1-l2';'diff2-l1';'diff2-l2';'cross-entropy-12';'cross-entropy-21';'cross-entropy-x';
+image_correlation.method = 'median';
 % Correlation of projections and flat fields. Essential for DCM data. Typically improves reconstruction quality of DMM data, too.
 % Available methods ('ssim-ml'/'entropy' usually work best):
 % 'none' : no correlation, for DPC
@@ -619,33 +619,113 @@ write.parfolder = '';
 write.flatcor_stitched = 0;
 
 %% fsuj012
-par.raw_roi = [0 1 60 5060];
+par.raw_roi = [150 1 1 (5120 -305)];
 tomo.vol_size = [-1 1 -1 1 -0.5 0.5];
 tomo.rot_axis_search_auto = 0;
 par.stitch_method = 'step';
+par.stitch_align_overlap = 20; 
 par.nexus_path = '';
 par.pixel_scaling = 1.002;
 par.raw_bin = 4;
-interactive_mode.rot_axis_pos = 1;
+write.flatcor_stitched = 0;
+interactive_mode.rot_axis_pos = 0;
 
-scan = 'fsuj012_sco_whale_1__a_';
+scan = 'fsuj012_sco_whale_1__a_'; % strong movement
 par.scan_path = {[raw_path scan '0'], [raw_path scan '1']} ;
-tomo.rot_axis_offset = 4 * [] / par.raw_bin;
+tomo.rot_axis_offset = 4 * -38 / par.raw_bin;
 ADD
 
-scan = 'fsuj012_sco_whale_1__e_';
+scan = 'fsuj012_sco_whale_1__b_'; % strong movement
 par.scan_path = {[raw_path scan '0'], [raw_path scan '1']} ;
-tomo.rot_axis_offset = 4 * [] / par.raw_bin;
+tomo.rot_axis_offset = 4 * -38 / par.raw_bin;
+ADD
+
+scan = 'fsuj012_sco_whale_1__c_'; % strong movement
+par.scan_path = {[raw_path scan '0'], [raw_path scan '1']} ;
+tomo.rot_axis_offset = 4 * -38 / par.raw_bin;
+ADD
+
+scan = 'fsuj012_sco_whale_1__d_'; % very strong movement
+par.scan_path = {[raw_path scan '0'], [raw_path scan '1']} ;
+tomo.rot_axis_offset = 4 * -38 / par.raw_bin;
+ADD
+
+scan = 'fsuj012_sco_whale_1__e_'; % very strong movement
+par.scan_path = {[raw_path scan '0'], [raw_path scan '1']} ;
+tomo.rot_axis_offset = 4 * -38 / par.raw_bin;
+ADD
+
+scan = 'fsuj012_sco_whale_1__f_'; % strong movement
+par.scan_path = {[raw_path scan '0'], [raw_path scan '1']} ;
+tomo.rot_axis_offset = 4 * -38 / par.raw_bin;
+ADD
+
+scan = 'fsuj012_sco_whale_1__g_';
+par.scan_path = {[raw_path scan '0'], [raw_path scan '1']} ;
+tomo.rot_axis_offset = 4 * 38.1 / par.raw_bin;
+ADD
+
+scan = 'fsuj012_sco_whale_1__h_';
+par.scan_path = {[raw_path scan '0'], [raw_path scan '1']} ;
+tomo.rot_axis_offset = 4 * -38.2 / par.raw_bin;
 ADD
 
 scan = 'fsuj012_sco_whale_1__i_';
-write.flatcor_stitched = 1;
-par.stitch_align_overlap = 0; 
 par.scan_path = {[raw_path scan '0'], [raw_path scan '1']} ;
-tomo.rot_axis_offset = 4 * -0.3 / par.raw_bin;
+%tomo.rot_axis_offset = 4 * -0.3 / par.raw_bin; % symmetric crop
+tomo.rot_axis_offset = 4 * -38.0 / par.raw_bin;
 ADD
 
-write.flatcor_stitched = 1;
+scan = 'fsuj012_sco_whale_1__j_';
+par.scan_path = {[raw_path scan '0'], [raw_path scan '1']} ;
+tomo.rot_axis_offset = 4 * -37.8 / par.raw_bin;
+ADD
+
+scan = 'fsuj012_sco_whale_1__k_';
+par.scan_path = {[raw_path scan '0'], [raw_path scan '1']} ;
+tomo.rot_axis_offset = 4 * -38.1 / par.raw_bin;
+ADD
+
+scan = 'fsuj012_sco_whale_1__l_';
+par.scan_path = {[raw_path scan '0'], [raw_path scan '1']} ;
+tomo.rot_axis_offset = 4 * -37.9 / par.raw_bin;
+ADD
+
+scan = 'fsuj012_sco_whale_1__m_';
+par.scan_path = {[raw_path scan '0'], [raw_path scan '1']} ;
+tomo.rot_axis_offset = 4 * -37.7 / par.raw_bin;
+ADD
+
+scan = 'fsuj012_sco_whale_1__n_';
+par.scan_path = {[raw_path scan '0'], [raw_path scan '1']} ;
+tomo.rot_axis_offset = 4 * -37.8 / par.raw_bin;
+ADD
+
+scan = 'fsuj012_sco_whale_1__o_'; % movement
+par.scan_path = {[raw_path scan '0'], [raw_path scan '1']} ;
+tomo.rot_axis_offset = 4 * -37.8 / par.raw_bin;
+ADD
+
+scan = 'fsuj012_sco_whale_1__p_'; % movement
+par.scan_path = {[raw_path scan '0'], [raw_path scan '1']} ;
+tomo.rot_axis_offset = 4 * -37.6 / par.raw_bin;
+ADD
+
+scan = 'fsuj012_sco_whale_1__q_';
+par.scan_path = {[raw_path scan '0'], [raw_path scan '1']} ;
+tomo.rot_axis_offset = 4 * -37.5 / par.raw_bin;
+ADD
+
+scan = 'fsuj012_sco_whale_1__r_';
+par.scan_path = {[raw_path scan '0'], [raw_path scan '1']} ;
+tomo.rot_axis_offset = 4 * -37.5 / par.raw_bin;
+ADD
+
+scan = 'fsuj012_sco_whale_1__s_';
+par.scan_path = {[raw_path scan '0'], [raw_path scan '1']} ;
+tomo.rot_axis_offset = 4 * -37.7 / par.raw_bin;
+ADD
+
 write.flatcor_stitched = 0;
 
 %% fsuj013_sco_whale_5
@@ -675,9 +755,6 @@ for n = 1:numel(abc)
     tomo.rot_axis_search_range =0 + (-1.5:0.1:1.5);
     ADD
 end
-
-
-
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

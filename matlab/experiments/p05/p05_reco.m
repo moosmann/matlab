@@ -36,7 +36,9 @@ dbstop if error
 % !!! QUICK SWITCH TO ALTERNATIVE SET OF PARAMETERS !!!
 % !!! OVERWRITES PARAMETERS BELOW QUICK SWITCH SECTION !!!
 % Just copy parameter and set quick switch to 1
-par.quick_switch = 0;
+par.quick_switch = 1;
+par.raw_bin = 4;
+par.ref_range = 4;
 
 % END OF QUICK SWITCH TO ALTERNATIVE SET OF PARAMETERS %%%%%%%%%%%%%%%%%%%%
 
@@ -80,7 +82,7 @@ par.filter_proj = @(x) (x);
 % STITCHING/CROPPING only for scans without lateral movment. Legacy support
 par.crop_at_rot_axis = 0; % for recos of scans with excentric rotation axis but WITHOUT projection stitching
 par.stitch_projections = 0; % for 2 pi cans: stitch projection at rotation axis position. Recommended with phase retrieval to reduce artefacts. Standard absorption contrast data should work well without stitching. Subpixel stitching not supported (non-integer rotation axis position is rounded,less/no binning before reconstruction can be used to improve precision).
-par.stitch_align_overlap = 0; %25; % pos. integer,number of pixels,if 0 do nothing,align mean values of vertical aread left/right to the rot axis within given pixel range. Use with care: can reduce, but also enhance artefacts significantly. Typically only works well for off-centered scans.
+par.stitch_align_overlap = 0; %25; % pos. integer,number of pixels,if 0 do nothing,align mean values of vertical aread left/right to the rot axis within given pixel range. Can reduce, but also enhance artefacts significantly.
 par.stitch_method = 'step';'linear';'sine'; %  ! CHECK correlation area !
 % 'step' : no interpolation,use step function
 % 'linear' : linear interpolation of overlap region
@@ -242,7 +244,7 @@ par.gpu_index = []; % integer vector: indices of GPU devices to use,Matlab notat
 par.use_cluster = 0; % if available: on MAXWELL nodes disp/nova/wga/wgs cluster computation can be used. Recommended only for large data sets since parpool creation and data transfer implies a lot of overhead.
 par.use_gpu_in_parfor = 0; % boolean
 pixel_filter_sino.use_gpu = par.use_gpu_in_parfor;
-par.poolsize = 50; % scalar: number of workers used in a local parallel pool. if 0: use current config. if >= 1: absolute number. if 0 < poolsize < 1: relative amount of all cores to be used. if SLURM scheduling is available,a default number of workers is used.
+par.poolsize = 40; % scalar: number of workers used in a local parallel pool. if 0: use current config. if >= 1: absolute number. if 0 < poolsize < 1: relative amount of all cores to be used. if SLURM scheduling is available,a default number of workers is used.
 par.poolsize_gpu_limit_factor = 0.5; % scalar: relative amount of GPU memory used for preprocessing during parloop. High values speed up Proprocessing,but increases out-of-memory failure
 phase_retrieval.use_parpool = 1; % bool. Disable parpool when out-of-memory error occurs during phase retrieval.
 par.window_state = 'minimized';'normal';'maximized';
@@ -908,17 +910,15 @@ if ~par.read_flatcor && ~par.read_sino
             % Get image name,key,time stamp and P3 current from log
             %[stimg_name,stimg_key,petra,petra_scan] = pp_stimg_petra(nexuslog_name,par);
             [stimg_name,stimg_key,petra,~] = pp_stimg_petra(nexuslog_name,par);
-
             % rotation axis
             s_rot.time = [];
             s_rot.value = [];
             for n = 1:numel(nexuslog_name)
                 s_rot.time = cat(1,s_rot.time,double(h5read(nexuslog_name{n},'/entry/scan/data/s_rot/time')));
                 s_rot.value = cat(1,s_rot.value,h5read(nexuslog_name{n},'/entry/scan/data/s_rot/value'));
+                %s_rot.time = double(h5read(nexuslog_name{1},'/entry/scan/data/s_rot/time'));
+                %s_rot.value = h5read(nexuslog_name{1},'/entry/scan/data/s_rot/value');
             end
-            %s_rot.time = double(h5read(nexuslog_name{1},'/entry/scan/data/s_rot/time'));
-            %s_rot.value = h5read(nexuslog_name{1},'/entry/scan/data/s_rot/value');
-
             % lateral shift
             h5log_group = h5info(nexuslog_name{1},'/entry/scan/data/');
             if sum(strcmp('/entry/scan/data/s_stage_x',{h5log_group.Groups.Name}))
@@ -1266,7 +1266,7 @@ if ~par.read_flatcor && ~par.read_sino
             %filename = sprintf('%s%s',scan_path,ref_names{1});
             filename = ref_full_path{1};
             if ~par.raw_data
-                %[im_raw,par.tif_info] = imagemage(filename,'',[],[],[],'',par.im_trafo);
+                %[im_raw,par.tif_info] = read_image(filename,'',[],[],[],'',par.im_trafo);
                 [im_raw,par.tif_info] = read_image(filename,par,1);
                 par.im_shape_raw = size(im_raw);
             else
@@ -1597,7 +1597,7 @@ if ~par.read_flatcor && ~par.read_sino
         axis equal tight
         drawnow
         % Correlation area
-        if ~sum(strcmp(image_correlation.method,{'none','median','mean'}))
+        if ~sum(strcmp(image_correlation.method,{'none','mean','median'}))
             h_corr_roi = figure('Name','image correlation roi','WindowState',window_state);
             % mean flat
             subplot(2,2,1)
@@ -1936,7 +1936,7 @@ if ~par.read_flatcor && ~par.read_sino
     CheckAndMakePath(im_path1)
     CheckAndMakePath(im_path2)
     %% Figure: image correlation roiference
-    if par.visual_output && ~sum(strcmp(image_correlation.method,{'median','mean','none'}))
+    if par.visual_output && ~sum(strcmp(image_correlation.method,{'none','mean','median'}))
         if exist('h_corr_roi','var') && isvalid(h_corr_roi)
             figure(h_corr_roi)
         else
@@ -2026,9 +2026,10 @@ if ~par.read_flatcor && ~par.read_sino
                         case par.num_proj_found + par.num_dark + par.num_ref_found
                             m = stimg_key.scan(n).value == 0 ;
                     end
-                    angles_n = pi / 180 * s_rot.value(m);
+                    angles_n = s_rot.value(m);
                     angles = cat(1,angles,angles_n);
                 end
+                angles = pi / 180 * angles;
                 fprintf('\n angles_logged / pi: %f %f %f ... %f %f %f %f %f ',angles([1 2 3 end-4:end])/pi)
                 angles = angles(par.proj_range);
             else
@@ -2076,7 +2077,7 @@ if ~par.read_flatcor && ~par.read_sino
         if exist('h1','var') && isvalid(h1)
             figure(h1)
         else
-            h1 = figure('Name','data and flat-and-dark-field correction','WindowState',window_state);
+            h1 = figure('Name','data and flat-and-dark-field correction','WindowState','maximized');
         end
         subplot(2,3,4)
         imsc1(FilterOutlier(proj(:,:,1),0.005))
@@ -2112,7 +2113,7 @@ if ~par.read_flatcor && ~par.read_sino
         fig_filename = sprintf('%sfig%02u_%s.png',fig_path,h1.Number,regexprep(h1.Name,'\ |:','_'));
         saveas(h1,fig_filename);
 
-        h = figure('Name','Fourier transformed projection #1','WindowState',window_state);
+        h = figure('Name','Fourier transformed projection','WindowState',window_state);
         imf = padarray( proj(:,:,1), size(proj(:,:,1)), 'symmetric', 'post');
         imf = SubtractMean(imf);
         imf = fft2(imf);
