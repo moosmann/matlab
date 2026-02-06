@@ -7,7 +7,7 @@ s006_3d_data
 s007_3d_reconstruction
 s008_gpu_selection
 s009_projection_matrix
-s010_supersampling
+%s010_supersampling
 s011_object_info
 s012_masks
 s013_constraints

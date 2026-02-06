@@ -137,5 +137,41 @@ switch lower( ring_filter.method )
             
             drawnow
         end
+    
+    case 'all_stripe'
+
+        parfor nn = 1:size( proj, 2)
+            sino = squeeze( proj(:,nn,:) )';
+            sino = remove_all_stripe(sino);
+            proj(:,nn,:) = sino';
+        end
+        if verbose
+            fprintf('\n duration: %.1f s (%.2f min)', toc-t, (toc-t)/60)
+        end
+        if par.visual_output
+            sino_filt = squeeze( proj(:,sino_slice,sorted_angle_index) )';
+
+            figure('Name', 'Sinogram and ring filter all stripes', 'WindowState', window_state);
+
+            subplot(3,1,1)
+            imsc( sino_unfilt )
+            axis equal tight
+            title(sprintf('sino unfiltered, y = %u', sino_slice))
+            colorbar
+            
+            subplot(3,1,2)
+            imsc( sino_filt )
+            axis equal tight
+            title(sprintf('sino filtered, y = %u', sino_slice))
+            colorbar
+            
+            subplot(3,1,3)
+            imsc( sino_filt - sino_unfilt )
+            axis equal tight
+            title(sprintf('sino filt - sino, y = %u', sino_slice))
+            colorbar
+
+            drawnow
+        end
 end
 

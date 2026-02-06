@@ -18,7 +18,7 @@ function p05_reco(external_parameter)
 %
 % Please cite following article in the case of publication:
 % - Moosmann,J. et al. Time-lapse X-ray phase-contrast microtomography for
-% in vivo imaging and ansdfadsfaalysis of morphogenesis Nat. Protocols 9,
+% in vivo imaging and analysis of morphogenesis Nat. Protocols 9,
 % 294-304 (2014)
 % - Moosmann,J. moosmann/matlab:. Zenodo. https:// doi. org/ 10. 5281/ ZENODO. 51187 37 (2021).
 % - ASTRA Toolbox,see http://www.astra-toolbox.com/
@@ -37,8 +37,21 @@ dbstop if error
 % !!! OVERWRITES PARAMETERS BELOW QUICK SWITCH SECTION !!!
 % Just copy parameter and set quick switch to 1
 par.quick_switch = 1;
-par.raw_bin = 4;
-par.ref_range = 4;
+par.raw_bin = 2;
+par.ref_range = 1;
+par.raw_roi = [0 1 0.07 0.93];
+tomo.vol_size = [-0.5 0.5 -0.5 0.5 -0.5 0.5];
+par.stitch_projections = 0;
+par.stitch_align_overlap = 75;
+%tomo.rot_axis_offset = -2 / 2 * par.raw_bin; %nah
+%tomo.rot_axis_offset = -38.4 / 2 * par.raw_bin; % fern
+interactive_mode.rot_axis_pos = 1; 
+%ring_filter.method = 'all_stripe';%
+%write.subfolder_reco = 'ringFiltered';
+phase_retrieval.apply = 1; 
+phase_retrieval.reg_par = 1.2; 
+phase_retrieval.apply_before = 1; 
+
 
 % END OF QUICK SWITCH TO ALTERNATIVE SET OF PARAMETERS %%%%%%%%%%%%%%%%%%%%
 
@@ -58,14 +71,6 @@ par.read_sino_folder = ''; % subfolder to scan path
 par.read_sino_trafo = @(x) (x);%rot90(x); % anonymous function applied to the image which is read e.g. @(x) rot90(x)
 par.read_sino_range = 1; % scalar,vector. If integer in [1,10]: interpreted as increment,else slice number. if scalar in [0,1): interpreted as relative slice number. if 2-vector: interpreted as absolute or relative slice number of first/last slice to read
 par.sino_roi = []; % horizontal ROI when reading sinograms,vertical ROI not yet implemented
-par.filter_sino = 1; % bool. Pixel filtering of sinogram using parameters below:
-pixel_filter_sino.threshold_hot = 0;
-pixel_filter_sino.threshold_dark = 0;
-pixel_filter_sino.medfilt_neighboorhood = [3 3];
-pixel_filter_sino.filter_dead_pixel = 1;
-pixel_filter_sino.filter_Inf = 1;
-pixel_filter_sino.filter_NaN = 1;
-pixel_filter_sino.verbose = 0;
 par.energy = []; % eV! if empty: read from log file (log file values can be ambiguous or even missing sometimes)
 par.sample_detector_distance = []; % in m. if empty: read from log file
 par.eff_pixel_size = []; % in m. if empty: read from log lfile. effective pixel size =  detector pixel size / magnification
@@ -81,10 +86,11 @@ par.filter_ref = @(x) (x);
 par.filter_proj = @(x) (x);
 % STITCHING/CROPPING only for scans without lateral movment. Legacy support
 par.crop_at_rot_axis = 0; % for recos of scans with excentric rotation axis but WITHOUT projection stitching
-par.stitch_projections = 0; % for 2 pi cans: stitch projection at rotation axis position. Recommended with phase retrieval to reduce artefacts. Standard absorption contrast data should work well without stitching. Subpixel stitching not supported (non-integer rotation axis position is rounded,less/no binning before reconstruction can be used to improve precision).
-par.stitch_align_overlap = 0; %25; % pos. integer,number of pixels,if 0 do nothing,align mean values of vertical aread left/right to the rot axis within given pixel range. Can reduce, but also enhance artefacts significantly.
-par.stitch_method = 'step';'linear';'sine'; %  ! CHECK correlation area !
-% 'step' : no interpolation,use step function
+par.stitch_projections = 1; % for 2 pi cans: stitch projection at rotation axis position. Recommended with phase retrieval to reduce artefacts. Standard absorption contrast data should work well without stitching. Subpixel stitching not supported (non-integer rotation axis position is rounded,less/no binning before reconstruction can be used to improve precision).
+par.stitch_align_overlap = 0; %25; % positive integer,number of pixels,if 0 do nothing,align mean values of vertical aread left/right to the rot axis within given pixel range. Can reduce, but also enhance artefacts significantly.
+par.stitch_method = 'step';'linear';'sine'; %  not all methods implemented for all scans modes. 
+% 'step' : default, no interpolation, use step function, typically produces
+% the least artefacts, linear & sine
 % 'linear' : linear interpolation of overlap region
 % 'sine' : sinusoidal interpolation of overlap region
 par.proj_range = []; % range of projections to be used (from all found,if empty or 1: all,if scalar: stride,if range: start:incr:end
@@ -95,6 +101,14 @@ pixel_filter_threshold_dark = [0.02 0.005]; % Dark fields: threshold parameter f
 pixel_filter_threshold_flat = [0.02 0.005]; % Flat fields: threshold parameter for hot/dark pixel filter,for details see 'FilterPixel'
 pixel_filter_threshold_proj = [0.02 0.02]; % Raw projection: threshold parameter for hot/dark pixel filter,for details see 'FilterPixel'
 pixel_filter_radius = [5 5]; % Increase only if blobs of zeros or other artefacts are expected. Can increase processing time heavily.
+par.filter_sino = 1; % bool. Pixel filtering of sinogram using parameters below:
+pixel_filter_sino.threshold_hot = 0;
+pixel_filter_sino.threshold_dark = 0;
+pixel_filter_sino.medfilt_neighboorhood = [3 3];
+pixel_filter_sino.filter_dead_pixel = 1;
+pixel_filter_sino.filter_Inf = 1;
+pixel_filter_sino.filter_NaN = 1;
+pixel_filter_sino.verbose = 0;
 par.ring_current_normalization = 0; % normalize flat fields and projections by ring current
 image_correlation.method = 'median';'ssim-ml';'entropy';'none';'ssim';'ssim-g';'std';'cov';'corr';'diff1-l1';'diff1-l2';'diff2-l1';'diff2-l2';'cross-entropy-12';'cross-entropy-21';'cross-entropy-x';
 % Correlation of projections and flat fields. Essential for DCM data. Typically improves reconstruction quality of DMM data,too.
@@ -121,7 +135,7 @@ image_correlation.filter_parameter = {[5 5],'symmetric'}; % cell. filter paramat
 % 'wiener' : using wiender2,parameters: {[M N]-neighboorhood}
 ring_filter.apply = 1; % ring artifact filter (use only for scans without lateral sample movement)
 ring_filter.apply_before_stitching = 0; % ! Consider when phase retrieval is applied !
-ring_filter.method = 'jm'; %'wavelet-fft';'jm';
+ring_filter.method = 'jm'; %'wavelet-fft';'jm';'all_stripe';%
 ring_filter.waveletfft_dec_levels = 1:6; % decomposition levels for 'wavelet-fft'
 ring_filter.waveletfft_wname = 'db7';'db25';'db30'; % wavelet type,see 'FilterStripesCombinedWaveletFFT' or 'waveinfo'
 ring_filter.waveletfft_sigma = 3; % integer scalar. suppression factor for 'wavelet-fft'
@@ -930,6 +944,7 @@ if ~par.read_flatcor && ~par.read_sino
                     s_stage_x.value = cat(1,s_stage_x.value,h5read(nexuslog_name{n},'/entry/scan/data/s_stage_x/value'));
                 end
                 if ~isempty(s_stage_x.value)
+
                     if numel(s_stage_x.value) == numel(stimg_key.value)
                         ind = stimg_key.value == 0;
                     else
@@ -1113,12 +1128,14 @@ if ~par.read_flatcor && ~par.read_sino
                     case par.num_proj_found
                         vert_shift_micron = s_stage_z.value;
                     case par.num_proj_found + par.num_dark + par.num_ref_found
-                        m = stimg_key.scan.value == 0 ;
+                        m = stimg_key.scan.value == 0;
                         vert_shift_micron = s_stage_z.value(m);
                     case par.num_proj_found + par.num_ref_found
                         %m = stimg_key.value(logpar.n_dark + 1:end) == 0 ;
                         %m = stimg_key.value(par.num_proj_found + 1:end) == 0 ;
-                        vert_shift_micron = s_stage_z.value(round(par.num_proj_found/2) + (1:par.num_proj_found));
+                        %vert_shift_micron = s_stage_z.value(round(par.num_proj_found/2) + (1:par.num_proj_found));
+                        m =  ~boolean(stimg_key.scan(n).value(n_dark+1:end));
+                        vert_shift_micron = s_stage_z.value(m);
                     otherwise
                         vert_shift_micron = s_stage_z.value(1:par.num_proj_found);
                 end
