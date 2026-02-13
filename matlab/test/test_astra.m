@@ -1,21 +1,22 @@
-s001_sinogram_par2d
-s002_data2d
-s003_gpu_reconstruction
-s004_cpu_reconstruction
-s005_3d_geometry
-s006_3d_data
-s007_3d_reconstruction
-s008_gpu_selection
-s009_projection_matrix
-%s010_supersampling
-s011_object_info
-s012_masks
-s013_constraints
-s014_FBP
-s015_fp_bp
-s016_plots
+n = 1;
+fprintf('\n%2u\n',n);n = n + 1; s001_sinogram_par2d
+fprintf('\n%2u\n',n);n = n + 1; s002_data2d
+fprintf('\n%2u\n',n);n = n + 1; s003_gpu_reconstruction
+fprintf('\n%2u\n',n);n = n + 1; s004_cpu_reconstruction
+fprintf('\n%2u\n',n);n = n + 1; s005_3d_geometry
+fprintf('\n%2u\n',n);n = n + 1; s006_3d_data
+fprintf('\n%2u\n',n);n = n + 1; s007_3d_reconstruction
+fprintf('\n%2u\n',n);n = n + 1; s008_gpu_selection
+fprintf('\n%2u\n',n);n = n + 1; s009_projection_matrix
+%fprintf('\n%2u\n',n);n = n + 1; s010_supersampling
+fprintf('\n%2u\n',n);n = n + 1; s011_object_info
+fprintf('\n%2u\n',n);n = n + 1; s012_masks
+fprintf('\n%2u\n',n);n = n + 1; s013_constraints
+fprintf('\n%2u\n',n);n = n + 1; s014_FBP
+fprintf('\n%2u\n',n);n = n + 1; s015_fp_bp
+fprintf('\n%2u\n',n);n = n + 1; s016_plots
 %s017_opTomo
-s020_3d_multiGPU
-s022_fbp_cor
-s023_FBP_filters
-s024_plot_geometry
+fprintf('\n%2u\n',n);n = n + 1; s020_3d_multiGPU
+fprintf('\n%2u\n',n);n = n + 1; s022_fbp_cor
+fprintf('\n%2u\n',n);n = n + 1; s023_FBP_filters
+fprintf('\n%2u\n',n);n = n + 1; s024_plot_geometry

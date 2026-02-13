@@ -34,7 +34,8 @@ dbstop if error
 
 if nargin < 1
     scan_path = ...
-        '/asap3/petra3/gpfs/p07/2024/data/11020415/processed/itaw023_cet_448a_f18096_bp';
+        '/asap3/petra3/gpfs/p07/2026/data/11024382/processed/cdma_lnkn2';
+        %'/asap3/petra3/gpfs/p07/2024/data/11020415/processed/itaw023_cet_448a_f18096_bp';
 end
 if nargin < 2
     rot_angle_full_range = [];
@@ -83,8 +84,8 @@ phase_retrieval.padding = 1; % padding of intensities before phase retrieval, 0:
 %%% TOMOGRAPHY %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 tomo.run = 1; % run tomographic reconstruction
 tomo.run_interactive_mode = 1; % if tomo.run = 0, use to determine rot axis positions without processing the full tomogram;
-tomo.reco_mode = 'slice';%'3D'; % slice-wise or full 3D backprojection. 'slice': volume must be centered at origin & no support of rotation axis tilt, reco binning, save compressed
-tomo.slab_wise = 0;
+tomo.reco_mode = '3D';'slice';%; % slice-wise or full 3D backprojection. 'slice': volume must be centered at origin & no support of rotation axis tilt, reco binning, save compressed
+tomo.slab_wise = 1;
 tomo.slices_per_slab = [];
 tomo.vol_size = [-.5 0.5 -0.5 0.5 -0.5 0.5];% [-1.1 1.1 -1.1 1.1 -0.5 0.5];%[-.5 0.5 -0.5 0.5 -0.5 0.5];% 6-component vector [xmin xmax ymin ymax zmin zmax], for excentric rot axis pos / extended FoV;. if empty, volume is centerd within tomo.vol_shape. unit voxel size is assumed. if smaller than 10 values are interpreted as relative size w.r.t. the detector size. Take care bout minus signs! Note that if empty vol_size is dependent on the rotation axis position.
 tomo.vol_shape = []; %[1 1 1] shape (# voxels) of reconstruction volume. used for excentric rot axis pos. if empty, inferred from 'tomo.vol_size'. in absolute numbers of voxels or in relative number w.r.t. the default volume which is given by the detector width and height.

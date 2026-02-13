@@ -38,19 +38,21 @@ dbstop if error
 % Just copy parameter and set quick switch to 1
 par.quick_switch = 1;
 par.raw_bin = 2;
-par.ref_range = 1;
-par.raw_roi = [0 1 0.07 0.93];
+%par.proj_range = 1:9000-200;
 tomo.vol_size = [-0.5 0.5 -0.5 0.5 -0.5 0.5];
-par.stitch_projections = 0;
-par.stitch_align_overlap = 75;
-%tomo.rot_axis_offset = -2 / 2 * par.raw_bin; %nah
-%tomo.rot_axis_offset = -38.4 / 2 * par.raw_bin; % fern
+%par.raw_roi = [0 0 0.15 0.85]; 
 interactive_mode.rot_axis_pos = 1; 
 %ring_filter.method = 'all_stripe';%
-%write.subfolder_reco = 'ringFiltered';
 phase_retrieval.apply = 1; 
-phase_retrieval.reg_par = 1.2; 
-phase_retrieval.apply_before = 1; 
+phase_retrieval.reg_par = 2.2; 
+phase_retrieval.apply_before = 0; 
+interactive_mode.phase_retrieval = 1; 
+par.visual_output = 1; 
+tomo.reco_mode = '3D';'slice';
+par.stitch_projections = 0;
+par.stitch_align_overlap = 25;
+write.flatcor = 0; 
+
 
 
 % END OF QUICK SWITCH TO ALTERNATIVE SET OF PARAMETERS %%%%%%%%%%%%%%%%%%%%
@@ -59,7 +61,7 @@ pp_parameter_switch % DO NOT DELETE OR EDIT THIS LINE %%%%%%%%%%%%%%%%%%%%%
 
 %%% SCAN %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 par.scan_path = pwd; % string/pwd. pwd: change to directory of the scan to be reconstructed,string: absolute scan path,last_folder_modified('folder')
-par.ref_path = {}; % cell of strings. Additonal data sets to be included for the correlation of projections and reference images
+par.ref_path = {}; % cell of strings. Additonal Fourdata sets to be included for the correlation of projections and reference images
 par.nexus_path = ''; % string,absolute path to h5 file
 par.read_flatcor = 0; % read preprocessed flatfield-corrected projections. CHECK if negative log has to be taken!
 par.read_flatcor_path = ''; % absolute path containing flat-field corrected projections
@@ -86,7 +88,7 @@ par.filter_ref = @(x) (x);
 par.filter_proj = @(x) (x);
 % STITCHING/CROPPING only for scans without lateral movment. Legacy support
 par.crop_at_rot_axis = 0; % for recos of scans with excentric rotation axis but WITHOUT projection stitching
-par.stitch_projections = 1; % for 2 pi cans: stitch projection at rotation axis position. Recommended with phase retrieval to reduce artefacts. Standard absorption contrast data should work well without stitching. Subpixel stitching not supported (non-integer rotation axis position is rounded,less/no binning before reconstruction can be used to improve precision).
+par.stitch_projections = 0; % for 2 pi cans: stitch projection at rotation axis position. Recommended with phase retrieval to reduce artefacts. Standard absorption contrast data should work well without stitching. Subpixel stitching not supported (non-integer rotation axis position is rounded,less/no binning before reconstruction can be used to improve precision).
 par.stitch_align_overlap = 0; %25; % positive integer,number of pixels,if 0 do nothing,align mean values of vertical aread left/right to the rot axis within given pixel range. Can reduce, but also enhance artefacts significantly.
 par.stitch_method = 'step';'linear';'sine'; %  not all methods implemented for all scans modes. 
 % 'step' : default, no interpolation, use step function, typically produces
@@ -109,7 +111,7 @@ pixel_filter_sino.filter_dead_pixel = 1;
 pixel_filter_sino.filter_Inf = 1;
 pixel_filter_sino.filter_NaN = 1;
 pixel_filter_sino.verbose = 0;
-par.ring_current_normalization = 0; % normalize flat fields and projections by ring current
+par.ring_current_normalization = 1; % normalize flat fields and projections by ring current
 image_correlation.method = 'median';'ssim-ml';'entropy';'none';'ssim';'ssim-g';'std';'cov';'corr';'diff1-l1';'diff1-l2';'diff2-l1';'diff2-l2';'cross-entropy-12';'cross-entropy-21';'cross-entropy-x';
 % Correlation of projections and flat fields. Essential for DCM data. Typically improves reconstruction quality of DMM data,too.
 % Available methods ('ssim-ml'/'entropy' usually work best):
@@ -239,7 +241,7 @@ write.compression_parameter = [0.02 0.02]; % compression-method specific paramet
 write.uint8_segmented = 0; % experimental: threshold segmentaion for histograms with 2 distinct peaks: __/\_/\__
 write.outputformat = 'tif';'hdf_volume'; % string. Not yet implemented for all reco modes
 %%% INTERACTION %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-par.visual_output = 1; % show images and plots during reconstruction
+par.visual_output = 0; % show images and plots during reconstruction
 interactive_mode.rot_axis_pos = 1; % reconstruct slices with dif+ferent rotation axis offsets
 interactive_mode.rot_axis_pos_default_search_range = []; % if empty: asks for search range when entering interactive mode
 interactive_mode.rot_axis_tilt = 0; % reconstruct slices with different offset AND tilts of the rotation axis
@@ -274,8 +276,9 @@ weblink = sprintf('<a href = "%s">%s</a>\n',weblink_url,weblink_name);
 fprintf('\n code repository on github: ')
 fprintf(weblink)
 
-close all hidden;
+close all hidden
 close all force;
+pause(2)
 
 %%% Parameters set by reconstruction loop script 'p05_reco_loop' %%%%%%%%%%
 if nargin == 1 %exist('external_parameter','var')
@@ -1762,17 +1765,17 @@ if ~par.read_flatcor && ~par.read_sino
         % % flat field correction
         % p = proj(:,:,nn);
         % p = p ./ flat_median_shifted(1:im_shape_cropbin1,:) ;
-        % % Reassign
-        if dofc
-            im_float_binned = im_float_binned ./ flat_m;
-        end
-        % Assign image to stack
-        proj(:,:,nn) = im_float_binned;
         % Statistics
         proj_min(nn) = min2(im_float_binned);
         proj_max(nn) = max2(im_float_binned);
         proj_mean(nn) = mean2(im_float_binned);
         proj_std(nn) = std2(im_float_binned);
+        % Flat field correction for median and mean
+        if dofc
+            im_float_binned = im_float_binned ./ flat_m;
+        end
+        % Assign image to stack
+        proj(:,:,nn) = im_float_binned;
     end
     fprintf('\n duration : %.1f s (%.2f min)',toc - t,(toc - t) / 60)
     t = toc;
@@ -2695,9 +2698,9 @@ if par.stitch_projections
             % Preallocation
             proj_sti = zeros(im_shape_sti1,size(proj,2),num_proj_sti,'single');
             for nn = 1:num_proj_sti
-                if nn == 2188
-                    keyboard
-                end
+                % if nn == 2188
+                %     keyboard
+                % end
                 nn2 = mod(num_proj_sti + nn,size(proj,3)) + 1;
                 im = zeros(im_shape_sti1,size(proj,2));
                 % overlap region
@@ -2706,7 +2709,7 @@ if par.stitch_projections
                 x = (0:1/(numel(overlap)-1):1);
                 switch lower(par.stitch_method)
                     case 'step'
-                        im = cat(1,flipud(proj(xl,:,nn2),proj(xr,:,nn)));
+                        im = cat(1,flipud(proj(xl,:,nn2)),proj(xr,:,nn));
                     case {'linear','sine'}
                         % 1D weight
                         w = ones(im_shape_cropbin1,1);

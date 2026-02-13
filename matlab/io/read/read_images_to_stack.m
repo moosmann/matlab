@@ -32,7 +32,8 @@ if isnumeric(InputPath)
     return
 end
 CheckTrailingSlash(InputPath);
-files = FilenameCell(sprintf('%s%s',InputPath,FilenamePattern));
+s = sprintf('%s%s',InputPath,FilenamePattern);
+[~,files] = FilenameCell(s);
 NumFiles = numel(files);
 if verbose
     fprintf('Found %u files matching string pattern ''%s'' in directory ''%s''\n',NumFiles,FilenamePattern,InputPath);
@@ -42,7 +43,7 @@ if NumFiles == 0
 end
 
 %% Read images into stack
-if numel(StepSize_or_VecOfImagesToRead) == 1
+if isscalar(StepSize_or_VecOfImagesToRead)
     filesToRead = 1:StepSize_or_VecOfImagesToRead:NumFiles;
 else
     filesToRead = StepSize_or_VecOfImagesToRead;
@@ -51,11 +52,13 @@ NumFilesToRead = numel(filesToRead);
 switch lower(FilenamePattern(end-2:end))
     case 'edf'
         for nn = NumFilesToRead:-1:1
-            stack(:,:,nn) = pmedfread(sprintf('%s%s',InputPath,files{filesToRead(nn)}))';
+            %stack(:,:,nn) = pmedfread(sprintf('%s%s',InputPath,files{filesToRead(nn)}))';
+            stack(:,:,nn) = pmedfread(sprintf('%s',files{filesToRead(nn)}))';
         end
     case {'img', 'dar', 'ref', 'sli', 'sln'}
         for nn = NumFilesToRead:-1:1
-            stack(:,:,nn) = read_dat_jm(sprintf('%s%s',InputPath,files{filesToRead(nn)}))';
+            %stack(:,:,nn) = read_dat_jm(sprintf('%s%s',InputPath,files{filesToRead(nn)}))';
+            stack(:,:,nn) = read_dat_jm(sprintf('%s',files{filesToRead(nn)}))';
         end
     case 'raw'
         if strcmpi( raw_im_shape, 'kit' )
@@ -64,26 +67,30 @@ switch lower(FilenamePattern(end-2:end))
             raw_im_shape = [3056 3056];
         end
         for nn = NumFilesToRead:-1:1
-            filename = sprintf('%s%s',InputPath,files{filesToRead(nn)})';
+            %filename = sprintf('%s%s',InputPath,files{filesToRead(nn)})';
+            filename = sprintf('%s',files{filesToRead(nn)})';
             stack(:,:,nn) = read_raw( filename(1:end-4), raw_im_shape, 'uint16' );
         end
     otherwise
         if parloop
-            im = imread(sprintf('%s%s',InputPath,files{filesToRead(1)}));
+            %im = imread(sprintf('%s%s',InputPath,files{filesToRead(1)}));
+            im = imread(sprintf('%s',files{filesToRead(1)}));
             imsize = size(im);
             stack = zeros([imsize NumFilesToRead],'single');
             OpenParpool( 0.8, 0, '', 0, [] );
-            parfor nn = 1:NumFilesToRead
-                stack(:,:,nn) = imread(sprintf('%s%s',InputPath,files{filesToRead(nn)}));
+            parfor (nn = 1:NumFilesToRead,60)
+                %stack(:,:,nn) = imread(sprintf('%s%s',InputPath,files{filesToRead(nn)}));
+                stack(:,:,nn) = imread(sprintf('%s',files{filesToRead(nn)}));
             end
         else
             for nn = NumFilesToRead:-1:1
-                stack(:,:,nn) = imread(sprintf('%s%s',InputPath,files{filesToRead(nn)}));
+                %stack(:,:,nn) = imread(sprintf('%s%s',InputPath,files{filesToRead(nn)}));
+                stack(:,:,nn) = imread(sprintf('%s',files{filesToRead(nn)}));
             end
         end
 end
 
 %% Print info
 if verbose
-    fprintf('Read %u images into volume [%u %u %u] in %g s = %.2g min \n',NumFilesToRead,size(stack),toc,toc/60);
+    fprintf('\nRead %u images into volume [%u %u %u] in %g s = %.2g min \n',NumFilesToRead,size(stack),toc,toc/60);
 end
