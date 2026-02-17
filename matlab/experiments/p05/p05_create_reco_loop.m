@@ -17,10 +17,6 @@ function p05_create_reco_loop( raw_path, name_pattern, out_path, name, exclude_p
 %   $MATLAB_SEARCH_PATH/experiments/p05/data/$USER/
 % name : str. Default: ''. String to append to filename of the script.
 %   A 3-digit running index is used to avoid overwriting existing scripts.
-%   
-% Written by Julian Moosmann, 2017-10-10. Last version: 2018-07-22
-%
-% p05_create_reco_loop( raw_path, name_pattern, name, out_path)
 
 % TODO: Option to overwrite existing file 
 % TODO: file location: add to search path

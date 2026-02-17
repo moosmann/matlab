@@ -9,8 +9,8 @@ addpath( genpath( [ userpath filesep 'matlab'] ) );
 ASTRA_PATH = getenv('ASTRA_PATH');
 astra_path = [ ASTRA_PATH '/matlab'];
 addpath( genpath( astra_path ) );
-astra_samples_path = getenv('ASTRA_SAMPLES_PATH');
-addpath( genpath( astra_samples_path ) );
+%astra_samples_path = getenv('ASTRA_SAMPLES_PATH');
+%addpath( genpath( astra_samples_path ) );
 
 if isempty(getCurrentTask())
 
@@ -26,7 +26,7 @@ if isempty(getCurrentTask())
     %% ASTRA info
     fprintf('\nASTRA_PATH : %s', ASTRA_PATH );
     fprintf('\nAdd ASTRA path : %s', astra_path );
-    fprintf('\nAdd ASTRA samples path : %s', astra_samples_path );
+ %   fprintf('\nAdd ASTRA samples path : %s', astra_samples_path );
 
     %% MATLAB path
     fprintf('\nMATLAB_PATH : %s', getenv('MATLAB_PATH') );

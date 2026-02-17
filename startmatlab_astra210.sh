@@ -12,7 +12,7 @@ export CUDNN_INCLUDE_PATH=/software/cuda/cuda-11.8/include
 export CUDA_PATH=/software/cuda/cuda-11.8
 
 # MATLAB
-export MATLAB_VERSION=R2024b 
+export MATLAB_VERSION=R2024a
 export MATLAB_USER_PATH="$(dirname "$0:A")"
 export PATH=/opt/matlab/$MATLAB_VERSION/bin:$PATH
 
@@ -21,7 +21,8 @@ export ASTRA_PATH=/software/jupyter/.conda/envs/astra-toolbox-2.1.0
 export ASTRA_SAMPLES_PATH=/asap3/petra3/gpfs/common/p05/astra/astra-toolbox/samples/matlab
 export MATLABPATH=$ASTRA_PATH/matlab/mex:$ASTRA_PATH/matlab/tools:$MATLABPATH
 export PATH=$ASTRA_PATH/bin:$PATH
-#export LD_PRELOAD=/usr/lib64/libstdc++.so.6
+export LD_PRELOAD=/usr/lib64/libstdc++.so.6:$LD_PRELOAD         
+#export LD_PRELOAD=$(gcc --print-file-name=libstdc++.so.6)
 #export LD_PRELOAD=/opt/nvidia/nsight-systems/2024.4.2/host-linux-x64/libstdc++.so.6:$LD_PRELOAD
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/opt/nvidia/nsight-systems/2024.4.2/host-linux-x64:/usr/lib64:/usr/lib64
 
@@ -35,8 +36,11 @@ export GIT_COMMIT_ID=$(git rev-parse HEAD)
 
 export LD_LIBRARY_PATH=/software/libglvnd/1.7.0/lib:$LD_LIBRARY_PATH
 
+# potential fix for GPFS triggered openjdk bug from FS
+export LD_PRELOAD=/software/tools/lib/copy_file_range_fallback/copy_file_range.so:$LD_PRELOAD
+#export LD_PRELOAD=/software/tools/lib/copy_file_range_fallback/copy_file_range.so
 
-echo -e 'Set environment variables:'
+echo -e 'Setting environment variables:'
 echo -e 'TZ:' $TZ
 echo -e 'PATH:' $PATH
 echo -e 'LD_LIBRARY_PATH:' $LD_LIBRARY_PATH
@@ -51,8 +55,9 @@ echo -e 'IMAGEJ_MACROS:' $IMAGEJ_MACROS
 echo -e 'GIT_COMMIT_ID:' $GIT_COMMIT_ID
 echo -e 'Starting MATLAB.\n'
 
-ulimit -u 16000
+ulimit -u 23741
+limit maxproc 23741
 touch  $HOME/.matlab/startml
 #matlab_$MATLAB_VERSION -nosoftwareopengl
 #matlab_$MATLAB_VERSION -softwareopengl
-matlab_$MATLAB_VERSION -nodisplay
+matlab_$MATLAB_VERSION

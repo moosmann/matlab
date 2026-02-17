@@ -17,8 +17,8 @@ astra_mex('set_gpu_index', 0:9);
 % Optionally, you can also restrict the amount of GPU memory ASTRA will use.
 % The line commented below sets this to 1GB.
 %astra_mex('set_gpu_index', [0 1], 'memory', 1024*1024*1024);
-x = 3460;
-y = 3460;
+x = 1460;
+y = 1460;
 z = 1100;
 vol_geom = astra_create_vol_geom(x, y, z);
 

@@ -1,4 +1,4 @@
-9% -----------------------------------------------------------------------
+% -----------------------------------------------------------------------
 % This file is part of the ASTRA Toolbox
 %
 % Copyright: 2010-2018, imec Vision Lab, University of Antwerp
@@ -8,7 +8,6 @@
 % Website: http://www.astra-toolbox.com/
 % -----------------------------------------------------------------------
 
-clear all
 aclear
 % BP3D_CUDA
 astra_mex('set_gpu_index', [0 1]);
