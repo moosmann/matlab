@@ -1,4 +1,4 @@
-function p07_reco_loop_scaffold_uni_rostock_11024382( SUBSETS, RUN_RECO, PRINT_PARAMETERS)
+function p07_reco_loop_baller_graeber_11022135( SUBSETS, RUN_RECO, PRINT_PARAMETERS)
 % Template function to loop over data sets given in the 'PARAMETER / DATA
 % SETS' section below. The 'DEFAULT PARAMETERS' section defines the default
 % paramters. To add a data / parameter to the loop, define your
@@ -41,7 +41,7 @@ function p07_reco_loop_scaffold_uni_rostock_11024382( SUBSETS, RUN_RECO, PRINT_P
 % Useful in combination with RUN_RECO = 0 to check parameter setting for
 % the subset to loop over
 %
-% Created on 17-Feb-2026 by moosmanj
+% Created on 08-Dec-2025 by moosmanj
 
 if nargin < 1
     SUBSETS = [];
@@ -63,7 +63,7 @@ end
 
 %%% SCAN %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 par.scan_path = pwd; % string/pwd. pwd: change to directory of the scan to be reconstructed,string: absolute scan path,last_folder_modified('folder')
-par.ref_path = {}; % cell of strings. Additonal Fourdata sets to be included for the correlation of projections and reference images
+par.ref_path = {}; % cell of strings. Additonal data sets to be included for the correlation of projections and reference images
 par.nexus_path = ''; % string,absolute path to h5 file
 par.read_flatcor = 0; % read preprocessed flatfield-corrected projections. CHECK if negative log has to be taken!
 par.read_flatcor_path = ''; % absolute path containing flat-field corrected projections
@@ -75,6 +75,14 @@ par.read_sino_folder = ''; % subfolder to scan path
 par.read_sino_trafo = @(x) (x);%rot90(x); % anonymous function applied to the image which is read e.g. @(x) rot90(x)
 par.read_sino_range = 1; % scalar,vector. If integer in [1,10]: interpreted as increment,else slice number. if scalar in [0,1): interpreted as relative slice number. if 2-vector: interpreted as absolute or relative slice number of first/last slice to read
 par.sino_roi = []; % horizontal ROI when reading sinograms,vertical ROI not yet implemented
+par.filter_sino = 1; % bool. Pixel filtering of sinogram using parameters below:
+pixel_filter_sino.threshold_hot = 0;
+pixel_filter_sino.threshold_dark = 0;
+pixel_filter_sino.medfilt_neighboorhood = [3 3];
+pixel_filter_sino.filter_dead_pixel = 1;
+pixel_filter_sino.filter_Inf = 1;
+pixel_filter_sino.filter_NaN = 1;
+pixel_filter_sino.verbose = 0;
 par.energy = []; % eV! if empty: read from log file (log file values can be ambiguous or even missing sometimes)
 par.sample_detector_distance = []; % in m. if empty: read from log file
 par.eff_pixel_size = []; % in m. if empty: read from log lfile. effective pixel size =  detector pixel size / magnification
@@ -105,15 +113,7 @@ pixel_filter_threshold_dark = [0.02 0.005]; % Dark fields: threshold parameter f
 pixel_filter_threshold_flat = [0.02 0.005]; % Flat fields: threshold parameter for hot/dark pixel filter,for details see 'FilterPixel'
 pixel_filter_threshold_proj = [0.02 0.02]; % Raw projection: threshold parameter for hot/dark pixel filter,for details see 'FilterPixel'
 pixel_filter_radius = [5 5]; % Increase only if blobs of zeros or other artefacts are expected. Can increase processing time heavily.
-par.filter_sino = 1; % bool. Pixel filtering of sinogram using parameters below:
-pixel_filter_sino.threshold_hot = 0;
-pixel_filter_sino.threshold_dark = 0;
-pixel_filter_sino.medfilt_neighboorhood = [3 3];
-pixel_filter_sino.filter_dead_pixel = 1;
-pixel_filter_sino.filter_Inf = 1;
-pixel_filter_sino.filter_NaN = 1;
-pixel_filter_sino.verbose = 0;
-par.ring_current_normalization = 1; % normalize flat fields and projections by ring current
+par.ring_current_normalization = 0; % normalize flat fields and projections by ring current
 image_correlation.method = 'median';'ssim-ml';'entropy';'none';'ssim';'ssim-g';'std';'cov';'corr';'diff1-l1';'diff1-l2';'diff2-l1';'diff2-l2';'cross-entropy-12';'cross-entropy-21';'cross-entropy-x';
 % Correlation of projections and flat fields. Essential for DCM data. Typically improves reconstruction quality of DMM data,too.
 % Available methods ('ssim-ml'/'entropy' usually work best):
@@ -139,7 +139,7 @@ image_correlation.filter_parameter = {[5 5],'symmetric'}; % cell. filter paramat
 % 'wiener' : using wiender2,parameters: {[M N]-neighboorhood}
 ring_filter.apply = 1; % ring artifact filter (use only for scans without lateral sample movement)
 ring_filter.apply_before_stitching = 0; % ! Consider when phase retrieval is applied !
-ring_filter.method = 'jm'; %'wavelet-fft';'jm';'all_stripe';%
+ring_filter.method = 'jm'; %'wavelet-fft';'jm';'all_stripe'
 ring_filter.waveletfft_dec_levels = 1:6; % decomposition levels for 'wavelet-fft'
 ring_filter.waveletfft_wname = 'db7';'db25';'db30'; % wavelet type,see 'FilterStripesCombinedWaveletFFT' or 'waveinfo'
 ring_filter.waveletfft_sigma = 3; % integer scalar. suppression factor for 'wavelet-fft'
@@ -273,28 +273,227 @@ SET_DEFAULT
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% PARAMETER / DATA SETS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-raw_path = '/asap3/petra3/gpfs/p07/2026/data/11024382/processed/';
+raw_path = '/asap3/petra3/gpfs/p07/2025/data/11022135/raw/';
 
+par.raw_bin = 2; 
 
-par.read_sino = 1; 
-par.read_sino_folder = 'trans02_180'; 0
-par.read_sino_range = 231:2250;
+par.scan_path = [raw_path 'hu258_m02_scan01']; ADD
 
-interactive_mode.rot_axis_pos = 0;
-tomo.rot_axis_offset = -0.25/ 2 * par.raw_bin;
-%par.nexus_path = [regexprep(par.scan_path,'processed','raw') '_height_a'];
-par.nexus_path = '/asap3/petra3/gpfs/p07/2026/data/11024382/raw/011_cdma_lnkn2_a';
-par.scan_path = [raw_path 'cdma_lnkn2']; ADD
+par.scan_path = [raw_path 'hu328_m01_scan01']; ADD
 
-interactive_mode.phase_retrieval = 1;
-phase_retrieval.apply = 1; 
-ADD
+par.scan_path = [raw_path 'hu329_m01_scan02']; ADD
 
-%%%%%%%%%%%%%%%%%%%%%%%
-par.scan_path = [raw_path 'cdma_lnkn3']; ADD
+par.scan_path = [raw_path 'hu329_m01_scan03']; ADD
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-par.scan_path = [raw_path 'cdma_lnkn4']; ADD
+par.scan_path = [raw_path 'hu331_m01_scan04']; ADD
+
+par.scan_path = [raw_path 'hu332_m01_scan05']; ADD
+
+par.scan_path = [raw_path 'hu333_m01_scan06']; ADD
+
+par.scan_path = [raw_path 'hu334_m01_scan07']; ADD
+
+par.scan_path = [raw_path 'hu335_m01_scan08']; ADD
+
+par.scan_path = [raw_path 'hu335_m01_scan09']; ADD
+
+par.scan_path = [raw_path 'hu337_m01_scan10']; ADD
+
+par.scan_path = [raw_path 'hu338_m01_scan11']; ADD
+
+par.scan_path = [raw_path 'hu339_m01_scan12']; ADD
+
+par.scan_path = [raw_path 'hu340_m01_scan13']; ADD
+
+par.scan_path = [raw_path 'hu341_m01_scan14']; ADD
+
+par.scan_path = [raw_path 'hu342_m01_scan15']; ADD
+
+par.scan_path = [raw_path 'hu343-358_m01_scan16+000']; ADD
+
+par.scan_path = [raw_path 'hu343-358_m01_scan16+0000']; ADD
+
+par.scan_path = [raw_path 'hu343-358_m01_scan16+001']; ADD
+
+par.scan_path = [raw_path 'hu343-358_m01_scan16+002']; ADD
+
+par.scan_path = [raw_path 'hu343-358_m01_scan16+003']; ADD
+
+par.scan_path = [raw_path 'hu343-358_m01_scan16+004']; ADD
+
+par.scan_path = [raw_path 'hu343-358_m01_scan16+005']; ADD
+
+par.scan_path = [raw_path 'hu343-358_m01_scan16+006']; ADD
+
+par.scan_path = [raw_path 'hu343-358_m01_scan16+007']; ADD
+
+par.scan_path = [raw_path 'hu343-358_m01_scan16+008']; ADD
+
+par.scan_path = [raw_path 'hu343-358_m01_scan16+009']; ADD
+
+par.scan_path = [raw_path 'hu343-358_m01_scan16+010']; ADD
+
+par.scan_path = [raw_path 'hu343-358_m01_scan16+011']; ADD
+
+par.scan_path = [raw_path 'hu343-358_m01_scan16+012']; ADD
+
+par.scan_path = [raw_path 'hu343-358_m01_scan16+013']; ADD
+
+par.scan_path = [raw_path 'hu351_n01_scan01']; ADD
+
+par.scan_path = [raw_path 'hu359_m02_scan01000']; ADD
+
+par.scan_path = [raw_path 'hu360_m02_scan02000']; ADD
+
+par.scan_path = [raw_path 'hu362_m03_scan01']; ADD
+
+par.scan_path = [raw_path 'hu363_m03_scan02']; ADD
+
+par.scan_path = [raw_path 'hu364_m03_scan03']; ADD
+
+par.scan_path = [raw_path 'hu365_m03_scan04']; ADD
+
+par.scan_path = [raw_path 'hu366_m03_scan05']; ADD
+
+par.scan_path = [raw_path 'hu367_m03_scan06']; ADD
+
+par.scan_path = [raw_path 'hu368_m03_scan07']; ADD
+
+par.scan_path = [raw_path 'hu368_m03_scan077']; ADD
+
+par.scan_path = [raw_path 'hu370_m03_scan09']; ADD
+
+par.scan_path = [raw_path 'hu371_n02_scan02']; ADD
+
+par.scan_path = [raw_path 'hu372_m03_scan09']; ADD
+
+par.scan_path = [raw_path 'hu373_m03_scan11']; ADD
+
+rot_axis_offset = par.raw_bin / 2 * 0.500000;
+ring_filter.apply = 1; 
+ring_filter.method = 'all_stripe';
+par.raw_roi = [131 1130 671 6050];
+tomo.reco_mode = 'slice';'3D';
+write.subfolder_reco = '';
+par.scan_path = [raw_path 'hu374_m03_scan12']; ADD
+
+par.scan_path = [raw_path 'hu375_m03_scan13']; ADD
+
+par.scan_path = [raw_path 'hu376_m03_scan14']; ADD
+
+par.scan_path = [raw_path 'hu377_m03_scan15']; ADD
+
+par.scan_path = [raw_path 'hu378_mO01_scan01']; ADD
+
+par.scan_path = [raw_path 'hu379_n02_scan03']; ADD
+
+par.scan_path = [raw_path 'hu380_m05_scan01']; ADD
+
+par.scan_path = [raw_path 'hu381_m05_scan02']; ADD
+
+par.scan_path = [raw_path 'hu382_m05_scan03']; ADD
+
+par.scan_path = [raw_path 'hu383_n02_scan03']; ADD
+
+par.scan_path = [raw_path 'hu384_o02_scan01']; ADD
+
+par.scan_path = [raw_path 'hu385_o02_scan02']; ADD
+
+par.scan_path = [raw_path 'hu386_o02_scan03']; ADD
+
+par.scan_path = [raw_path 'hu387_n02_scan04']; ADD
+
+par.scan_path = [raw_path 'hu388_o02_scan04']; ADD
+
+par.scan_path = [raw_path 'hu389_m04_scan01']; ADD
+
+par.scan_path = [raw_path 'hu389_n01_scan02']; ADD
+
+par.scan_path = [raw_path 'hu391_o02_scan05']; ADD
+
+par.scan_path = [raw_path 'hu392_o02_scan06']; ADD
+
+par.scan_path = [raw_path 'hu393_m06_scan01']; ADD
+
+par.scan_path = [raw_path 'hu393_m06_scan02']; ADD
+
+par.scan_path = [raw_path 'hu395_m06_scan03']; ADD
+
+par.scan_path = [raw_path 'hu396_n01_scan03']; ADD
+
+par.scan_path = [raw_path 'hu397_m06_scan04']; ADD
+
+par.scan_path = [raw_path 'hu398_m06_scan05']; ADD
+
+par.scan_path = [raw_path 'hu399_m06_scan06']; ADD
+
+par.scan_path = [raw_path 'hu400_m06_scan07']; ADD
+
+par.scan_path = [raw_path 'hu401_m06_scan08']; ADD
+
+par.scan_path = [raw_path 'hu402_n01_scan04']; ADD
+
+par.scan_path = [raw_path 'hu403_m06_scan09']; ADD
+
+par.scan_path = [raw_path 'hu404_m06_scan10']; ADD
+
+par.scan_path = [raw_path 'hu405_m06_scan11']; ADD
+
+par.scan_path = [raw_path 'hu406_n01_scan04']; ADD
+
+par.scan_path = [raw_path 'hu407_m06_scan12']; ADD
+
+par.scan_path = [raw_path 'hu408_m06_scan13']; ADD
+
+par.scan_path = [raw_path 'hu409_o03000']; ADD
+
+par.scan_path = [raw_path 'hu409_o03001']; ADD
+
+par.scan_path = [raw_path 'hu409_o03002']; ADD
+
+par.scan_path = [raw_path 'hu410_o03_contious_000']; ADD
+
+par.scan_path = [raw_path 'hu410_o03_contious_001']; ADD
+
+par.scan_path = [raw_path 'hu410_o03_contious_002']; ADD
+
+par.scan_path = [raw_path 'hu410_o03_contious_003']; ADD
+
+par.scan_path = [raw_path 'hu410_o03_contious_004']; ADD
+
+par.scan_path = [raw_path 'hu410_o03_contious_005']; ADD
+
+par.scan_path = [raw_path 'hu410_o03_contious_006']; ADD
+
+par.scan_path = [raw_path 'hu410_o03_contious_007']; ADD
+
+par.scan_path = [raw_path 'hu410_o03_contious_008']; ADD
+
+par.scan_path = [raw_path 'hu410_o03_contious_009']; ADD
+
+par.scan_path = [raw_path 'hu410_o03_contious_010']; ADD
+
+par.scan_path = [raw_path 'hu410_o03_contious_011']; ADD
+
+par.scan_path = [raw_path 'hu410_o03_contious_012']; ADD
+
+par.scan_path = [raw_path 'hu410_o03_contious_013']; ADD
+
+par.scan_path = [raw_path 'hu410_o03_contious_014']; ADD
+
+par.scan_path = [raw_path 'hu410_o03_contious_015']; ADD
+
+par.scan_path = [raw_path 'hu410_o03_contious_016']; ADD
+
+par.scan_path = [raw_path 'hu410_o03_contious_017']; ADD
+
+par.scan_path = [raw_path 'hu410_o03_contious_018']; ADD
+
+par.scan_path = [raw_path 'hu410_o03_contious_019']; ADD
+
+par.scan_path = [raw_path 'hu411_o03_zchange']; ADD
+
+par.scan_path = [raw_path 'hu412_o03_zchange_scan2']; ADD
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

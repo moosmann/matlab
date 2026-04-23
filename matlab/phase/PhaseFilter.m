@@ -52,8 +52,8 @@ function [fourier_filter, parameter_string] = PhaseFilter(method, filter_size, e
 %   for details of the placeholder function 'func' see code below. The
 %   regularization parameter is the negative of the decadic logartihm of
 %   the constant which is added to the denominator in order to regularize
-%   the singularity at zero frequency. Typical values are between 1.5 and
-%   3.5 depending on energy, residual absorption, etc.
+%   the singularity at zero frequency. Typical values are between 1 and
+%   3 depending on energy, residual absorption, etc.
 %   Relation to the refractive index is 10^r = delta / beta
 %
 % binary_filter_threshold : scalar in [0 1], default: 0.1. Parameter for
@@ -119,6 +119,8 @@ if isreal(energy_distance_pixelsize)
 else
     ArgPrefac = pi / abs(energy_distance_pixelsize);
 end
+% delta / beta
+dob = 10^regularization_parameter;
 
 %% Fourier coordinates
 % 1D
@@ -132,41 +134,42 @@ sinArg = ArgPrefac*(xi2.^2 + eta2.^2);
 %% Filter 
 switch lower(method)
     case 'tie'
-        fourier_filter = 1/2*sign(sinArg)./(abs(sinArg)+10^-regularization_parameter);
+        fourier_filter = 1/2*sign(sinArg)./(abs(sinArg)+1/dob);
         if regularization_parameter < 0
             parameter_string = sprintf('tie_regPar_m%05.2f',abs(regularization_parameter));
         else
             parameter_string = sprintf('tie_regPar_p%05.2f',regularization_parameter);
         end
     case 'ict'
-        sinxiquad   = cos(sinArg) + 10^regularization_parameter * sin(sinArg);
-        fourier_filter = 1/2*sign(sinxiquad)./(abs(sinxiquad)+10^-regularization_parameter);        
+        sinxiquad   = cos(sinArg) + dob * sin(sinArg);
+        %fourier_filter = 1/2*sign(sinxiquad)./(abs(sinxiquad)+1/dob);        
+        fourier_filter = 1/2*sign(sinxiquad)./(abs(sinxiquad)+1/dob);        
         parameter_string = sprintf('ict_regPar%3.2f',regularization_parameter);
     case 'ctf'
         sinxiquad   = sin(sinArg);
-        fourier_filter = 1/2*sign(sinxiquad)./(abs(sinxiquad)+10^-regularization_parameter);        
+        fourier_filter = 1/2*sign(sinxiquad)./(abs(sinxiquad)+1/dob);        
         parameter_string = sprintf('ctf_regPar%3.2f',regularization_parameter);
     case {'ctfhalfsine','ctffirsthalfsine','halfsine','firsthalfsine'}
         sinxiquad   = sin(sinArg);
-        fourier_filter = 1/2*sign(sinxiquad)./(abs(sinxiquad)+10^-regularization_parameter);
+        fourier_filter = 1/2*sign(sinxiquad)./(abs(sinxiquad)+1/dob);
         fourier_filter( sinArg >= pi ) = 0;
         parameter_string = sprintf('ctfHalfSine_regPar%3.2f',regularization_parameter);
     case {'qp','pctf','quasi','quasiparticle','quasiparticles'}
         sinxiquad   = sin(sinArg);
-        fourier_filter = 1/2*sign(sinxiquad)./(abs(sinxiquad)+10^-regularization_parameter);
+        fourier_filter = 1/2*sign(sinxiquad)./(abs(sinxiquad)+1/dob);
         fourier_filter( sinArg > pi/2  &  abs(sinxiquad) < binary_filter_threshold) = 0;
         parameter_string = sprintf('qp_regPar%3.2f_binFilt%3.3f',regularization_parameter,binary_filter_threshold);
     case {'qpcut', 'quasicut', 'quasiparticlecut'}
         sinxiquad   = sin(sinArg);
-        fourier_filter = 1/2*sign(sinxiquad)./(abs(sinxiquad)+10^-regularization_parameter);
+        fourier_filter = 1/2*sign(sinxiquad)./(abs(sinxiquad)+1/dob);
         fourier_filter( sinArg > pi/2  &  abs(sinxiquad) < binary_filter_threshold) = 0;
         fourier_filter( sinArg >= frequency_cutoff ) = 0;
         parameter_string = sprintf('qpcut_regPar%3.2f_binFilt%3.3f_cutoff%3.2fpi',regularization_parameter,binary_filter_threshold, frequency_cutoff/pi);
     case {'qp2','quasi2','pctf2'}
         sinxiquad   = sin(sinArg);
-        fourier_filter = 1/2*sign(sinxiquad)./(abs(sinxiquad)+10^-regularization_parameter);
+        fourier_filter = 1/2*sign(sinxiquad)./(abs(sinxiquad)+1/dob);
         mask = sinArg > pi/2  &  abs(sinxiquad) < binary_filter_threshold;
-        fourier_filter( mask ) = bsxfun(@(a,b) a(b),sign(fourier_filter)/(2*(binary_filter_threshold+10^-regularization_parameter)),mask);
+        fourier_filter( mask ) = bsxfun(@(a,b) a(b),sign(fourier_filter)/(2*(binary_filter_threshold+1/dob)),mask);
         parameter_string = sprintf('qp2_regPar%3.2f_binFilt%3.3f',regularization_parameter,binary_filter_threshold);
 end
 

@@ -37,7 +37,7 @@ dbstop if error
 % !!! OVERWRITES PARAMETERS BELOW QUICK SWITCH SECTION !!!
 % Just copy parameter and set quick switch to 1
 par.quick_switch = 1;
-par.raw_bin = 2;
+par.raw_bin = 6;
 %par.proj_range = 1:9000-200;
 tomo.vol_size = [-0.5 0.5 -0.5 0.5 -0.5 0.5];
 %par.raw_roi = [0 0 0.15 0.85]; 
@@ -52,7 +52,8 @@ tomo.reco_mode = '3D';'slice';
 par.stitch_projections = 0;
 par.stitch_align_overlap = 25;
 write.flatcor = 0; 
-
+write.sino = 0; % save sinograms (after preprocessing & before FBP filtering and phase retrieval)
+write.phase_sino = 1; % save sinograms of phase maps
 
 
 % END OF QUICK SWITCH TO ALTERNATIVE SET OF PARAMETERS %%%%%%%%%%%%%%%%%%%%

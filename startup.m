@@ -12,6 +12,9 @@ addpath( genpath( astra_path ) );
 %astra_samples_path = getenv('ASTRA_SAMPLES_PATH');
 %addpath( genpath( astra_samples_path ) );
 
+% max-hzgg014 too new GPU
+parallel.gpu.enableCUDAForwardCompatibility(true)
+
 if isempty(getCurrentTask())
 
     %% User info

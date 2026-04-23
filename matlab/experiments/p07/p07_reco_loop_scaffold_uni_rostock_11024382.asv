@@ -277,7 +277,7 @@ raw_path = '/asap3/petra3/gpfs/p07/2026/data/11024382/processed/';
 
 
 par.read_sino = 1; 
-par.read_sino_folder = 'trans02_180'; 0
+par.read_sino_folder = 'trans02_180'; 
 par.read_sino_range = 231:2250;
 
 interactive_mode.rot_axis_pos = 0;
@@ -293,7 +293,7 @@ ADD
 %%%%%%%%%%%%%%%%%%%%%%%
 par.scan_path = [raw_path 'cdma_lnkn3']; ADD
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%
 par.scan_path = [raw_path 'cdma_lnkn4']; ADD
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

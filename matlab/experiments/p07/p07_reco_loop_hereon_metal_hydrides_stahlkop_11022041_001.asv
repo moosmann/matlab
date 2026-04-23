@@ -1,4 +1,4 @@
-function p07_reco_loop_scaffold_uni_rostock_11024382( SUBSETS, RUN_RECO, PRINT_PARAMETERS)
+function p07_reco_loop_hereon_metal_hydrides_stahlkop_11022041_001( SUBSETS, RUN_RECO, PRINT_PARAMETERS)
 % Template function to loop over data sets given in the 'PARAMETER / DATA
 % SETS' section below. The 'DEFAULT PARAMETERS' section defines the default
 % paramters. To add a data / parameter to the loop, define your
@@ -41,7 +41,7 @@ function p07_reco_loop_scaffold_uni_rostock_11024382( SUBSETS, RUN_RECO, PRINT_P
 % Useful in combination with RUN_RECO = 0 to check parameter setting for
 % the subset to loop over
 %
-% Created on 17-Feb-2026 by moosmanj
+% Created on 18-Feb-2026 by moosmanj
 
 if nargin < 1
     SUBSETS = [];
@@ -243,7 +243,7 @@ write.compression_parameter = [0.02 0.02]; % compression-method specific paramet
 write.uint8_segmented = 0; % experimental: threshold segmentaion for histograms with 2 distinct peaks: __/\_/\__
 write.outputformat = 'tif';'hdf_volume'; % string. Not yet implemented for all reco modes
 %%% INTERACTION %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-par.visual_output = 1; % show images and plots during reconstruction
+par.visual_output = 0; % show images and plots during reconstruction
 interactive_mode.rot_axis_pos = 1; % reconstruct slices with dif+ferent rotation axis offsets
 interactive_mode.rot_axis_pos_default_search_range = []; % if empty: asks for search range when entering interactive mode
 interactive_mode.rot_axis_tilt = 0; % reconstruct slices with different offset AND tilts of the rotation axis
@@ -273,28 +273,317 @@ SET_DEFAULT
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% PARAMETER / DATA SETS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-raw_path = '/asap3/petra3/gpfs/p07/2026/data/11024382/processed/';
+raw_path = '/asap3/petra3/gpfs/p07/2026/data/11022041/raw/';
+
+par.visual_output = 1; 
+interactive_mode.rot_axis_pos = 0; % 
+
+ring_filter.apply = 1; 
+ring_filter.method = 'jm'; 
+
+tomo.rot_axis_search_auto = 1; % find extrema of metric within search range
+tomo.rot_axis_search_range = -6 + (-2.5:0.1:2.5); % search reach for automatic determination of the rotation axis offset,overwrite interactive result if not empty
+tomo.rot_axis_search_metric = 'entropy'; 'iso-grad'; % string: 'neg','entropy','iso-grad','laplacian','entropy-ML','abs'. Metric to find rotation axis offset
+tomo.rot_axis_search_extrema = 'min'; % string: 'min'/'max'. chose min or maximum position
+tomo.rot_axis_search_fit = 0; % bool: fit calculated metrics and find extrema,otherwise use extrema from search range
+tomo.rot_axis_offset_metric_roi = []; % 4-vector: [. ROI for metric calculation. roi = [y0,x0,y1-y0,x1-x0]. (x,y)=(0,0)=upper left
+tomo.rot_axis_search_slice = []; % scalar: slice used to find rot axis. if empty: uses slice from interactive mode,if that is empty uses central slice.
+tomo.rot_axis_search_range_from_interactive = 0; % boolean: use search range from interactive mode
+
+ring_filter.method = 'all_stripe'; 
+write.reco_subfolder = 'ri'
+
+par.scan_path = [raw_path '004_gst_no1_c0_000']; ADD
+par.scan_path = [raw_path '004_gst_no1_c0_001']; ADD
+par.scan_path = [raw_path '004_gst_no1_c0_002']; ADD
+par.scan_path = [raw_path '004_gst_no1_c0_003']; ADD
+par.scan_path = [raw_path '004_gst_no1_c0_004']; ADD
+par.scan_path = [raw_path '004_gst_no1_c0_005']; ADD
+par.scan_path = [raw_path '004_gst_no1_c0_006']; ADD
+par.scan_path = [raw_path '004_gst_no1_c0_007']; ADD
+par.scan_path = [raw_path '004_gst_no1_c0_008']; ADD
+par.scan_path = [raw_path '004_gst_no1_c0_009']; ADD
+par.scan_path = [raw_path '004_gst_no1_c0_010']; ADD
+
+par.scan_path = [raw_path '005_gst_no2_c0_000']; ADD
+par.scan_path = [raw_path '005_gst_no2_c0_001']; ADD
+par.scan_path = [raw_path '005_gst_no2_c0_002']; ADD
+par.scan_path = [raw_path '005_gst_no2_c0_003']; ADD
+par.scan_path = [raw_path '005_gst_no2_c0_004']; ADD
+par.scan_path = [raw_path '005_gst_no2_c0_005']; ADD
+par.scan_path = [raw_path '005_gst_no2_c0_006']; ADD
+par.scan_path = [raw_path '005_gst_no2_c0_007']; ADD
+par.scan_path = [raw_path '005_gst_no2_c0_008']; ADD
+par.scan_path = [raw_path '005_gst_no2_c0_009']; ADD
+par.scan_path = [raw_path '005_gst_no2_c0_010']; ADD
+
+par.scan_path = [raw_path '006_gst_No1_c1A_000']; ADD
+par.scan_path = [raw_path '006_gst_No1_c1A_001']; ADD
+par.scan_path = [raw_path '006_gst_No1_c1A_002']; ADD
+par.scan_path = [raw_path '006_gst_No1_c1A_003']; ADD
+par.scan_path = [raw_path '006_gst_No1_c1A_004']; ADD
+par.scan_path = [raw_path '006_gst_No1_c1A_005']; ADD
+par.scan_path = [raw_path '006_gst_No1_c1A_006']; ADD
+par.scan_path = [raw_path '006_gst_No1_c1A_007']; ADD
+par.scan_path = [raw_path '006_gst_No1_c1A_008']; ADD
+par.scan_path = [raw_path '006_gst_No1_c1A_009']; ADD
+par.scan_path = [raw_path '006_gst_No1_c1A_010']; ADD
+
+par.scan_path = [raw_path '007_gst_No2_c1d_000']; ADD
+par.scan_path = [raw_path '007_gst_No2_c1d_001']; ADD
+par.scan_path = [raw_path '007_gst_No2_c1d_002']; ADD
+par.scan_path = [raw_path '007_gst_No2_c1d_003']; ADD
+par.scan_path = [raw_path '007_gst_No2_c1d_004']; ADD
+par.scan_path = [raw_path '007_gst_No2_c1d_005']; ADD
+par.scan_path = [raw_path '007_gst_No2_c1d_006']; ADD
+par.scan_path = [raw_path '007_gst_No2_c1d_007']; ADD
+par.scan_path = [raw_path '007_gst_No2_c1d_008']; ADD
+par.scan_path = [raw_path '007_gst_No2_c1d_009']; ADD
+par.scan_path = [raw_path '007_gst_No2_c1d_010']; ADD
+
+par.scan_path = [raw_path '008_gst_No1_c1d_000']; ADD
+par.scan_path = [raw_path '008_gst_No1_c1d_001']; ADD
+par.scan_path = [raw_path '008_gst_No1_c1d_002']; ADD
+par.scan_path = [raw_path '008_gst_No1_c1d_003']; ADD
+par.scan_path = [raw_path '008_gst_No1_c1d_004']; ADD
+par.scan_path = [raw_path '008_gst_No1_c1d_005']; ADD
+par.scan_path = [raw_path '008_gst_No1_c1d_006']; ADD
+par.scan_path = [raw_path '008_gst_No1_c1d_007']; ADD
+par.scan_path = [raw_path '008_gst_No1_c1d_008']; ADD
+par.scan_path = [raw_path '008_gst_No1_c1d_009']; ADD
+par.scan_path = [raw_path '008_gst_No1_c1d_010']; ADD
+
+par.scan_path = [raw_path '009_gst_No2_c1d_000']; ADD
+par.scan_path = [raw_path '009_gst_No2_c1d_001']; ADD
+par.scan_path = [raw_path '009_gst_No2_c1d_002']; ADD
+par.scan_path = [raw_path '009_gst_No2_c1d_003']; ADD
+par.scan_path = [raw_path '009_gst_No2_c1d_004']; ADD
+par.scan_path = [raw_path '009_gst_No2_c1d_005']; ADD
+par.scan_path = [raw_path '009_gst_No2_c1d_006']; ADD
+par.scan_path = [raw_path '009_gst_No2_c1d_007']; ADD
+par.scan_path = [raw_path '009_gst_No2_c1d_008']; ADD
+par.scan_path = [raw_path '009_gst_No2_c1d_009']; ADD
+par.scan_path = [raw_path '009_gst_No2_c1d_010']; ADD
+
+par.scan_path = [raw_path '010_gst_No3_c27A_000']; ADD
+par.scan_path = [raw_path '010_gst_No3_c27A_001']; ADD
+par.scan_path = [raw_path '010_gst_No3_c27A_002']; ADD
+par.scan_path = [raw_path '010_gst_No3_c27A_003']; ADD
+par.scan_path = [raw_path '010_gst_No3_c27A_004']; ADD
+par.scan_path = [raw_path '010_gst_No3_c27A_005']; ADD
+par.scan_path = [raw_path '010_gst_No3_c27A_006']; ADD
+par.scan_path = [raw_path '010_gst_No3_c27A_007']; ADD
+par.scan_path = [raw_path '010_gst_No3_c27A_008']; ADD
+par.scan_path = [raw_path '010_gst_No3_c27A_009']; ADD
+par.scan_path = [raw_path '010_gst_No3_c27A_010']; ADD
+
+par.scan_path = [raw_path '011_gst_No1_c3A_000']; ADD
+par.scan_path = [raw_path '011_gst_No1_c3A_001']; ADD
+par.scan_path = [raw_path '011_gst_No1_c3A_002']; ADD
+par.scan_path = [raw_path '011_gst_No1_c3A_003']; ADD
+par.scan_path = [raw_path '011_gst_No1_c3A_004']; ADD
+par.scan_path = [raw_path '011_gst_No1_c3A_005']; ADD
+par.scan_path = [raw_path '011_gst_No1_c3A_006']; ADD
+par.scan_path = [raw_path '011_gst_No1_c3A_007']; ADD
+par.scan_path = [raw_path '011_gst_No1_c3A_008']; ADD
+par.scan_path = [raw_path '011_gst_No1_c3A_009']; ADD
+par.scan_path = [raw_path '011_gst_No1_c3A_010']; ADD
+
+par.scan_path = [raw_path '012_gst_No2_c3A_000']; ADD
+par.scan_path = [raw_path '012_gst_No2_c3A_001']; ADD
+par.scan_path = [raw_path '012_gst_No2_c3A_002']; ADD
+par.scan_path = [raw_path '012_gst_No2_c3A_003']; ADD
+par.scan_path = [raw_path '012_gst_No2_c3A_004']; ADD
+par.scan_path = [raw_path '012_gst_No2_c3A_005']; ADD
+par.scan_path = [raw_path '012_gst_No2_c3A_006']; ADD
+par.scan_path = [raw_path '012_gst_No2_c3A_007']; ADD
+par.scan_path = [raw_path '012_gst_No2_c3A_008']; ADD
+par.scan_path = [raw_path '012_gst_No2_c3A_009']; ADD
+par.scan_path = [raw_path '012_gst_No2_c3A_010']; ADD
+
+par.scan_path = [raw_path '013_gst_No1_c3D_000']; ADD
+par.scan_path = [raw_path '013_gst_No1_c3D_001']; ADD
+par.scan_path = [raw_path '013_gst_No1_c3D_002']; ADD
+par.scan_path = [raw_path '013_gst_No1_c3D_003']; ADD
+par.scan_path = [raw_path '013_gst_No1_c3D_004']; ADD
+par.scan_path = [raw_path '013_gst_No1_c3D_005']; ADD
+par.scan_path = [raw_path '013_gst_No1_c3D_006']; ADD
+par.scan_path = [raw_path '013_gst_No1_c3D_007']; ADD
+par.scan_path = [raw_path '013_gst_No1_c3D_008']; ADD
+par.scan_path = [raw_path '013_gst_No1_c3D_009']; ADD
+par.scan_path = [raw_path '013_gst_No1_c3D_010']; ADD
+
+par.scan_path = [raw_path '014_gst_No2_c3D_000']; ADD
+par.scan_path = [raw_path '014_gst_No2_c3D_001']; ADD
+par.scan_path = [raw_path '014_gst_No2_c3D_002']; ADD
+par.scan_path = [raw_path '014_gst_No2_c3D_003']; ADD
+
+par.scan_path = [raw_path '014_gst_No2_c3D_004']; ADD
+par.scan_path = [raw_path '014_gst_No2_c3D_005']; ADD
+par.scan_path = [raw_path '014_gst_No2_c3D_006']; ADD
+par.scan_path = [raw_path '014_gst_No2_c3D_007']; ADD
+par.scan_path = [raw_path '014_gst_No2_c3D_008']; ADD
+par.scan_path = [raw_path '014_gst_No2_c3D_009']; ADD
+par.scan_path = [raw_path '014_gst_No2_c3D_010']; ADD
+
+par.scan_path = [raw_path '015_gst_No4_c28a_000']; ADD
+par.scan_path = [raw_path '015_gst_No4_c28a_001']; ADD
+par.scan_path = [raw_path '015_gst_No4_c28a_002']; ADD
+par.scan_path = [raw_path '015_gst_No4_c28a_003']; ADD
+par.scan_path = [raw_path '015_gst_No4_c28a_004']; ADD
+par.scan_path = [raw_path '015_gst_No4_c28a_005']; ADD
+par.scan_path = [raw_path '015_gst_No4_c28a_006']; ADD
+par.scan_path = [raw_path '015_gst_No4_c28a_007']; ADD
+par.scan_path = [raw_path '015_gst_No4_c28a_008']; ADD
+par.scan_path = [raw_path '015_gst_No4_c28a_009']; ADD
+par.scan_path = [raw_path '015_gst_No4_c28a_010']; ADD
+
+par.scan_path = [raw_path '016_gst_No1_c5a_000']; ADD
+par.scan_path = [raw_path '016_gst_No1_c5a_001']; ADD
+par.scan_path = [raw_path '016_gst_No1_c5a_002']; ADD
+par.scan_path = [raw_path '016_gst_No1_c5a_003']; ADD
+par.scan_path = [raw_path '016_gst_No1_c5a_004']; ADD
+par.scan_path = [raw_path '016_gst_No1_c5a_005']; ADD
+par.scan_path = [raw_path '016_gst_No1_c5a_006']; ADD
+par.scan_path = [raw_path '016_gst_No1_c5a_007']; ADD
+par.scan_path = [raw_path '016_gst_No1_c5a_008']; ADD
+par.scan_path = [raw_path '016_gst_No1_c5a_009']; ADD
+par.scan_path = [raw_path '016_gst_No1_c5a_010']; ADD
+
+par.scan_path = [raw_path '017_gst_No2_c5a_000']; ADD
+par.scan_path = [raw_path '017_gst_No2_c5a_001']; ADD
+par.scan_path = [raw_path '017_gst_No2_c5a_002']; ADD
+par.scan_path = [raw_path '017_gst_No2_c5a_003']; ADD
+par.scan_path = [raw_path '017_gst_No2_c5a_004']; ADD
+par.scan_path = [raw_path '017_gst_No2_c5a_005']; ADD
+par.scan_path = [raw_path '017_gst_No2_c5a_006']; ADD
+par.scan_path = [raw_path '017_gst_No2_c5a_007']; ADD
+par.scan_path = [raw_path '017_gst_No2_c5a_008']; ADD
+par.scan_path = [raw_path '017_gst_No2_c5a_009']; ADD
+par.scan_path = [raw_path '017_gst_No2_c5a_010']; ADD
+
+par.scan_path = [raw_path '018_gst_No1_c5d_000']; ADD
+par.scan_path = [raw_path '018_gst_No1_c5d_001']; ADD
+par.scan_path = [raw_path '018_gst_No1_c5d_002']; ADD
+par.scan_path = [raw_path '018_gst_No1_c5d_003']; ADD
+par.scan_path = [raw_path '018_gst_No1_c5d_004']; ADD
+par.scan_path = [raw_path '018_gst_No1_c5d_005']; ADD
+par.scan_path = [raw_path '018_gst_No1_c5d_006']; ADD
+par.scan_path = [raw_path '018_gst_No1_c5d_007']; ADD
+par.scan_path = [raw_path '018_gst_No1_c5d_008']; ADD
+par.scan_path = [raw_path '018_gst_No1_c5d_009']; ADD
+par.scan_path = [raw_path '018_gst_No1_c5d_010']; ADD
+
+par.scan_path = [raw_path '019_gst_No2_c5d_000']; ADD
+par.scan_path = [raw_path '019_gst_No2_c5d_001']; ADD
+par.scan_path = [raw_path '019_gst_No2_c5d_002']; ADD
+par.scan_path = [raw_path '019_gst_No2_c5d_003']; ADD
+par.scan_path = [raw_path '019_gst_No2_c5d_004']; ADD
+par.scan_path = [raw_path '019_gst_No2_c5d_005']; ADD
+par.scan_path = [raw_path '019_gst_No2_c5d_006']; ADD
+par.scan_path = [raw_path '019_gst_No2_c5d_007']; ADD
+par.scan_path = [raw_path '019_gst_No2_c5d_008']; ADD
+par.scan_path = [raw_path '019_gst_No2_c5d_009']; ADD
+par.scan_path = [raw_path '019_gst_No2_c5d_010']; ADD
+
+par.scan_path = [raw_path '020_gst_No3_c27d_000']; ADD
+par.scan_path = [raw_path '020_gst_No3_c27d_001']; ADD
+par.scan_path = [raw_path '020_gst_No3_c27d_002']; ADD
+par.scan_path = [raw_path '020_gst_No3_c27d_003']; ADD
+par.scan_path = [raw_path '020_gst_No3_c27d_004']; ADD
+par.scan_path = [raw_path '020_gst_No3_c27d_005']; ADD
+par.scan_path = [raw_path '020_gst_No3_c27d_006']; ADD
+par.scan_path = [raw_path '020_gst_No3_c27d_007']; ADD
+par.scan_path = [raw_path '020_gst_No3_c27d_008']; ADD
+par.scan_path = [raw_path '020_gst_No3_c27d_009']; ADD
+par.scan_path = [raw_path '020_gst_No3_c27d_010']; ADD
+
+par.scan_path = [raw_path '021_gst_No4_c27d_000']; ADD
+par.scan_path = [raw_path '021_gst_No4_c27d_001']; ADD
+par.scan_path = [raw_path '021_gst_No4_c27d_002']; ADD
+par.scan_path = [raw_path '021_gst_No4_c27d_003']; ADD
+par.scan_path = [raw_path '021_gst_No4_c27d_004']; ADD
+par.scan_path = [raw_path '021_gst_No4_c27d_005']; ADD
+par.scan_path = [raw_path '021_gst_No4_c27d_006']; ADD
+par.scan_path = [raw_path '021_gst_No4_c27d_007']; ADD
+par.scan_path = [raw_path '021_gst_No4_c27d_008']; ADD
+par.scan_path = [raw_path '021_gst_No4_c27d_009']; ADD
+par.scan_path = [raw_path '021_gst_No4_c27d_010']; ADD
+par.scan_path = [raw_path '021_gst_No4_c27d_011']; ADD
+
+par.scan_path = [raw_path '022_gst_No5_c27A_001']; ADD
+par.scan_path = [raw_path '022_gst_No5_c27A_002']; ADD
+par.scan_path = [raw_path '022_gst_No5_c27A_003']; ADD
+par.scan_path = [raw_path '022_gst_No5_c27A_004']; ADD
+par.scan_path = [raw_path '022_gst_No5_c27A_005']; ADD
+par.scan_path = [raw_path '022_gst_No5_c27A_006']; ADD
+par.scan_path = [raw_path '022_gst_No5_c27A_007']; ADD
+par.scan_path = [raw_path '022_gst_No5_c27A_008']; ADD
+par.scan_path = [raw_path '022_gst_No5_c27A_009']; ADD
+par.scan_path = [raw_path '022_gst_No5_c27A_010']; ADD
+par.scan_path = [raw_path '022_gst_No5_c27A_011']; ADD
+
+par.scan_path = [raw_path '023_gst_No6_c27A_001']; ADD
+par.scan_path = [raw_path '023_gst_No6_c27A_002']; ADD
+par.scan_path = [raw_path '023_gst_No6_c27A_003']; ADD
+par.scan_path = [raw_path '023_gst_No6_c27A_004']; ADD
+par.scan_path = [raw_path '023_gst_No6_c27A_005']; ADD
+par.scan_path = [raw_path '023_gst_No6_c27A_006']; ADD
+par.scan_path = [raw_path '023_gst_No6_c27A_007']; ADD
+par.scan_path = [raw_path '023_gst_No6_c27A_008']; ADD
+par.scan_path = [raw_path '023_gst_No6_c27A_009']; ADD
+par.scan_path = [raw_path '023_gst_No6_c27A_010']; ADD
+par.scan_path = [raw_path '023_gst_No6_c27A_011']; ADD
+
+par.scan_path = [raw_path '024_gst_No5_c27d_001']; ADD
+par.scan_path = [raw_path '024_gst_No5_c27d_002']; ADD
+par.scan_path = [raw_path '024_gst_No5_c27d_003']; ADD
+par.scan_path = [raw_path '024_gst_No5_c27d_004']; ADD
+par.scan_path = [raw_path '024_gst_No5_c27d_005']; ADD
+par.scan_path = [raw_path '024_gst_No5_c27d_006']; ADD
+par.scan_path = [raw_path '024_gst_No5_c27d_007']; ADD
+par.scan_path = [raw_path '024_gst_No5_c27d_008']; ADD
+par.scan_path = [raw_path '024_gst_No5_c27d_009']; ADD
+par.scan_path = [raw_path '024_gst_No5_c27d_010']; ADD
+par.scan_path = [raw_path '024_gst_No5_c27d_011']; ADD
+
+par.scan_path = [raw_path '025_gst_No7_c27a_001']; ADD
+par.scan_path = [raw_path '025_gst_No7_c27a_002']; ADD
+par.scan_path = [raw_path '025_gst_No7_c27a_003']; ADD
+par.scan_path = [raw_path '025_gst_No7_c27a_004']; ADD
+par.scan_path = [raw_path '025_gst_No7_c27a_005']; ADD
+par.scan_path = [raw_path '025_gst_No7_c27a_006']; ADD
+par.scan_path = [raw_path '025_gst_No7_c27a_007']; ADD
+par.scan_path = [raw_path '025_gst_No7_c27a_008']; ADD
+par.scan_path = [raw_path '025_gst_No7_c27a_009']; ADD
+par.scan_path = [raw_path '025_gst_No7_c27a_010']; ADD
+par.scan_path = [raw_path '025_gst_No7_c27a_011']; ADD
+
+par.scan_path = [raw_path '026_gst_No6_c27d_001']; ADD
+par.scan_path = [raw_path '026_gst_No6_c27d_002']; ADD
+par.scan_path = [raw_path '026_gst_No6_c27d_003']; ADD
+par.scan_path = [raw_path '026_gst_No6_c27d_004']; ADD
+par.scan_path = [raw_path '026_gst_No6_c27d_005']; ADD
+par.scan_path = [raw_path '026_gst_No6_c27d_006']; ADD
+par.scan_path = [raw_path '026_gst_No6_c27d_007']; ADD
+par.scan_path = [raw_path '026_gst_No6_c27d_008']; ADD
+par.scan_path = [raw_path '026_gst_No6_c27d_009']; ADD
+par.scan_path = [raw_path '026_gst_No6_c27d_010']; ADD
+par.scan_path = [raw_path '026_gst_No6_c27d_011']; ADD
+
+par.scan_path = [raw_path '027_gst_No7_c27d_001']; ADD
+par.scan_path = [raw_path '027_gst_No7_c27d_002']; ADD
+par.scan_path = [raw_path '027_gst_No7_c27d_003']; ADD
+par.scan_path = [raw_path '027_gst_No7_c27d_004']; ADD
+par.scan_path = [raw_path '027_gst_No7_c27d_005']; ADD
+par.scan_path = [raw_path '027_gst_No7_c27d_006']; ADD
+par.scan_path = [raw_path '027_gst_No7_c27d_007']; ADD
+par.scan_path = [raw_path '027_gst_No7_c27d_008']; ADD
+par.scan_path = [raw_path '027_gst_No7_c27d_009']; ADD
+par.scan_path = [raw_path '027_gst_No7_c27d_010']; ADD
+par.scan_path = [raw_path '027_gst_No7_c27d_011']; ADD
 
 
-par.read_sino = 1; 
-par.read_sino_folder = 'trans02_180'; 0
-par.read_sino_range = 231:2250;
-
-interactive_mode.rot_axis_pos = 0;
-tomo.rot_axis_offset = -0.25/ 2 * par.raw_bin;
-%par.nexus_path = [regexprep(par.scan_path,'processed','raw') '_height_a'];
-par.nexus_path = '/asap3/petra3/gpfs/p07/2026/data/11024382/raw/011_cdma_lnkn2_a';
-par.scan_path = [raw_path 'cdma_lnkn2']; ADD
-
-interactive_mode.phase_retrieval = 1;
-phase_retrieval.apply = 1; 
-ADD
-
-%%%%%%%%%%%%%%%%%%%%%%%
-par.scan_path = [raw_path 'cdma_lnkn3']; ADD
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-par.scan_path = [raw_path 'cdma_lnkn4']; ADD
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

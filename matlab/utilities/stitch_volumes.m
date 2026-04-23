@@ -32,7 +32,8 @@ dbstop if error
 tic
 if nargin < 1
     scan_path  = ...
-        {'/asap3/petra3/gpfs/p07/2025/data/11022007/processed/00036_cdma_1886.37_a','/asap3/petra3/gpfs/p07/2025/data/11022007/processed/00036_cdma_1886.37_b'};
+        '/asap3/petra3/gpfs/p07/2026/data/11022041/processed/004_gst_no1_c0_';
+        %{'/asap3/petra3/gpfs/p07/2025/data/11022007/processed/00036_cdma_1886.37_a','/asap3/petra3/gpfs/p07/2025/data/11022007/processed/00036_cdma_1886.37_b'};
    % scan_path =
    % '/asap3/petra3/gpfs/p07/2023/data/11017206/processed/itaw012_cet548a_OO01_Oo';
 end
@@ -45,11 +46,11 @@ if nargin < 3
 end
 if nargin < 4
     stitched_volume_path = ...
-    '/asap3/petra3/gpfs/p07/2025/data/11022007/scratch_cc/test';
+    '';%'/asap3/petra3/gpfs/p07/2025/data/11022007/scratch_cc/test';
 end
 if nargin < 5
     scan_mask = [];
-    %scan_mask = [1 1 0 0 0];
+    %scan_mask = [0 1 1 1 0];
 end
 if nargin < 6
     noisecut = 'none';
@@ -60,7 +61,7 @@ if nargin < 7
     testing = 0;
 end
 if nargin < 8
-    name = {'00036_cdma_1886.37_a','00037_cdma_1886.37_b'};
+    %name = {'00036_cdma_1886.37_a','00037_cdma_1886.37_b'};
 end
 
 % stitch level factor for old noisecut procedure
@@ -80,9 +81,9 @@ if isempty(stitched_volume_path)
         stitched_volume_path(end) = [];
     end
     [~,stitched_name]=fileparts(stitched_volume_path);
+    stitched_volume_figure  = sprintf( '%s/stitched_volume_%s', stitched_volume_path);
+    stitched_volume_log_path  = sprintf( '%s/%s', stitched_volume_path);    
     stitched_volume_path  = sprintf( '%s/%s/%s', stitched_volume_path, scan_subfolder, reco_subfolder);
-    stitched_volume_figure  = sprintf( '%s/%s/stitched_volume_%s', stitched_volume_path, scan_subfolder, reco_subfolder);
-    stitched_volume_log_path  = sprintf( '%s/%s', stitched_volume_path, scan_subfolder);    
 else
     [~,stitched_name]=fileparts(stitched_volume_path);
     CheckAndMakePath( stitched_volume_path )
@@ -93,6 +94,7 @@ else
     stitched_volume_path = [stitched_volume_path filesep reco_subfolder];   
 end
 CheckAndMakePath( stitched_volume_path )
+CheckAndMakePath(stitched_volume_log_path)
 fprintf('\noutpath: %s' , stitched_volume_path)
 fprintf('\nstitched name: %s' , stitched_name)
 ca;

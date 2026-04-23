@@ -194,8 +194,6 @@ if exist( 'interactive_mode', 'var' ) && isfield( interactive_mode, 'phase_retri
                 % Slab, pad, FT                
                 dz = round( slab_size / 2 );
                 
-                
-                
                 % Calculate required slab size: Spiral CT condition
                 if numel( tomo.vert_shift ) > 1
                     dz = dz + floor( max( abs( tomo.vert_shift ) ) );
@@ -207,9 +205,7 @@ if exist( 'interactive_mode', 'var' ) && isfield( interactive_mode, 'phase_retri
                 if slice - dz < 0 || slice + dz > num_row
                     fprintf( '\nWARNING: Spiral CT requires larger sinogram volume. Better choose a more central slice or a smaller tilts.')
                 end
-                
-                
-                
+
                 rows = slice + (-dz:dz);
                 rows = rows - max( 0, max( rows(:) - size( proj, 2) ) );
                 num_row_slab = numel( rows );

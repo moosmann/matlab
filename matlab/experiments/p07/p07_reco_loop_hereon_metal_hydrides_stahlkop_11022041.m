@@ -1,4 +1,4 @@
-function p07_reco_loop_scaffold_uni_rostock_11024382( SUBSETS, RUN_RECO, PRINT_PARAMETERS)
+function p07_reco_loop_hereon_metal_hydrides_stahlkop_11022041( SUBSETS, RUN_RECO, PRINT_PARAMETERS)
 % Template function to loop over data sets given in the 'PARAMETER / DATA
 % SETS' section below. The 'DEFAULT PARAMETERS' section defines the default
 % paramters. To add a data / parameter to the loop, define your
@@ -41,7 +41,7 @@ function p07_reco_loop_scaffold_uni_rostock_11024382( SUBSETS, RUN_RECO, PRINT_P
 % Useful in combination with RUN_RECO = 0 to check parameter setting for
 % the subset to loop over
 %
-% Created on 17-Feb-2026 by moosmanj
+% Created on 18-Feb-2026 by moosmanj
 
 if nargin < 1
     SUBSETS = [];
@@ -243,7 +243,7 @@ write.compression_parameter = [0.02 0.02]; % compression-method specific paramet
 write.uint8_segmented = 0; % experimental: threshold segmentaion for histograms with 2 distinct peaks: __/\_/\__
 write.outputformat = 'tif';'hdf_volume'; % string. Not yet implemented for all reco modes
 %%% INTERACTION %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-par.visual_output = 1; % show images and plots during reconstruction
+par.visual_output = 0; % show images and plots during reconstruction
 interactive_mode.rot_axis_pos = 1; % reconstruct slices with dif+ferent rotation axis offsets
 interactive_mode.rot_axis_pos_default_search_range = []; % if empty: asks for search range when entering interactive mode
 interactive_mode.rot_axis_tilt = 0; % reconstruct slices with different offset AND tilts of the rotation axis
@@ -273,28 +273,7 @@ SET_DEFAULT
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% PARAMETER / DATA SETS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-raw_path = '/asap3/petra3/gpfs/p07/2026/data/11024382/processed/';
-
-
-par.read_sino = 1; 
-par.read_sino_folder = 'trans02_180'; 0
-par.read_sino_range = 231:2250;
-
-interactive_mode.rot_axis_pos = 0;
-tomo.rot_axis_offset = -0.25/ 2 * par.raw_bin;
-%par.nexus_path = [regexprep(par.scan_path,'processed','raw') '_height_a'];
-par.nexus_path = '/asap3/petra3/gpfs/p07/2026/data/11024382/raw/011_cdma_lnkn2_a';
-par.scan_path = [raw_path 'cdma_lnkn2']; ADD
-
-interactive_mode.phase_retrieval = 1;
-phase_retrieval.apply = 1; 
-ADD
-
-%%%%%%%%%%%%%%%%%%%%%%%
-par.scan_path = [raw_path 'cdma_lnkn3']; ADD
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-par.scan_path = [raw_path 'cdma_lnkn4']; ADD
+raw_path = '/asap3/petra3/gpfs/p07/2026/data/11022041/raw/';
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
