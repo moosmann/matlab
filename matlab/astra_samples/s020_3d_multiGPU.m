@@ -17,13 +17,17 @@ astra_mex('set_gpu_index', 0:9);
 % Optionally, you can also restrict the amount of GPU memory ASTRA will use.
 % The line commented below sets this to 1GB.
 %astra_mex('set_gpu_index', [0 1], 'memory', 1024*1024*1024);
-x = 1460;
-y = 1460;
-z = 1100;
+x = 4096;
+y = 4096;
+z = 4096;
+x = 1000;
+y = x;
+z = x;
 vol_geom = astra_create_vol_geom(x, y, z);
 
-angles = linspace2(0, pi, 1001);
-proj_geom = astra_create_proj_geom('parallel3d', 1.0, 1.0, 3460, 1100, angles);
+nangles = 4096;
+angles = linspace2(0, pi, nangles);
+proj_geom = astra_create_proj_geom('parallel3d', 1.0, 1.0, x, y, angles);
 
 % Create a simple hollow cube phantom
 cube = zeros(x, y, z);
@@ -40,7 +44,9 @@ fprintf('\n %f min',(toc-t)/60)
 fprintf( '\n astra_create_backprojection3d_cuda')
 t = toc;
 [bproj_id, bproj_data] = astra_create_backprojection3d_cuda(proj_data, proj_geom, vol_geom);
-fprintf('\n %f min',(toc-t)/60)
+tb = toc - t;
+fprintf('\n backprojectin time total: %f s = %f min ', tb, tb/60)
+fprintf('\n backprojectin time / proj: %f ms', 1000 * tb / nangles)
 
 astra_mex_data3d('delete', proj_id);
 astra_mex_data3d('delete', bproj_id);

@@ -4,11 +4,11 @@ if par.read_flatcor
     read_flatcor_bin = par.read_flatcor_bin;
     read_flatcor_range = par.read_flatcor_range;
     par.raw_bin = read_flatcor_bin;
-    
+
     if isempty( par.read_flatcor_path )
         par.read_flatcor_path = flatcor_path;
     end
-    
+
     %     % Angles
     %     filename = [ write.reco_path filesep 'angles.mat' ];
     %     if ~exist( filename, 'file' )
@@ -23,36 +23,46 @@ if par.read_flatcor
     %         end
     %     end
     %     load( filename, 'angles' );
-    
-    if isempty(par.sample_detector_distance)
-        d = dir([par.nexus_path filesep '*.h5']);
-        nexuslog_name = [d.folder filesep d.name];
-        h5log_group = h5info(nexuslog_name, '/entry/scan/setup/' );
-        if sum(strcmp('o_ccd_dist',{h5log_group.Datasets.Name}))
-            par.sample_detector_distance = h5read( nexuslog_name, '/entry/scan/setup/o_ccd_dist');
-        elseif sum(strcmp('pos_o_ccd_dist',{h5log_group.Datasets.Name}))
-            par.sample_detector_distance = h5read( nexuslog_name, '/entry/scan/setup/pos_o_ccd_dist');
-        else
-            warning('5h entrey ''o_ccd_dist'' not found. Setting distance to 1')
-            par.sample_detector_distance = 1;
+    d = dir([par.nexus_path filesep '*.h5']);
+    if ~isempty(d)
+        if isempty(par.sample_detector_distance)
+            d = dir([par.nexus_path filesep '*.h5']);
+            nexuslog_name = [d.folder filesep d.name];
+            h5log_group = h5info(nexuslog_name, '/entry/scan/setup/' );
+            if sum(strcmp('o_ccd_dist',{h5log_group.Datasets.Name}))
+                par.sample_detector_distance = h5read( nexuslog_name, '/entry/scan/setup/o_ccd_dist');
+            elseif sum(strcmp('pos_o_ccd_dist',{h5log_group.Datasets.Name}))
+                par.sample_detector_distance = h5read( nexuslog_name, '/entry/scan/setup/pos_o_ccd_dist');
+            else
+                warning('5h entrey ''o_ccd_dist'' not found. Setting distance to 1')
+                par.sample_detector_distance = 1;
+            end
+            par.sample_detector_distance = par.sample_detector_distance / 1000;
+            fprintf('\n sample dector distance: %.3f m', par.sample_detector_distance )
         end
-        par.sample_detector_distance = par.sample_detector_distance / 1000;
-        fprintf('\n sample dector distance: %.3f m', par.sample_detector_distance )
-    end
-    if isempty(par.energy)
-        d = dir([par.nexus_path filesep '*.h5']);
-        nexuslog_name = [d.folder filesep d.name];
-        
-        h5log_group = h5info(nexuslog_name, '/entry/scan/setup/' );
-        if sum(strcmp('p07_energy',{h5log_group.Datasets.Name}))
-            par.energy= h5read( nexuslog_name, '/entry/scan/setup/p07_energy');
-        elseif sum(strcmp('pos_p05_energy',{h5log_group.Datasets.Name}))
-            par.energy= h5read( nexuslog_name, '/entry/scan/setup/pos_p05_energy');
-        else
-            warning('h5 entry ''o_ccd_dist entry'' not found . Setting energy to 1')
-            par.energy = 1;
+        if isempty(par.energy)
+            d = dir([par.nexus_path filesep '*.h5']);
+            nexuslog_name = [d.folder filesep d.name];
+
+            h5log_group = h5info(nexuslog_name, '/entry/scan/setup/' );
+            if sum(strcmp('p07_energy',{h5log_group.Datasets.Name}))
+                par.energy= h5read( nexuslog_name, '/entry/scan/setup/p07_energy');
+            elseif sum(strcmp('pos_p05_energy',{h5log_group.Datasets.Name}))
+                par.energy= h5read( nexuslog_name, '/entry/scan/setup/pos_p05_energy');
+            else
+                warning('h5 entry ''o_ccd_dist entry'' not found . Setting energy to 1')
+                par.energy = 1;
+            end
+            fprintf('\n energy: %.1f keV', par.energy / 1e3 )
         end
-        fprintf('\n energy: %.1f keV', par.energy / 1e3 )
+        if ~exist('angles','var') || isempty(angles)
+            d = dir([par.nexus_path filesep '*.h5']);
+            nexuslog_name = [d.folder filesep d.name];
+            s_rot.value = h5read( nexuslog_name, '/entry/scan/data/s_rot/value');
+            par.num_dark = h5read( nexuslog_name, '/entry/scan/n_dark');
+            [~, stimg_key, ~, ~] = pp_stimg_petra({nexuslog_name},par);
+            angles = s_rot.value( ~boolean( stimg_key.scan.value(par.num_dark+1:end) ) ) * pi / 180;
+        end
     end
 
     % File names
@@ -91,20 +101,12 @@ if par.read_flatcor
             angles = tomo.rot_angle_full_range;
         end
     end
-    if ~exist('angles','var') || isempty(angles)
-        d = dir([par.nexus_path filesep '*.h5']);
-        nexuslog_name = [d.folder filesep d.name];
-        s_rot.value = h5read( nexuslog_name, '/entry/scan/data/s_rot/value');
-        par.num_dark = h5read( nexuslog_name, '/entry/scan/n_dark');
-        [~, stimg_key, ~, ~] = pp_stimg_petra({nexuslog_name},par);
-        angles = s_rot.value( ~boolean( stimg_key.scan.value(par.num_dark+1:end) ) ) * pi / 180;
-    end
 
 
     if isempty(read_flatcor_range)
         read_flatcor_range = 1;
     end
-    if numel(read_flatcor_range) == 1
+    if isscalar(read_flatcor_range)
         read_flatcor_range = 1:read_flatcor_range:num_proj_found;
     end
     flatcor_names_used = flatcor_names(read_flatcor_range);
@@ -119,7 +121,7 @@ if par.read_flatcor
             angles = tomo.rot_angle_full_range;
         end
     end
-    
+
     fprintf( '\nReading flat corrected projections: ' )
     % Preallocation
     filename = sprintf('%s/%s', par.read_flatcor_path, flatcor_names_used{1});

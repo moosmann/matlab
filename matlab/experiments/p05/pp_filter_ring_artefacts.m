@@ -38,7 +38,7 @@ switch lower( ring_filter.method )
         end
         
         if par.visual_output
-            figure('Name', 'Sinogram and ring filter', 'WindowState', window_state  );
+            figure('Name', 'Sinogram and ring filter', 'WindowState', window_state,'WindowStyle','docked'  );
             
             subplot(3,1,1)
             imsc( sino_unfilt )
@@ -109,7 +109,7 @@ switch lower( ring_filter.method )
         end
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         if par.visual_output
-            figure('Name', 'Sinogram and ring filter', 'WindowState', window_state);
+            figure('Name', 'Sinogram and ring filter', 'WindowState', window_state,'WindowStyle','docked' );
             
             subplot(2,2,1)
             imsc( sino_unfilt )
@@ -151,7 +151,7 @@ switch lower( ring_filter.method )
         if par.visual_output
             sino_filt = squeeze( proj(:,sino_slice,sorted_angle_index) )';
 
-            figure('Name', 'Sinogram and ring filter all stripes', 'WindowState', window_state);
+            figure('Name', 'Sinogram and ring filter all stripes', 'WindowState', window_state,'WindowStyle','docked' );
 
             subplot(3,1,1)
             imsc( sino_unfilt )

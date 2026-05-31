@@ -11,12 +11,15 @@
 aclear
 % BP3D_CUDA
 astra_mex('set_gpu_index', [0 1]);
+tic;
+w = 3096;
+h = w;
 
-vol_shape = [128 129 130]; sino_shape = [190 4097 200];
+vol_shape = [w w h]; 
 %vol_shape = [2047 2047 79]; sino_shape = [1280 6742 50];
-sino_hor = sino_shape(1);
-sino_proj = sino_shape(2);
-sino_ver = sino_shape(3);
+sino_hor = w;
+sino_proj = 1.6*w;
+sino_ver = h;
 
 vol_geom = astra_create_vol_geom( vol_shape(2), vol_shape(1), vol_shape(3) );
 
@@ -77,3 +80,4 @@ astra_mex_data3d('delete', rec_id);
 astra_mex_data3d('delete', proj_id);
 
 disp( 'FINISHED' )
+toc

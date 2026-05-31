@@ -37,24 +37,56 @@ dbstop if error
 % !!! OVERWRITES PARAMETERS BELOW QUICK SWITCH SECTION !!!
 % Just copy parameter and set quick switch to 1
 par.quick_switch = 1;
-par.raw_bin = 6;
-%par.proj_range = 1:9000-200;
+par.raw_bin = 2;
+%par.raw_roi = [0 1 0.1 0.9];
 tomo.vol_size = [-0.5 0.5 -0.5 0.5 -0.5 0.5];
-%par.raw_roi = [0 0 0.15 0.85]; 
-interactive_mode.rot_axis_pos = 1; 
-%ring_filter.method = 'all_stripe';%
+%par.proj_range = 501:1500; 
+
+ring_filter.apply = 1; 
+ring_filter.method = 'all_stripe';'jm';%
 phase_retrieval.apply = 0; 
-phase_retrieval.reg_par = 2.2; 
+%phase_retrieval.reg_par = 0.2; 
 phase_retrieval.apply_before = 0; 
 interactive_mode.phase_retrieval = 1; 
 par.visual_output = 1; 
 tomo.reco_mode = '3D';'slice';
-par.stitch_projections = 0;
-par.stitch_align_overlap = 25;
-write.flatcor = 0; 
-write.sino = 0; % save sinograms (after preprocessing & before FBP filtering and phase retrieval)
-write.phase_sino = 1; % save sinograms of phase maps
+write.flatcor = 1; 
+write.to_scratch = 0;
+write.sino = 0;
+write.phase_map = 1;
+%par.crop_proj = 1;
+interactive_mode.slice_number = 0.5;
+par.ring_current_normalization = 1;
+interactive_mode.rot_axis_pos = 1; 
+tomo.rot_axis_offset = par.raw_bin / 2 * -0.8;
+image_correlation.method = 'ssim-ml';%'entropy';'median';
 
+
+
+tomo.rot_axis_search_auto = 0;
+tomo.rot_axis_search_range = 1.0 + (-3.5:0.25:3.5); % search reach for automatic determination of the rotation axis offset,overwrite interactive result if not empty
+tomo.rot_axis_search_metric = 'iso-grad'; % string: 'neg','entropy','iso-grad','laplacian','entropy-ML','abs'. Metric to find rotation axis offset
+tomo.rot_axis_search_extrema = 'min'; % string: 'min'/'max'. chose min or maximum position
+tomo.rot_axis_search_fit = 0; % bool: fit calculated metrics and find extrema,otherwise use extrema from search range
+tomo.rot_axis_offset_metric_roi = []; % 4-vector: [. ROI for metric calculation. roi = [y0,x0,y1-y0,x1-x0]. (x,y)=(0,0)=upper left
+tomo.rot_axis_search_slice = []; % scalar: slice used to find rot axis. if empty: uses slice from interactive mode,if that is empty uses central slice.
+
+
+%image_correlation.method = 'ssim-ml';
+% %write.parfolder = 'ssim-ml';
+% par.read_flatcor = 1; % read preprocessed flatfield-corrected projections. CHECK if negative log has to be taken!
+% par.read_flatcor_path = '/data/hereon/wp/group/beyondvoxels/phase_experiments/ML_based/method_none_dsf_2_bs_8/tiff/'; 
+% par.read_flatcor_path = '/data/hereon/wp/group/beyondvoxels/phase_experiments/ML_based/method_one_dsf_2_bs_3/ml_corrected_images/';
+% write.path = '/data/hereon/wp/group/beyondvoxels/phase_experiments/ML_based/method_one_dsf_2_bs_3/reco/';
+% tomo.rot_angle_full_range = pi;
+% interactive_mode.rot_axis_pos = 1; 
+% tomo.rot_axis_search_auto = 0;
+% par.energy = 1;
+% par.sample_detector_distance = 1;
+% par.eff_pixel_size = 1;
+
+%image_correlation.area_width = [1 100]
+%image_correlation.area_height = [0.2500 0.7500]
 
 % END OF QUICK SWITCH TO ALTERNATIVE SET OF PARAMETERS %%%%%%%%%%%%%%%%%%%%
 
@@ -136,7 +168,7 @@ image_correlation.filter_type = 'median'; % string. correlation ROI filter type,
 image_correlation.filter_parameter = {[5 5],'symmetric'}; % cell. filter paramaters to be parsed with {:}
 % 'median' : using medfilt2,parameters: {[M N]-neighboorhood,'padding'}
 % 'wiener' : using wiender2,parameters: {[M N]-neighboorhood}
-ring_filter.apply = 1; % ring artifact filter (use only for scans without lateral sample movement)
+ring_filter.apply = 0; % ring artifact filter (use only for scans without lateral sample movement)
 ring_filter.apply_before_stitching = 0; % ! Consider when phase retrieval is applied !
 ring_filter.method = 'jm'; %'wavelet-fft';'jm';'all_stripe';%
 ring_filter.waveletfft_dec_levels = 1:6; % decomposition levels for 'wavelet-fft'
@@ -970,7 +1002,7 @@ if ~par.read_flatcor && ~par.read_sino
         % Plot PETRA current
         if par.visual_output && ~isempty(petra) && ~sum(isnan(petra.current))
             name = 'PETRA beam current from status server';
-            f = figure('Name',name,'WindowState',window_state);
+            f = figure('Name',name,'WindowState',window_state,'WindowStyle','docked');
             x = double(petra.time - petra.time(1)) / 1000 / 60;
             y = petra.current;
             m = y ~= 0;
@@ -1086,7 +1118,7 @@ if ~par.read_flatcor && ~par.read_sino
                 end
                 % Plot offset shift%
                 if par.visual_output %&& std(scan_position) ~= 0
-                    f = figure('Name','rotation axis offset shift','WindowState',window_state);
+                    f = figure('Name','rotation axis offset shift','WindowState',window_state,'WindowStyle','docked');
 
                     yyaxis left
                     plot(offset_shift_mm,'.')
@@ -1099,10 +1131,17 @@ if ~par.read_flatcor && ~par.read_sino
                     yyaxis right
                     plot(scan_position,'.')
                     ylabel('relative scan position / pixel')
-                    ymin = min(scan_position) - dx / 2 / raw_bin;
-                    ymax = max(scan_position) + dx / 2 / raw_bin;
-                    ylim([ymin ymax])
+                    
+                    
+                    
+                    
+                    %ymin = min(scan_position) - dx / 2 / raw_bin;
+                    %ymax = max(scan_position) + dx / 2 / raw_bin;
+                    %ylim([ymin ymax])
 
+
+
+                 
                     legend({ 's stage x','relative scan position' })
                     drawnow
                     CheckAndMakePath(fig_path)
@@ -1158,7 +1197,7 @@ if ~par.read_flatcor && ~par.read_sino
                     % Plot vertical shift
                     if par.visual_output && std(vert_shift) ~= 0
                         name = 'spiral scan: vertical shift';
-                        f = figure('Name',name,'WindowState',window_state);
+                        f = figure('Name',name,'WindowState',window_state,'WindowStyle','docked');
                         plot(vert_shift,'.')
                         title(name)
                         axis equal tight
@@ -1427,7 +1466,7 @@ if ~par.read_flatcor && ~par.read_sino
     %write32bitTIFfromSingle(sprintf('%sdark_mean_binned.tif',im_path3),rot90(dark_mean_binned))
     % Fig: raw + dark field
     if par.visual_output
-        h1 = figure('Name','data and flat-and-dark-field correction','WindowState',window_state);
+        h1 = figure('Name','data and flat-and-dark-field correction','WindowState',window_state,'WindowStyle','docked');
         subplot(2,3,1)
         imsc1(dark_median_binned);
         title(sprintf('median dark field'))
@@ -1505,7 +1544,7 @@ if ~par.read_flatcor && ~par.read_sino
     % Plot image statistics
     if par.visual_output
         name = 'image statistics: flat fields';
-        his = figure('Name',name,'WindowState',window_state);
+        his = figure('Name',name,'WindowState',window_state,'WindowStyle','docked');
         % flat min
         subplot(2,2,1);
         plot(flat_min,'.')
@@ -1556,7 +1595,7 @@ if ~par.read_flatcor && ~par.read_sino
             scale_factor = 100 ./ shiftdim(ref_rc(refs_to_use),-1);
             flat = fun_times(flat,scale_factor);
             if par.visual_output
-                hrc = figure('Name','PETRA III beam current: Interpolation at image time stamps','WindowState',window_state);
+                hrc = figure('Name','PETRA III beam current: Interpolation at image time stamps','WindowState',window_state,'WindowStyle','docked');
                 subplot(1,1,1);
                 %plot(ref_rc(:),'.')
                 %plot(ref_t(:),ref_rc(:),'.')
@@ -1609,7 +1648,7 @@ if ~par.read_flatcor && ~par.read_sino
         if exist('h1','var') && isvalid(h1)
             figure(h1)
         else
-            h1 = figure('Name','data and flat-and-dark-field correction','WindowState',window_state);
+            h1 = figure('Name','data and flat-and-dark-field correction','WindowState',window_state,'WindowStyle','docked');
         end
         subplot(2,3,2)
         imsc1(flat(:,:,1))
@@ -1619,7 +1658,7 @@ if ~par.read_flatcor && ~par.read_sino
         drawnow
         % Correlation area
         if ~sum(strcmp(image_correlation.method,{'none','mean','median'}))
-            h_corr_roi = figure('Name','image correlation roi','WindowState',window_state);
+            h_corr_roi = figure('Name','image correlation roi','WindowState',window_state,'WindowStyle','docked');
             % mean flat
             subplot(2,2,1)
             im = mean(flat,3);
@@ -1652,7 +1691,7 @@ if ~par.read_flatcor && ~par.read_sino
         if exist('h1','var') && isvalid(h1)
             figure(h1)
         else
-            h1 = figure('Name','data and flat-and-dark-field correction','WindowState',window_state);
+            h1 = figure('Name','data and flat-and-dark-field correction','WindowState',window_state,'WindowStyle','docked');
         end
         filename = proj_full_path{1};
         im_int = read_image(filename,par);
@@ -1787,7 +1826,7 @@ if ~par.read_flatcor && ~par.read_sino
     % Plot image statistics
     if par.visual_output
         name = 'image statistics: projections';
-        his = figure('Name',name,'WindowState',window_state);
+        his = figure('Name',name,'WindowState',window_state,'WindowStyle','docked');
 
         subplot(2,2,1);
         plot(proj_min,'.')
@@ -1820,7 +1859,7 @@ if ~par.read_flatcor && ~par.read_sino
     % Plot image statistics
     if par.visual_output && ~isempty(cur)
         name = 'image statistics: flat fields and projections';
-        his = figure('Name',name,'WindowState',window_state);
+        his = figure('Name',name,'WindowState',window_state,'WindowStyle','docked');
 
         ref_ind = [cur.ref(par.ref_range).ind];
         proj_ind = [cur.proj(par.proj_range).ind];
@@ -1908,7 +1947,7 @@ if ~par.read_flatcor && ~par.read_sino
                 if exist('hrc','var') && isvalid(hrc)
                     figure(hrc)
                 else
-                    hrc = figure('Name',name,'WindowState',window_state);
+                    hrc = figure('Name',name,'WindowState',window_state,'WindowStyle','docked');
                 end
                 subplot(1,1,1);
                 %ref_nums = 1:numel(ref_names(par.ref_range));
@@ -1962,7 +2001,7 @@ if ~par.read_flatcor && ~par.read_sino
             figure(h_corr_roi)
         else
             %h_corr_roi = figure('Name','image correlation roi','WindowState',window_state);
-            figure('Name','image correlation roi','WindowState',window_state);
+            figure('Name','image correlation roi','WindowState',window_state,'WindowStyle','docked');
         end
         subplot(2,2,3)
         im = raw1;
@@ -2080,7 +2119,7 @@ if ~par.read_flatcor && ~par.read_sino
     % Figure: Angles
     if par.visual_output
         name = 'Angles';
-        fa = figure('Name',name,'WindowState',window_state);
+        fa = figure('Name',name,'WindowState',window_state,'WindowStyle','docked');
         plot(1 / pi * angles,'.')
         xlabel('projection number')
         ylabel('angle / pi')
@@ -2098,7 +2137,7 @@ if ~par.read_flatcor && ~par.read_sino
         if exist('h1','var') && isvalid(h1)
             figure(h1)
         else
-            h1 = figure('Name','data and flat-and-dark-field correction','WindowState','maximized');
+            h1 = figure('Name','data and flat-and-dark-field correction','WindowState',window_state,'WindowStyle','docked');
         end
         subplot(2,3,4)
         imsc1(FilterOutlier(proj(:,:,1),0.005))
@@ -2134,7 +2173,7 @@ if ~par.read_flatcor && ~par.read_sino
         fig_filename = sprintf('%sfig%02u_%s.png',fig_path,h1.Number,regexprep(h1.Name,'\ |:','_'));
         saveas(h1,fig_filename);
 
-        h = figure('Name','Fourier transformed projection','WindowState',window_state);
+        h = figure('Name','Fourier transformed projection','WindowState',window_state,'WindowStyle','docked');
         imf = padarray( proj(:,:,1), size(proj(:,:,1)), 'symmetric', 'post');
         imf = SubtractMean(imf);
         imf = fft2(imf);
@@ -2202,7 +2241,7 @@ if ~par.read_flatcor && ~par.read_sino
     end
     if par.visual_output
         nn = round(size(proj,2) / 2);
-        f = figure('Name','sinogram','WindowState',window_state);
+        f = figure('Name','sinogram','WindowState',window_state,'WindowStyle','docked');
         if ~par.norm_sino
             imsc1(sino_mid)
             title(sprintf('sinogram: proj(:,%u,:)',nn))
@@ -2228,7 +2267,7 @@ if ~par.read_flatcor && ~par.read_sino
         fig_filename = sprintf('%sfig%02u_%s.png',fig_path,f.Number,regexprep(f.Name,'\ |:','_'));
         saveas(f,fig_filename);
         drawnow
-        f = figure('Name','sinogram mean','WindowState',window_state);
+        f = figure('Name','sinogram mean','WindowState',window_state,'WindowStyle','docked');
         imsc1(sino_mean)
         title('sinogram mean')
         colorbar
@@ -2356,7 +2395,7 @@ if par.distortion_correction_distance ~= 0  && ~isempty(par.distortion_correctio
         o = double(ceil((xq(end) - x(end))));% max(x-xq);
     end
     if par.visual_output
-        f = figure('Name','distortion correction','WindowState',window_state);
+        f = figure('Name','distortion correction','WindowState',window_state,'WindowStyle','docked');
         subplot(1,3,1)
         plot(xq - x)
         title(sprintf('displacement offset: xq - x'))
@@ -2543,7 +2582,7 @@ if par.stitch_projections
                 CheckAndMakePath(p)
                 write32bitTIFfromSingle(sprintf('%sproj_flatcorrected_stitched_%06u.tif',p,nn),rot90(im_sti))
                 if par.visual_output
-                    figure('Name','First projection stitched','WindowState',window_state);
+                    figure('Name','First projection stitched','WindowState',window_state,'WindowStyle','docked');
                     switch lower(par.stitch_method)
                         case 'linear'
                             subplot(5,1,1:4)
@@ -2665,7 +2704,7 @@ if par.stitch_projections
                     write32bitTIFfromSingle(sprintf('%sproj_flatcorrected_stitched_%06u.tif',p,nn),rot90(im))
                     if par.visual_output
                         %%
-                        f = figure('Name',sprintf('Stitching projection %u',nn),'WindowState',window_state);
+                        f = figure('Name',sprintf('Stitching projection %u',nn),'WindowState',window_state,'WindowStyle','docked');
                         % proj left
                         subplot(2,2,1)
                         imsc1(iml)
@@ -2745,7 +2784,7 @@ if par.stitch_projections
     fprintf('\n shape of stitched projections : %u %u %u',size(proj))
     fprintf('\n memory allocated : %.2f GiB',Bytes(proj,3))
     if par.visual_output
-        f = figure('Name','stitched projections','WindowState',window_state);
+        f = figure('Name','stitched projections','WindowState',window_state,'WindowStyle','docked');
         % proj 1st
         subplot(3,1,1)
         imsc1(proj(:,:,1));
@@ -2975,7 +3014,7 @@ if tomo.run
             %% Show orthogonal vol cuts
             if par.visual_output
                 % vol z
-                f = figure('Name','Volume cut z','WindowState',window_state);
+                f = figure('Name','Volume cut z','WindowState',window_state,'WindowStyle','docked');
                 nn = round(size(vol,3) / 2);
                 im = squeeze(vol(:,:,nn));
                 im =  FilterOutlier(im,0.01);
@@ -2986,7 +3025,7 @@ if tomo.run
                 fig_filename = sprintf('%sfig%02u_%s.png',fig_path,f.Number,regexprep(f.Name,'\ |:','_'));
                 saveas(f,fig_filename);
                 % vol y
-                f = figure('Name','Volume cut y','WindowState',window_state);
+                f = figure('Name','Volume cut y','WindowState',window_state,'WindowStyle','docked');
                 nn = round(size(vol,2) / 2);
                 im = rot90(squeeze(vol(:,nn,:)),-2);
                 im = FilterOutlier(im,0.01);
@@ -3002,7 +3041,7 @@ if tomo.run
                 fig_filename = sprintf('%sfig%02u_%s.png',fig_path,f.Number,regexprep(f.Name,'\ |:','_'));
                 saveas(f,fig_filename);
                 % vol x
-                f = figure('Name','Volume cut x','WindowState',window_state);
+                f = figure('Name','Volume cut x','WindowState',window_state,'WindowStyle','docked');
                 nn = round(size(vol,1) / 2);
                 im = flipud(squeeze(vol(nn,:,:)));
                 im =  FilterOutlier(im,0.01);
@@ -3238,7 +3277,7 @@ if tomo.run
     %% Plot data transfer from/to workers
     if par.visual_output && exist('toc_bytes','var')
         bytes_sum = [0 0];
-        f = figure('Name','Parallel pool data transfer during image correlation','WindowState',window_state);
+        f = figure('Name','Parallel pool data transfer during image correlation','WindowState',window_state,'WindowStyle','docked');
         str = {};
         fn = fieldnames(toc_bytes);
         marker = 'xs*+.od';

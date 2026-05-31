@@ -163,7 +163,7 @@ if exist( 'interactive_mode', 'var' ) && isfield( interactive_mode, 'phase_retri
             proj1_fft_mask = normat( proj1_fft ) .* mask_half ;
             proj_mean_fft_mask = normat( proj_mean_fft ) .* mask_half;
             
-            figure( 'Name', 'CHECK PHASE RETRIEVAL PARAMETERS: compare Fourier transformed projection and CTF mask' )
+            figure( 'Name', 'CHECK PHASE RETRIEVAL PARAMETERS: compare Fourier transformed projection and CTF mask','WindowStyle','docked' )
             
             subplot(1,2,1)
             imsc( proj1_fft_mask )
@@ -309,7 +309,7 @@ if exist( 'interactive_mode', 'var' ) && isfield( interactive_mode, 'phase_retri
             end
             
             % Plot metrics
-            f = figure('Name', 'REGULARIZATION PARAMETER: metrics');
+            f = figure('Name', 'REGULARIZATION PARAMETER: metrics','WindowStyle','docked' );
             x = 1:numel( reco_metric );
             Y = cell2mat({reco_metric(x).val});
             plot( reg_par, Y, '-+');

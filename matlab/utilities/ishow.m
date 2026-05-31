@@ -48,6 +48,9 @@ if roi(1) > 0
     imshow( im, dynRange,'InitialMagnification','fit', 'XData',[1 size(im,2)], 'YData',[1 size(im,1)] );
     colorbar;
     axis equal tight
+    axis on
+    xticks('auto'),yticks('auto')
+
 else
     im = rot( imslice( squeeze( im ) ) );
     figure('Name',sprintf('%s.  Input size: %ux%ux%u %',NameOfFigure,size(im),slice))
@@ -55,4 +58,6 @@ else
     imshow( im, dynRange,'InitialMagnification','fit','XData',[1 size(im,2)], 'YData',[1 size(im,1)] );
     colorbar;    
     axis equal tight
+    axis on
+    xticks('auto'),yticks('auto')
 end
