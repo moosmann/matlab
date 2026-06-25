@@ -37,56 +37,27 @@ dbstop if error
 % !!! OVERWRITES PARAMETERS BELOW QUICK SWITCH SECTION !!!
 % Just copy parameter and set quick switch to 1
 par.quick_switch = 1;
-par.raw_bin = 2;
-%par.raw_roi = [0 1 0.1 0.9];
-tomo.vol_size = [-0.5 0.5 -0.5 0.5 -0.5 0.5];
-%par.proj_range = 501:1500; 
 
+par.read_flatcor = 0; 
+%par.read_flatcor_path = '/asap3/petra3/gpfs/p07/2026/data/11022861/processed/003_bam_cem1_a/attenuation';
+%tomo.rot_angle_full_range = 2 * pi;
+%tomo.vol_size = [-1 1 -1 1 -0.5 0.5];
+%write.to_stratch = 1;
+
+par.read_flatcor_path = '/asap3/petra3/gpfs/p07/2026/data/11022861/processed/003_bam_cem1_a/w3/phi_stitched';
+par.read_flatcor_range = 1;
+par.read_flatcor_bin = 3; 
+par.read_flatcor_trafo = @(im) im; 
+
+tomo.rot_angle_full_range =  pi;
+write.path = '/asap3/petra3/gpfs/p07/2026/data/11022861/processed/003_bam_cem1_a/';
 ring_filter.apply = 1; 
-ring_filter.method = 'all_stripe';'jm';%
+ring_filter.method = 'jm';%'all_stripe';
 phase_retrieval.apply = 0; 
-%phase_retrieval.reg_par = 0.2; 
-phase_retrieval.apply_before = 0; 
-interactive_mode.phase_retrieval = 1; 
 par.visual_output = 1; 
 tomo.reco_mode = '3D';'slice';
-write.flatcor = 1; 
-write.to_scratch = 0;
-write.sino = 0;
-write.phase_map = 1;
-%par.crop_proj = 1;
-interactive_mode.slice_number = 0.5;
-par.ring_current_normalization = 1;
+tomo.take_neg_log = 0;
 interactive_mode.rot_axis_pos = 1; 
-tomo.rot_axis_offset = par.raw_bin / 2 * -0.8;
-image_correlation.method = 'ssim-ml';%'entropy';'median';
-
-
-
-tomo.rot_axis_search_auto = 0;
-tomo.rot_axis_search_range = 1.0 + (-3.5:0.25:3.5); % search reach for automatic determination of the rotation axis offset,overwrite interactive result if not empty
-tomo.rot_axis_search_metric = 'iso-grad'; % string: 'neg','entropy','iso-grad','laplacian','entropy-ML','abs'. Metric to find rotation axis offset
-tomo.rot_axis_search_extrema = 'min'; % string: 'min'/'max'. chose min or maximum position
-tomo.rot_axis_search_fit = 0; % bool: fit calculated metrics and find extrema,otherwise use extrema from search range
-tomo.rot_axis_offset_metric_roi = []; % 4-vector: [. ROI for metric calculation. roi = [y0,x0,y1-y0,x1-x0]. (x,y)=(0,0)=upper left
-tomo.rot_axis_search_slice = []; % scalar: slice used to find rot axis. if empty: uses slice from interactive mode,if that is empty uses central slice.
-
-
-%image_correlation.method = 'ssim-ml';
-% %write.parfolder = 'ssim-ml';
-% par.read_flatcor = 1; % read preprocessed flatfield-corrected projections. CHECK if negative log has to be taken!
-% par.read_flatcor_path = '/data/hereon/wp/group/beyondvoxels/phase_experiments/ML_based/method_none_dsf_2_bs_8/tiff/'; 
-% par.read_flatcor_path = '/data/hereon/wp/group/beyondvoxels/phase_experiments/ML_based/method_one_dsf_2_bs_3/ml_corrected_images/';
-% write.path = '/data/hereon/wp/group/beyondvoxels/phase_experiments/ML_based/method_one_dsf_2_bs_3/reco/';
-% tomo.rot_angle_full_range = pi;
-% interactive_mode.rot_axis_pos = 1; 
-% tomo.rot_axis_search_auto = 0;
-% par.energy = 1;
-% par.sample_detector_distance = 1;
-% par.eff_pixel_size = 1;
-
-%image_correlation.area_width = [1 100]
-%image_correlation.area_height = [0.2500 0.7500]
 
 % END OF QUICK SWITCH TO ALTERNATIVE SET OF PARAMETERS %%%%%%%%%%%%%%%%%%%%
 
@@ -144,7 +115,7 @@ pixel_filter_sino.filter_dead_pixel = 1;
 pixel_filter_sino.filter_Inf = 1;
 pixel_filter_sino.filter_NaN = 1;
 pixel_filter_sino.verbose = 0;
-par.ring_current_normalization = 1; % normalize flat fields and projections by ring current
+par.ring_current_normalization = 0; % normalize flat fields and projections by ring current
 image_correlation.method = 'median';'ssim-ml';'entropy';'none';'ssim';'ssim-g';'std';'cov';'corr';'diff1-l1';'diff1-l2';'diff2-l1';'diff2-l2';'cross-entropy-12';'cross-entropy-21';'cross-entropy-x';
 % Correlation of projections and flat fields. Essential for DCM data. Typically improves reconstruction quality of DMM data,too.
 % Available methods ('ssim-ml'/'entropy' usually work best):
@@ -248,7 +219,7 @@ write.subfolder_flatcor = ''; % subfolder in 'flat_corrected'
 write.subfolder_phase_map = ''; % subfolder in 'phase_map'
 write.subfolder_sino = ''; % subfolder in 'sino'
 write.subfolder_reco = ''; % subfolder in 'reco'
-write.flatcor = 0; % save preprocessed flat corrected projections
+write.flatcor = 1; % save preprocessed flat corrected projections
 write.flatcor_stitched = 0; % save stitched flat corrected projections (when stitchting)
 write.phase_map = 0; % save phase maps (if phase retrieval is not 0)
 write.sino = 0; % save sinograms (after preprocessing & before FBP filtering and phase retrieval)
@@ -274,12 +245,12 @@ write.compression_parameter = [0.02 0.02]; % compression-method specific paramet
 write.uint8_segmented = 0; % experimental: threshold segmentaion for histograms with 2 distinct peaks: __/\_/\__
 write.outputformat = 'tif';'hdf_volume'; % string. Not yet implemented for all reco modes
 %%% INTERACTION %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-par.visual_output = 0; % show images and plots during reconstruction
+par.visual_output = 1; % show images and plots during reconstruction
 interactive_mode.rot_axis_pos = 1; % reconstruct slices with dif+ferent rotation axis offsets
 interactive_mode.rot_axis_pos_default_search_range = []; % if empty: asks for search range when entering interactive mode
-interactive_mode.rot_axis_tilt = 0; % reconstruct slices with different offset AND tilts of the rotation axis
+interactive_mode.rot_axis_tilt = 1; % reconstruct slices with different offset AND tilts of the rotation axis
 interactive_mode.rot_axis_tilt_default_search_range = []; % if empty: asks for search range when entering interactive mode
-interactive_mode.lamino = 1; % find laminography tilt instead camera tilt
+interactive_mode.lamino = 0; % find laminography tilt instead camera tilt
 interactive_mode.angles = 0; % reconstruct slices with different scalings of angles
 interactive_mode.angle_scaling_default_search_range = []; % if empty: use a variaton of -/+5 * (angle increment / maximum angle)
 interactive_mode.slice_number = 0.5; % default slice number. if in [0,1): relative,if in (1,N]: absolute
@@ -401,9 +372,9 @@ assign_default('par.im_format','');
 assign_default('par.tif_info',[]);
 assign_default('par.im_trafo','');
 assign_default('par.dtype','');
-assign_default('par.energy',[]);
-assign_default('par.sample_detector_distance',[]);
-assign_default('par.eff_pixel_size',[]);
+assign_default('par.energy',1);
+assign_default('par.sample_detector_distance',1);
+assign_default('par.eff_pixel_size',1);
 assign_default('par.pixel_scaling',[]);
 assign_default('par.ref_range',1)
 assign_default('par.proj_range',1)
@@ -2037,8 +2008,14 @@ if ~par.read_flatcor && ~par.read_sino
     write32bitTIFfromSingle(sprintf('%sproj_flatcorrected_first_%06u.tif',im_path3,1),rot90(proj(:,:,1)))
     write32bitTIFfromSingle(sprintf('%sproj_flatcorrected_last_%06u.tif',im_path3,size(proj,3)),rot90(proj(:,:,end)));
     write32bitTIFfromSingle(sprintf('%sproj_flatcorrected_mean1.tif',im_path1),squeeze(mean(proj,1)));
+    write32bitTIFfromSingle(sprintf('%sproj_flatcorrected_min1.tif',im_path1),squeeze(min(proj,[],1)));
+    write32bitTIFfromSingle(sprintf('%sproj_flatcorrected_max1.tif',im_path1),squeeze(max(proj,[],1)));
     write32bitTIFfromSingle(sprintf('%sproj_flatcorrected_mean2.tif',im_path2),squeeze(mean(proj,2)));
+    write32bitTIFfromSingle(sprintf('%sproj_flatcorrected_min2.tif',im_path2),squeeze(min(proj,[],2)));
+    write32bitTIFfromSingle(sprintf('%sproj_flatcorrected_max2.tif',im_path2),squeeze(max(proj,[],2)));
     write32bitTIFfromSingle(sprintf('%sproj_flatcorrected_mean3.tif',im_path3),rot90(squeeze(mean(proj,3))));
+    write32bitTIFfromSingle(sprintf('%sproj_flatcorrected_min3.tif',im_path3),rot90(squeeze(min(proj,[],3))));
+    write32bitTIFfromSingle(sprintf('%sproj_flatcorrected_max3.tif',im_path3),rot90(squeeze(max(proj,[],3))));
     %% Filter strong/full absorption (combine with iterative reco methods)
     if par.strong_abs_thresh < 1
         strong_abs_thresh = par.strong_abs_thresh;
