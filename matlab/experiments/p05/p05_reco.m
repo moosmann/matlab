@@ -36,27 +36,12 @@ dbstop if error
 % !!! QUICK SWITCH TO ALTERNATIVE SET OF PARAMETERS !!!
 % !!! OVERWRITES PARAMETERS BELOW QUICK SWITCH SECTION !!!
 % Just copy parameter and set quick switch to 1
-par.quick_switch = 1;
+par.quick_switch = 0;
 
-par.read_flatcor = 0; 
-%par.read_flatcor_path = '/asap3/petra3/gpfs/p07/2026/data/11022861/processed/003_bam_cem1_a/attenuation';
-%tomo.rot_angle_full_range = 2 * pi;
-%tomo.vol_size = [-1 1 -1 1 -0.5 0.5];
-%write.to_stratch = 1;
-
-par.read_flatcor_path = '/asap3/petra3/gpfs/p07/2026/data/11022861/processed/003_bam_cem1_a/w3/phi_stitched';
-par.read_flatcor_range = 1;
-par.read_flatcor_bin = 3; 
-par.read_flatcor_trafo = @(im) im; 
-
-tomo.rot_angle_full_range =  pi;
-write.path = '/asap3/petra3/gpfs/p07/2026/data/11022861/processed/003_bam_cem1_a/';
-ring_filter.apply = 1; 
-ring_filter.method = 'jm';%'all_stripe';
-phase_retrieval.apply = 0; 
+par.raw_bin = 5;
+par.proj_range = 5;
+par.ref_range = 5;
 par.visual_output = 1; 
-tomo.reco_mode = '3D';'slice';
-tomo.take_neg_log = 0;
 interactive_mode.rot_axis_pos = 1; 
 
 % END OF QUICK SWITCH TO ALTERNATIVE SET OF PARAMETERS %%%%%%%%%%%%%%%%%%%%
@@ -219,7 +204,7 @@ write.subfolder_flatcor = ''; % subfolder in 'flat_corrected'
 write.subfolder_phase_map = ''; % subfolder in 'phase_map'
 write.subfolder_sino = ''; % subfolder in 'sino'
 write.subfolder_reco = ''; % subfolder in 'reco'
-write.flatcor = 1; % save preprocessed flat corrected projections
+write.flatcor = 0; % save preprocessed flat corrected projections
 write.flatcor_stitched = 0; % save stitched flat corrected projections (when stitchting)
 write.phase_map = 0; % save phase maps (if phase retrieval is not 0)
 write.sino = 0; % save sinograms (after preprocessing & before FBP filtering and phase retrieval)
@@ -248,7 +233,7 @@ write.outputformat = 'tif';'hdf_volume'; % string. Not yet implemented for all r
 par.visual_output = 1; % show images and plots during reconstruction
 interactive_mode.rot_axis_pos = 1; % reconstruct slices with dif+ferent rotation axis offsets
 interactive_mode.rot_axis_pos_default_search_range = []; % if empty: asks for search range when entering interactive mode
-interactive_mode.rot_axis_tilt = 1; % reconstruct slices with different offset AND tilts of the rotation axis
+interactive_mode.rot_axis_tilt = 0; % reconstruct slices with different offset AND tilts of the rotation axis
 interactive_mode.rot_axis_tilt_default_search_range = []; % if empty: asks for search range when entering interactive mode
 interactive_mode.lamino = 0; % find laminography tilt instead camera tilt
 interactive_mode.angles = 0; % reconstruct slices with different scalings of angles
@@ -372,9 +357,9 @@ assign_default('par.im_format','');
 assign_default('par.tif_info',[]);
 assign_default('par.im_trafo','');
 assign_default('par.dtype','');
-assign_default('par.energy',1);
-assign_default('par.sample_detector_distance',1);
-assign_default('par.eff_pixel_size',1);
+assign_default('par.energy',[]);
+assign_default('par.sample_detector_distance',[]);
+assign_default('par.eff_pixel_size',[]);
 assign_default('par.pixel_scaling',[]);
 assign_default('par.ref_range',1)
 assign_default('par.proj_range',1)
@@ -927,6 +912,9 @@ if ~par.read_flatcor && ~par.read_sino
             par.sample_detector_distance = double(h5read(nexuslog_name{1},'/entry/scan/setup/pos_o_ccd_dist')) / 1000;
         end
         n_dark = h5read(nexuslog_name{1},'/entry/scan/n_dark');
+        if isempty(n_dark)
+            n_dark = par.num_dark;
+        end
         if isempty(imlogcell)
             % Get image name,key,time stamp and P3 current from log
             %[stimg_name,stimg_key,petra,petra_scan] = pp_stimg_petra(nexuslog_name,par);

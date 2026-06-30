@@ -62,6 +62,10 @@ if isempty(getCurrentTask())
         %% Git repository version
     %fprintf('\nGit commit ID : %s', git_commit_id );
 
+
+    %%  Agent
+    %addpath("~/.matlab/agentic-toolkits/matlab")
+    
     %% Time to start
     d = dir('~/.matlab/startml');
     t0 = datetime(d.date);
