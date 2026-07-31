@@ -27,7 +27,8 @@ Helmholtz-Zentrum Hereon.
 
    salloc --partition=hzg,allgpu --mem=500G -c 40 --oversubscribe --time=7-00:00:00
 
-   Then you have to log in to the node using ssh:
+   Then connect to the allocated node using ssh:
+
    ssh -Y $SLURM_NODELIST
 
 
@@ -55,37 +56,38 @@ Helmholtz-Zentrum Hereon.
    git status
 
 
-How to start the tomographic reconstruction routine:
+3) How to start the tomographic reconstruction routine:
 
-1) Change directory to the 'matlab' folder:
+   (3.1) Change directory to the 'matlab' folder:
    
    cd matlab
 
-2) Start MATLAB using the following script:
+   (3.2) Start MATLAB using the following script:
 
    ./startmatlab.sh
 
     The script automatically sets environment variables in order to
     use a local installation of the ASTRA toolbox, starts MATLAB, and
     sets the MATLAB search paths. (Note that this will overwrite local
-    MATLAB user settings, for details see 'startup.m'.)
+    MATLAB user settings, for details see 'startup.m'.) 
 
     (If 'startmatlab.sh' is not executable: chmod +x startmatlab.sh)
 
-3) If not already open, open 'p05_reco' (also for P07 scans) in MATLAB
-   located at './matlab/experiments/p05/' e.g. enter 'edit p05_reco' in
-   MATLAB's command line.
+    (3.3) If not already open, open 'p05_reco' (also for P07 scans) in
+    MATLAB    located at './matlab/experiments/p05/' e.g. enter 'edit
+    p05_reco' in  MATLAB's command line.   
 
-4) Edit/check the reconstruction parameters, at least you have to
+   (3.4) Edit/check the reconstruction parameters, at least you have to
    modify 'par.scan_path'.
 
-5) Start the reconstruction by one of the following:
+   (3.5) Start the reconstruction by one of the following:
     - Type 'p05_reco' in MATLAB's command line
     - Click 'RUN' button in editor tab
-    - Type 'F5' key when focus is in the 'p05_reco.m' file    -
+    - Type 'F5' key when cursor focus is in the 'p05_reco.m' file
+    
 
-
-The reconstruction can be automatically looped over all data sets
-acquired during a beamtime and/or over different reconstruction
-parameters. How to set up a loop script to reconstruct several data
-sets: help p05_create_reco_loop
+    (3.6) Optinal: The reconstruction can be automatically looped over
+    all data sets acquired during a beamtime and/or over different
+    reconstruction parameters. How to set up a loop script to
+    reconstruct several data sets:
+    help p05_create_reco_loop
