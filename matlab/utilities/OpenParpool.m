@@ -37,6 +37,7 @@ end
 %% Main %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 t = toc;
 cluster_poolsize = 250; % max 256
+numCores = feature('numCores');
 
 if strcmp(par_env,'local')
     par_env = 'Processes';
@@ -49,7 +50,6 @@ CheckAndMakePath( tmp_folder )
 
 % Desired poolsize
 if poolsize <= 1 && poolsize > 0
-    numCores = feature('numCores');
     poolsize = max( floor( poolsize * numCores ), 1 );
 end
 
@@ -57,6 +57,8 @@ end
 if ~isempty( poolsize_max )
     poolsize = min( poolsize, poolsize_max );
 end
+
+poolsize = min([poolsize,numCores]);
 
 % check if more than 1 worker is desired
 if poolsize > 1

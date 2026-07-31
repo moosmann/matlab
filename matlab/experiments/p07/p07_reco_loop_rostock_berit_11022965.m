@@ -275,6 +275,9 @@ SET_DEFAULT
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 raw_path = '/asap3/petra3/gpfs/p07/2026/data/11022965/processed/';
 
+write.deleteFiles = 1; 
+write.beamtimeID = '11022965'; 
+
 %par.scan_path = [raw_path '001_cdma_cp1_test_300mm']; ADD
 %par.scan_path = [raw_path '002_cdma_cp1_a']; ADD
 
@@ -282,7 +285,7 @@ par.use_gpu_in_parfor = 1;
 par.read_sino = 1; 
 par.read_sino_folder = 'trans02_180'; 
 par.read_sino_range = 1; 
-interactive_mode.rot_axis_pos = 0;
+interactive_mode.rot_axis_pos = 1;
 tomo.rot_axis_offset = 0 / 2 * par.raw_bin; 
 
 
@@ -290,16 +293,12 @@ ring_filter.apply = 1;
 ring_filter.method = 'jm';
 %ring_filter.method = 'all_stripe';
 %write.subfolder_reco = 'rf_all_stripe'; 
-phase_retrieval.apply = 1;
+phase_retrieval.apply = 0;
 phase_retrieval.reg_par = 2.25;
 interactive_mode.phase_retrieval = 0; % Interactive retrieval to determine regularization parameter
 
-par.nexus_path = '/asap3/petra3/gpfs/p07/2026/data/11022965/raw/002_cdma_cp1_b';
+par.nexus_path = '/asap3/petra3/gpfs/p07/2026/data/11022965/raw/003_cdma_cp1_a';
 par.scan_path = [raw_path '003_cdma_cp1']; ADD % Done
-
-%par.scan_path = [raw_path '004_cdma_vollz_plus_a']; ADD%
-%par.scan_path = [raw_path '005_cdma_ha_roi_a']; ADD
-%par.scan_path = [raw_path '006_cdma_vollz_a']; ADD
 
 par.nexus_path = '/asap3/petra3/gpfs/p07/2026/data/11022965/raw/006_cdma_vollz_b';
 par.scan_path = [raw_path '006_cdma_vollz']; ADD % Done
@@ -312,11 +311,6 @@ par.scan_path = [raw_path '008_cdma_vollz_plus']; ADD
 
 par.nexus_path = '/asap3/petra3/gpfs/p07/2026/data/11022965/raw/009_cdma_gyro_plus_b';
 par.scan_path = [raw_path '009_cdma_gyro_plus']; ADD
-
-
-%par.scan_path = [raw_path '009_cdma_gyro_plus_a']; ADD
-
-%par.scan_path = [raw_path '011_tum_kidney_bi4x_a']; ADD
 
 interactive_mode.rot_axis_pos = 0;
 tomo.rot_axis_offset = 0 / 2 * par.raw_bin; 
