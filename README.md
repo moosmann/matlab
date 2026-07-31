@@ -6,12 +6,30 @@ acquired at the P05 imaging beamline (IBL) or P07 high energy material
 science beamline (HEMS) at PETRA III at DESY, both operated by
 Helmholtz-Zentrum Hereon.
 
-1) Log in to a GPU node on the MAXWELL cluster at DESY,
-   e.g. max-hzgg001 to max-hzgg006, max-fsg, etc. The nodes max-nova,
-   max-display and max-display3 are meant for remote access and
-   visualization, but not for computationally expensive
-   tasks. However, very small scans or single slice can be
-   reconstructed on these nodes.
+1) Log in to a GPU node on the HPC cluster MAXWELL at DESY. Nodes in
+   the partitons 'max-fs-display' and 'max-display' can be accessed from
+   anywhere. For more information on how to connect to the cluster, see
+   https://docs.desy.de/maxwell/documentation/fastx4/. However these
+   display nodes come with a load manager which kills your processes
+   if they consume too much memory of CPU power.
+
+   If this happens, you have to allocate and connect to a node on a
+   different partition which is more powerful. First connect to the
+   MAXWELL cluster (via a display node or similar). In a terminal
+   execute  the following command to allocate a  node on our Hereon
+   partition 'hzg' non-exclusively (oversubscribe): 
+
+   salloc --partition=hzg --oversubscribe --time=7-00:00:00
+
+   In case you don't get an allocation on our 'hzg' partition you can
+   include other paritions with more nodes but which can be less
+   powerful. Modify the parameter if necessary.
+
+   salloc --partition=hzg,allgpu --mem=500G -c 40 --oversubscribe --time=7-00:00:00
+
+   Then you have to log in to the node using ssh:
+   ssh -Y $SLURM_NODELIST
+
 
 2) Download the latest MATLAB files from GitHub:
    
