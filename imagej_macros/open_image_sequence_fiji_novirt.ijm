@@ -18,7 +18,9 @@ print("dir:" + dir );
 args = "open=[" + dir + "] file=tif sort";
 
 // Auto contrast stack
-run("Appearance...", "auto ij menu=0 gui=1 16-bit=Automatic");
+//run("Appearance...", "auto ij menu=0 gui=1 16-bit=Automatic");
+run("Appearance...", "open no auto ij menu=0 gui=1.5 16-bit=Automatic");
+run("Misc...", "divide=Infinity run save");
 
 // Open image stack
 run("Image Sequence...", args);

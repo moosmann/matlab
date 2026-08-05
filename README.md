@@ -33,6 +33,8 @@ Helmholtz-Zentrum Hereon.
 
 
 2) Download the latest MATLAB files from GitHub:
+
+   Open a terminal and run:
    
    git clone https://github.com/moosmann/matlab.git
 

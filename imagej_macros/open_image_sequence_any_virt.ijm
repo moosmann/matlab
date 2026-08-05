@@ -28,7 +28,7 @@ args = "open=[" + dir + "] sort use";
 //print("current: " + getDirectory("current"));
 
 // Auto contrast stack
-run("Appearance...", "no auto ij menu=0 gui=1 16-bit=Automatic");
+run("Appearance...", "no auto ij menu=0 gui=1.5 16-bit=Automatic");
 
 // Open image stack
 run("Image Sequence...", args);
