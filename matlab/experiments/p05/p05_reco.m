@@ -38,9 +38,9 @@ dbstop if error
 % Just copy parameter and set quick switch to 1
 par.quick_switch = 0;
 
-par.raw_bin = 5;
-par.proj_range = 5;
-par.ref_range = 5;
+par.raw_bin = 2;
+par.proj_range = 1;
+par.ref_range = 1;
 par.visual_output = 1; 
 interactive_mode.rot_axis_pos = 1; 
 

@@ -1,0 +1,13 @@
+Manual determination of rotation axis offset using the interactive mode:
+- Enable the interactive mode and make sure the auto search mode is disabled:
+	tomo.rot_axis_search_auto = 0; 
+	interactive_mode.rot_axis_pos = 1; 
+- Start the reconstuction. After reading in the data and preprocessing, the reconstruciton enters the interactive mode in the MATLAB command line.
+- Enter a range of offsets using MATLAB syntax for vectors LOWER_LIMIT:INCREMENT:UPPER_LIMIT, e.g. -5:0.5:5 or . This runs reconstructions with different offsets from -5 to 5 pixel with an increment of 0.5 and opens them as an image stack in ImageJ. 
+- Additionally, a figure with several metrics is plotted. If you are lucky, then there will be one or several minima or maxima which indicate(s) the opimal offset. Depending on the data, the metrics do not always work. Be aware that for some data, you can observe extrema for some metrics, but which do not coincide with the visually determined optimal values.
+- Note that the interactive loop continues as long as you enter a range of values. If you enter a single scalar value, the interactive loop stops and the entered value is used for reconstruction.
+- The image number in the stack corresponds to an offset value, see MATLAB output.
+- Find the best-looking reconstruction with the least artefacts and refine the search range. If e.g. artefacts become smaller at lower image indices, but don't dissapear, then lower the lower search range limit. You can also make a coarse search using large increments in case yo
+- Note that the offset for good quality data can be determined with subpixel precision.
+- Repeat and refine until you are happy with the result.
+- Enter the determined scalar value.
