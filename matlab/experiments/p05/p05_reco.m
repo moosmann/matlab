@@ -36,13 +36,14 @@ dbstop if error
 % !!! QUICK SWITCH TO ALTERNATIVE SET OF PARAMETERS !!!
 % !!! OVERWRITES PARAMETERS BELOW QUICK SWITCH SECTION !!!
 % Just copy parameter and set quick switch to 1
-par.quick_switch = 0;
+par.quick_switch = 1;
 
 par.raw_bin = 2;
 par.proj_range = 1;
 par.ref_range = 1;
 par.visual_output = 1; 
 interactive_mode.rot_axis_pos = 1; 
+write.to_scratch = 1;
 
 % END OF QUICK SWITCH TO ALTERNATIVE SET OF PARAMETERS %%%%%%%%%%%%%%%%%%%%
 

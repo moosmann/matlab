@@ -1,4 +1,4 @@
-function [s, vol] = stitch_volumes( scan_path, scan_subfolder, reco_subfolder, stitched_volume_path, scan_mask, noisecut, testing )
+function [s, vol] = stitch_volumes( scan_path, scan_subfolder, reco_subfolder, stitched_volume_path, scan_mask, noisecut, testing, normalize_overlap)
 % Stich reconstructed volumes using log file information.
 %
 % ARGUMENTS
@@ -19,6 +19,11 @@ function [s, vol] = stitch_volumes( scan_path, scan_subfolder, reco_subfolder, s
 %   testing if scripts runs at all.
 % name: cell of scan names when scan_path includes dots which breaks
 %   scan_name extraction. default '': not used.
+% normalize_overlap: integer, default: 0. if 0, does nothing. if > 0
+%   normalizes the stitched volumes using the mean of the slab within z
+%   pixel from the horizontal boundary with z = normalize_overlap.
+%   Currentluy, only works for top2bottom scans, other direction not yet
+%   implemented.
 %
 % RETRURNS
 % s : struct containing individual arrays and full information for
@@ -32,21 +37,21 @@ dbstop if error
 tic
 if nargin < 1
     scan_path  = ...
-        '/asap3/petra3/gpfs/p07/2026/data/11022041/processed/004_gst_no1_c0_';
-        %{'/asap3/petra3/gpfs/p07/2025/data/11022007/processed/00036_cdma_1886.37_a','/asap3/petra3/gpfs/p07/2025/data/11022007/processed/00036_cdma_1886.37_b'};
-   % scan_path =
-   % '/asap3/petra3/gpfs/p07/2023/data/11017206/processed/itaw012_cet548a_OO01_Oo';
+        '/asap3/petra3/gpfs/p05/2026/data/11023485/processed/smfc_043_68_downcast';
+        %'/asap3/petra3/gpfs/p07/2026/data/11022041/processed/004_gst_no1_c0_';
+        %{'/asap3/petra3/gpfs/p07/2025/data/11022007/processed/00036_cdma_1886.37_a','/asap3/petra3/gpfs/p07/2025/data/11022007/processed/00036_cdma_1886.37_b'}
 end
 if nargin < 2
     %scan_subfolder = 'reco_phase/tie_regPar1p00';
-    scan_subfolder = 'reco';
+    scan_subfolder = 'reco_phase/tie_regPar_p00p30';
+    %scan_subfolder = 'reco';
 end
 if nargin < 3
     reco_subfolder = 'float_rawBin2';
 end
 if nargin < 4
-    stitched_volume_path = ...
-    '';%'/asap3/petra3/gpfs/p07/2025/data/11022007/scratch_cc/test';
+    %stitched_volume_path = '';
+    stitched_volume_path = '/asap3/petra3/gpfs/p07/2025/data/11022007/scratch_cc/test';
 end
 if nargin < 5
     scan_mask = [];
@@ -61,14 +66,16 @@ if nargin < 7
     testing = 0;
 end
 if nargin < 8
+    name = {};
     %name = {'00036_cdma_1886.37_a','00037_cdma_1886.37_b'};
 end
-
+if nargin < 9
+    normalize_overlap = 0;
+end
 % stitch level factor for old noisecut procedure
 stitch_level_fac = 1.5;
-normalize_overlap = 0;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
+fprintf('\nStart stitching volumes:')
 % Output path
 if isempty(stitched_volume_path)
     % Remove trailing underscores
@@ -100,9 +107,8 @@ fprintf('\nstitched name: %s' , stitched_name)
 ca;
 OpenParpool(0.5,0,stitched_volume_path,0,40);
 %% Read parameters and data %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-fprintf('\nRead parameters and volumes')
 if ~iscell( scan_path )
-    fprintf( '\nscan_path: %s', scan_path )
+    fprintf( '\n\nscan_path: %s', scan_path )
     % Scans to stitch
     scan_struct = dir( [scan_path '*' ] );
     [~, scan_name ] = fileparts( scan_path );
@@ -134,7 +140,7 @@ fprintf('\nScans to be stitched:')
 for nn = 1:num_scans
     fprintf('\n%s', scan_struct(nn).name)
 end
-fprintf('\nStart stitching:')
+fprintf('\n\nRead parameters and volumes')
 for nn = 1:num_scans
     
     % Name and folder
@@ -321,8 +327,8 @@ s(1).stitch_order = stitch_order;
 
 
 %% Normalize overlap
-fprintf( '\nNormalizing volumes');
 if normalize_overlap
+    fprintf( '\n\nNormalizing volumes');
     z = normalize_overlap;
     if top2bottom
         for nn = 1:num_scans -1
@@ -333,11 +339,13 @@ if normalize_overlap
            end
            s(nn+1).vol = (m1 + m2) / (2 * m2) * s(nn+1).vol;
         end
+    else
+        cprintf('Red','\nNormalization of volumes not implemented for scan direction bottom2top.')
     end
 end
 
 %% Absolute positions %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-fprintf( '\nAbsolute positions: ' )
+fprintf( '\n\nAbsolute positions: ' )
 for nn = 1:num_scans
     
     bin = s(nn).bin;
@@ -833,7 +841,7 @@ if top2bottom
         zmax = zrange(end); % highest slice number used
         vol = s(nn).vol;
         t = toc;
-        fprintf( '\nSaving stitched volume slices:' )
+        fprintf( '\n\nSaving stitched volume slices:' )
         if ~testing
             parfor ll = zrange % loop over slices taken
                 % create properly increasing file index
@@ -853,7 +861,7 @@ else
         num_slices = numel(zrange);
         zmin = zrange(1);
         vol = s(nn).vol;
-        fprintf( '\nSaving stitched volume slices:' )
+        fprintf( '\n\nSaving stitched volume slices:' )
         t = toc;
         if ~testing
             parfor ll = zrange
