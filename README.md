@@ -38,7 +38,8 @@ Helmholtz-Zentrum Hereon.
    
    git clone https://github.com/moosmann/matlab.git
 
-   OR
+
+   OR (maybe not working)
 
    Update to latest version: Fetch latest version of the 'master' branch 
    from the remote repository 'origin' and reset/overwrite all local 
@@ -80,12 +81,13 @@ Helmholtz-Zentrum Hereon.
     p05_reco' in  MATLAB's command line.   
 
    (3.4) Edit/check the reconstruction parameters, at least you have to
-   modify 'par.scan_path'.
+   modify 'par.scan_path'. If you set 'par.scan_path = pwd', MATLAB is
+   using the current directory for reconstruction.
 
    (3.5) Start the reconstruction by one of the following:
-    - Type 'p05_reco' in MATLAB's command line
+    - Enter 'p05_reco' in MATLAB's command line
     - Click 'RUN' button in editor tab
-    - Type 'F5' key when cursor focus is in the 'p05_reco.m' file
+    - Hit 'F5' key when cursor focus is in the 'p05_reco.m' file
     
 
     (3.6) Optinal: The reconstruction can be automatically looped over
